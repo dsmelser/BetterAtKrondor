@@ -30,6 +30,21 @@
 
 unsigned short *g_pKeywordTable = {0};
 MenuPage *g_pKeywordMenuScratch = {0};
+
+/*
+ * Keyword n of KEYWORD.DAT: a count, then each keyword's 16-bit offset from the start of
+ * the file (the size word before the table), then the strings. The original rebases the
+ * offsets in place into near pointers; natively they stay offsets, resolved here.
+ */
+#ifdef BAK_NATIVE
+#define KEYWORD(n)                                                                                 \
+    ((char *)g_pKeywordTable - 2 + *(unsigned short *)((char *)g_pKeywordTable + (n) * 2 + 2))
+#else
+#define KEYWORD(n) ((char *)*(unsigned short *)((char *)g_pKeywordTable + (n) * 2 + 2))
+#endif
+
+/* The scratch menu: a page and up to 17 entries. */
+#define SCRATCH_ENTRIES 0x11
 ActSpriteCache *g_pActSpriteCache = {0};
 
 void askabout_keyword_table_free(void) {
@@ -54,14 +69,17 @@ void far askabout_keyword_table_load(void) {
         g_pKeywordTable = galloc_safe_zcalloc(size);
         res_fread(g_pKeywordTable, 1, size, file);
         res_fclose(file);
+#ifndef BAK_NATIVE
         for (i = 0; i < (s16)*g_pKeywordTable; i = i + 1) {
             *(unsigned short *)((char *)g_pKeywordTable + 2 + i * 2) +=
                 (s16)((u16)g_pKeywordTable - 2);
         }
+#endif
     }
     if (g_pKeywordMenuScratch == (MenuPage *)0) {
 
-        g_pKeywordMenuScratch = galloc_safe_zcalloc(0x24d);
+        g_pKeywordMenuScratch = galloc_safe_zcalloc(RECORD_SIZE(MenuPage, 0x1c) +
+                                                    SCRATCH_ENTRIES * RECORD_SIZE(MenuEntry, 0x21));
     }
 }
 
@@ -69,11 +87,16 @@ char *askabout_name_or_keyword_lookup(s16 id) {
     if (id == 0) {
         return 0;
     } else if (id < 7) {
+#ifdef BAK_NATIVE
+        /* The original reaches the name by its offset in the game state. */
+        return g_gameState.characters[id - 1].name;
+#else
         return *(char **)((s16)&g_gameState.zoneDefaultCameraPos.nWorld_x + 3 + id * 0x5f);
+#endif
     } else {
         askabout_keyword_table_load();
 
-        return (char *)*(unsigned short *)((char *)g_pKeywordTable + (id + 0x124) * 2 + 2);
+        return KEYWORD(id + 0x124);
     }
 }
 
@@ -265,8 +288,8 @@ static s16 far askabout_menu_page_build(unsigned char far *keyword_table) {
         return 0;
     }
 
-    memset(src, 0, 0x1c);
-    memset(entries, 0, 0x231);
+    memset(src, 0, RECORD_SIZE(MenuPage, 0x1c));
+    memset(entries, 0, SCRATCH_ENTRIES * RECORD_SIZE(MenuEntry, 0x21));
     i = writeIdx = 0;
 
     for (; i < keyword_table[5]; i++) {
@@ -276,8 +299,7 @@ static s16 far askabout_menu_page_build(unsigned char far *keyword_table) {
                     ? 8
                     : 6;
             entries[writeIdx].pPrimary_label =
-                (char *)*(unsigned short *)((char *)g_pKeywordTable +
-                                            (*(unsigned short far *)(kw_ptr + i * 10) - 1) * 2 + 2);
+                KEYWORD(*(unsigned short far *)(kw_ptr + i * 10) - 1);
             entries[writeIdx].wAction_id = i + 0x80;
             ++writeIdx;
         }
@@ -357,6 +379,19 @@ s16 far askabout_dialog_run(unsigned char far *keyword_table, char *npc_name) {
     return choiceIdx;
 }
 
+#ifdef BAK_NATIVE
+/* The original hands dialog_apply_style_state the address of nX and gets x, y, width and
+ * height in nX, nY, nWidth and nHeight, where Borland lays those locals out in a row. */
+static void dialog_style_box(DDXRecord far *record, short *x, short *y, short *w, short *h) {
+    short box[4];
+    dialog_apply_style_state(record, (void far *)box);
+    *x = box[0];
+    *y = box[1];
+    *w = box[2];
+    *h = box[3];
+}
+#endif
+
 static void far askabout_menu_wdg_build_global(DDXRecord far *record) {
     s16 maxw;
     short nHeight;
@@ -372,8 +407,12 @@ static void far askabout_menu_wdg_build_global(DDXRecord far *record) {
     entries = (MenuEntry *)(g_pKeywordMenuScratch + 1);
     page = g_pKeywordMenuScratch;
     kw = (unsigned char far *)record + 9;
-    memset(page, 0, 0x1c);
+    memset(page, 0, RECORD_SIZE(MenuPage, 0x1c));
+#ifdef BAK_NATIVE
+    dialog_style_box(record, &nX, &nY, &nWidth, &nHeight);
+#else
     dialog_apply_style_state(record, (void far *)&nX);
+#endif
     page->wWants_screen_save = 0;
     page->wBg_color = 0;
     page->wVisible = 0;
@@ -386,10 +425,9 @@ static void far askabout_menu_wdg_build_global(DDXRecord far *record) {
 
     i = maxw = 0;
     for (; i < (s16)page->wEntry_count;) {
-        memset(&entries[i], 0, 0x21);
+        memset(&entries[i], 0, RECORD_SIZE(MenuEntry, 0x21));
         gstate_event_write(*(unsigned short far *)kw, 0);
-        entries[i].pPrimary_label = (char *)*(
-            unsigned short *)((char *)g_pKeywordTable + (*(unsigned short far *)kw - 1) * 2 + 2);
+        entries[i].pPrimary_label = KEYWORD(*(unsigned short far *)kw - 1);
         if ((tw = font_text_width_ds(entries[i].pPrimary_label) + 10) > maxw)
             maxw = tw;
         i++;
@@ -423,8 +461,12 @@ static void far askabout_build_party_select_menu(DDXRecord far *record) {
 
     src = (MenuEntry *)(g_pKeywordMenuScratch + 1);
     page = g_pKeywordMenuScratch;
-    memset(page, 0, 0x1c);
+    memset(page, 0, RECORD_SIZE(MenuPage, 0x1c));
+#ifdef BAK_NATIVE
+    dialog_style_box(record, &nX, &nY, &nWidth, &nHeight);
+#else
     dialog_apply_style_state(record, (void far *)&nX);
+#endif
     page->wWants_screen_save = 0;
     page->wBg_color = 0;
     page->wVisible = 0;
@@ -434,7 +476,7 @@ static void far askabout_build_party_select_menu(DDXRecord far *record) {
     page->rect.height = nHeight;
     page->pEntries = (MenuEntry *)(g_pKeywordMenuScratch + 1);
     page->wEntry_count = (s16)g_gameState.partySize + 1;
-    memset(src, 0, page->wEntry_count * 0x21);
+    memset(src, 0, page->wEntry_count * RECORD_SIZE(MenuEntry, 0x21));
     i = max_width = 0;
     for (; i < (s16)page->wEntry_count; i++) {
         src[i].pPrimary_label = gstate_party_member_record(i)->name;
