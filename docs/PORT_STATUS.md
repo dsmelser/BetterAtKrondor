@@ -17,6 +17,7 @@ Where the native port stands. Update this file in the same commit as the work it
 | Native sound driver bound to the loaded SX.OVL chunk | ✅ MT-32 (`port/drivers/m32.c`); the others stop with the driver's name |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ✅ intro, credits, main menu; Quit To DOS, Preferences and Contents work and the game quits cleanly; Start New Game goes on into chapter 1 (M2). At 4bd88e5 native CI is green (106 differential tests) and the reference build is byte-identical for 1.00 and 1.02 |
+| Golden screenshot of the main menu against the original in DOSBox Staging | ✅ identical pixel for pixel, cursor included (`dosbox_golden.py run main-menu`, below) |
 
 **Current behaviour.** `betterkrondor --data <dir>` first checks that the folder holds the game: `KRONDOR.RMF`
 must be a resource index and the archive it names must be present, since the game uses whatever it failed to
@@ -219,6 +220,21 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   byte when its ends differ only above bit 11 (it masks with 0FFCh where the run slots use FFFCh), and an
   upward vertical line (slot 2) loses bit 15 of its height, which it doubles and halves around a table read.
   Only coordinates far off the screen reach either.
+
+## Black-box comparison with the original
+
+`port/tools/dosbox_golden.py` runs the user's KRONDOR.EXE in DOSBox Staging (0.84 or later) and the port
+on the same data, and compares the pictures they end on, pixel by pixel in DAC colours. DOSBox runs headless,
+on its own settings and with sound off. The game folder is mounted under an overlay, so the original's
+writes stay out of it. Keys go in through DOSBox's `AUTOTYPE`. The picture is read through
+DOSBox's HTTP API: a small routine hooked on IRQ 0 saves the VGA registers and the DAC, and selects each
+plane in turn while the API reads A000h. Captures and diffs go to `work/golden/<scenario>/`.
+
+| Scenario | Result |
+|---|---|
+| `main-menu`: Escape during the intro | ✅ identical (the original shows the page at 4000h) |
+
+The decoder handles the unchained 256-colour modes only; the books' 640x350 mode comes with the HEG driver.
 
 ## Platform services
 
