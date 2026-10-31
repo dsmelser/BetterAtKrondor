@@ -148,13 +148,16 @@ and runs them through the platform's VGA, so it relies on the register state as 
 `test_heg.py` runs the reference build's `HEG.EXE` on the planar model, from scrambled graphics-controller
 and sequencer registers and latches, and compares display memory, the graphics-context block, every VGA
 register (the index registers, the attribute flip-flop and the latches too), the DAC and the palette mirror
-after every call. Each of 13 deliberate breaks of the translation fails it.
+after every call. Each of 13 deliberate breaks of the translation fails it. The sprite tests blit images
+that slot 14 installed and records into random bytes, with each flip, at each edge of the clip rectangle
+with x at every value mod 8, on both pages; each of 33 breaks of the sprite code fails them. The original
+copies the sprite's record into its stack frame through DS, so they call it with DS = SS, as the game does.
 
 | Slots | Status |
 |---|---|
-| init (the 350-line mode 10h; the 400- and 480-line mode 12h and the 640x200 mode 0Eh stop in the platform), 1 glyph, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 13/14 image size/install, 17 packed rows, 20 palette, 21/22 pixels, 25 border, 34 blend | ✅ verified |
+| init (the 350-line mode 10h; the 400- and 480-line mode 12h and the 640x200 mode 0Eh stop in the platform), 1 glyph, 3/29 sprites (29 flipped), 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 13/14 image size/install, 17 packed rows, 20 palette, 21/22 pixels, 25 border, 34 blend | ✅ verified |
 | 32 reset the archive cursor | ported; observable only through 31 |
-| 2, 3/29 sprites, 10, 11, 16, 26, 27, 30, 31, 33, 36-38 | ⬜ trap with the routine's name |
+| 2, 10, 11, 16, 26, 27, 30, 31, 33, 36-38 | ⬜ trap with the routine's name |
 | 9, 12, 15, 18, 19, 23, 24, 28, 35 | empty in the original: no-ops |
 
 The other adapters' chunks are not ported.
@@ -255,6 +258,13 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   segment when the step after a group's second word carries out of the offset; a source whose offset wraps
   at the first word reads the segment's start again. Buffers from `alloc_far` start at offset 0 and never
   wrap there.
+- **The HEG driver's sprites clip in whole bytes.** Slot 29 takes the bytes wholly past the right edge off
+  each row, with the tail byte that holds a row's last x & 7 pixels (even when the sprite only reaches the
+  edge), and skips the bytes before the left edge rounded up: an edge inside a byte lets up to 7 pixels
+  past it or loses up to 7 inside it. Rows cut off the top move the source by an 8-bit product, wrong from
+  256 rows or 2048 pixels wide on, and the bottom and top tests look at a difference's sign only. A row
+  takes (width + 7) / 8 bytes of a plane but rows are width / 8 bytes apart, so a width that is not a
+  multiple of 8 reads into the next row. The translation keeps all of it.
 
 ## Black-box comparison with the original
 

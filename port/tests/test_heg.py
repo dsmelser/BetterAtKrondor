@@ -339,3 +339,235 @@ def test_image_decode(pair):
         assert got[:len(records)] == records, f"image records {i}: {sizes}"
         assert got[len(records):] == pair.m.read((buf, 0), size), f"installed images {i}: {sizes}"
         pair.assert_same(f"after image set {i}")
+
+
+SPRITE_DATA = 0x20000  # the images' block: two segments on each side
+SPRITE_AT = 0xF0  # the record slots 29 and 3 get, between slot 14's table and its records
+OFF_CLIP = 0x03  # bClip_enabled, then xmin, xmax, ymin, ymax
+SCREEN = (1, 0, 639, 0, 349)
+
+
+class Sprites:
+    """Images for slots 29 and 3: a block of two segments with the same bytes on both
+    sides, images installed by slot 14 at its start. The original's master copies the
+    record into its stack frame through DS, so DS must be SS, as in the game: one segment
+    holds slot 14's table and records, the record a blit gets, and the stack."""
+
+    def __init__(self, pair: Pair):
+        self.pair = pair
+        self.dgroup = pair.m.alloc(0x10000)
+        self.data = pair.m.alloc(SPRITE_DATA)
+        self.blits = 0
+
+    def load(self, rng: random.Random, sizes: list[tuple[int, int]], off: int = 0) -> list:
+        """Random bytes, then images of the given sizes from offset off; their records
+        (segment relative to the block's, plane offset, mask offset, width, height)."""
+        m = self.pair.m
+        data = rng.randbytes(SPRITE_DATA)
+        m.write((self.data, 0), data)
+        table = b""
+        for i, (w, h) in enumerate(sizes):
+            m.write((self.dgroup, 0x100 + 10 * i), _u16s(0xDEAD, 0xBEEF, 0xF00D, w, h))
+            table += _u16s(0x100 + 10 * i)
+        m.write((self.dgroup, 0), table + _u16s(0))
+        packed = sum(w // 2 * h for w, h in sizes)
+        if sizes:
+            self.pair.chunk.call(14, 0, off, self.data, packed & 0xFFFF, packed >> 16, 0, 0, 0, 0,
+                                 ds=self.dgroup)
+        got = self.pair.native.call("heg.sprite_data", _u16s(off) + struct.pack("<I", packed)
+                                    + _sizes_arg(sizes) + data)
+        records = []
+        for k in range(len(sizes)):
+            seg, o, mask, w, h = struct.unpack("<5H", m.read((self.dgroup, 0x100 + 10 * k), 10))
+            records.append((seg - self.data, o, mask, w, h))
+        n = 10 * len(sizes)
+        assert got[:n] == b"".join(_u16s(*r) for r in records), f"installed records {sizes}"
+        assert got[n:] == m.read((self.data, 0), SPRITE_DATA), f"installed images {sizes}"
+        self.pair.assert_same(f"after installing {sizes}")
+        return records
+
+    def clip(self, enabled: int, xmin: int, xmax: int, ymin: int, ymax: int) -> None:
+        self.pair.set_ctx(OFF_CLIP, bytes([enabled]) + _u16s(xmin, xmax, ymin, ymax))
+
+    def blit(self, slot: int, flags: int, x: int, y: int, record: tuple, what: str = "",
+             page: int | None = None) -> None:
+        """Slot 3 or 29 on both sides, onto the page given or else A000 and A800 by turns
+        (the context's initial page, 0, is outside display memory)."""
+        page = PAGES[self.blits & 1] if page is None else page
+        self.blits += 1
+        self.pair.set_ctx_u16(OFF_DST, page)
+        rseg, off, mask, w, h = record
+        self.pair.m.write((self.dgroup, SPRITE_AT), _u16s(self.data + rseg, off, mask, w, h))
+        args = (SPRITE_AT, x, y) if slot == 3 else (SPRITE_AT, x, y, flags)
+        self.pair.chunk.call(slot, *args, ds=self.dgroup, ss=self.dgroup)
+        self.pair.native.call("heg.sprite", _u16s(slot, flags, x, y, rseg, off, mask, w, h))
+        self.pair.assert_same(f"after sprite {what}: slot {slot} flags {flags:#x} at ({x}, {y}) "
+                              f"on {page:04X}, record {record}")
+
+
+def _record(rseg: int, off: int, w: int, h: int, plane: int | None = None) -> tuple:
+    """A record into the random bytes: planes of (w / 8) * h bytes, then the mask."""
+    plane = (w >> 3) * h if plane is None else plane
+    return rseg, off, (off + 4 * plane) & 0xFFFF, w, h
+
+
+def test_sprite_edges(pair):
+    """Every flip at each edge of the clip rectangle, from inside to just outside, with the
+    edges moved through a byte so x takes every value mod 8: whole bytes, a pixel more or
+    less, touching, one pixel left in, gone."""
+    rng = random.Random(11)
+    pair.fill_vram(rng)
+    s = Sprites(pair)
+    s.load(rng, [])
+    i = 0
+    for shift in range(8):
+        xmin, xmax, ymin, ymax = 40 + shift, 599 + shift, 20, 300
+        s.clip(1, xmin, xmax, ymin, ymax)
+        for w, h in ((24, 5), (21, 3)):
+            rec = _record(0x123 + i % 7, rng.randrange(0x40, 0x8000), w, h)
+            xs = [xmin - d for d in (0, 1, 5, 8, 9, 13, 16, w - 1, w, w + 6)]
+            xs += [xmax + 1 - w + d for d in (0, 1, 5, 8, 9, 13, 16, w - 1, w, w + 6)]
+            xs.append(xmin + 37)
+            for x in xs:
+                for flags in range(4):
+                    if i % 5 == 0:
+                        pair.scramble(rng)
+                    s.blit(29, flags, x, 100 + i % 23, rec, f"{i} (clip x {xmin}..{xmax})")
+                    i += 1
+        w, h = 16, 12
+        rec = _record(0x340, rng.randrange(0x40, 0x8000), w, h)
+        ys = [ymin - d for d in (0, 1, 4, h - 1, h, h + 3)]
+        ys += [ymax + 1 - h + d for d in (0, 1, 4, h - 1, h, h + 3)]
+        for y in ys:
+            for flags in range(4):
+                s.blit(29, flags, xmin + 50 + i % 8, y, rec, f"{i} (clip y {ymin}..{ymax})")
+                i += 1
+        # Corners: cut on two sides at once.
+        for x, y in ((xmin - 3, ymin - 2), (xmax - 9, ymax - 4), (xmin - 11, ymax - 1),
+                     (xmax - 2, ymin - 7)):
+            for flags in range(4):
+                s.blit(29, flags, x, y, rec, f"{i} (corner)")
+                i += 1
+    # Wider and taller than the clip rectangle: cut on both sides.
+    for shift in range(8):
+        s.clip(1, 100 + shift, 131 + shift, 50, 57)
+        rec = _record(0x200, rng.randrange(0x40, 0x8000), 64, 20)
+        for flags in range(4):
+            s.blit(29, flags, 90, 45, rec, f"{i} (both sides)")
+            s.blit(29, flags, 70 + shift, 41, rec, f"{i} (both sides)")
+            i += 1
+
+
+def test_sprite_quirks(pair):
+    """Tall sprites cut by 256 rows and more (the source moves by an 8-bit product), widths
+    whose byte count passes 255 or is 0 (256 bytes a row), widths that are not a multiple of
+    8, inverted clip rectangles, rows above the top (bit 14 of y), clipping off, a negative
+    height, the flags' high byte and flags above 3; slot 3."""
+    rng = random.Random(12)
+    pair.fill_vram(rng)
+    s = Sprites(pair)
+    s.load(rng, [])
+    s.clip(*SCREEN)
+    i = 0
+    for w in (8, 16):
+        rec = _record(0x10, rng.randrange(0x40, 0x100), w, 300)
+        for y in (-255, -256, -257, -280, -299, -300, 100, 349):
+            for flags in range(4):
+                s.blit(29, flags, 200 + i % 8, y, rec, f"{i} (tall)")
+                i += 1
+    for w in (2048, 2056, 2047, 2100):  # 256 bytes a row and more
+        rec = _record(0x20, rng.randrange(0x40, 0x100), w, 3)
+        for x, y in ((-1000, 10), (-900, -2), (-1500 - i % 8, 347), (5, 20)):
+            for flags in (0, 3):
+                s.blit(29, flags, x, y, rec, f"{i} (wide)")
+                i += 1
+    rec = _record(0x30, 0x200, 0, 2, plane=4)
+    for clip in ((0, 0, 639, 0, 349), SCREEN):
+        s.clip(*clip)
+        for flags in range(4):
+            s.blit(29, flags, 300 + i % 8, 30, rec, f"{i} (width 0, clip {clip})")
+            i += 1
+    for w in (1, 7, 9, 12, 21, 30):
+        rec = _record(0x40, rng.randrange(0x40, 0x100), w, 4)
+        for clip in ((0, 0, 639, 0, 349), (1, 3, 600, 0, 349)):
+            s.clip(*clip)
+            for x in (-5, 0, 1, 4, 9, 590 - w // 2, 600 - w):
+                for flags in range(4):
+                    if i % 7 == 0:
+                        pair.scramble(rng)
+                    s.blit(29, flags, x, 40, rec, f"{i} (width {w})")
+                    i += 1
+    # Inverted horizontally: the byte count wraps. (Cut on both sides by an inverted rectangle,
+    # the rows come to ymax - ymin + 1, 0 or a count near 65536.)
+    rec = _record(0x50, 0x80, 32, 6)
+    for clip in ((1, 120, 100, 0, 349), (1, 140, 100, 0, 349), (1, 0, 639, 27, 27)):
+        s.clip(*clip)
+        for x in (90, 100, 104, 117):
+            for flags in range(4):
+                s.blit(29, flags, x, 25, rec, f"{i} (clip {clip})")
+                i += 1
+    s.clip(0, 0, 639, 0, 349)
+    for y in (-1, -3, -100, -16384, 16384 + 7, 0x7FF0):
+        for flags in range(4):
+            s.blit(29, flags, 64 + i % 8, y, rec, f"{i} (unclipped)")
+            i += 1
+    # A negative height whose bottom and top differences overflow: the original tests their
+    # sign (JS), not the comparison, and the two cuts leave the clip rectangle's 350 rows.
+    s.clip(*SCREEN)
+    negative = _record(0x60, 0x40, 8, -17000 & 0xFFFF)
+    for flags in range(4):
+        s.blit(29, flags, 100 + i % 8, -16000, negative, f"{i} (height -17000)")
+        i += 1
+    s.clip(*SCREEN)
+    for y in (-1, -3, -5):
+        for flags in range(4):
+            s.blit(29, flags, 64 + i % 8, y, rec, f"{i} (above the top)")
+            i += 1
+    for flags in (0x100, 0x102, 0xFF03, 0x8001):
+        for x in (-7, 300, 630):
+            s.blit(29, flags, x, 344, rec, f"{i} (high byte)")
+            i += 1
+    # Flags above 3 jump through the words after the dispatch table, but a sprite clipped
+    # away leaves before the dispatch.
+    for flags in (4, 7, 0x80, 0xFF):
+        for x, y in ((-32, 100), (640, 100), (300, -6), (300, 350)):
+            s.blit(29, flags, x, y, rec, f"{i} (clipped away)")
+            i += 1
+    for x, y in ((-7, 3), (300, 100), (630, 345), (5000, 5)):
+        s.blit(3, 0, x, y, rec, f"{i} (slot 3)")
+        i += 1
+
+
+def test_sprites(pair):
+    """Images installed by slot 14 and random records, at random places, flips, clip
+    rectangles and pages, from scrambled registers."""
+    rng = random.Random(13)
+    pair.fill_vram(rng)
+    s = Sprites(pair)
+    sizes = [(8, 4), (16, 10), (24, 7), (32, 20), (40, 3), (64, 33), (128, 12), (12, 6),
+             (20, 5), (16, 270)]
+    records = s.load(rng, sizes, rng.randrange(16))
+    for i in range(400):
+        if rng.random() < 0.6:
+            rec = rng.choice(records)
+        else:
+            w, h = rng.choice((8, 16, 24, 40, 64, rng.randrange(1, 100))), rng.randrange(1, 40)
+            rec = _record(rng.randrange(0x1000), rng.randrange(0x10000), w, h)
+        w, h = rec[3], rec[4]
+        if rng.random() < 0.2:
+            clip = SCREEN
+        else:
+            xmin, ymin = rng.randrange(-20, 400), rng.randrange(-20, 250)
+            clip = (rng.choice((1, 1, 1, 0, 0x80)), xmin, xmin + rng.randrange(0, 300),
+                    ymin, ymin + rng.randrange(0, 150))
+        s.clip(*clip)
+        if clip[0]:
+            x = rng.randrange(clip[1] - w - 12, clip[2] + 12)
+            y = rng.randrange(clip[3] - h - 6, clip[4] + 6)
+        else:
+            x, y = rng.randrange(-30, 650), rng.randrange(-h - 5, 360)
+        if rng.random() < 0.4:
+            pair.scramble(rng)
+        slot = 3 if rng.random() < 0.15 else 29
+        flags = rng.randrange(4) | rng.choice((0, 0, 0, 0, 0x100, 0xA500))
+        s.blit(slot, flags, x, y, rec, f"{i} (clip {clip})", page=rng.choice(PAGES))

@@ -163,6 +163,59 @@ static void cmd_image_decode(DtIn *in, DtOut *out) {
     bak_dos_free(b);
 }
 
+/* The images sprites come from: a DOS block of two segments, so a record whose segment is
+ * in the first has all 64 KB of it. */
+#define SPRITE_DATA 0x20000
+static unsigned char *s_sprites;
+
+/*
+ * heg.sprite_data off u32 packed n (w h)* <SPRITE_DATA bytes>
+ *   -> each installed record (its segment relative to the block's), then the block
+ * The block takes the bytes; with n images, slot 14 then installs them from offset off.
+ */
+static void cmd_sprite_data(DtIn *in, DtOut *out) {
+    ImageRecord records[MAX_IMAGES];
+    ImageRecord *table[MAX_IMAGES + 1];
+    u16 off = dt_u16(in);
+    u32 packed = dt_u32(in);
+    u16 n = dt_u16(in);
+    read_images(in, records, table, n);
+    if (s_sprites == NULL)
+        s_sprites = bak_dos_alloc(SPRITE_DATA, 1);
+    memcpy(s_sprites, dt_bytes(in, SPRITE_DATA), SPRITE_DATA);
+    if (n != 0)
+        heg_image_decode(table, s_sprites + off, packed, NULL, 0);
+    u16 seg = FP_SEG(s_sprites);
+    for (u16 i = 0; i < n; i++) {
+        dt_put_u16(out, (u16)(records[i].wImageData - seg));
+        dt_put_u16(out, records[i].wImageOff);
+        dt_put_u16(out, records[i].wUnk4);
+        dt_put_u16(out, (u16)records[i].nWidth);
+        dt_put_u16(out, (u16)records[i].nHeight);
+    }
+    dt_put_bytes(out, s_sprites, SPRITE_DATA);
+}
+
+/* heg.sprite slot(3/29) flags x y seg off mask w h: a record whose segment is relative to
+ * the sprite block's (slot 3 takes no flags) */
+static void cmd_sprite(DtIn *in, DtOut *out) {
+    (void)out;
+    if (s_sprites == NULL)
+        dt_fail("no sprite data (heg.sprite_data)");
+    u16 slot = dt_u16(in), flags = dt_u16(in);
+    s16 x = arg(in), y = arg(in);
+    ImageRecord rec;
+    rec.wImageData = (u16)(FP_SEG(s_sprites) + dt_u16(in));
+    rec.wImageOff = dt_u16(in);
+    rec.wUnk4 = dt_u16(in);
+    rec.nWidth = arg(in);
+    rec.nHeight = arg(in);
+    if (slot == 3)
+        heg_blit_sprite_noflip(&rec, x, y);
+    else
+        heg_blit_sprite_master(&rec, x, y, flags);
+}
+
 /* heg.palette_set [48 bytes]: without them, a null palette */
 static void cmd_palette_set(DtIn *in, DtOut *out) {
     (void)out;
@@ -211,6 +264,8 @@ const DtEntry dt_heg_entries[] = {
     DT_COMMAND("heg.vsync", cmd_vsync),
     DT_COMMAND("heg.image_install", cmd_image_install),
     DT_COMMAND("heg.image_decode", cmd_image_decode),
+    DT_COMMAND("heg.sprite_data", cmd_sprite_data),
+    DT_COMMAND("heg.sprite", cmd_sprite),
     DT_COMMAND("heg.palette_set", cmd_palette_set),
     DT_COMMAND("heg.getpixel", cmd_getpixel),
     DT_COMMAND("heg.putpixel", cmd_putpixel),

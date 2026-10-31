@@ -20,7 +20,11 @@
  */
 const RendererVtable *heg_driver_init(void);
 
-void heg_blit_glyph_row(s16 y, s16 x, s16 rows, const unsigned char *glyph);  /* 1: BP DX CX SI */
+void heg_blit_glyph_row(s16 y, s16 x, s16 rows, const unsigned char *glyph); /* 1: BP DX CX SI */
+/* 3, 29: an installed image from its record (a near pointer in the original), 29 with flip
+ * flags (vga.h's SpriteMasterFn). */
+void heg_blit_sprite_noflip(const ImageRecord *sprite, s16 x, s16 y);
+void heg_blit_sprite_master(const ImageRecord *sprite, s16 x, s16 y, u16 flags);
 void heg_present(s16 x, s16 y, s16 width, s16 height);                        /* 4 */
 void heg_save_rect(unsigned char *dst, s16 x, s16 y, s16 width, s16 height);  /* 5 */
 s32 heg_blit_size(s16 width, s16 height);                                     /* 6 */

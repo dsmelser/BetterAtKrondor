@@ -83,13 +83,11 @@ static void heg_noop(void) {
         BAK_UNIMPLEMENTED("HEG driver slot " #slot ": heg_" #name);                                \
     }
 TRAP(2, line_renderer)
-TRAP(3, blit_sprite_noflip)
 TRAP(10, pixel_run_fill)
 TRAP(11, pixel_run_fill_alt)
 TRAP(16, image_install_helper)
 TRAP(26, set_palette_entry)
 TRAP(27, span_fill)
-TRAP(29, blit_sprite_master)
 TRAP(30, blit_byte_aligned_latched)
 TRAP(31, install_image_archive)
 TRAP(33, blit_sprite_planar)
@@ -111,7 +109,7 @@ static void fill_slots(void) {
     memset(t, 0, sizeof *t); /* slots 0 and 39-49 are null */
     t->pfn_blit_glyph_row = SLOT(heg_blit_glyph_row);
     t->pfn_draw_line = SLOT(trap_line_renderer);
-    t->pfn_blit_sprite = SLOT(trap_blit_sprite_noflip);
+    t->pfn_blit_sprite = SLOT(heg_blit_sprite_noflip);
     t->pfn_present = SLOT(heg_present);
     t->pfn_save_rect = SLOT(heg_save_rect);
     t->pfn_rect_byte_size = SLOT(heg_blit_size);
@@ -137,7 +135,7 @@ static void fill_slots(void) {
     t->slot_26_unimplemented = SLOT(trap_set_palette_entry);
     t->pfn_fill_spans_dithered_modey = SLOT(trap_span_fill);
     t->slot_28_unimplemented = noop;
-    t->pfn_blit_sprite_master = SLOT(trap_blit_sprite_master);
+    t->pfn_blit_sprite_master = SLOT(heg_blit_sprite_master);
     t->pfn_blit_sprite_flip_h = SLOT(trap_blit_byte_aligned_latched);
     t->pfn_blit_sprite_flip_v = SLOT(trap_install_image_archive);
     t->pfn_clear_rect_state = SLOT(heg_reset_archive_install_flag);
@@ -258,6 +256,241 @@ void heg_blit_glyph_row(s16 y, s16 x, s16 rows, const unsigned char *glyph) {
         bak_vga_write(es, di++, fg);
         di = (u16)(di + PLANAR_ROW - 2);
     } while (--n != 0);
+}
+
+/* ---- slots 3 and 29: sprites ------------------------------------------------------- */
+
+/*
+ * A sprite as the master hands it to the row cores. The original keeps these in words of
+ * its code segment (chunk:1710h-171Fh) that it saves on entry and restores on the way out,
+ * so they belong to one call.
+ */
+typedef struct SpriteBlit {
+    const unsigned char *src; /* the image's segment */
+    u32 extent;               /* the bytes of it the port has */
+    u16 planes;               /* plane 0's first byte */
+    u16 mask;                 /* the transparency mask's first byte */
+    u16 es, di;               /* the destination page and the first byte there */
+    unsigned shift;           /* x & 7: the source moves right by this many bits */
+    uint8_t count;            /* bytes a row, before its tail byte */
+    u16 stride;               /* width / 8: the image's bytes from row to row */
+    u16 planeSize;            /* the bytes from plane to plane */
+    u16 rows;
+    bool hflip, vflip;
+    bool leftClipped, rightClipped;
+} SpriteBlit;
+
+/* A byte of the image's segment; past the memory the port has there, 0. */
+static uint8_t sprite_byte(const SpriteBlit *s, u16 off) {
+    return off < s->extent ? s->src[off] : 0;
+}
+
+/* A byte's bits in the opposite order (the flipping cores' eight SHR AL, 1 / RCL r, 1). */
+static uint8_t reverse_bits(uint8_t v) {
+    uint8_t r = 0;
+    for (unsigned i = 0; i < 8; i++, v >>= 1)
+        r = (uint8_t)(r << 1 | (v & 1));
+    return r;
+}
+
+/* The first row's offset as the master computes it: the LUT entry for y, but y * 80 when
+ * bit 14 of y is set (y from -16384 to -1, or 16384 and up). */
+static u16 sprite_row_offset(s16 y) {
+    if ((u16)y & 0x4000)
+        return (u16)((u16)y * PLANAR_ROW);
+    return row_offset(y);
+}
+
+/*
+ * One pass of the row cores over the sprite's rows, from source offset si. The cut-out
+ * pass reads the mask inverted and writes 0 through it as the bit mask, in the write mode
+ * the caller left (the driver keeps mode 2: the opaque pixels become colour 0); a plane
+ * pass writes the plane's bytes, which the OR set up before it adds to the latched
+ * destination. Each byte written is the next source byte shifted right by x & 7, the bits
+ * shifted out of the one before coming in at the top. A row is count bytes, then a tail
+ * byte with the last bits shifted out, which a clipped right edge drops. A left-clipped
+ * row starts with the bits of the byte before its first (after it, flipped horizontally);
+ * with no bytes left it draws only the tail. The horizontal flip walks each row backwards
+ * and reverses each byte's bits; the vertical flip walks the rows upwards.
+ */
+static void sprite_pass(const SpriteBlit *s, u16 si, bool cut) {
+    uint8_t invert = cut ? 0xFF : 0x00;
+    unsigned back = 8 - s->shift;
+    u16 di = s->di;
+    u16 rows = s->rows;
+    do {
+        u16 src = si, dst = di;
+        uint8_t n = s->count;
+        uint8_t carry = 0;
+        bool tail = true;
+        if (s->leftClipped) {
+            uint8_t b = sprite_byte(s, s->hflip ? (u16)(src + 1) : (u16)(src - 1));
+            b ^= invert;
+            carry = s->hflip ? reverse_bits(b) : b;
+        }
+        if (!s->leftClipped || n != 0) {
+            do { /* n = 0 is 256 bytes */
+                uint8_t b = (uint8_t)(sprite_byte(s, src) ^ invert);
+                if (s->hflip) {
+                    b = reverse_bits(b);
+                    src--;
+                } else {
+                    src++;
+                }
+                u16 ax = ror16((u16)(carry << 8 | b), s->shift);
+                if (cut)
+                    bak_port_out8(0x3CF, (uint8_t)ax);
+                (void)bak_vga_read(s->es, dst);
+                bak_vga_write(s->es, dst++, cut ? 0 : (uint8_t)ax);
+                carry = (uint8_t)((uint8_t)(ax >> 8) >> back);
+            } while (--n != 0);
+            tail = !s->rightClipped;
+        }
+        if (tail) {
+            u16 ax = ror16((u16)(carry << 8), s->shift);
+            if (cut)
+                bak_port_out8(0x3CF, (uint8_t)ax);
+            (void)bak_vga_read(s->es, dst);
+            bak_vga_write(s->es, dst, cut ? 0 : (uint8_t)ax);
+        }
+        si = (u16)(s->vflip ? si - s->stride : si + s->stride);
+        di = (u16)(di + PLANAR_ROW);
+    } while (--rows != 0);
+}
+
+/* The row cores: the cut-out pass over the mask (bit mask left at FFh), then write mode 0
+ * with OR and planes 0-3, each through its read map select and map mask. */
+static void sprite_cores(const SpriteBlit *s) {
+    bak_port_out8(0x3CE, 8);
+    sprite_pass(s, s->mask, true);
+    bak_port_out8(0x3CF, 0xFF);
+    bak_port_out16(0x3CE, 0x0005);
+    bak_port_out16(0x3CE, 0x1003);
+    u16 si = s->planes;
+    for (unsigned plane = 0; plane < 4; plane++) {
+        bak_port_out16(0x3CE, (u16)(plane << 8 | 4));
+        bak_port_out16(0x3C4, (u16)((1u << plane) << 8 | 2));
+        sprite_pass(s, si, false);
+        si = (u16)(si + s->planeSize);
+    }
+}
+
+/*
+ * The clip rectangle as the master applies it, in whole bytes: false when the sprite is
+ * outside it. Right: the bytes wholly past xmax come off each row, and the tail byte with
+ * them, even when nothing passes it (x + width = xmax + 1). Left: the bytes before xmin
+ * are skipped, rounded up. So an edge inside a byte draws up to 7 pixels past it or drops
+ * up to 7 inside it. The rows cut off the top move the source by their count's low byte
+ * times the stride's (an 8-bit MUL), wrong from 256 rows or a 2048-pixel width on. The
+ * bottom and top tests take the sign of a difference (JS), not a comparison.
+ */
+static bool sprite_clip(SpriteBlit *s, s16 x, s16 y, u16 width, u16 height) {
+    const ClipRect *c = &g_graphics_context.clip;
+    u16 limit = (u16)(c->xmax + 1);
+    u16 end = (u16)(x + width);
+    if (!((s16)limit > (s16)end)) {
+        u16 over = (u16)(end - limit);
+        if (!((s16)over < (s16)width))
+            return false;
+        s->count = (uint8_t)(s->count - (uint8_t)(over >> 3));
+        s->rightClipped = true;
+    }
+    u16 left = (u16)(x - c->xmin);
+    if ((s16)left < 0) {
+        if (!((s32)(s16)left + (s32)(s16)width > 0))
+            return false;
+        s->leftClipped = true;
+        u16 skip = (u16)((u16)(-left + 7) >> 3);
+        s->count = (uint8_t)(s->count - (uint8_t)skip);
+        s->di = (u16)(s->di + skip);
+        if (s->hflip)
+            skip = (u16)-skip;
+        s->planes = (u16)(s->planes + skip);
+        s->mask = (u16)(s->mask + skip);
+    }
+    u16 bottom = (u16)(y + height);
+    if (!((s16)bottom <= c->ymax)) {
+        u16 over = (u16)(bottom - c->ymax);
+        if (!((s16)(u16)(over - height) < 0))
+            return false;
+        s->rows = (u16)(s->rows - (u16)(over - 1));
+    }
+    u16 top = (u16)(c->ymin - y);
+    if ((s16)top >= 0) {
+        if (!((s16)(u16)(top - height) < 0))
+            return false;
+        s->rows = (u16)(s->rows - top);
+        s->di = (u16)(s->di + (u16)(top << 4) + (u16)(top << 6));
+        u16 skip = (u16)((uint8_t)top * (uint8_t)s->stride);
+        if (s->vflip)
+            skip = (u16)-skip;
+        s->planes = (u16)(s->planes + skip);
+        s->mask = (u16)(s->mask + skip);
+    }
+    return true;
+}
+
+/* The cores' common exit, also taken when the sprite is clipped away: write mode 2, no
+ * rotation or logical operation, all planes. */
+static void sprite_epilogue(void) {
+    bak_port_out16(0x3CE, 0x0205);
+    bak_port_out16(0x3CE, 0x0003);
+    bak_port_out16(0x3C4, 0x0F02);
+}
+
+/*
+ * Slot 29: an image installed by slot 14 at (x, y) on the destination page, through its
+ * transparency mask, flipped vertically (flags bit 0) and/or horizontally (bit 1), clipped
+ * to the clip rectangle when clipping is on. The opaque pixels are cut out to colour 0 in
+ * the current write mode, then the four planes are ORed in. Each row takes (width + 7) / 8
+ * bytes of each plane (a byte count kept in 8 bits) but the rows are width / 8 bytes
+ * apart, so a width that is not a multiple of 8 reads into the next row (and before its
+ * row, flipped horizontally). Only the flags' low byte counts. (The original copies the
+ * record into its stack frame through DS: it relies on DS = SS, as in the game.)
+ */
+void heg_blit_sprite_master(const ImageRecord *sprite, s16 x, s16 y, u16 flags) {
+    uint8_t flip = (uint8_t)flags;
+    u16 width = (u16)sprite->nWidth, height = (u16)sprite->nHeight;
+    SpriteBlit s;
+    s.es = g_graphics_context.wGfxBlitDstPage;
+    s.planeSize = (u16)((u16)(sprite->wUnk4 - sprite->wImageOff) >> 2);
+    s.di = (u16)(sprite_row_offset(y) + (u16)(x >> 3));
+    s.shift = (u16)x & 7;
+    s.stride = width >> 3;
+    s.count = (uint8_t)((u16)(width + 7) >> 3);
+    s.rows = height;
+    s.planes = sprite->wImageOff;
+    s.mask = sprite->wUnk4;
+    s.vflip = (flip & 1) != 0;
+    s.hflip = (flip & 2) != 0;
+    s.leftClipped = s.rightClipped = false;
+    if (s.vflip) { /* from the last row */
+        u16 last = (u16)((u32)(u16)(height - 1) * s.stride);
+        s.planes = (u16)(s.planes + last);
+        s.mask = (u16)(s.mask + last);
+    }
+    if (s.hflip) { /* from the last byte of the row */
+        s.planes = (u16)(s.planes + s.stride - 1);
+        s.mask = (u16)(s.mask + s.stride - 1);
+    }
+    if (g_graphics_context.bClip_enabled != 0 && !sprite_clip(&s, x, y, width, height)) {
+        sprite_epilogue();
+        return;
+    }
+    if (flip > 3)
+        BAK_UNIMPLEMENTED("heg_blit_sprite_master with flip flags above 3 (the original jumps "
+                          "through the words after its dispatch table)");
+    if (s.rows == 0)
+        BAK_UNIMPLEMENTED("heg_blit_sprite_master with no rows (the original draws 65536)");
+    s.src = MK_FP(sprite->wImageData, 0);
+    s.extent = bak_seg_extent(sprite->wImageData);
+    sprite_cores(&s);
+    sprite_epilogue();
+}
+
+/* Slot 3: slot 29 without flips. */
+void heg_blit_sprite_noflip(const ImageRecord *sprite, s16 x, s16 y) {
+    heg_blit_sprite_master(sprite, x, y, 0);
 }
 
 /* ---- slots 4-8: rectangles and pages ---------------------------------------------- */
