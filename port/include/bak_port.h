@@ -61,6 +61,24 @@ const void *bak_video_driver_init(int16_t chunk);
 /* INT 10h AX=1130h BH=3: the ROM's 8x8 font, 128 glyphs of 8 bytes. */
 unsigned char *bak_rom_font_8x8(void);
 
+/*
+ * The INT 33h mouse driver (port/platform/mouse.c), one function per service the game
+ * uses: 00h reset (returns FFFFh, present), 01h/02h show/hide the driver's cursor, 04h set
+ * position, 07h/08h set the x/y range, 0Ch install the event handler, 0Fh mickey ratio.
+ * The handler gets what the driver passes in CX, DX and BX: position and buttons.
+ */
+typedef void BakMouseHandler(uint16_t x, uint16_t y, uint16_t buttons);
+uint16_t bak_int33_reset(void);
+void bak_int33_show_cursor(void);
+void bak_int33_hide_cursor(void);
+void bak_int33_set_position(int16_t x, int16_t y);
+void bak_int33_set_x_range(int16_t min, int16_t max);
+void bak_int33_set_y_range(int16_t min, int16_t max);
+void bak_int33_set_handler(uint16_t eventMask, BakMouseHandler *handler);
+void bak_int33_set_ratio(int16_t horizontal, int16_t vertical);
+/* Tests: called with AX, CX, DX for every service call. */
+extern void (*g_int33Trace)(uint16_t ax, uint16_t cx, uint16_t dx);
+
 /* I/O ports (VGA sequencer/CRTC/attribute registers, ...), emulated by the platform. */
 uint8_t bak_port_in8(uint16_t port);
 void bak_port_out8(uint16_t port, uint8_t value);

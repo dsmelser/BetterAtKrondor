@@ -27,5 +27,11 @@ bool platform_pump_events(void);
 bool video_open(void);
 void video_close(void);
 void video_present(void);
+/* A window position as a position on the 320x200 picture; false outside any window. */
+bool video_window_to_picture(float wx, float wy, float *px, float *py);
+
+/* Feed a host mouse event to the emulated INT 33h driver (mouse.c). */
+union SDL_Event;
+void mouse_handle_event(const union SDL_Event *e);
 
 #endif

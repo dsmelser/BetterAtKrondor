@@ -33,6 +33,9 @@ uint8_t *bak_video_page(uint16_t pageSeg);
  */
 void bak_vga_wait_retrace(int next);
 
+/* A sequencer register's value (2 is the map mask), without touching the index port. */
+uint8_t bak_vga_sequencer(uint8_t reg);
+
 /* The chunky element of planar byte (seg:off, plane). */
 static inline uint8_t *bak_vram_planar(uint16_t seg, uint16_t off, unsigned plane) {
     uint32_t o = (uint32_t)(uint16_t)(seg - 0xA000u) * 16u + off;

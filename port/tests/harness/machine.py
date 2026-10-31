@@ -158,6 +158,10 @@ class Machine:
     def set_u32(self, target: str | tuple[int, int], v: int) -> None:
         self.write(target, struct.pack("<I", v & 0xFFFFFFFF))
 
+    def free_all(self) -> None:
+        """Release every test buffer: the heap starts over."""
+        self._heap_seg = HEAP_FIRST_SEG
+
     def alloc(self, size: int, fill: int = 0) -> int:
         """A paragraph-aligned test buffer; returns its segment (the buffer is seg:0000)."""
         paragraphs = (size + 15) // 16 or 1

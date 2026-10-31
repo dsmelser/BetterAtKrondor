@@ -47,7 +47,8 @@ class PlanarVga:
         for port in (0x3C0, 0x3C2, 0x3C4, 0x3C5, 0x3C6, 0x3C7, 0x3C8, 0x3C9, 0x3CE, 0x3CF,
                      0x3D4, 0x3D5):
             machine.port_out[port] = self._out
-        for port in (0x3C1, 0x3C5, 0x3C6, 0x3C7, 0x3C8, 0x3C9, 0x3CC, 0x3CF, 0x3D5, 0x3DA):
+        for port in (0x3C1, 0x3C4, 0x3C5, 0x3C6, 0x3C7, 0x3C8, 0x3C9, 0x3CC, 0x3CE, 0x3CF, 0x3D4,
+                     0x3D5, 0x3DA):
             machine.port_in[port] = self._in
         machine.interrupts[0x10] = self._int10
 
@@ -191,6 +192,12 @@ class PlanarVga:
             self.status_reads += 1
             self.attr_flipflop = 0
             return 0x09 if self.status_reads & 1 else 0x00
+        if port == 0x3C4:
+            return self.seq_index
+        if port == 0x3CE:
+            return self.gc_index
+        if port == 0x3D4:
+            return self.crtc_index
         if port == 0x3C5:
             return self.seq[self.seq_index & 7]
         if port == 0x3CF:

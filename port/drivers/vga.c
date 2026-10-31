@@ -55,6 +55,19 @@ static void latch_store(u16 seg, u16 off) {
         memcpy(p, s_latch, 4);
 }
 
+void vga_write_latches(u16 seg, u16 off, unsigned mapMask) {
+    unsigned char *p = vram(seg, off);
+    if (p == NULL)
+        return;
+    for (unsigned plane = 0; plane < 4; plane++)
+        if (mapMask & (1u << plane))
+            p[plane] = s_latch[plane];
+}
+
+void vga_read_latches(u16 seg, u16 off) {
+    latch_load(seg, off);
+}
+
 /* The row-offset LUT entry for row y, read as the original does: the word at 0x6f2 + 2y
  * in the graphics-context block, so rows past the table read its neighbours. */
 static u16 row_offset(s16 y) {

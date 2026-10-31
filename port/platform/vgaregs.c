@@ -76,8 +76,14 @@ uint8_t bak_port_in8(uint16_t port) {
     switch (port) {
     case 0x3DA:
         return input_status_1();
+    case 0x3C4:
+        return s_seqIndex;
     case 0x3C5:
         return g_vga.seq[s_seqIndex & 7];
+    case 0x3CE:
+        return s_gcIndex;
+    case 0x3D4:
+        return s_crtcIndex;
     case 0x3D5:
         return g_vga.crtc[s_crtcIndex & 0x1F];
     case 0x3CF:
@@ -169,6 +175,10 @@ void bak_port_out16(uint16_t port, uint16_t value) {
     /* outpw(index_port, data << 8 | index): an index write followed by a data write. */
     bak_port_out8(port, (uint8_t)(value & 0xFF));
     bak_port_out8((uint16_t)(port + 1), (uint8_t)(value >> 8));
+}
+
+uint8_t bak_vga_sequencer(uint8_t reg) {
+    return g_vga.seq[reg & 7];
 }
 
 uint16_t vga_crtc_start_address(void) {

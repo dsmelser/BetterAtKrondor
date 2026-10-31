@@ -67,5 +67,7 @@ extern const DtEntry dt_rand_entries[];
 extern const DtEntry dt_vga_entries[];
 extern const DtEntry dt_viddet_entries[];
 extern const DtEntry dt_pixel_entries[];
+extern const DtEntry dt_farptr_entries[];
+extern const DtEntry dt_mouse_entries[];
 
 #endif

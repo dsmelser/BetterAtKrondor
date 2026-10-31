@@ -100,8 +100,18 @@ bool platform_pump_events(void) {
     SDL_Event e;
     bool running = true;
     while (SDL_PollEvent(&e)) {
-        if (e.type == SDL_EVENT_QUIT)
+        switch (e.type) {
+        case SDL_EVENT_QUIT:
             running = false;
+            break;
+        case SDL_EVENT_MOUSE_MOTION:
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+        case SDL_EVENT_MOUSE_BUTTON_UP:
+            mouse_handle_event(&e);
+            break;
+        default:
+            break;
+        }
     }
     return running;
 }

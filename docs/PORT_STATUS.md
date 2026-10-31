@@ -12,14 +12,14 @@ Where the native port stands. Update this file in the same commit as the work it
 | Native build skeleton: CMake presets, `bak_native.h`, Borland RTL shims, generated ASM stubs | ✅ all 188 C modules compile (clang-cl x86) and link |
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
-| SDL3 platform layer | 🚧 window + present, VGA register file + 70 Hz retrace clock, chunky VRAM, segment table, DOS paths; timer and input ⬜ |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, the vtable thunks; **next: `MOUSE.ASM` (`mouse_install`)** |
+| SDL3 platform layer | 🚧 window + present, VGA register file + 70 Hz retrace clock, chunky VRAM, segment table, DOS paths, INT 33h mouse; timer and keyboard ⬜ |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, the vtable thunks; **next: `LZWDEC.ASM`** |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
 
 **Current behaviour.** With the game files present, `betterkrondor --data <dir>` opens its window, enters the
-game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver and stops at `mouse_install` with
-"Not implemented yet". Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
+game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs the mouse and stops at the LZW decoder
+(loading the cursor images) with "Not implemented yet". Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
 against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash).
 
 ## Native-only code in the game sources
@@ -60,6 +60,8 @@ that runs the original routines from the reference build against the translation
 | `GEN/GFXCTX.ASM` | `port/asm/gfxctx_data.c` | `test_vga.py::test_context_initial_values`: the whole 2742-byte block |
 | `GEN/RNDVTBL.ASM` | `port/asm/rndvtbl_data.c` | data only: every slot starts at `gfx_retf_stub` |
 | `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c` | no logic: each routine forwards to a vtable slot |
+| `INPUT/MOUSE.ASM` | `port/asm/mouse.c`, `mouse_data.c` | `test_mouse.py`: INT 33h call sequences of install/clip/restore/set-position, queries, the event callback's register save/restore and latch parking on a planar VGA |
+| `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
 
 ## Video drivers (VMCODE.OVL)
 
@@ -93,8 +95,17 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
   (AH=43h). Not renamed yet.
 - **Near pointers live in 16-bit tables** (`PALDRV.C`, `VIDDRV.C`, `ADSCRIPT.C`, `FONTLOAD.C`, now
   `NearPtr`). `g_apVideoDriverChunkNames[0]` is a raw DGROUP offset (`0x003a`), not a symbol.
+- **`fmemcpy_far` never copies its alignment byte.** It tests the destination's parity with `TEST` then
+  `JNC`, and `TEST` always clears CF, so it always copies words from the start. Only overlapping copies can
+  tell; the translation keeps it.
 - **File opens are unchecked.** A missing `drive.cfg` (1.02) or `resource.cfg` passes a NULL `FILE *` to
   `fscanf`; natively the C runtime's invalid-parameter handler reports it.
+
+## Platform services
+
+| Service | Implementation |
+|---|---|
+| INT 33h mouse | `port/platform/mouse.c`: the host pointer's position over the picture, in the ranges the game sets (four units per pixel); the game's event handler runs from the event pump, where the game waits, as the interrupt would have arrived |
 
 ## Known divergences from the original
 

@@ -50,6 +50,17 @@ bool video_open(void) {
         return false;
     }
     SDL_SetTextureScaleMode(s_texture, SDL_SCALEMODE_NEAREST);
+    SDL_HideCursor(); /* the game draws its own */
+    return true;
+}
+
+bool video_window_to_picture(float wx, float wy, float *px, float *py) {
+    float lx, ly;
+    if (s_renderer == NULL || !SDL_RenderCoordinatesFromWindow(s_renderer, wx, wy, &lx, &ly))
+        return false;
+    /* Logical 320x240 back to the 320x200 the 4:3 picture stretches. */
+    *px = lx;
+    *py = ly * (float)BAK_VGA_HEIGHT / 240.0f;
     return true;
 }
 

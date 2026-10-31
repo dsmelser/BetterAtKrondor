@@ -19,6 +19,14 @@
  */
 const RendererVtable *vga_driver_init(void);
 
+/*
+ * The latches, for code outside the driver that moves them with plain memory accesses
+ * (the mouse callback parks them at A000:FFFF): a CPU write to planar byte seg:off in
+ * write mode 1 stores them into the planes mapMask enables, a CPU read loads all four.
+ */
+void vga_write_latches(u16 seg, u16 off, unsigned mapMask);
+void vga_read_latches(u16 seg, u16 off);
+
 void vga_blit_glyph_row(s16 y, s16 x, s16 rows, const unsigned char *glyph);  /* 1: BP DX CX SI */
 void vga_present(s16 x, s16 y, s16 width, s16 height);                        /* 4 */
 void vga_save_rect(unsigned char *dst, s16 x, s16 y, s16 width, s16 height);  /* 5 */
