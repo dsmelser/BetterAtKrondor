@@ -29,16 +29,17 @@ party's portraits for EMS, plays the intro to its end and scrolls the credits, s
 or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. Quit To
 DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
 come back, and Start New Game fades into chapter 1, whose opening book pages through with keys or
-clicks; the chapter cutscene after it stops at its first speech bubble (below). The whole tour runs
-clean under the ASan preset. The MIDI the game sends is not played yet:
+clicks; the chapter cutscene after it plays to its end, and loading the new game's state stops (below).
+The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
 `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
 **Beyond the main menu** (M2):
 
-1. **After the book**: the book pages through with keys or clicks, then the chapter cutscene's first
-   speech bubble (`draw_circle`) stops at POLYGON.ASM's `fill_spans_dispatch`.
+1. **After the book**: the book pages through with keys or clicks and the chapter cutscene plays to its
+   end (chapter one's map and title); the game then loads the new game's state (`savegame_read`) and
+   stops at DOSRW.ASM's `dos_read`.
 2. **The game state**: done, see `TEMP.GAM` below; not yet exercised by the game, which stops before it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -115,6 +116,7 @@ that runs the original routines from the reference build against the translation
 | `GEN/GFXCTX.ASM` | `port/asm/gfxctx_data.c` | `test_vga.py::test_context_initial_values`: the whole 2742-byte block |
 | `GEN/RNDVTBL.ASM` | `port/asm/rndvtbl_data.c` | data only: every slot starts at `gfx_retf_stub` |
 | `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM`, `GFX/SPRITE/SPRTHNKS.ASM`, `GFX/SPRITE/BLITCHNK.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c`, `sprthnks.c`, `blitchnk.c` | no logic: each routine forwards to a vtable slot (SPRTHNKS's `blit_sprite` and `blit_stretched_dispatch` and BLITCHNK's `blit_chunky_planar_4bit` have no caller and trap) |
+| `GFX/RASTER/POLYGON.ASM` | `port/asm/polygon.c`: `fill_spans_dispatch` (the polygon rasterizer, `draw_polygon` and its edge walkers, still traps; `blit_rect_buf_dispatch` has no caller and traps) | no logic: it forwards the span table to slot 27 |
 | `INPUT/MOUSE.ASM` | `port/asm/mouse.c`, `mouse_data.c` | `test_mouse.py`: INT 33h call sequences of install/clip/restore/set-position, queries, the event callback's register save/restore and latch parking on a planar VGA |
 | `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
 | `INPUT/KEYBOARD.ASM` | `port/asm/keyboard.c`, `keyboard_data.c` | `test_keyboard.py`: the tables; 1500-byte random key sequences through the INT 9 handler (BIOS shift state and buffer, key states, channels) with and without the Tandy paths; `kbhit_read`; queries; the INT 1Ch axis tick; install/restore |
