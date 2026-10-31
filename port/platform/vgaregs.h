@@ -2,6 +2,7 @@
 #ifndef BAK_VGAREGS_H
 #define BAK_VGAREGS_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct VgaRegs {
@@ -18,5 +19,14 @@ typedef struct VgaRegs {
 extern VgaRegs g_vga;
 
 uint16_t vga_crtc_start_address(void);
+
+/*
+ * The register file without the DAC, for the differential tests: seq[8], crtc[32], gc[16],
+ * attr[32], misc, pel mask, the sequencer, CRTC, graphics-controller and attribute index
+ * registers, the attribute flip-flop and the four latches.
+ */
+#define VGA_REGS_SNAPSHOT 99
+void vga_regs_snapshot(uint8_t out[VGA_REGS_SNAPSHOT]);
+void vga_regs_restore(const uint8_t in[VGA_REGS_SNAPSHOT]);
 
 #endif

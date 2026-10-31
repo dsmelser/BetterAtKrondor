@@ -36,6 +36,30 @@ void bak_vga_wait_retrace(int next);
 /* A sequencer register's value (2 is the map mask), without touching the index port. */
 uint8_t bak_vga_sequencer(uint8_t reg);
 
+/* The four latches: every CPU read of display memory loads them, write mode 1 stores
+ * them, and the other write modes' logical operations and bit mask combine with them. */
+extern uint8_t g_bakVgaLatch[4];
+
+/*
+ * A CPU read of display memory at seg:off, through the graphics controller: loads the
+ * latches and returns the read map's plane (read mode 0) or the colour-compare result
+ * (read mode 1). Past the 64 KB window it reads FFh.
+ */
+uint8_t bak_vga_read(uint16_t seg, uint16_t off);
+
+/* A CPU write: write modes 0-3 (rotation, set/reset, logical operation, bit mask) into
+ * the planes the map mask enables. Past the window it is lost. */
+void bak_vga_write(uint16_t seg, uint16_t off, uint8_t value);
+
+/* INT 10h AH=00h for mode 10h or 13h: the BIOS's registers, display memory cleared. */
+void bak_int10_set_mode(uint8_t mode);
+
+/* INT 10h AX=1013h: BL = 0 selects the colour paging mode BH, BL = 1 the page BH. */
+void bak_int10_palette_paging(uint8_t bl, uint8_t bh);
+
+/* INT 10h AX=1001h: the overscan (border) colour. */
+void bak_int10_set_border(uint8_t color);
+
 /* The chunky element of planar byte (seg:off, plane). */
 static inline uint8_t *bak_vram_planar(uint16_t seg, uint16_t off, unsigned plane) {
     uint32_t o = (uint32_t)(uint16_t)(seg - 0xA000u) * 16u + off;

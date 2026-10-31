@@ -15,12 +15,35 @@ from __future__ import annotations
 
 import struct
 
+from unicorn import UC_HOOK_MEM_READ
+
 from .machine import LOAD_SEG, VGA_LINEAR, Machine
 from .mzexe import MzImage
 
 PLANE = 0x10000
 CTX_SIZE = 0xAB6  # GfxContext (gfxctx.inc)
 TEMPLATE_OFF = 0x00F8  # g_apfnVgaVtable in the chunk
+
+# The registers INT 10h AH=00h loads (IBM VGA BIOS), as port/platform/vgaregs.c has them.
+MODE_REGS = {
+    0x13: {
+        "seq": [0x03, 0x01, 0x0F, 0x00, 0x0E],
+        "crtc": [0x5F, 0x4F, 0x50, 0x82, 0x54, 0x80, 0xBF, 0x1F, 0x00, 0x41, 0x00, 0x00, 0x00,
+                 0x00, 0x00, 0x00, 0x9C, 0x8E, 0x8F, 0x28, 0x40, 0x96, 0xB9, 0xA3, 0xFF],
+        "gc": [0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x05, 0x0F, 0xFF],
+        "attr": [*range(16), 0x41, 0x00, 0x0F, 0x00, 0x00],
+        "misc": 0x63,
+    },
+    0x10: {
+        "seq": [0x03, 0x01, 0x0F, 0x00, 0x06],
+        "crtc": [0x5F, 0x4F, 0x50, 0x82, 0x54, 0x80, 0xBF, 0x1F, 0x00, 0x40, 0x00, 0x00, 0x00,
+                 0x00, 0x00, 0x00, 0x83, 0x85, 0x5D, 0x28, 0x0F, 0x63, 0xBA, 0xE3, 0xFF],
+        "gc": [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x0F, 0xFF],
+        "attr": [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07, 0x38, 0x39, 0x3A, 0x3B, 0x3C,
+                 0x3D, 0x3E, 0x3F, 0x01, 0x00, 0x0F, 0x00, 0x00],
+        "misc": 0xA3,
+    },
+}
 
 
 class PlanarVga:
@@ -42,34 +65,89 @@ class PlanarVga:
         self.dac_triple = bytearray(3)
         self.dac_state = 0
         self.status_reads = 0
-        self.mode_13h()
+        self.set_mode(0x13)
         machine.uc.mmio_map(VGA_LINEAR, PLANE, self._read, None, self._write, None)
+        machine.uc.hook_add(UC_HOOK_MEM_READ, self._on_cpu_read, begin=VGA_LINEAR,
+                            end=VGA_LINEAR + PLANE - 1)
         for port in (0x3C0, 0x3C2, 0x3C4, 0x3C5, 0x3C6, 0x3C7, 0x3C8, 0x3C9, 0x3CE, 0x3CF,
                      0x3D4, 0x3D5):
             machine.port_out[port] = self._out
-        for port in (0x3C1, 0x3C4, 0x3C5, 0x3C6, 0x3C7, 0x3C8, 0x3C9, 0x3CC, 0x3CE, 0x3CF, 0x3D4,
-                     0x3D5, 0x3DA):
+        for port in (0x3C0, 0x3C1, 0x3C4, 0x3C5, 0x3C6, 0x3C7, 0x3C8, 0x3C9, 0x3CC, 0x3CE, 0x3CF,
+                     0x3D4, 0x3D5, 0x3DA):
             machine.port_in[port] = self._in
         machine.interrupts[0x10] = self._int10
 
-    def mode_13h(self) -> None:
-        """Register state after INT 10h AX=0013h (the values the Mode-Y setup edits)."""
-        self.seq[2] = 0x0F
-        self.seq[4] = 0x0E
-        self.gc[5] = 0x40
-        self.gc[6] = 0x05
-        self.gc[8] = 0xFF
-        self.crtc[0x14] = 0x40
-        self.crtc[0x17] = 0xA3
-        self.crtc[0x0C] = self.crtc[0x0D] = 0
+    def set_mode(self, mode: int) -> None:
+        """INT 10h AH=00h as the port has it: the mode's registers, the index registers at 0
+        but the attribute index at 20h (display on), the flip-flop reset, display memory
+        cleared, the DAC untouched."""
+        regs = MODE_REGS[mode]
+        for name in ("seq", "crtc", "gc", "attr"):
+            table = getattr(self, name)
+            table[:] = bytes(len(table))
+            table[:len(regs[name])] = bytes(regs[name])
+        self.misc = regs["misc"]
+        self.pel_mask = 0xFF
+        self.seq_index = self.gc_index = self.crtc_index = 0
+        self.attr_index = 0x20  # the BIOS ends by turning the display on
+        self.attr_flipflop = 0
+        for p in self.planes:
+            p[:] = bytes(PLANE)
 
     def _int10(self, m: Machine) -> None:
-        if m.reg("ax") == 0x0013:
-            self.mode_13h()
+        ax = m.reg("ax")
+        if ax in (0x0013, 0x0010):
+            self.set_mode(ax)
             return
-        m._fail(f"unmodelled INT 10h AX={m.reg('ax'):04X}h")
+        # The attribute-controller calls go through the ports as the BIOS's do, ending with
+        # index 20h (display on), which leaves the flip-flop expecting data.
+        if ax == 0x1013:  # colour paging: BL = 0 sets the mode BH, BL = 1 selects page BH
+            bl, bh = m.reg("bx") & 0xFF, m.reg("bx") >> 8
+            self._in(m, 0x3DA, 1)
+            self._out8(0x3C0, 0x10)
+            mode = self._in(m, 0x3C1, 1)
+            if bl == 0:
+                self._out8(0x3C0, mode | 0x80 if bh else mode & 0x7F)
+            else:
+                self._out8(0x3C0, mode)
+                self._out8(0x3C0, 0x14)
+                self._out8(0x3C0, (bh if mode & 0x80 else bh << 2) & 0x0F)
+            self._out8(0x3C0, 0x20)
+            return
+        if ax == 0x1001:  # the overscan colour, BH
+            self._in(m, 0x3DA, 1)
+            self._out8(0x3C0, 0x11)
+            self._out8(0x3C0, m.reg("bx") >> 8)
+            self._out8(0x3C0, 0x20)
+            return
+        m._fail(f"unmodelled INT 10h AX={ax:04X}h")
+
+    def regs(self) -> bytes:
+        """The register file in vga_regs_snapshot's layout (port/platform/vgaregs.h)."""
+        return (bytes(self.seq) + bytes(self.crtc) + bytes(self.gc) + bytes(self.attr)
+                + bytes((self.misc, self.pel_mask, self.seq_index, self.crtc_index,
+                         self.gc_index, self.attr_index, self.attr_flipflop))
+                + bytes(self.latch))
+
+    def load_regs(self, data: bytes) -> None:
+        self.seq[:] = data[0:8]
+        self.crtc[:] = data[8:40]
+        self.gc[:] = data[40:56]
+        self.attr[:] = data[56:88]
+        (self.misc, self.pel_mask, self.seq_index, self.crtc_index, self.gc_index,
+         self.attr_index, self.attr_flipflop) = data[88:95]
+        self.latch = list(data[95:99])
 
     # --- display memory --------------------------------------------------------------
+
+    # A read loads the latches from the last byte the CPU reads (a word or dword is read a
+    # byte at a time, upwards). Unicorn hands an unaligned word read to the MMIO callback as
+    # two aligned words, so the latches come from the access the memory hook sees, and the
+    # MMIO callback only computes the bytes read.
+
+    def _on_cpu_read(self, uc, access, address, size, value, _user):
+        last = (address - VGA_LINEAR + size - 1) & 0xFFFF
+        self.latch = [p[last] for p in self.planes]
 
     def _read(self, uc, offset, size, _user):
         value = 0
@@ -78,15 +156,14 @@ class PlanarVga:
         return value
 
     def _read_byte(self, o: int) -> int:
-        self.latch = [p[o] for p in self.planes]
         if self.gc[5] & 0x08:  # read mode 1: colour compare
             result = 0xFF
             for p in range(4):
                 if self.gc[7] & (1 << p):
                     want = 0xFF if self.gc[2] & (1 << p) else 0
-                    result &= ~(self.latch[p] ^ want) & 0xFF
+                    result &= ~(self.planes[p][o] ^ want) & 0xFF
             return result
-        return self.latch[self.gc[4] & 3]
+        return self.planes[self.gc[4] & 3][o]
 
     def _write(self, uc, offset, size, value, _user):
         for k in range(size):
@@ -204,6 +281,8 @@ class PlanarVga:
             return self.gc[self.gc_index & 15]
         if port == 0x3D5:
             return self.crtc[self.crtc_index & 0x1F]
+        if port == 0x3C0:
+            return self.attr_index
         if port == 0x3C1:
             return self.attr[self.attr_index & 0x1F]
         if port == 0x3C6:
@@ -230,7 +309,10 @@ class VgaChunk:
 
     The chunk is loaded at LOAD_SEG (ORG 0). vga_init gets the context block's segment as
     the caller's DS and 0 as the context offset, so the driver's scratch DS is that block.
+    Other VMCODE.OVL chunks load the same way; their slot template sits elsewhere.
     """
+
+    template_off = TEMPLATE_OFF
 
     def __init__(self, image: MzImage):
         self.m = Machine(image, vga=True)
@@ -254,13 +336,19 @@ class VgaChunk:
 
     def init(self) -> int:
         r = self.m.call_far((self.seg, 0), 0, 0, self.callbacks_seg, ds=self.ctx_seg)
-        assert (r.dx, r.si) == (self.seg, TEMPLATE_OFF)
+        assert (r.dx, r.si) == (self.seg, self.template_off)
         return r.ax & 0xFF
 
     def slot(self, index: int) -> tuple[int, int]:
-        (off,) = struct.unpack("<H", self.m.read((self.seg, TEMPLATE_OFF + 4 * index), 2))
+        (off,) = struct.unpack("<H", self.m.read((self.seg, self.template_off + 4 * index), 2))
         return self.seg, off
 
     def call(self, index: int, *args: int, **regs: int):
         regs.setdefault("ds", self.ctx_seg)
         return self.m.call_far(self.slot(index), *args, **regs)
+
+
+class HegChunk(VgaChunk):
+    """The "HEG:" chunk (HEG.EXE of the reference build), the books' 640x350 driver."""
+
+    template_off = 0x013E  # g_apfnHegVtable

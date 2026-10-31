@@ -121,6 +121,16 @@ start address behave as in Mode Y. `test_vga.py` runs the reference build's `VGA
 model (`harness/vga.py`) and compares display memory, the graphics-context block, the DAC, the CRTC start
 address and the palette cache after every call.
 
+The platform's VGA (`port/platform/vgaregs.c`) also takes CPU accesses to display memory through the
+graphics controller: the four latches, read modes 0-1 and write modes 0-3 with rotation, set/reset,
+logical operation, bit mask and map mask (`bak_vga_read`, `bak_vga_write`). A driver that programs the
+hardware the way its original does can then keep the original's register writes and memory accesses as
+they are. INT 10h sets modes 13h and 10h with the IBM BIOS's register values (`bak_int10_set_mode`). The
+picture shown follows the registers: 256 colours from the CRTC start address, or 16 colours, eight pixels
+a byte, through the attribute controller's palette and colour select. The harness's planar model latches
+from the last byte the CPU reads: Unicorn hands an unaligned word read to the MMIO callback as two aligned
+words, so the latches come from the access its memory hook sees.
+
 | Slots | Status |
 |---|---|
 | init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload | ✅ verified |
@@ -252,8 +262,8 @@ The decoder handles the unchained 256-colour modes only; the books' 640x350 mode
 
 - **ROM 8x8 font.** `video_init` installs the BIOS 8x8 font as font slot 1; natively its glyphs are
   blank. The game switches to `game.fnt` before drawing text, so only the slot numbering matters.
-- **Mode 13h default palette.** The BIOS mode set loads a default DAC palette; natively the DAC keeps its
-  contents. The game sets its own palette before anything is visible.
+- **The BIOS's default palette.** A BIOS mode set (13h, 10h) loads a default DAC palette; natively the DAC
+  keeps its contents. The game sets its own palette before anything is visible.
 - **Degenerate driver calls.** Where a zero count makes the original's `LOOP` run 65536 times (a rectangle
   0 pixels wide, a 0-colour palette upload or blend) or the original miscomputes an address (an image whose
   packed size is a multiple of 64 KB), the native driver does nothing or stops with a message.

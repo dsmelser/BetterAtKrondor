@@ -25,9 +25,6 @@
 #define PLANAR_ROW 80    /* bytes per row in a plane */
 #define ROW_LUT_AT 0x6f2 /* offset of the row-offset LUT in the graphics-context block */
 
-/* The four latches, loaded by every read of display memory (write mode 1 stores them). */
-static unsigned char s_latch[4];
-
 /* Rect-buffer source offset kept by vga_set_buffer_offset for vga_blit_rect_buffer. */
 static u16 s_rectBufferOffset;
 
@@ -46,13 +43,13 @@ static unsigned char *vram(u16 seg, u16 off) {
 static void latch_load(u16 seg, u16 off) {
     unsigned char *p = vram(seg, off);
     if (p != NULL)
-        memcpy(s_latch, p, 4);
+        memcpy(g_bakVgaLatch, p, 4);
 }
 
 static void latch_store(u16 seg, u16 off) {
     unsigned char *p = vram(seg, off);
     if (p != NULL)
-        memcpy(p, s_latch, 4);
+        memcpy(p, g_bakVgaLatch, 4);
 }
 
 void vga_write_latches(u16 seg, u16 off, unsigned mapMask) {
@@ -61,7 +58,7 @@ void vga_write_latches(u16 seg, u16 off, unsigned mapMask) {
         return;
     for (unsigned plane = 0; plane < 4; plane++)
         if (mapMask & (1u << plane))
-            p[plane] = s_latch[plane];
+            p[plane] = g_bakVgaLatch[plane];
 }
 
 void vga_read_latches(u16 seg, u16 off) {
@@ -88,6 +85,7 @@ u16 vga_row_offset(s16 y) {
 /* INT 10h mode 13h, then Mode Y: chain-4 and odd/even off, byte addressing, all four
  * planes of display memory cleared. The register changes are the original's. */
 static void set_mode_y(void) {
+    bak_int10_set_mode(0x13);
     bak_port_out8(0x3C4, 4);
     bak_port_out8(0x3C5, 0x06);
     bak_port_out8(0x3CE, 6);
