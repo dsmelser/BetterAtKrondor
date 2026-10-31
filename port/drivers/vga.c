@@ -69,10 +69,11 @@ void vga_read_latches(u16 seg, u16 off) {
 }
 
 /* The row-offset LUT entry for row y, read as the original does: the word at 0x6f2 + 2y
- * in the graphics-context block, so rows past the table read its neighbours. */
+ * (a 16-bit address) in the graphics-context block, so rows past the table read its
+ * neighbours. */
 static u16 row_offset(s16 y) {
-    s32 at = ROW_LUT_AT + 2 * (s32)y;
-    if (at < 0 || at + 2 > (s32)sizeof g_gfxContextBlock)
+    u16 at = (u16)(ROW_LUT_AT + 2 * (u16)y);
+    if (at + 2u > sizeof g_gfxContextBlock)
         return 0; /* the original reads other DGROUP data there */
     const unsigned char *b = (const unsigned char *)&g_gfxContextBlock + at;
     return (u16)(b[0] | b[1] << 8);
@@ -107,15 +108,11 @@ static void vga_noop(void) {
     static void trap_##name(void) {                                                                \
         BAK_UNIMPLEMENTED("VGA driver slot " #slot ": vga_" #name);                                \
     }
-TRAP(2, draw_line)
 TRAP(3, blit_sprite)
-TRAP(10, fill_run_a)
-TRAP(11, fill_run_b)
 TRAP(17, blit_chunky)
 TRAP(18, blit_chunky_planar_4bit)
 TRAP(19, fill_textured_span_modey_b)
 TRAP(23, blit_rect_buffer)
-TRAP(27, fill_spans_dithered_modey)
 TRAP(29, blit_sprite_master)
 TRAP(30, blit_sprite_flip_h)
 TRAP(31, blit_sprite_flip_v)
@@ -139,7 +136,7 @@ static void fill_slots(void) {
     void *noop = SLOT(vga_noop);
     t->slot_00_null = NULL;
     t->pfn_blit_glyph_row = SLOT(vga_blit_glyph_row);
-    t->pfn_draw_line = SLOT(trap_draw_line);
+    t->pfn_draw_line = SLOT(vga_draw_line);
     t->pfn_blit_sprite = SLOT(trap_blit_sprite);
     t->pfn_present = SLOT(vga_present);
     t->pfn_save_rect = SLOT(vga_save_rect);
@@ -147,8 +144,8 @@ static void fill_slots(void) {
     t->pfn_paste_rect = SLOT(vga_paste_rect);
     t->pfn_vsync_wait = SLOT(vga_vsync_wait);
     t->slot_09_unimplemented = noop;
-    t->pfn_fill_run_a = SLOT(trap_fill_run_a);
-    t->pfn_fill_run_b = SLOT(trap_fill_run_b);
+    t->pfn_fill_run_a = SLOT(vga_fill_run_a);
+    t->pfn_fill_run_b = SLOT(vga_fill_run_b);
     t->slot_12_unimplemented = noop;
     t->pfn_image_install = SLOT(vga_image_install);
     t->pfn_image_decode = SLOT(vga_image_decode);
@@ -164,7 +161,7 @@ static void fill_slots(void) {
     t->pfn_set_buffer_offset = SLOT(vga_set_buffer_offset);
     t->pPfn_set_border_color = noop;
     t->slot_26_unimplemented = noop;
-    t->pfn_fill_spans_dithered_modey = SLOT(trap_fill_spans_dithered_modey);
+    t->pfn_fill_spans_dithered_modey = SLOT(vga_fill_spans_dithered_modey);
     t->slot_28_unimplemented = noop;
     t->pfn_blit_sprite_master = SLOT(trap_blit_sprite_master);
     t->pfn_blit_sprite_flip_h = SLOT(trap_blit_sprite_flip_h);
@@ -426,6 +423,195 @@ void vga_putpixel(s16 x, s16 y, s16 color) {
 
 void vga_set_buffer_offset(s16 x, s16 y) {
     s_rectBufferOffset = (u16)((u16)y * PLANAR_ROW + (x >> 2));
+}
+
+/* ---- slots 2, 10, 11, 27: lines and runs ------------------------------------------ */
+
+static const unsigned char s_runLeftMask[4] = {0x0f, 0x0e, 0x0c, 0x08};
+static const unsigned char s_runRightMask[4] = {0x0f, 0x01, 0x03, 0x07};
+static const unsigned char s_runEndMask[4] = {0x00, 0x01, 0x03, 0x07};
+
+/* A byte stored with the map mask set: planes 0 and 2 of mask take even, 1 and 3 odd. */
+static void store_planes(u16 seg, u16 off, unsigned mask, unsigned char even, unsigned char odd) {
+    unsigned char *p = vram(seg, off);
+    if (p == NULL)
+        return;
+    for (unsigned plane = 0; plane < 4; plane++)
+        if (mask & (1u << plane))
+            p[plane] = plane & 1 ? odd : even;
+}
+
+/* count pixels from x on the row at byte offset di: the first byte under its left mask,
+ * whole bytes, the last byte under its end mask; when x and the last pixel agree under
+ * sameMask (FFFCh in the run slots, 0FFCh in the span filler), one byte under both
+ * masks. Planes 0 and 2 take even, 1 and 3 odd (the same colour for a solid run). */
+static void fill_run(u16 seg, u16 di, u16 x, u16 count, unsigned char even, unsigned char odd,
+                     u16 sameMask) {
+    di = (u16)(di + (x >> 2));
+    if ((((u16)(x + count - 1) ^ x) & sameMask) == 0) {
+        unsigned mask = (unsigned char)(0xff << (x & 3)) & s_runRightMask[(u16)(x + count) & 3];
+        store_planes(seg, di, mask, even, odd);
+        return;
+    }
+    u16 middle = (u16)(count - 4 + (x & 3));
+    store_planes(seg, di++, s_runLeftMask[x & 3], even, odd);
+    for (u16 n = middle >> 2; n != 0; n--)
+        store_planes(seg, di++, 0x0f, even, odd);
+    store_planes(seg, di, s_runEndMask[middle & 3], even, odd);
+}
+
+/* Slot 11: dithered, the colours swapped on odd rows (DX). It takes the count as it
+ * comes: zero or less wraps to a run of up to 64K pixels' bytes. */
+void vga_fill_run_b(u16 seg, u16 di, u16 x, u16 count, u16 colors, u16 dx) {
+    if (dx & 1)
+        colors = (u16)(colors << 8 | colors >> 8);
+    fill_run(seg, di, x, count, (unsigned char)(colors >> 8), (unsigned char)colors, 0xfffc);
+}
+
+/* Slot 10: nothing for a count of zero or less; a dither colour (AH) goes to slot 11. */
+void vga_fill_run_a(u16 seg, u16 di, u16 x, u16 count, u16 colors, u16 dx) {
+    if ((s16)count <= 0)
+        return;
+    if (colors >> 8) {
+        vga_fill_run_b(seg, di, x, count, colors, dx);
+        return;
+    }
+    fill_run(seg, di, x, count, (unsigned char)colors, (unsigned char)colors, 0xfffc);
+}
+
+/* Slot 27: rows from the first one on, each a run x0..x1 (none when x1 < x0, compared
+ * signed) in the fill colour; with a dither colour, planes 0 and 2 take the dither and
+ * 1 and 3 the fill colour, swapped on every other row, starting swapped when the first
+ * row plus the first run's x0 is even. At least one row is drawn, whatever the count.
+ * The original takes the spans at ES:SI. */
+void vga_fill_spans_dithered_modey(const unsigned char *spans) {
+    const unsigned char *si = spans;
+    u16 bp = (u16)((si[0] | si[1] << 8) << 1);
+    u16 counter = (u16)(si[2] | si[3] << 8);
+    si += 4;
+    u16 seg = g_graphics_context.wGfxBlitDstPage;
+    unsigned char fill = g_graphics_context.bGfx_fill_color;
+    unsigned char dither = g_graphics_context.bGfx_dither_color;
+    int swapped = dither != 0 && !(((u16)(bp >> 1) + (u16)(si[0] | si[1] << 8)) & 1);
+    for (;;) {
+        u16 x0 = (u16)(si[0] | si[1] << 8), x1 = (u16)(si[2] | si[3] << 8);
+        si += 4;
+        if ((s16)x1 >= (s16)x0) { /* SUB AX,BX; JGE */
+            u16 di = row_offset((s16)bp >> 1);
+            u16 count = (u16)(x1 - x0 + 1);
+            if (dither == 0)
+                fill_run(seg, di, x0, count, fill, fill, 0x0ffc);
+            else if (swapped)
+                fill_run(seg, di, x0, count, fill, dither, 0x0ffc);
+            else
+                fill_run(seg, di, x0, count, dither, fill, 0x0ffc);
+        }
+        s32 left = (s32)(s16)counter - 1;
+        counter--;
+        if (left <= 0)
+            return;
+        bp = (u16)(bp + 2);
+        swapped = dither != 0 && !swapped;
+    }
+}
+
+/* One pixel of a diagonal: di counts pixels from the page start (row * 320 + x). The
+ * original reads the byte first, which loads the latches. */
+static void line_pixel(u16 seg, u16 di, unsigned char color) {
+    latch_load(seg, (u16)(di >> 2));
+    store_planes(seg, (u16)(di >> 2), 1u << (di & 3), color, color);
+}
+
+/* Slot 2: a line from (BX, CX) to (DX, SI) in the outline colour, which it also leaves in
+ * the graphics context's word at 6C2h. A horizontal one is a slot 10 run. */
+void vga_draw_line(u16 seg, u16 x0, u16 y0, u16 x1, u16 y1) {
+    unsigned char color = g_graphics_context.bGfx_outline_color;
+    unsigned char *saved = (unsigned char *)&g_gfxContextBlock + 0x6c2;
+    saved[0] = color;
+    saved[1] = 0;
+    u16 di = row_offset((s16)y0);
+    if (x0 == x1 && y0 == y1) {
+        di = (u16)(di + (x0 >> 2));
+        latch_load(seg, di);
+        store_planes(seg, di, 1u << (x0 & 3), color, color);
+        return;
+    }
+    if (y0 == y1) {
+        vga_fill_run_a(seg, di, x0, (u16)(x1 - x0 + 1), color, (u16)(x1 - x0));
+        return;
+    }
+    if (x0 == x1) {
+        di = (u16)(di + (x0 >> 2));
+        unsigned mask = 1u << (x0 & 3);
+        u16 dy = (u16)(y1 - y0);
+        if (!((s16)y1 > (s16)y0)) { /* SUB SI,CX; JG: upwards, from the top end */
+            dy = (u16)-dy;
+            di = (u16)(di - row_offset((s16)dy));
+            dy &= 0x7fff; /* SHL SI,1 / SHR SI,1 around the LUT read drop bit 15 */
+        }
+        u16 n = (u16)(dy + 1);
+        do {
+            latch_load(seg, di);
+            store_planes(seg, di, mask, color, color);
+            di = (u16)(di + PLANAR_ROW);
+        } while (--n != 0);
+        return;
+    }
+    di = (u16)((di << 2) + x0);
+    u16 row = 0x140;
+    u16 dx = (u16)(x1 - x0), dy = (u16)(y1 - y0);
+    if (!((s16)y1 > (s16)y0)) {
+        dy = (u16)-dy;
+        row = (u16)-row;
+    }
+    if (dy == dx) { /* 45 degrees */
+        u16 n = (u16)(dx + 1);
+        do {
+            line_pixel(seg, di, color);
+            di = (u16)(di + 1 + row);
+        } while (--n != 0);
+        return;
+    }
+    u16 n, step, d, again, other;
+    if (dy < dx) { /* x-major: x by x, a row now and then */
+        n = dx;
+        again = (u16)(dy << 1);
+        d = (u16)(again - dx);
+        other = (u16)(d - dx);
+        step = row;
+        line_pixel(seg, di++, color);
+        do {
+            if ((s16)d >= 0) {
+                di = (u16)(di + step);
+                d = (u16)(d + other);
+            } else {
+                d = (u16)(d + again);
+            }
+            line_pixel(seg, di++, color);
+        } while (--n != 0);
+        return;
+    }
+    /* y-major: row by row, downwards; upwards ones start from the far end */
+    step = 1;
+    if ((s16)row < 0) {
+        step = 0xffff;
+        di = (u16)(di - (u16)(0x140u * dy) + dx);
+    }
+    n = dy;
+    again = (u16)(dx << 1);
+    d = (u16)(again - dy);
+    other = (u16)(d - dy);
+    line_pixel(seg, di++, color);
+    do {
+        di = (u16)(di + 0x13f);
+        if ((s16)d >= 0) {
+            di = (u16)(di + step);
+            d = (u16)(d + other);
+        } else {
+            d = (u16)(d + again);
+        }
+        line_pixel(seg, di++, color);
+    } while (--n != 0);
 }
 
 /* ---- slots 34-35: DAC ------------------------------------------------------------- */

@@ -21,6 +21,7 @@ CACHE_AT = 0x19E  # pPaletteScratchBuf: seg:off on one side, a host pointer on t
 CACHE_SIZE = 0x600
 OFF_SRC, OFF_DST = 0x16, 0x18  # wGfxBlitSrcPage, wGfxBlitDstPage
 OFF_STYLE, OFF_FG, OFF_BG = 0x02, 0x00, 0x01
+OFF_FILL, OFF_OUTLINE, OFF_DITHER = 0x0D, 0x0E, 0x0F
 
 
 def _u16s(*values: int) -> bytes:
@@ -279,3 +280,95 @@ def test_palette_lerp(pair):
         pair.chunk.call(34, start, count, target, weight)
         pair.native.call("vga.lerp", _u16s(start, count, target, weight))
         pair.assert_same(f"after lerp {i} ({start}, {count}, {target}, {weight})")
+
+
+def _extent(page: int) -> tuple[int, int, int, int]:
+    """The x and y ranges to draw in: a little past the screen on the first page, whose
+    64 KB window holds every address that gives; on the screen on the others (past the
+    window's end a word store would straddle it, where the model and the PC part ways)."""
+    return (-8, 330, -8, 208) if page == 0xA000 else (0, 320, 0, 200)
+
+
+def _line(rng: random.Random, page: int) -> tuple[int, int, int, int]:
+    """A line as draw_line hands it to the driver: the left end first (compared unsigned,
+    so both ends on one side of x = 0), in one of the shapes the driver tells apart."""
+    lo_x, hi_x, lo_y, hi_y = _extent(page)
+    x0, y0 = rng.randrange(lo_x, hi_x), rng.randrange(lo_y, hi_y)
+    x_end = 0 if x0 < 0 else hi_x
+    shape = rng.randrange(6)
+    if shape == 0:
+        return x0, y0, x0, y0
+    if shape == 1:
+        return x0, y0, rng.randrange(x0, x_end), y0
+    if shape == 2:
+        return x0, y0, x0, rng.randrange(lo_y, hi_y)
+    if shape == 3 and x_end - 1 > x0:
+        d = rng.randrange(1, min(x_end - 1 - x0, 80) + 1)
+        return x0, y0, x0 + d, y0 + rng.choice((d, -d))
+    return x0, y0, rng.randrange(x0, x_end), rng.randrange(lo_y, hi_y)
+
+
+def test_lines(pair):
+    rng = random.Random(13)
+    pair.fill_vram(rng)
+    # Upwards, 32800 rows: the driver keeps 15 bits of the height (33 rows).
+    cases = [(0xA000, 17, 100, 17, 100 - 32800)]
+    for _ in range(300):
+        page = rng.choice(PAGES)
+        cases.append((page, *_line(rng, page)))
+    for i, (page, x0, y0, x1, y1) in enumerate(cases):
+        pair.set_ctx_u8(OFF_OUTLINE, rng.randrange(256))
+        pair.chunk.call(2, bx=x0, cx=y0, dx=x1, si=y1, es=page)
+        pair.native.call("vga.draw_line", _u16s(page, x0, y0, x1, y1))
+        pair.assert_same(f"after line {i} ({x0}, {y0})-({x1}, {y1}) on {page:04X}")
+
+
+def test_fill_runs(pair):
+    rng = random.Random(14)
+    pair.fill_vram(rng)
+    for i in range(300):
+        page = rng.choice(PAGES)
+        slot = rng.choice((10, 11))
+        lo_x, hi_x, _, _ = _extent(page)
+        x = rng.randrange(lo_x, hi_x)
+        if page == 0xA000 and rng.random() < 0.05:
+            count = rng.randrange(-3, 1)  # slot 10: nothing; slot 11: up to 16K bytes
+        else:
+            count = rng.randrange(1, hi_x - x + 1)
+        colors = rng.randrange(256) | rng.choice((0, rng.randrange(1, 256))) << 8
+        di, dx = 80 * rng.randrange(200), rng.randrange(0x10000)
+        pair.chunk.call(slot, es=page, di=di, bx=x, cx=count, ax=colors, dx=dx)
+        pair.native.call("vga.fill_run", _u16s(slot, page, di, x, count, colors, dx))
+        pair.assert_same(f"after slot {slot} run {i}: {count} from {x} at {page:04X}:{di:04X}")
+
+
+def test_fill_spans(pair):
+    """Slot 27 reads the row-offset LUT SS-relative (the game's SS is DGROUP, which holds
+    the context), so SS is the context's segment here, the stack 64 KB up the test heap."""
+    rng = random.Random(15)
+    pair.fill_vram(rng)
+    spans = pair.m.alloc(0x1000)
+    cases = [(0xA000, 0, 1, [(-30000, 30000)])]  # x1 >= x0 compared signed: 60001 pixels
+    for _ in range(150):
+        page = rng.choice(PAGES)
+        lo_x, hi_x, _, _ = _extent(page)
+        first = rng.randrange(200)
+        if rng.random() < 0.1:
+            count = rng.randrange(-1, 2)  # one row is drawn whatever the count
+        else:
+            count = rng.randrange(1, 201 - first)
+        rows = []
+        for _ in range(max(count, 1)):
+            x0 = rng.randrange(lo_x, hi_x)
+            x1 = rng.randrange(lo_x, hi_x) if rng.random() < 0.2 else rng.randrange(x0, hi_x)
+            rows.append((x0, x1))
+        cases.append((page, first, count, rows))
+    for i, (page, first, count, rows) in enumerate(cases):
+        pair.set_ctx_u16(OFF_DST, page)
+        pair.set_ctx_u8(OFF_FILL, rng.randrange(256))
+        pair.set_ctx_u8(OFF_DITHER, rng.choice((0, rng.randrange(1, 256))))
+        table = _u16s(first, count, *(v for xs in rows for v in xs))
+        pair.m.write((spans, 0), table)
+        pair.chunk.call(27, es=spans, si=0, ss=pair.chunk.ctx_seg)
+        pair.native.call("vga.fill_spans", table)
+        pair.assert_same(f"after spans {i}: {count} rows from {first} on {page:04X}")

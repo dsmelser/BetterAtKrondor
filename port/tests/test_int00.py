@@ -1,10 +1,10 @@
 """INT00.ASM (the divide-error handler) against port/asm/int00.c.
 
 The original handler is installed in the interrupt table and a real DIV or IDIV faults
-into it until the retried division fits; the translation's bak_div8/bak_idiv8 must give
-the same quotient and remainder. Divisions the handler can never resolve (a zero
-divisor, an unsigned dividend the arithmetic shift cannot shrink) hang the original and
-stop the translation, so they are left out.
+into it until the retried division fits; the translation's bak_div8/bak_idiv8 (and
+bak_idiv16 for the word form) must give the same quotient and remainder. Divisions the
+handler can never resolve (a zero divisor, an unsigned dividend the arithmetic shift
+cannot shrink) hang the original and stop the translation, so they are left out.
 """
 
 from __future__ import annotations
@@ -96,3 +96,40 @@ def test_install_restore(krondor, native):
         native.call("int00.install")
         assert native.peek("g_int00_installed") == m.read("_g_int00_installed", 1)
     assert m.vector(0) == (m.u16("_g_wInt00SaveSeg"), m.u16("_g_wInt00SaveOff"))
+
+
+def _trunc_div(a: int, d: int) -> int:
+    q = abs(a) // abs(d)
+    return q if (a < 0) == (d < 0) else -q
+
+
+def _s32(v: int) -> int:
+    return v - (1 << 32) if v & 0x80000000 else v
+
+
+def test_word_divide_recovery(krondor, native):
+    """IDIV r16, as the line clipper divides: the handler halves DX:AX arithmetically
+    until the quotient fits; bak_idiv16 must end with the same quotient and remainder."""
+    m = krondor
+    m.call_far("install_int00_handler")
+    handler = m.vector(0)
+    code = m.alloc(16)
+    # idiv bx; retf, then the same instruction as the fault-frame target
+    m.write((code, 0), bytes([0xF7, 0xFB, 0xCB, 0x90, 0xF7, 0xFB, 0xCB, 0x90]))
+    rng = random.Random(27)
+    cases = [(0x7FFFFFFF, 1), (-0x80000000, 1), (0x12345678, -0x8000), (-0x7654321, -2),
+             (0x8000, 1), (-0x8001, 1), (-0x8000, 1), (0x7FFF, -1)]
+    for _ in range(600):
+        magnitude = rng.choice((16, 24, 32))
+        dxax = rng.randrange(-(1 << (magnitude - 1)), 1 << (magnitude - 1))
+        cases.append((dxax, rng.choice((1, -1)) * rng.randrange(1, 0x8000)))
+    for dxax, divisor in cases:
+        value = dxax
+        while not -0x8000 <= _trunc_div(value, divisor) <= 0x7FFF:
+            r = m.call_interrupt(handler, ax=value & 0xFFFF, dx=(value >> 16) & 0xFFFF,
+                                 bx=divisor & 0xFFFF, cs_frame=code, ip_frame=4)
+            value = _s32(r.dx << 16 | r.ax)
+        r = m.call_far((code, 0), ax=value & 0xFFFF, dx=(value >> 16) & 0xFFFF,
+                       bx=divisor & 0xFFFF)
+        reply = native.call("int00.idiv16", struct.pack("<iH", dxax, divisor & 0xFFFF))
+        assert reply == struct.pack("<HH", r.ax, r.dx), (hex(dxax), divisor)

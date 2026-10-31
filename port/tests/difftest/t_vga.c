@@ -184,6 +184,34 @@ static void cmd_dac_write(DtIn *in, DtOut *out) {
     vga_dac_write_palette((unsigned char *)dt_bytes(in, 3u * count), start, count);
 }
 
+/* vga.draw_line seg x0 y0 x1 y1 */
+static void cmd_draw_line(DtIn *in, DtOut *out) {
+    (void)out;
+    u16 seg = dt_u16(in), x0 = dt_u16(in), y0 = dt_u16(in), x1 = dt_u16(in), y1 = dt_u16(in);
+    vga_draw_line(seg, x0, y0, x1, y1);
+}
+
+/* vga.fill_run slot(10/11) seg di x count colors dx */
+static void cmd_fill_run(DtIn *in, DtOut *out) {
+    (void)out;
+    u16 slot = dt_u16(in), seg = dt_u16(in), di = dt_u16(in), x = dt_u16(in);
+    u16 count = dt_u16(in), colors = dt_u16(in), dx = dt_u16(in);
+    if (slot == 10)
+        vga_fill_run_a(seg, di, x, count, colors, dx);
+    else
+        vga_fill_run_b(seg, di, x, count, colors, dx);
+}
+
+/* vga.fill_spans <span table> */
+static void cmd_fill_spans(DtIn *in, DtOut *out) {
+    (void)out;
+    size_t n = dt_remaining(in);
+    unsigned char *spans = bak_dos_alloc((uint32_t)n, 0);
+    memcpy(spans, dt_bytes(in, n), n);
+    vga_fill_spans_dithered_modey(spans);
+    bak_dos_free(spans);
+}
+
 const DtEntry dt_vga_entries[] = {
     DT_COMMAND("vga.init", cmd_init),
     DT_COMMAND("vga.palette_cache", cmd_palette_cache),
@@ -202,6 +230,9 @@ const DtEntry dt_vga_entries[] = {
     DT_COMMAND("vga.palette_set", cmd_palette_set),
     DT_COMMAND("vga.lerp", cmd_lerp),
     DT_COMMAND("vga.dac_write", cmd_dac_write),
+    DT_COMMAND("vga.draw_line", cmd_draw_line),
+    DT_COMMAND("vga.fill_run", cmd_fill_run),
+    DT_COMMAND("vga.fill_spans", cmd_fill_spans),
     DT_GLOBAL(g_gfxContextBlock),
     DT_GLOBAL(g_bakVram),
     DT_END,

@@ -10,7 +10,7 @@
  * have done it are dead code).
  *
  * Natively no CPU exception reaches the handler; translated assembly that divides goes
- * through bak_div8/bak_idiv8 below, which apply the same rule and stop with a message
+ * through bak_div8/bak_idiv8/bak_idiv16 below, which apply the same rule and stop with a message
  * where the original would hang.
  */
 #include "bak_game_begin.h"
@@ -47,6 +47,20 @@ uint8_t bak_div8(uint16_t ax, uint8_t divisor, uint8_t *remainder) {
         if (shifted == ax)
             hangs("DIV overflow the divide-error handler cannot resolve: the original hangs");
         ax = shifted;
+    }
+}
+
+int16_t bak_idiv16(int32_t dxax, int16_t divisor, int16_t *remainder) {
+    for (;;) {
+        if (divisor == 0)
+            hangs("IDIV by zero: the original hangs in its divide-error handler");
+        int64_t q = (int64_t)dxax / divisor;
+        if (q >= -32768 && q <= 32767) {
+            if (remainder != NULL)
+                *remainder = (int16_t)((int64_t)dxax % divisor);
+            return (int16_t)q;
+        }
+        dxax >>= 1;
     }
 }
 

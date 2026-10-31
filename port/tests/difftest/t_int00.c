@@ -22,6 +22,15 @@ static void cmd_div(DtIn *in, DtOut *out) {
     }
 }
 
+/* int00.idiv16 u32 dx:ax, u16 divisor -> u16 quotient, u16 remainder */
+static void cmd_idiv16(DtIn *in, DtOut *out) {
+    int32_t dxax = (int32_t)dt_u32(in);
+    int16_t divisor = (int16_t)dt_u16(in);
+    int16_t rem;
+    dt_put_u16(out, (uint16_t)bak_idiv16(dxax, divisor, &rem));
+    dt_put_u16(out, (uint16_t)rem);
+}
+
 static void cmd_install(DtIn *in, DtOut *out) {
     (void)in;
     (void)out;
@@ -36,6 +45,7 @@ static void cmd_restore(DtIn *in, DtOut *out) {
 
 const DtEntry dt_int00_entries[] = {
     DT_COMMAND("int00.div", cmd_div),
+    DT_COMMAND("int00.idiv16", cmd_idiv16),
     DT_COMMAND("int00.install", cmd_install),
     DT_COMMAND("int00.restore", cmd_restore),
     DT_GLOBAL(g_int00_installed),

@@ -78,5 +78,6 @@ extern const DtEntry dt_m32_entries[];
 extern const DtEntry dt_midi_entries[];
 extern const DtEntry dt_snddrv_entries[];
 extern const DtEntry dt_polyrast_entries[];
+extern const DtEntry dt_drawline_entries[];
 
 #endif

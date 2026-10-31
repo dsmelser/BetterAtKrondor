@@ -134,6 +134,8 @@ unsigned char *bak_bios_data(void);
  */
 uint8_t bak_div8(uint16_t ax, uint8_t divisor, uint8_t *remainder);
 int8_t bak_idiv8(int16_t ax, int8_t divisor, int8_t *remainder);
+/* IDIV r16: DX:AX by divisor, as the handler resolves it (DX:AX halved arithmetically). */
+int16_t bak_idiv16(int32_t dxax, int16_t divisor, int16_t *remainder);
 
 /* Abort with a message naming a routine the port does not implement yet. */
 _Noreturn void bak_unimplemented(const char *what, const char *file, int line);
