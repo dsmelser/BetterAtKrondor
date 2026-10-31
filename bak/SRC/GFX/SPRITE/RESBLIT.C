@@ -127,7 +127,7 @@ ImageRecord **resblit_load_asset_table(char *path, s16 storage_mode) {
                             scratch = malloc(i);
                         } while (scratch == 0 && i > 50);
                         if (hdr.wCompression == 2)
-                            decomp_rle((unsigned char far *)pPayload, hdr.wCompressedSize, (s16)scratch, i,
+                            decomp_rle((unsigned char far *)pPayload, hdr.wCompressedSize, (NearPtr)scratch, i,
                                        fp);
                         else
                             decomp_lzss((unsigned char far *)pPayload, hdr.wCompressedSize, scratch, i, fp);

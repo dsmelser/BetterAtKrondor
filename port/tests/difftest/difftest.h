@@ -86,5 +86,6 @@ extern const DtEntry dt_gstate_entries[];
 extern const DtEntry dt_rtl_entries[];
 extern const DtEntry dt_dosrw_entries[];
 extern const DtEntry dt_r3d_entries[];
+extern const DtEntry dt_decomp_entries[];
 
 #endif

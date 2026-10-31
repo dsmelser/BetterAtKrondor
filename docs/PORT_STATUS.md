@@ -41,8 +41,8 @@ and checks that an incomplete folder is turned down cleanly.
 1. **After the book**: the book pages through with keys or clicks and the chapter cutscene plays to its
    end (chapter one's map and title); the game then copies `STARTUP.GAM` to `TEMP.GAM` (`savegame_read`,
    byte for byte), reads the party from it and sets up the 3D world: `ts_init` sets the light (M3's R3D
-   core starts there), then loading the region's encounter shapes stops at DECOMP.ASM's `decomp_rle`
-   (`resblit_load_asset_table`).
+   core starts there), loads the region's encounter shapes, and crashes loading the zone's actors
+   (`czone_load_actors`, CZONE.C).
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -92,6 +92,7 @@ null) that expand to the original under Borland.
 | `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
 | `GFX/RASTER/CIRCLE.C` | `draw_circle_bresenham` builds the span table's far pointer with `MK_FP` (the original builds it as segment << 16) |
 | `COMBAT/ACTOR/CACTOR.C` | `combat_actor_bnames_load_cached` reads BNAMES.DAT's records at their 16-bit offsets into the blob (the original rebases the offsets in place), and its `nameChars` holds the whole 8-byte record with `nameMeta` pointing at the second half (below) |
+| `GFX/SPRITE/DECOMP.H`, `RESBLIT.C` | `decomp_rle`'s buffer is a `NearPtr` (the original passes it as a 16-bit int) |
 | `INCLUDE/r3d.h` | the names of the renderer's state words (labels on its state block in the original) are `g_abR3dState`'s fields, so both reach the same storage; `g_pColorRemapTable`, past the struct, is a global |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |
@@ -124,6 +125,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/POLYGON.ASM` | `port/asm/polygon.c`: `fill_spans_dispatch` (the polygon rasterizer, `draw_polygon` and its edge walkers, still traps; `blit_rect_buf_dispatch` has no caller and traps) | no logic: it forwards the span table to slot 27 |
 | `INPUT/MOUSE.ASM` | `port/asm/mouse.c`, `mouse_data.c` | `test_mouse.py`: INT 33h call sequences of install/clip/restore/set-position, queries, the event callback's register save/restore and latch parking on a planar VGA |
 | `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
+| `GFX/SPRITE/DECOMP.ASM` | `port/asm/decomp.c` (the refill pump reads through `res_fread`) | `test_decomp.py`: LZSS and RLE streams (back-references to earlier output, overlapping, and anywhere in the segment, of every length; literal and repeat runs) whole, cut short, or shorter than the caller's count so that stale buffer bytes decode, through buffers of 1 to 2500 bytes, RLE output wrapping at 64 KB: the bytes read, the buffer and the whole 64 KB segment, against the original reading through a hooked `res_fread` |
 | `IO/DOSRW.ASM` | `port/asm/dosrw.c` (DOS's calls: the runtime's handle functions; a write of 0 bytes ends the file at the position) | `test_dosrw.py`: reads and writes on a DOS model (the same on both sides): counts around 7FFFh and 64 KB, files that end in each call, failing and short calls, 0 bytes, counts with bit 31 set, 300 random cases, with the original's pointer split in different ways: the result, every call, the file, its position and the buffer. On a real file: the runtime's calls do what the model does |
 | `INPUT/KEYBOARD.ASM` | `port/asm/keyboard.c`, `keyboard_data.c` | `test_keyboard.py`: the tables; 1500-byte random key sequences through the INT 9 handler (BIOS shift state and buffer, key states, channels) with and without the Tandy paths; `kbhit_read`; queries; the INT 1Ch axis tick; install/restore |
 | `INPUT/TIMER.ASM` | `port/asm/timer.c`, `timer_data.c` | `test_timer.py`: registry alloc/free; the order of callbacks over runs of IRQ 0 ticks and the BIOS chaining; install/restore |
@@ -365,6 +367,10 @@ modes.
   its block) give 0, a transparent pixel: the original reads whatever DOS memory lies there.
 - **A filled rectangle taller than the span table** (203 rows) stops with a message; the original writes
   its spans past the table's block. Clipped to the screen, a rectangle has at most 200 rows.
+- **The BMX codecs past their data.** Output past its block, and input past the buffer (LZSS with a
+  compressed size of 0 takes a flag byte from the empty buffer and reads on into DGROUP), stop with a
+  message. An LZSS word copy across the end of the output's segment is two byte copies, wrapping as on
+  an 8086; a 286 or later faults.
 - **The bytes before the ctype table** keep the values the original's image starts with; in the game
   most of them are variables (the audio state, the EMS counters). Only text with a byte from 80h up
   after an ellipsis or an '@' could tell, and the game's has none.
