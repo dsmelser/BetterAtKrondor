@@ -37,8 +37,7 @@ and checks that an incomplete folder is turned down cleanly.
 **Beyond the main menu** (M2):
 
 1. **After the book**: the book pages through with keys or clicks, then the chapter cutscene stops in
-   `draw_circle_bresenham` (CIRCLE.C builds its span buffer's pointer as `seg << 16`). ASan also reports
-   `bookview_init`'s 100-byte `BookViewerState`, too small natively.
+   `draw_circle_bresenham` (CIRCLE.C builds its span buffer's pointer as `seg << 16`).
 2. **The game state**: done, see `TEMP.GAM` below; not yet exercised by the game, which stops before it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -80,6 +79,7 @@ null) that expand to the original under Borland.
 | `STREAM/RESLOAD/IMGLOAD.C`, `IMGLOAD.H` | `free_image_record` frees the image block through `MK_FP` (the original builds the far pointer as segment << 16) and reads the table's records pointer at native width. The file's own loader (`BOOK.BMX`, and EMSIMG.C's combat images) builds its NULL-terminated table of record pointers at native width (`NearPtr`); the original holds them as 16-bit near pointers |
 | `DIALOG/ASKABOUT.C` | KEYWORD.DAT's 16-bit string offsets stay offsets and are resolved where a keyword is read (`KEYWORD`); the scratch menu's page and entries are cleared and sized at native size (`RECORD_SIZE`); a party member's name is read by its field, not by its offset in the game state; the dialog box comes back in a real four-word block (below) |
 | `SCREENS/CREDITS.C` | `credits_load` reads CRED.DAT's 16-bit string offsets aside and builds the pointer table from them |
+| `SCREENS/BOOKVIEW.C` | `bookview_init` allocates `BookViewerState` with `RECORD_SIZE`: 100 bytes in the original, 102 natively (`pImageRecord` is a near pointer) |
 | `UI/NAMEDTBL.C` | label tables (`LBL_*.DAT`) are loaded into a handle with the string pool and the labels' pointers; the original rebases the records' 16-bit offsets in place and frees the pool as the lowest of them |
 | `GAME/STATE/GSTATE.C` | event 7535h (the chapter's default speaker) in chapter 0, before a game is loaded, gives what the original reads before its table (below) |
 | `GAME/STATE/GSTATE.C`, `GSTATE.H`, `SYS/BOOT.C`, `SCREENS/MAINMENU.C`, `COMBAT/ENC/CBENC.C`, `GAME/ENC/RGNENC.C`, `COMBAT/ACTOR/CACTOR.C` | `TEMP.GAM`'s records with near pointers are converted field by field (below); P1.DAT's `CombatantState`s too |
