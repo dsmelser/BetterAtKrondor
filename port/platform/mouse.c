@@ -120,6 +120,14 @@ static void move_to(float px, float py) {
     }
 }
 
+/* bit 1 is the left button, 2 the right one. */
+static void press(uint16_t bit, bool down) {
+    uint16_t event = bit == 1 ? (down ? EVENT_LEFT_DOWN : EVENT_LEFT_UP)
+                              : (down ? EVENT_RIGHT_DOWN : EVENT_RIGHT_UP);
+    s_mouse.buttons = down ? (uint16_t)(s_mouse.buttons | bit) : (uint16_t)(s_mouse.buttons & ~bit);
+    dispatch(event);
+}
+
 void mouse_handle_event(const SDL_Event *e) {
     float px, py;
     switch (e->type) {
@@ -129,25 +137,27 @@ void mouse_handle_event(const SDL_Event *e) {
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP: {
-        bool down = e->type == SDL_EVENT_MOUSE_BUTTON_DOWN;
-        uint16_t bit, event;
-        if (e->button.button == SDL_BUTTON_LEFT) {
+        uint16_t bit;
+        if (e->button.button == SDL_BUTTON_LEFT)
             bit = 1;
-            event = down ? EVENT_LEFT_DOWN : EVENT_LEFT_UP;
-        } else if (e->button.button == SDL_BUTTON_RIGHT) {
+        else if (e->button.button == SDL_BUTTON_RIGHT)
             bit = 2;
-            event = down ? EVENT_RIGHT_DOWN : EVENT_RIGHT_UP;
-        } else {
+        else
             break;
-        }
         if (video_window_to_picture(e->button.x, e->button.y, &px, &py))
             move_to(px, py);
-        s_mouse.buttons =
-            down ? (uint16_t)(s_mouse.buttons | bit) : (uint16_t)(s_mouse.buttons & ~bit);
-        dispatch(event);
+        press(bit, e->type == SDL_EVENT_MOUSE_BUTTON_DOWN);
         break;
     }
     default:
         break;
     }
+}
+
+void mouse_script_move(float px, float py) {
+    move_to(px, py);
+}
+
+void mouse_script_left(bool down) {
+    press(1, down);
 }

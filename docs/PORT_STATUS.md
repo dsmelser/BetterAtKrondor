@@ -24,8 +24,9 @@ load. Then it parses `resource.cfg` and `drive.cfg`, binds the native VGA driver
 and timer, loads the game font, shows the "Loading Betrayal at Krondor... please wait." screen, finds no CD
 drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
 through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
-party's portraits for EMS, plays the intro to its end and scrolls the credits. The MIDI the game sends is
-not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+party's portraits for EMS, plays the intro to its end and scrolls the credits, starting over until a key
+or a click (as the original does). Then the main menu stops at SPRTHNKS.ASM's `blit_sprite_indirect`. The
+MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
@@ -201,6 +202,7 @@ with user-supplied ROMs) comes after M1, behind a toggle.
 | Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
 | BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |
 | MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless a drive is attached; drive check, IOCTL audio-track info, play, stop. Playing the GOG release's OGG tracks comes with the audio work |
+| Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses, pointer moves and clicks (in picture pixels) and a quit, for runs without a user |
 | MPU-401 | `port/platform/mpu401.c`, ports 330h/331h: UART mode, always ready, every command acknowledged. MIDI bytes go to a sink (`bak_midi_set_sink`); without one they are dropped, or written to the file `BAK_DUMP_MIDI` names |
 
 ## Known divergences from the original

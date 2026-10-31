@@ -37,6 +37,12 @@ bool video_window_to_picture(float wx, float wy, float *px, float *py);
 union SDL_Event;
 void mouse_handle_event(const union SDL_Event *e);
 void keyboard_handle_event(const union SDL_Event *e);
+/* Scripted pointer input: a position on the 320x200 picture, the left button. */
+void mouse_script_move(float px, float py);
+void mouse_script_left(bool down);
+
+/* Run the BAK_INPUT steps that are due (inputscript.c); false once one asks to quit. */
+bool input_script_poll(void);
 
 /* machine.c: the I/O ports of the timer, interrupt controller and keyboard controller
  * (false: not one of these), and a byte arriving from the keyboard (IRQ 1). */

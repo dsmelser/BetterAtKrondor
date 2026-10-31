@@ -29,7 +29,9 @@ gh workflow run reference.yml -f ref=<ref>         # Borland build of <ref>: byt
 
 Environment: `BAK_HEADLESS=1` (no dialogs; errors to stderr), `BAK_TRACE=1` (platform milestones),
 `SDL_VIDEO_DRIVER=dummy` (no window), `BAK_DUMP_FRAME=<file.bmp>` (each presented frame),
-`BAK_DUMP_MIDI=<file>` (the MIDI bytes sent to the MPU-401). Crashes print a symbolized stack on Windows.
+`BAK_DUMP_MIDI=<file>` (the MIDI bytes sent to the MPU-401), `BAK_INPUT="6000:key:Escape;9000:click:160,100"`
+(scripted keys and clicks, ms from start-up: `port/platform/inputscript.c`). Crashes print a symbolized
+stack on Windows. Unprompted, the intro and credits loop like the original's attract mode; Escape skips them.
 
 ## Rules
 

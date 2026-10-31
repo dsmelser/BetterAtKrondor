@@ -126,7 +126,7 @@ void platform_shutdown(void) {
 
 bool platform_pump_events(void) {
     SDL_Event e;
-    bool running = true;
+    bool running = input_script_poll();
     while (SDL_PollEvent(&e)) {
         switch (e.type) {
         case SDL_EVENT_QUIT:
