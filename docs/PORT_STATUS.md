@@ -13,7 +13,7 @@ Where the native port stands. Update this file in the same commit as the work it
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
 | SDL3 platform layer | ✅ window + present, VGA registers + 70 Hz retrace, chunky VRAM, segment table, DOS paths, INT 33h mouse, keyboard, timer, BIOS data area, MPU-401 (MIDI bytes not played yet) |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, `POLYRAST` (scaled sprites), `DRAWLINE`, `DRAWRECT`, the vtable thunks |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, `POLYRAST` (scaled sprites), `DRAWLINE`, `DRAWRECT`, `R3DTRIG`, the vtable thunks |
 | Native sound driver bound to the loaded SX.OVL chunk | ✅ MT-32 (`port/drivers/m32.c`); the others stop with the driver's name |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
@@ -25,8 +25,9 @@ and timer, loads the game font, shows the "Loading Betrayal at Krondor... please
 drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
 through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
 party's portraits for EMS, and starts the intro: its animation scripts run through the "Presents" and
-title cards until a dialog action needs R3DTRIG.ASM's cosine table (`r3d_tbl_cos`), not in C yet. The MIDI
-the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+title cards until a dialog action draws a Gouraud-shaded quad (POLYRAST.ASM's `polyrast_gouraud_blit_clipped`,
+not in C yet). The MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file.
+Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
@@ -94,6 +95,7 @@ that runs the original routines from the reference build against the translation
 | `AUDIO/DRIVER/MUSDISP.ASM`, `DISP35E0.ASM` | `port/asm/musdisp.c`, `disp35e0.c` | `test_snddrv.py`: each stub's command, the start command's arguments and result |
 | `GFX/RASTER/DRAWLINE.ASM` | `port/asm/drawline.c` | `test_drawline.py`: 1500 lines against random clip rectangles and 600 far-flung ones whose clipping overflows IDIV, with probes in the line and span slots: what reaches the driver |
 | `GFX/SPRITE/DRAWRECT.ASM` | `port/asm/drawrect.c` | `test_drawline.py`: 1000 rectangles, filled or not, clipped or not: the span table and the outline's lines |
+| `R3D/CORE/R3DTRIG.ASM` | `port/asm/r3dtrig.c` (with R3DDATA.ASM's cosine table) | `test_r3dtrig.py`: every entry of the cosine, arcsine and arctangent tables through sin, cos, asin and the raw lookup; atan2 over 3000 vectors of three magnitudes, the axes, diagonals and -8000h |
 | `GFX/RASTER/POLYRAST.ASM` | `port/asm/polyrast.c` (the Gouraud quad blit still traps) | `test_polyrast.py`: the edge stepper over 3000 start/end/step cases; scaled sprites, plain and RLE, at random places, scales, flips, modes (copy, fill, outline, remap through the fog and cursor tables), clip rectangles and pages, on a planar VGA model: display memory, the steppers, the map mask and the RLE scratch after each. Reaches all 40 of the routine's checkpoints |
 
 ## Video drivers (VMCODE.OVL)
@@ -226,6 +228,8 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   the original reads whatever DOS memory lies at the end of the source's segment.
 - **A filled rectangle taller than the span table** (203 rows) stops with a message; the original writes
   its spans past the table's block. Clipped to the screen, a rectangle has at most 200 rows.
+- **Trig tables read out of range.** `r3d_tbl_asin` of a value past +-1.0 (beyond 401Fh) and
+  `r3d_tbl_atan_lookup_raw` past index 1FFh stop with a message; the original reads the code after the table.
 
 Placeholder values to revisit: the remaining ASM data tables (zero), the emulated DOS free memory
 (640 KB) and EMS size (8 MB).

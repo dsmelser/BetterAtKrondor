@@ -636,9 +636,9 @@ extern s16 r3d_tbl_asin(s16 sin_value);
 /**
  * Computes the four-quadrant arctangent of y and x, returning the vector's
  * direction as a 16-bit binary angle (full circle 0x10000, 0x4000 == 90
- * degrees). Standard atan2(y, x) convention: 0 along +x, 0x4000 along +y,
- * counterclockwise, with (0, 0) returning 0. Derived from the first-octant
- * arctangent table with sign/octant folding.
+ * degrees) measured from +y towards +x: 0 along +y, 0x4000 along +x (y == 0),
+ * 0x8000 along -y and 0xc000 along -x, with (0, 0) returning 0. Derived from
+ * the first-octant arctangent table with sign/octant folding.
  */
 extern s16 r3d_tbl_atan2(s16 y, s16 x);
 
