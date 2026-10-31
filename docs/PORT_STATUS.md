@@ -24,9 +24,9 @@ load. Then it parses `resource.cfg` and `drive.cfg`, binds the native VGA driver
 and timer, loads the game font, shows the "Loading Betrayal at Krondor... please wait." screen, finds no CD
 drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
 through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
-party's portraits for EMS, and starts the intro: its animation scripts run through the "Presents" card
-until one frees an image whose far pointer `IMGLOAD.C` builds as segment << 16. The MIDI the game sends is
-not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+party's portraits for EMS, and starts the intro: its animation scripts run through the "Presents" and
+title cards until a dialog action needs R3DTRIG.ASM's cosine table (`r3d_tbl_cos`), not in C yet. The MIDI
+the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
@@ -52,6 +52,7 @@ Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or on
 | `SYS/CFGPARSE.C` | writable buffer for the drive prefix the parser overwrites |
 | `SCRIPT/ADSCRIPT.C`, `SCRIPT/ANIMSCR.C`, `INCLUDE/structs.h` | the animation scripts' object nodes, slots and operand lists sized with `RECORD_SIZE`/`NEAR_PTR_SIZE`; `Slot`'s node-chain head and operand-list fields are `NearPtr` |
 | `SCRIPT/TTM.C`, `SCRIPT/TTMDLG.C`, `DIALOG/DIALOG.C`, `GFX/SPRITE/SPRTHNKS.H`, `INCLUDE/structs.h` | a script object's image tables (`pAhPagedImage`, `NearPtr`) and the sprite pointers taken from them (`NearWord`, or a native local where the original reuses a 16-bit parameter); the EMS page's segment with `FP_SEG` |
+| `STREAM/RESLOAD/IMGLOAD.C` | `free_image_record` frees the image block through `MK_FP` (the original builds the far pointer as segment << 16) and reads the table's records pointer at native width. The file's own loader, which only the book viewer uses (M2), still keeps its pointers in 16-bit fields |
 | `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |

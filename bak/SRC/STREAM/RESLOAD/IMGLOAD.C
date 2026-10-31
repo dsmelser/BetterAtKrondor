@@ -184,18 +184,35 @@ cleanup:
     return (unsigned short)image;
 }
 
+#ifdef BAK_NATIVE
+/* The table's first entry, the records block, is a native pointer. Without a table the
+ * original reads DS:0000, which Borland's startup keeps zero (its null-pointer check
+ * area), and frees nothing. */
+void free_container_pair(s16 *container) {
+    if (container == NULL)
+        return;
+    if (*(NearPtr *)container != 0)
+        my_free((void *)*(NearPtr *)container);
+    my_free(container);
+}
+#else
 void free_container_pair(s16 *container) {
     if (*container != 0)
         my_free((void *)*container);
     if (container != 0)
         my_free(container);
 }
+#endif
 
 void far free_image_record(register ImageRecord **record) {
     s16 *inner;
     if (record) {
         inner = (s16 *)*record;
+#ifdef BAK_NATIVE
+        _freemem(MK_FP((u16)inner[0], (u16)inner[1]));
+#else
         _freemem((unsigned char far *)(((u32)inner[0] << 16) + (u16)inner[1]));
+#endif
         free_container_pair((s16 *)record);
     }
 }
