@@ -108,12 +108,10 @@ static void vga_noop(void) {
     static void trap_##name(void) {                                                                \
         BAK_UNIMPLEMENTED("VGA driver slot " #slot ": vga_" #name);                                \
     }
-TRAP(3, blit_sprite)
 TRAP(17, blit_chunky)
 TRAP(18, blit_chunky_planar_4bit)
 TRAP(19, fill_textured_span_modey_b)
 TRAP(23, blit_rect_buffer)
-TRAP(29, blit_sprite_master)
 TRAP(30, blit_sprite_flip_h)
 TRAP(31, blit_sprite_flip_v)
 TRAP(33, blit_sprite_simple)
@@ -137,7 +135,7 @@ static void fill_slots(void) {
     t->slot_00_null = NULL;
     t->pfn_blit_glyph_row = SLOT(vga_blit_glyph_row);
     t->pfn_draw_line = SLOT(vga_draw_line);
-    t->pfn_blit_sprite = SLOT(trap_blit_sprite);
+    t->pfn_blit_sprite = SLOT(vga_blit_sprite);
     t->pfn_present = SLOT(vga_present);
     t->pfn_save_rect = SLOT(vga_save_rect);
     t->pfn_rect_byte_size = SLOT(vga_blit_size);
@@ -163,7 +161,7 @@ static void fill_slots(void) {
     t->slot_26_unimplemented = noop;
     t->pfn_fill_spans_dithered_modey = SLOT(vga_fill_spans_dithered_modey);
     t->slot_28_unimplemented = noop;
-    t->pfn_blit_sprite_master = SLOT(trap_blit_sprite_master);
+    t->pfn_blit_sprite_master = SLOT(vga_blit_sprite_master);
     t->pfn_blit_sprite_flip_h = SLOT(trap_blit_sprite_flip_h);
     t->pfn_blit_sprite_flip_v = SLOT(trap_blit_sprite_flip_v);
     t->pfn_clear_rect_state = SLOT(vga_clear_rect_state);
@@ -612,6 +610,146 @@ void vga_draw_line(u16 seg, u16 x0, u16 y0, u16 x1, u16 y1) {
         }
         line_pixel(seg, di++, color);
     } while (--n != 0);
+}
+
+/* ---- slots 3, 29: sprites --------------------------------------------------------- */
+
+/* A source byte of the sprite's segment; past the memory the port has there, 0. */
+static unsigned char sprite_byte(const unsigned char *seg, u32 extent, u16 si) {
+    return si < extent ? seg[si] : 0;
+}
+
+/* The map mask for the next plane lane: planes from the first visible pixel's on, the
+ * destination moving to the next byte after plane 3. */
+static unsigned next_plane(u16 *plane, u16 *dst) {
+    unsigned mask = 1u << (*plane & 0xff);
+    (*plane)++;
+    if (mask == 0x10) {
+        (*dst)++;
+        mask = 1;
+        *plane = 1;
+    }
+    bak_port_out8(0x3C5, (unsigned char)mask);
+    return mask == 1 ? 0 : mask == 2 ? 1 : mask == 4 ? 2 : 3;
+}
+
+/*
+ * Slot 29: a sprite at (x, y), flipped vertically (flags bit 0) and/or horizontally (bit
+ * 1); 0 is transparent. Its pixels are row-major with rows width & ~3 bytes long (the last
+ * width & 3 pixels of a row are never drawn). The clipped sprite is drawn in four plane
+ * lanes, each taking every fourth pixel of every row from the first visible one on, so the
+ * source steps four bytes a pixel and the destination one byte; between lanes the source
+ * moves a pixel along (back, flipped) and the destination plane one on.
+ *
+ * Kept from the original: the source position is quad-aligned plus a phase, so a record
+ * offset that is not a multiple of 4 shifts the picture; clipping on both sides can leave
+ * a negative width, whose lanes then run up to 16K bytes a row; a height of 0 unclipped is
+ * 65536 rows.
+ */
+void vga_blit_sprite_master(const ImageRecord *sprite, s16 x, s16 y, u16 flags) {
+    u16 width = (u16)sprite->nWidth, quads = width >> 2;
+    u16 rows = (u16)sprite->nHeight;
+    u16 total = (u16)((u16)(quads << 2) * rows);
+    int hflip = (flags & 2) != 0, vflip = (flags & 1) != 0;
+    u16 si = 0;
+    if (hflip)
+        si = (u16)(width - 1);
+    if (vflip)
+        si = (u16)(si + total - width);
+    /* The pixel index of (x, y): the row offset times 4, whose bit 16 the original keeps
+     * in the carry of the shift. */
+    u16 row = row_offset(y);
+    unsigned carry = row >> 14 & 1;
+    u16 di = (u16)((u16)(row << 2) + x);
+    u16 dx = (u16)(quads << 2);
+    u16 skipped = 0; /* source pixels clipped off a row, right and left */
+    if (g_graphics_context.bClip_enabled) {
+        const ClipRect *c = &g_graphics_context.clip;
+        s16 over = (s16)(c->xmax - x - dx);
+        if (over < 0) {
+            u16 n = (u16)(-over - 1);
+            skipped = n;
+            dx = (u16)(dx - n);
+            if ((u16)(n >> 2) >= quads)
+                return;
+        }
+        over = (s16)(c->ymax - y - rows);
+        if (over < 0) {
+            u16 n = (u16)(-over - 1);
+            if (!(rows > n))
+                return;
+            rows = (u16)(rows - n);
+        }
+        if (c->ymin > y) {
+            u16 cut = (u16)(c->ymin - y);
+            rows = (u16)(rows - cut);
+            u16 by = (u16)((u16)(cut * quads) << 2);
+            si = (u16)(si + (vflip ? -by : by));
+            row = row_offset(c->ymin);
+            carry = row >> 14 & 1;
+            di = (u16)((u16)(row << 2) + x);
+            if (rows == 0 || (s16)rows < 0)
+                return;
+        }
+        if (c->xmin > x) {
+            u16 cut = (u16)(c->xmin - x);
+            di = (u16)(di + cut);
+            skipped = (u16)(skipped + cut);
+            si = (u16)(si + (hflip ? -cut : cut));
+            dx = (u16)(dx - cut);
+            if ((u16)(cut >> 2) >= quads)
+                return;
+        }
+    }
+    u16 plane = di & 3;
+    u16 phase = si & 3;
+    u16 dst = (u16)((u16)(carry << 15 | di >> 1) >> 1);
+    u16 quad = (u16)((si + sprite->wImageOff) & 0xfffc);
+
+    u16 seg = g_graphics_context.wGfxBlitDstPage;
+    const unsigned char *src = MK_FP(sprite->wImageData, 0);
+    u32 extent = bak_seg_extent(sprite->wImageData);
+    bak_port_out8(0x3C4, 2);
+    for (unsigned k = 0; k < 4; k++) {
+        if (k > 0 && !hflip && phase == 0)
+            quad = (u16)(quad + 4);
+        if (k > 0 && hflip && phase == 3)
+            quad = (u16)(quad - 4);
+        unsigned p = next_plane(&plane, &dst);
+        si = (u16)(quad + phase);
+        phase = (u16)((phase + (hflip ? 3 : 1)) & 3);
+
+        u16 n = (u16)((u16)(dx + 3 - k) >> 2);
+        u16 step = (u16)((skipped + k) & 0xfffc);
+        if (vflip && !hflip)
+            step = (u16)(step - 2 * width);
+        else if (hflip && !vflip)
+            step = (u16)(2 * width - step);
+        else if (hflip && vflip)
+            step = (u16)-step;
+        if (n == 0)
+            continue;
+        u16 d = dst;
+        u16 r = rows;
+        do {
+            for (u16 count = n; count != 0; count--) {
+                unsigned char al = sprite_byte(src, extent, si);
+                si = (u16)(si + (hflip ? -4 : 4));
+                if (al != 0) {
+                    unsigned char *q = vram(seg, d);
+                    if (q != NULL)
+                        q[p] = al;
+                }
+                d++;
+            }
+            si = (u16)(si + step);
+            d = (u16)(d + 0x50 - n);
+        } while (--r != 0);
+    }
+}
+
+void vga_blit_sprite(const ImageRecord *sprite, s16 x, s16 y) {
+    vga_blit_sprite_master(sprite, x, y, 0);
 }
 
 /* ---- slots 34-35: DAC ------------------------------------------------------------- */

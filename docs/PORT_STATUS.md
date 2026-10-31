@@ -13,7 +13,7 @@ Where the native port stands. Update this file in the same commit as the work it
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
 | SDL3 platform layer | ✅ window + present, VGA registers + 70 Hz retrace, chunky VRAM, segment table, DOS paths, INT 33h mouse, keyboard, timer, BIOS data area, MPU-401 (MIDI bytes not played yet) |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, `POLYRAST`, `DRAWLINE`, `DRAWRECT`, `R3DTRIG`, the vtable thunks |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, `POLYRAST`, `DRAWLINE`, `DRAWRECT`, `R3DTRIG`, the vtable and sprite thunks |
 | Native sound driver bound to the loaded SX.OVL chunk | ✅ MT-32 (`port/drivers/m32.c`); the others stop with the driver's name |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
@@ -25,7 +25,7 @@ and timer, loads the game font, shows the "Loading Betrayal at Krondor... please
 drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
 through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
 party's portraits for EMS, plays the intro to its end and scrolls the credits, starting over until a key
-or a click (as the original does). Then the main menu stops at SPRTHNKS.ASM's `blit_sprite_indirect`. The
+or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. The
 MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
@@ -84,7 +84,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/PIXEL.ASM` | `port/asm/pixel.c` | `test_pixel.py`: the clipping decision, against probes in the pixel slots |
 | `GEN/GFXCTX.ASM` | `port/asm/gfxctx_data.c` | `test_vga.py::test_context_initial_values`: the whole 2742-byte block |
 | `GEN/RNDVTBL.ASM` | `port/asm/rndvtbl_data.c` | data only: every slot starts at `gfx_retf_stub` |
-| `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c` | no logic: each routine forwards to a vtable slot |
+| `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM`, `GFX/SPRITE/SPRTHNKS.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c`, `sprthnks.c` | no logic: each routine forwards to a vtable slot (SPRTHNKS's `blit_sprite` and `blit_stretched_dispatch` have no caller and trap) |
 | `INPUT/MOUSE.ASM` | `port/asm/mouse.c`, `mouse_data.c` | `test_mouse.py`: INT 33h call sequences of install/clip/restore/set-position, queries, the event callback's register save/restore and latch parking on a planar VGA |
 | `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
 | `INPUT/KEYBOARD.ASM` | `port/asm/keyboard.c`, `keyboard_data.c` | `test_keyboard.py`: the tables; 1500-byte random key sequences through the INT 9 handler (BIOS shift state and buffer, key states, channels) with and without the Tandy paths; `kbhit_read`; queries; the INT 1Ch axis tick; install/restore |
@@ -110,9 +110,9 @@ address and the palette cache after every call.
 
 | Slots | Status |
 |---|---|
-| init, 1 glyph, 2 line, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload | ✅ verified |
+| init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload | ✅ verified |
 | 24 rect-buffer offset, 32 clear sprite cache | ported; verified with their consumers (23, 33) |
-| 3, 17-19, 23, 29-31, 33, 36-40 | ⬜ trap with the routine's name |
+| 17-19, 23, 30, 31, 33, 36-40 | ⬜ trap with the routine's name |
 | 9, 12, 16, 25, 26, 28, 41-48 | empty in the original: no-ops |
 
 Slots the game calls with register arguments have native signatures in `port/drivers/vga.h` (`DrawLineFn`,
@@ -188,6 +188,11 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   dividend decides where the end lands. Its minimum tests compare signed and its maximum tests unsigned, and
   it orders the ends with an unsigned compare: with clipping off, a line across x = 0 reaches the driver right
   end first.
+- **The VGA driver's sprite blit draws rows of width & ~3 pixels.** Slot 29 steps its source rows by the
+  width rounded down to a multiple of 4, so a sprite's last width & 3 pixels in a row are never drawn (the
+  game's sprites are multiples of 4 wide). The source position is kept as a quad-aligned offset plus a
+  phase, so a record offset that is not a multiple of 4 shifts the picture, and a clip rectangle narrower
+  than nothing (xmax < xmin) leaves a negative width whose plane lanes run 16K bytes a row.
 - **The VGA driver's span filler and line slot slip far off the screen.** The span filler (slot 27) treats a run as one
   byte when its ends differ only above bit 11 (it masks with 0FFCh where the run slots use FFFCh), and an
   upward vertical line (slot 2) loses bit 15 of its height, which it doubles and halves around a table read.
@@ -227,8 +232,8 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   the translation stops with a message. Scripts are read with linear pointers, where the original's 16-bit
   offsets into a script would wrap at the end of its segment.
 - **DGROUP's segment** (see above) is 29DDh natively, DGROUP's paragraph in the 1.02 image.
-- **Reads past a sprite's memory** (a flipped column's last row, see above) give 0, a transparent pixel:
-  the original reads whatever DOS memory lies at the end of the source's segment.
+- **Reads past a sprite's memory** (a flipped column's last row, see above; any sprite blit reading past
+  its block) give 0, a transparent pixel: the original reads whatever DOS memory lies there.
 - **A filled rectangle taller than the span table** (203 rows) stops with a message; the original writes
   its spans past the table's block. Clipped to the screen, a rectangle has at most 200 rows.
 - **Trig tables read out of range.** `r3d_tbl_asin` of a value past +-1.0 (beyond 401Fh) and

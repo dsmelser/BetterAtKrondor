@@ -372,3 +372,41 @@ def test_fill_spans(pair):
         pair.chunk.call(27, es=spans, si=0, ss=pair.chunk.ctx_seg)
         pair.native.call("vga.fill_spans", table)
         pair.assert_same(f"after spans {i}: {count} rows from {first} on {page:04X}")
+
+
+def test_sprites(pair):
+    """Slots 29 (with flips) and 3. The record is at DS:0 of a segment of its own, the pixels
+    at its offset in a 64 KB segment that is otherwise zero, as on the native side."""
+    rng = random.Random(16)
+    pair.fill_vram(rng)
+    record = pair.m.alloc(16)
+    pixels_seg = pair.m.alloc(0x10000)
+    # Clipped on both sides by an inverted rectangle: a negative width, 16K-byte lanes.
+    cases = [(29, 0, 100, 50, 16, 1, 0, (1, 120, 100, 0, 199))]
+    # Each flip, cut on the left and on the right.
+    cases += [(29, flags, x, 20, 24, 6, 0x10, (1, 10, 300, 0, 199))
+              for flags in range(4) for x in (3, 5, 283, 290)]
+    for _ in range(200):
+        width, height = rng.randrange(1, 70), rng.randrange(1, 50)
+        clip = (rng.choice((0, 1, 1, 0x80)), rng.randrange(-20, 200), 0, rng.randrange(-20, 150), 0)
+        clip = (clip[0], clip[1], clip[1] + rng.randrange(0, 200), clip[3], clip[3] + rng.randrange(0, 120))
+        cases.append((rng.choice((29, 29, 29, 3)), rng.randrange(4), rng.randrange(-80, 330),
+                      rng.randrange(-60, 220), width, height, rng.choice((0, 4, 0x10, 0x123)), clip))
+    for i, (slot, flags, x, y, width, height, off, clip) in enumerate(cases):
+        page = rng.choice(PAGES)
+        pair.set_ctx_u16(OFF_DST, page)
+        pair.set_ctx_u8(0x03, clip[0])
+        for k, v in enumerate(clip[1:]):  # xmin, xmax, ymin, ymax
+            pair.set_ctx_u16(0x04 + 2 * k, v)
+        data = bytes(0 if rng.random() < 0.3 else rng.randrange(1, 256) for _ in range(width * height))
+        segment = bytearray(0x10000)
+        segment[off:off + len(data)] = data
+        pair.m.write((pixels_seg, 0), bytes(segment))
+        pair.m.write((record, 0), _u16s(pixels_seg, off, 0, width, height))
+        if slot == 3:
+            pair.chunk.call(3, 0, x, y, ds=record)
+        else:
+            pair.chunk.call(29, 0, x, y, flags, ds=record)
+        pair.native.call("vga.sprite", _u16s(slot, flags, x, y, width, height, off) + data)
+        pair.assert_same(f"after sprite {i}: slot {slot} flags {flags} {width}x{height}+{off:#x} "
+                         f"at ({x}, {y}) clip {clip} on {page:04X}")

@@ -212,6 +212,30 @@ static void cmd_fill_spans(DtIn *in, DtOut *out) {
     bak_dos_free(spans);
 }
 
+/* vga.sprite slot(3/29) flags x y width height offset <pixels>: the record's segment is a
+ * zeroed 64 KB block with the pixels at the offset. */
+static void cmd_sprite(DtIn *in, DtOut *out) {
+    (void)out;
+    u16 slot = dt_u16(in), flags = dt_u16(in);
+    s16 x = arg(in), y = arg(in);
+    ImageRecord rec;
+    memset(&rec, 0, sizeof rec);
+    rec.nWidth = arg(in);
+    rec.nHeight = arg(in);
+    rec.wImageOff = dt_u16(in);
+    size_t n = dt_remaining(in);
+    if (rec.wImageOff + n > 0x10000)
+        dt_fail("the pixels run past the segment");
+    unsigned char *block = bak_dos_alloc(0x10000, 1);
+    memcpy(block + rec.wImageOff, dt_bytes(in, n), n);
+    rec.wImageData = FP_SEG(block);
+    if (slot == 3)
+        vga_blit_sprite(&rec, x, y);
+    else
+        vga_blit_sprite_master(&rec, x, y, flags);
+    bak_dos_free(block);
+}
+
 const DtEntry dt_vga_entries[] = {
     DT_COMMAND("vga.init", cmd_init),
     DT_COMMAND("vga.palette_cache", cmd_palette_cache),
@@ -233,6 +257,7 @@ const DtEntry dt_vga_entries[] = {
     DT_COMMAND("vga.draw_line", cmd_draw_line),
     DT_COMMAND("vga.fill_run", cmd_fill_run),
     DT_COMMAND("vga.fill_spans", cmd_fill_spans),
+    DT_COMMAND("vga.sprite", cmd_sprite),
     DT_GLOBAL(g_gfxContextBlock),
     DT_GLOBAL(g_bakVram),
     DT_END,

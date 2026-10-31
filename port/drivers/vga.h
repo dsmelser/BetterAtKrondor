@@ -39,6 +39,10 @@ void vga_fill_run_b(u16 seg, u16 di, u16 x, u16 count, u16 colors, u16 dx);
 /* 27: ES:SI = the spans: the first row, the number of rows, then x0 and x1 of each. */
 typedef void FillSpansFn(const unsigned char *spans);
 void vga_fill_spans_dithered_modey(const unsigned char *spans);
+/* 3, 29: a sprite from its record (a near pointer in the original), 29 with flip flags. */
+typedef void SpriteMasterFn(const ImageRecord *sprite, s16 x, s16 y, u16 flags);
+void vga_blit_sprite(const ImageRecord *sprite, s16 x, s16 y);
+void vga_blit_sprite_master(const ImageRecord *sprite, s16 x, s16 y, u16 flags);
 void vga_present(s16 x, s16 y, s16 width, s16 height);                        /* 4 */
 void vga_save_rect(unsigned char *dst, s16 x, s16 y, s16 width, s16 height);  /* 5 */
 s32 vga_blit_size(s16 width, s16 height);                                     /* 6 */
