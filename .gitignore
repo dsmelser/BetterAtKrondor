@@ -31,3 +31,6 @@ __pycache__/
 
 # agent/investigation scratch (repo-local)
 scratchpad/
+
+# native port: CMake build trees (presets use build/<preset>)
+/build/

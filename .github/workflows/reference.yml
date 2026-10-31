@@ -1,0 +1,80 @@
+name: reference build
+
+# Builds the original DOS binaries with upstream's period toolchain (Borland C++
+# and TASM in FreeDOS under QEMU), verifies them by sha256 against the shipped
+# 1.00 and 1.02 releases, and uploads every object file, link map and binary.
+#
+# Two uses:
+#   - test fixtures: the native port's differential tests run original routines
+#     from these objects (build `upstream-snapshot`);
+#   - proof that a change to bak/ is byte-neutral for the DOS build (build the
+#     commit in question; the job fails on any byte difference).
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, branch or tag to build
+        required: true
+        default: upstream-snapshot
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
+      - name: Install QEMU and mtools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 mtools
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Fetch the period toolchain (upstream release toolchain-v1)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download toolchain-v1 -R canassa/betrayal-at-krondor -p toolchain.tar.gz
+          tar xzf toolchain.tar.gz
+          rm toolchain.tar.gz
+          ls toolchain
+
+      - name: Build and verify 1.00 and 1.02
+        run: uv run bak build --version 102
+
+      - name: Collect objects, maps and binaries
+        if: always()
+        env:
+          MTOOLS_SKIP_CHECK: "1"
+        run: |
+          mkdir -p ref/OUT ref/OUT102
+          if [ -f work/build.img ]; then
+            mcopy -n -i work/build.img@@32256 '::/OUT/*.*' ref/OUT/ || true
+            mcopy -n -i work/build.img@@32256 '::/OUT102/*.*' ref/OUT102/ || true
+          fi
+          cp work/*.EXE work/*.OVL work/*.LOG ref/ 2>/dev/null || true
+          git rev-parse HEAD > ref/COMMIT
+          ls -la ref ref/OUT ref/OUT102 | head -60
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reference-${{ github.run_id }}
+          path: ref/
+          if-no-files-found: warn
+          retention-days: 90

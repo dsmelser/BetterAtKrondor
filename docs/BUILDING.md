@@ -1,5 +1,10 @@
 # Building Betrayal at Krondor
 
+> **BetterAtKrondor note:** this is upstream's guide to the original DOS build. On this fork
+> it applies to the `upstream-snapshot` tag and to the `reference.yml` CI workflow, which
+> runs it to produce reference binaries and objects. `main` no longer has to stay
+> byte-identical, so `bak build` is not expected to verify there.
+
 This document describes how to compile `KRONDOR.EXE`, `SX.OVL` and `VMCODE.OVL` — for the 1.00 (floppy) and 1.02 (CD-ROM) releases.
 
 ## Background

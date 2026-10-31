@@ -1,0 +1,6 @@
+# Keep LF in every checkout, regardless of a machine-wide core.autocrlf.
+* text=auto eol=lf
+
+*.BIN binary
+*.bin binary
+*.png binary
