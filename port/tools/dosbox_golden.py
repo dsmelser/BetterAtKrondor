@@ -65,32 +65,38 @@ SEQ = 0x2D
 DAC_STATE = 0x32    # db: port 3C7h (3: read mode)
 DAC_WINDEX = 0x33   # db: port 3C8h, the write index, restored afterwards
 PEL_MASK = 0x34     # db: port 3C6h
+ATTR_INDEX = 0x35   # db: attribute controller index (with the palette address source bit)
+ATTR = 0x36         # 21 bytes: attribute registers 00h-14h
 DAC = 0x100         # 768 bytes: the DAC's 256 colours, 6 bits a component
 CODE_OFF = 0x400
-BLOCK_SIZE = 0x500
+BLOCK_SIZE = 0x540
 
 # Assembled with clang (--target=i386-unknown-none-elf, .code16); offsets from CODE_OFF.
 #
-#   400 cmp byte cs:[4],1 / jne 4F3           armed? otherwise chain
+#   400 cmp byte cs:[4],1 / jne 526           armed? otherwise chain
 #   40A push ax,bx,dx,cx,di,es / cld / es=cs
 #   413 dx=3D4h: save the index; read registers 00h-18h to cs:[9]; restore the index
 #   433 dx=3C4h: the same for sequencer registers 0-4 to cs:[2Dh]
 #   453 dx=3CEh: save the index; graphics controller registers 0-8 to cs:[23h]
-#   46E 3C7h (DAC state), 3C8h (write index) and 3C6h (pel mask) to cs:[32h..34h]
-#   484 out 3C7h,0 / rep insb 768 bytes of 3C9h to cs:[100h] / out 3C8h,write index
-#   499 GC 5 = saved & F7h (read mode 0); byte cs:[4] = 2
-#   4AE spin: plane_req FFh -> done; differs from plane_ack -> GC 4 = plane_req,
+#   46E 3C0h: save the attribute index; for each of registers 00h-14h: in 3DAh (flip-flop
+#       to index), out 3C0h,reg|20h (keeps the display on), in 3C1h to cs:[36h]; then
+#       in 3DAh, out 3C0h,saved index, in 3DAh (flip-flop back to index)
+#   4A1 3C7h (DAC state), 3C8h (write index) and 3C6h (pel mask) to cs:[32h..34h]
+#   4B7 out 3C7h,0 / rep insb 768 bytes of 3C9h to cs:[100h] / out 3C8h,write index
+#   4CC GC 5 = saved & F7h (read mode 0); byte cs:[4] = 2
+#   4E1 spin: plane_req FFh -> done; differs from plane_ack -> GC 4 = plane_req,
 #       plane_ack = plane_req
-#   4CE done: restore GC 4, GC 5 and the GC index; byte cs:[4] = 3; pop
-#   4F3 jmp far cs:[0]
+#   501 done: restore GC 4, GC 5 and the GC index; byte cs:[4] = 3; pop
+#   526 jmp far cs:[0]
 CAPTURE_CODE = bytes.fromhex(
-    "2e803e0400010f85e900505352515706fc0e07bad403ec2ea20800bf0900b30088d8ee42ecaa4afec3"
+    "2e803e0400010f851c01505352515706fc0e07bad403ec2ea20800bf0900b30088d8ee42ecaa4afec3"
     "80fb1972f22ea00800eebac403ec2ea22c00bf2d00b30088d8ee42ecaa4afec380fb0572f22ea02c00"
-    "eebace03ec2ea22200bf2300b30088d8ee42ecaa4afec380fb0972f2bac703ec2ea2320042ec2ea233"
-    "00bac603ec2ea2340042b000eebac903bf0001b90003f36c4a2ea03300eebace03b005ee422ea02800"
-    "24f7ee4a2ec6060400022ea005003cff74182e3a06060074f188c4b004ee4288e0ee4a2e88260600eb"
-    "e0b004ee422ea02700ee4ab005ee422ea02800ee4a2ea02200ee2ec606040003075f595a5b582eff2e"
-    "0000"
+    "eebace03ec2ea22200bf2300b30088d8ee42ecaa4afec380fb0972f2bac003ec2ea23500bf3600b300"
+    "bada03ecbac00388d80c20ee42ecaafec380fb1572eabada03ecbac0032ea03500eebada03ecbac703"
+    "ec2ea2320042ec2ea23300bac603ec2ea2340042b000eebac903bf0001b90003f36c4a2ea03300eeba"
+    "ce03b005ee422ea0280024f7ee4a2ec6060400022ea005003cff74182e3a06060074f188c4b004ee42"
+    "88e0ee4a2e88260600ebe0b004ee422ea02700ee4ab005ee422ea02800ee4a2ea02200ee2ec6060400"
+    "03075f595a5b582eff2e0000"
 )
 IRQ0_VECTOR = 0x08 * 4
 
@@ -240,8 +246,8 @@ class DosBox:
             self.write(IRQ0_VECTOR, old, expect=hook)
         regs = self.read(self.block, CODE_OFF)
         return Capture(planes=planes, crtc=regs[CRTC:CRTC + 0x19], gc=regs[GC:GC + 9],
-                       seq=regs[SEQ:SEQ + 5], dac=regs[DAC:DAC + 0x300],
-                       pel_mask=regs[PEL_MASK])
+                       seq=regs[SEQ:SEQ + 5], attr=regs[ATTR:ATTR + 0x15],
+                       dac=regs[DAC:DAC + 0x300], pel_mask=regs[PEL_MASK])
 
     def allocate(self, size: int) -> int:
         last = None
@@ -289,6 +295,7 @@ class Capture:
     crtc: bytes
     gc: bytes
     seq: bytes
+    attr: bytes           # attribute registers 00h-14h
     dac: bytes            # 6-bit components
     pel_mask: int
 
@@ -302,16 +309,26 @@ class Capture:
     def start_address(self) -> int:
         return self.crtc[0x0C] << 8 | self.crtc[0x0D]
 
+    def attribute_color(self, nibble: int) -> int:
+        """A 16-colour pixel's DAC index: its attribute palette register, bits 4-7 from
+        the colour select register as the paging mode (mode control bit 7) says."""
+        a = self.attr
+        v = a[nibble & a[0x12] & 0x0F]
+        if a[0x10] & 0x80:
+            return (v & 0x0F) | (a[0x14] & 0x0F) << 4
+        return (v & 0x3F) | (a[0x14] & 0x0C) << 4
+
     def picture(self) -> tuple[int, int, list[int]]:
-        """(width, height, palette indices) of the 256-colour unchained picture the CRTC
-        scans out."""
+        """(width, height, DAC indices) of the picture the CRTC scans out: 256 colours,
+        four pixels to a planar byte (Mode Y), or 16 colours, eight pixels to a byte in
+        each plane (mode 10h)."""
         c = self.crtc
-        if self.seq[4] & 0x08 or not self.gc[5] & 0x40:
-            raise RuntimeError(f"not an unchained 256-colour mode (seq 4 = {self.seq[4]:02X}, "
-                               f"gc 5 = {self.gc[5]:02X})")
+        colors256 = bool(self.gc[5] & 0x40)
+        if self.seq[4] & 0x08:
+            raise RuntimeError(f"chain-4 is on (seq 4 = {self.seq[4]:02X}): not decoded")
         if not c[0x17] & 0x40 or c[0x14] & 0x40:
             raise RuntimeError("CRTC not in byte mode")
-        width = (c[0x01] + 1) * 4
+        width = (c[0x01] + 1) * (4 if colors256 else 8)
         vde = c[0x12] | (c[0x07] & 0x02) << 7 | (c[0x07] & 0x40) << 3
         lines_per_row = ((c[0x09] & 0x1F) + 1) * (2 if c[0x09] & 0x80 else 1)
         height = (vde + 1) // lines_per_row
@@ -323,8 +340,15 @@ class Capture:
         pix = []
         for y in range(height):
             row = start + y * pitch
+            if colors256:
+                for x in range(width):
+                    pix.append(self.planes[x & 3][(row + (x >> 2)) & 0xFFFF] & self.pel_mask)
+                continue
             for x in range(width):
-                pix.append(self.planes[x & 3][(row + (x >> 2)) & 0xFFFF] & self.pel_mask)
+                o = (row + (x >> 3)) & 0xFFFF
+                bit = 7 - (x & 7)
+                nibble = sum(((self.planes[p][o] >> bit) & 1) << p for p in range(4))
+                pix.append(self.attribute_color(nibble) & self.pel_mask)
         return width, height, pix
 
     def rgb6(self) -> tuple[int, int, list[tuple[int, int, int]]]:
@@ -433,6 +457,11 @@ SCENARIOS = {
         description="Escape during the intro skips it and the credits: the main menu",
         keys=[(18.0, "esc")], settle=30.0,
         port_input="6000:key:Escape;20000:quit"),
+    # N is Start New Game's key (its action id in REQ_OPT0.DAT is scancode 31h).
+    "book": Scenario(
+        description="Start New Game: the first page of chapter 1's book (640x350)",
+        keys=[(18.0, "esc"), (28.0, "n")], settle=90.0,
+        port_input="6000:key:Escape;9000:key:N;35000:quit"),
 }
 
 
@@ -493,6 +522,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     dos = cap.rgb6()
     write_png(out / "dosbox.png", dos[0], dos[1], [to8(c) for c in dos[2]])
     print(f"original: {dos[0]}x{dos[1]} from display memory {cap.start_address():04X}h")
+    if args.skip_port:
+        return 0
 
     # The port.
     bmp = out / "port.bmp"
@@ -545,6 +576,7 @@ def main() -> int:
     run.add_argument("scenario", choices=sorted(SCENARIOS))
     run.add_argument("--data", required=True, help="the game folder")
     run.add_argument("--exe", default=str(PORT_EXE), help="the port's executable")
+    run.add_argument("--skip-port", action="store_true", help="capture the original only")
     tr = sub.add_parser("trace", help="print where the original is (CS:IP) over time")
     tr.add_argument("--data", required=True, help="the game folder")
     tr.add_argument("--seconds", type=float, default=30)
