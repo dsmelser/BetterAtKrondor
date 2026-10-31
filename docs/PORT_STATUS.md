@@ -41,14 +41,14 @@ and checks that an incomplete folder is turned down cleanly.
 1. **After the book**: the book pages through with keys or clicks and the chapter cutscene plays to its
    end (chapter one's map and title); the game then copies `STARTUP.GAM` to `TEMP.GAM` (`savegame_read`,
    byte for byte), reads the party from it and sets up the 3D world: `ts_init` sets the light (M3's R3D
-   core starts there), then the region's encounter shapes crash in `combat_actor_bnames_load_cached`
-   (CACTOR.C, a 16-bit offset used as a pointer).
+   core starts there), then loading the region's encounter shapes stops at DECOMP.ASM's `decomp_rle`
+   (`resblit_load_asset_table`).
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
    for saves. A common case: a table
    of 16-bit string offsets read over a pointer table and rebased with `+= (s16)blob` (`CREDITS.C`,
-   `NAMEDTBL.C` and `ASKABOUT.C` are done; `DLGWIDG.C`, `CSPELL.C`, `CBENC.C`, `CACTOR.C` remain).
+   `NAMEDTBL.C`, `ASKABOUT.C` and `CACTOR.C` are done; `DLGWIDG.C`, `CSPELL.C`, `CBENC.C` remain).
 4. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s (the dialog
    sprite cache in `ASKABOUT.C` still keeps them in 16 bits): the ASan preset reports them at the first
    write.
@@ -91,6 +91,7 @@ null) that expand to the original under Borland.
 | `COMBAT/ENC/CBENC.C`, `CBENC.H`, `SCREENS/CMBINV.C` | encounter pools sized with `RECORD_SIZE` (7 `Combatant`s, `CombatantState`s, `AnimSlot`s); `g_inner_pool_B` is a `NearPtr`; a party slot's `Combatant` taken as `characters[slot - 1]`, where the original adds the 16-bit stride to `g_gameState` |
 | `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
 | `GFX/RASTER/CIRCLE.C` | `draw_circle_bresenham` builds the span table's far pointer with `MK_FP` (the original builds it as segment << 16) |
+| `COMBAT/ACTOR/CACTOR.C` | `combat_actor_bnames_load_cached` reads BNAMES.DAT's records at their 16-bit offsets into the blob (the original rebases the offsets in place), and its `nameChars` holds the whole 8-byte record with `nameMeta` pointing at the second half (below) |
 | `INCLUDE/r3d.h` | the names of the renderer's state words (labels on its state block in the original) are `g_abR3dState`'s fields, so both reach the same storage; `g_pColorRemapTable`, past the struct, is a global |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |
@@ -234,6 +235,11 @@ with user-supplied ROMs) comes after M1, behind a toggle.
 - **Four locals filled through the address of one.** The ask-about menu builders pass `&nX` to
   `dialog_apply_style_state`, which writes eight bytes: x, y, width and height land in `nX`, `nY`, `nWidth`
   and `nHeight` because Borland lays those locals out in a row. Natively the write hit the stack guard.
+- **A creature's name record runs over two locals.** `combat_actor_bnames_load_cached` copies a BNAMES.DAT
+  record, three letters and a NUL then four bytes (its images' numbers and a palette), into the 4-byte
+  `nameChars`, and reads the second half as `nameMeta`, which Borland places after it; building the file
+  name it copies five bytes of `nameChars`. (The file's header gives its string blob 481 bytes; it holds
+  349, and the rest stays zero.)
 - **The text wrapper takes most style codes for letters.** The font's style codes (E0h-F5h in the
   dialogs' text) are plain chars, negative, and Borland's `isalpha` indexes `_ctype` with them: it reads
   the bytes DGROUP holds before the table, the same in 1.00 and 1.02. F1h-F7h land on the EMS driver's
