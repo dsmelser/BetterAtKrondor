@@ -91,6 +91,12 @@ def generate() -> None:
             dbody += ['#include "bak_game_end.h"', ""]
             dbody += [decls[s.c_name][1] + ";" for s in data] + [""]
             files[stem + "_data.c"] = head + dbody
+        # A hand-ported routine file may define the module's data itself (and then the
+        # data placeholder is deleted): leave the whole module alone.
+        code_file = os.path.join(OUT_DIR, stem + ".c")
+        if os.path.exists(code_file) and MARKER not in open(code_file, encoding="latin-1").read():
+            skipped += len(files)
+            continue
         for fname, lines in files.items():
             out = os.path.join(OUT_DIR, fname)
             if os.path.exists(out) and MARKER not in open(out, encoding="latin-1").read():

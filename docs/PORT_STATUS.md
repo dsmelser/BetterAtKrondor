@@ -13,13 +13,13 @@ Where the native port stands. Update this file in the same commit as the work it
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
 | SDL3 platform layer | 🚧 window + present, VGA register file + 70 Hz retrace clock, chunky VRAM, segment table, DOS paths, INT 33h mouse; timer and keyboard ⬜ |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, the vtable thunks; **next: `LZWDEC.ASM`** |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, the vtable thunks; **next: `KEYBOARD.ASM`** |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
 
 **Current behaviour.** With the game files present, `betterkrondor --data <dir>` opens its window, enters the
-game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs the mouse and stops at the LZW decoder
-(loading the cursor images) with "Not implemented yet". Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
+game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs the mouse, loads the cursor images (LZW-compressed) and stops at
+`keyboard_install` with "Not implemented yet". Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
 against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash).
 
 ## Native-only code in the game sources
@@ -62,6 +62,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c` | no logic: each routine forwards to a vtable slot |
 | `INPUT/MOUSE.ASM` | `port/asm/mouse.c`, `mouse_data.c` | `test_mouse.py`: INT 33h call sequences of install/clip/restore/set-position, queries, the event callback's register save/restore and latch parking on a planar VGA |
 | `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
+| `STREAM/CODEC/LZWDEC.ASM` | `port/asm/lzwdec.c` | `test_lzw.py`: memory streams read through `stream_read` in random chunk sizes (suspend and resume mid-string), random, text-like, run-heavy and image-like data, resets, truncated input; the output must also equal the encoded input |
 
 ## Video drivers (VMCODE.OVL)
 
@@ -116,6 +117,9 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
 - **Degenerate driver calls.** Where a zero count makes the original's `LOOP` run 65536 times (a rectangle
   0 pixels wide, a 0-colour palette upload or blend) or the original miscomputes an address (an image whose
   packed size is a multiple of 64 KB), the native driver does nothing or stops with a message.
+- **Slack after DOS blocks.** Every emulated DOS block is followed by 4 KB of slack, so the original's
+  overruns past a block (the LZW decoder can spell long strings beyond its scratch area) stay in memory the
+  game owns instead of reaching the host heap.
 - **Memory past the VGA window** (A000:0000 + 64 KB) reads as FFh and ignores writes, as on a VGA-only PC.
 
 Placeholder values to revisit: the remaining ASM data tables (zero), the emulated DOS free memory

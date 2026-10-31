@@ -22,7 +22,7 @@
 
 static const DtEntry *const s_modules[] = {
     dt_rand_entries, dt_vga_entries, dt_viddet_entries, dt_pixel_entries,
-    dt_farptr_entries, dt_mouse_entries, NULL,
+    dt_farptr_entries, dt_mouse_entries, dt_lzw_entries, NULL,
 };
 
 static jmp_buf s_failJump;

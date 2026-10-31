@@ -19,9 +19,17 @@
 /* What the original saw as conventional memory; it only gates the boot check. */
 #define DOS_FREE_BYTES 0xA0000u
 
+/*
+ * Slack after every block. The original sometimes writes past the end of a block (the
+ * LZW decoder spells long strings beyond its scratch area); in DOS that lands in
+ * whatever memory follows, natively it must not reach the host heap.
+ */
+#define BLOCK_SLACK 0x1000u
+
 void *bak_dos_alloc(uint32_t size, int zeroFill) {
     uint32_t rounded = (size + 15u) & ~15u;
-    void *p = zeroFill ? calloc(1, rounded ? rounded : 16) : malloc(rounded ? rounded : 16);
+    uint32_t bytes = (rounded ? rounded : 16) + BLOCK_SLACK;
+    void *p = zeroFill ? calloc(1, bytes) : malloc(bytes);
     if (p == NULL)
         return NULL;
     bak_seg_register(p, rounded);
