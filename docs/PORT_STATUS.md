@@ -119,6 +119,8 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
 - **`fmemcpy_far` never copies its alignment byte.** It tests the destination's parity with `TEST` then
   `JNC`, and `TEST` always clears CF, so it always copies words from the start. Only overlapping copies can
   tell; the translation keeps it.
+- **The keyboard buffer holds one key.** The INT 9 handler treats the BIOS buffer as full when head + 2
+  equals tail, which is when it already holds one key: there is no typeahead. The translation keeps it.
 - **File opens are unchecked.** A missing `drive.cfg` (1.02) or `resource.cfg` passes a NULL `FILE *` to
   `fscanf`; natively the C runtime's invalid-parameter handler reports it.
 
