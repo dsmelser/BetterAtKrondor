@@ -47,8 +47,12 @@ unsigned short g_wTimerTickRegistrySlot;
 short g_nWorldViewYawNormal;
 short g_nWorldViewYawChapter;
 short g_nWorldViewFovNormal;
+#ifdef BAK_NATIVE
+short g_nWorldViewFovChapterWord;
+#else
 unsigned char g_bssgap_4c53;
 unsigned char g_nWorldViewFovChapter;
+#endif
 
 s16 g_nEmsInit = 1;
 s16 g_nEmsResourcesEnabled = 0;

@@ -81,6 +81,7 @@ under Borland.
 | `SYS/BIOSCHK.C` | Tandy ROM probe: never a Tandy |
 | `SYS/DOSMEM.C` | `alloc_far` / `_freemem` on host memory; the free-memory query reports 640 KB |
 | `SYS/EMSDET.C`, `SYS/EMS.C` | INT 67h calls go to the emulated LIM EMS (8 MB, exact copy-in/copy-out paging) |
+| `SYS/BOOT.C`, `BOOT.H` | `g_nWorldViewFovChapter` and `g_bssgap_4c53` are the two bytes of one short (START.DAT's word is read into the first and WORLDHIT.C reads it as a short): natively one short, the names its bytes |
 | `SYS/CFGPARSE.C` | writable buffer for the drive prefix the parser overwrites |
 | `SCRIPT/ADSCRIPT.C`, `SCRIPT/ANIMSCR.C`, `INCLUDE/structs.h` | the animation scripts' object nodes, slots and operand lists sized with `RECORD_SIZE`/`NEAR_PTR_SIZE`; `Slot`'s node-chain head and operand-list fields are `NearPtr` |
 | `SCRIPT/TTM.C`, `SCRIPT/TTMDLG.C`, `DIALOG/DIALOG.C`, `GFX/SPRITE/SPRTHNKS.H`, `INCLUDE/structs.h` | a script object's image tables (`pAhPagedImage`, `NearPtr`) and the sprite pointers taken from them (`NearWord`, or a native local where the original reuses a 16-bit parameter); the EMS page's segment with `FP_SEG` |

@@ -11,8 +11,16 @@ extern unsigned short g_wTimerTickRegistrySlot;
 extern short g_nWorldViewYawNormal;
 extern short g_nWorldViewYawChapter;
 extern short g_nWorldViewFovNormal;
+#ifdef BAK_NATIVE
+/* One short in the original, which Borland lays out as these two bytes, the gap its high
+ * byte: START.DAT's word is read into it, and WORLDHIT.C reads it as a short. */
+extern short g_nWorldViewFovChapterWord;
+#define g_nWorldViewFovChapter (*(unsigned char *)&g_nWorldViewFovChapterWord)
+#define g_bssgap_4c53 (((unsigned char *)&g_nWorldViewFovChapterWord)[1])
+#else
 extern unsigned char g_bssgap_4c53;
 extern unsigned char g_nWorldViewFovChapter;
+#endif
 
 extern void boot_engine_exit(s16 exit_code);
 extern void boot_party_state_load_from_temp(void);
