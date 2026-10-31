@@ -15,7 +15,7 @@ extern Combatant *g_actors_B_origin;
 extern short g_chapter_roster[7];
 extern ImageRecord **g_abCombatInnerPoolB[7][11];
 extern char g_combat_save_filename[14];
-extern unsigned short g_inner_pool_B;
+extern NearPtr g_inner_pool_B;
 
 extern void combatenc_chap_load_party_grn(s16 chapter);
 extern void combatenc_actor_flee_tile_east(Combatant *actor);

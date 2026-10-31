@@ -57,9 +57,9 @@ void far combatenc_pty_load_chap_state(void) {
     s32 last_visit_time;
     s16 slot;
 
-    g_combat_actors_B = (Combatant *)galloc_safe_zcalloc(0x299);
-    g_inner_pool_B = (unsigned short)galloc_safe_zcalloc(0x9a);
-    g_anim_pool_B = (AnimSlot *)galloc_safe_zcalloc(0x77);
+    g_combat_actors_B = (Combatant *)galloc_safe_zcalloc(RECORD_SIZE(Combatant, 0x5f) * 7);
+    g_inner_pool_B = (NearPtr)galloc_safe_zcalloc(RECORD_SIZE(CombatantState, 0x16) * 7);
+    g_anim_pool_B = (AnimSlot *)galloc_safe_zcalloc(RECORD_SIZE(AnimSlot, 0x11) * 7);
 
     gstate_temp_file_read_at(g_chapter_roster, (u32)GAM_ENC_ROSTER(g_encounter_id), 0xe);
     g_combat_count_B = 0;
@@ -73,10 +73,17 @@ void far combatenc_pty_load_chap_state(void) {
     slot = 0;
     if (slot < g_combat_count_B) {
         do {
+#ifdef BAK_NATIVE
+            gstate_temp_read_combatant(&g_combat_actors_B[slot],
+                                       GAM_COMBAT_ACTOR((s32)g_chapter_roster[slot]));
+            gstate_temp_read_combatant_state((CombatantState *)g_inner_pool_B + slot,
+                                             GAM_COMBAT_ACTOR_INNER((s32)g_chapter_roster[slot]));
+#else
             gstate_temp_file_read_at(&g_combat_actors_B[slot],
                                      GAM_COMBAT_ACTOR((s32)g_chapter_roster[slot]), 0x5f);
             gstate_temp_file_read_at((CombatantState *)g_inner_pool_B + slot,
                                      GAM_COMBAT_ACTOR_INNER((s32)g_chapter_roster[slot]), 0x16);
+#endif
             gstate_temp_file_read_at(&last_visit_time,
                                      (u32)GAM_ENC_FOUGHT_TIME(g_encounter_id), 4);
             if (last_visit_time != 0) {
@@ -124,11 +131,20 @@ void combatenc_persist_actors_to_temp(s16 srcEncounterId) {
     if (i < g_combat_count_B) {
         do {
             g_pendingTempWriteRegion = TWR_COMBAT_ACTOR;
+#ifdef BAK_NATIVE
+            gstate_temp_write_combatant(&g_combat_actors_B[i], GAM_COMBAT_ACTOR((s32)roster[i]));
+#else
             gstate_temp_file_write_at((unsigned char far *)&g_combat_actors_B[i],
                                       GAM_COMBAT_ACTOR((s32)roster[i]), 0x5f);
+#endif
             g_pendingTempWriteRegion = TWR_COMBAT_ACTOR_INNER;
+#ifdef BAK_NATIVE
+            gstate_temp_write_combatant_state(g_combat_actors_B[i].inner,
+                                              GAM_COMBAT_ACTOR_INNER((s32)roster[i]));
+#else
             gstate_temp_file_write_at((unsigned char far *)g_combat_actors_B[i].inner,
                                       GAM_COMBAT_ACTOR_INNER((s32)roster[i]), 0x16);
+#endif
             i++;
         } while (i < g_combat_count_B);
     }
@@ -1126,7 +1142,7 @@ short g_chapter_roster[7];
    (22 bytes/row). Entries [2] and [10] of each row are never written (BSS zero). */
 ImageRecord **g_abCombatInnerPoolB[7][11];
 char g_combat_save_filename[14];
-unsigned short g_inner_pool_B;
+NearPtr g_inner_pool_B;
 
 void combatenc_chap_load_party_grn(s16 chapter) {
     unsigned char actorBuf[95];

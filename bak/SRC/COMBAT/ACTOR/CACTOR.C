@@ -38,6 +38,9 @@
 #include <dos.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef BAK_NATIVE
+#include "SRC/GAME/STATE/GSTATE.H"
+#endif
 
 s16 g_combat_count_A;
 Combatant *g_combat_actors_A;
@@ -79,10 +82,21 @@ void far combat_actor_init_pool(void) {
     g_anim_pool_A = (AnimSlot *)galloc_safe_zcalloc(sizeof(AnimSlot) * MAX_COMBAT_ACTORS);
     file = res_fopen("p1.dat", "rb");
     for (i = 0; i < g_combat_count_A; i++) {
+#ifdef BAK_NATIVE
+        /* P1.DAT holds the six party members' CombatantStates in the 16-bit layout. */
+        unsigned char disk[0x16];
+        lSeekOffset =
+            (s32)(u16)((g_combat_actors_A[i].charSlot - 1) * GAM_SIZEOF_COMBATANT_STATE);
+        res_fseek(file, lSeekOffset, SEEK_SET);
+        gstate_combatant_state_pack(disk, &pInnerPool[i]);
+        res_fread(disk, GAM_SIZEOF_COMBATANT_STATE, 1, file);
+        gstate_combatant_state_unpack(&pInnerPool[i], disk);
+#else
         lSeekOffset =
             (s32)(u16)((g_combat_actors_A[i].charSlot - 1) * sizeof(CombatantState));
         res_fseek(file, lSeekOffset, SEEK_SET);
         res_fread(&pInnerPool[i], sizeof(CombatantState), 1, file);
+#endif
     }
     res_fclose(file);
 

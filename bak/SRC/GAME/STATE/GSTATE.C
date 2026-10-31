@@ -260,6 +260,129 @@ s16 gstate_temp_file_write_at(unsigned char far *src_far, u32 offset, u16 bytes)
     return 1;
 }
 
+#ifdef BAK_NATIVE
+/*
+ * TEMP.GAM keeps the original's 16-bit layout, so DOS saves load natively and native
+ * saves load in DOS. Three of its records hold near pointers, 2 bytes there and 4 here:
+ * Combatant (name, inner), CombatantState (target) and GameState, which holds six
+ * Combatants. They are converted field by field. No loader uses a stored pointer: each
+ * is set again after the read (BOOT.C, CBENC.C), and the party's `inner` is always 0 on
+ * disk. So pointers, the far ones too, read back as NULL and are written as 0. A short
+ * read leaves the rest of the record as it was, as the original's does.
+ */
+#define DISK_COMBATANT_SPELLS 0x02   /* spellsKnown[3] */
+#define DISK_COMBATANT_STATS 0x08    /* stats[16] */
+#define DISK_COMBATANT_CHAR_SLOT 0x58
+#define DISK_STATE_FIELDS 0x02       /* CombatantState from creatureType on */
+#define DISK_GAMESTATE_CHARACTERS 0x77
+#define DISK_GAMESTATE_TAIL 0x2b1    /* GameState from partySize on */
+#define TAIL_OFFSET(field) (offsetof(GameState, field) - offsetof(GameState, partySize))
+
+_Static_assert(sizeof(((Combatant *)0)->stats) == DISK_COMBATANT_CHAR_SLOT - DISK_COMBATANT_STATS,
+               "Combatant stats layout");
+_Static_assert(sizeof(CombatantState) - offsetof(CombatantState, creatureType) ==
+                   GAM_SIZEOF_COMBATANT_STATE - DISK_STATE_FIELDS,
+               "CombatantState layout");
+_Static_assert(offsetof(GameState, characters) == DISK_GAMESTATE_CHARACTERS, "GameState head");
+_Static_assert(sizeof(GameState) - offsetof(GameState, partySize) ==
+                   GAM_SIZEOF_GAMESTATE - DISK_GAMESTATE_TAIL,
+               "GameState tail: only the six Combatants change size");
+
+void gstate_combatant_unpack(Combatant *dst, const unsigned char *disk) {
+    memset(dst, 0, sizeof *dst);
+    memcpy(dst->spellsKnown, disk + DISK_COMBATANT_SPELLS, sizeof dst->spellsKnown);
+    memcpy(dst->stats, disk + DISK_COMBATANT_STATS, sizeof dst->stats);
+    dst->charSlot = (char)disk[DISK_COMBATANT_CHAR_SLOT];
+}
+
+void gstate_combatant_pack(unsigned char *disk, const Combatant *src) {
+    memset(disk, 0, GAM_SIZEOF_COMBATANT);
+    memcpy(disk + DISK_COMBATANT_SPELLS, src->spellsKnown, sizeof src->spellsKnown);
+    memcpy(disk + DISK_COMBATANT_STATS, src->stats, sizeof src->stats);
+    disk[DISK_COMBATANT_CHAR_SLOT] = (unsigned char)src->charSlot;
+}
+
+void gstate_combatant_state_unpack(CombatantState *dst, const unsigned char *disk) {
+    dst->target = NULL;
+    memcpy(&dst->creatureType, disk + DISK_STATE_FIELDS,
+           GAM_SIZEOF_COMBATANT_STATE - DISK_STATE_FIELDS);
+}
+
+void gstate_combatant_state_pack(unsigned char *disk, const CombatantState *src) {
+    memset(disk, 0, DISK_STATE_FIELDS);
+    memcpy(disk + DISK_STATE_FIELDS, &src->creatureType,
+           GAM_SIZEOF_COMBATANT_STATE - DISK_STATE_FIELDS);
+}
+
+void gstate_gamestate_unpack(GameState *dst, const unsigned char *disk) {
+    s16 i;
+    memcpy(dst, disk, DISK_GAMESTATE_CHARACTERS);
+    for (i = 0; i < CHARACTER_POOL_SIZE; i++)
+        gstate_combatant_unpack(&dst->characters[i],
+                                disk + DISK_GAMESTATE_CHARACTERS + i * GAM_SIZEOF_COMBATANT);
+    memcpy(&dst->partySize, disk + DISK_GAMESTATE_TAIL, GAM_SIZEOF_GAMESTATE - DISK_GAMESTATE_TAIL);
+    dst->shared_inventory = NULL;
+    dst->ground_pile = NULL;
+}
+
+void gstate_gamestate_pack(unsigned char *disk, const GameState *src) {
+    s16 i;
+    memcpy(disk, src, DISK_GAMESTATE_CHARACTERS);
+    for (i = 0; i < CHARACTER_POOL_SIZE; i++)
+        gstate_combatant_pack(disk + DISK_GAMESTATE_CHARACTERS + i * GAM_SIZEOF_COMBATANT,
+                              &src->characters[i]);
+    memcpy(disk + DISK_GAMESTATE_TAIL, &src->partySize, GAM_SIZEOF_GAMESTATE - DISK_GAMESTATE_TAIL);
+    memset(disk + DISK_GAMESTATE_TAIL + TAIL_OFFSET(shared_inventory), 0,
+           sizeof src->shared_inventory);
+    memset(disk + DISK_GAMESTATE_TAIL + TAIL_OFFSET(ground_pile), 0, sizeof src->ground_pile);
+}
+
+s16 gstate_temp_read_gamestate(GameState *dst) {
+    unsigned char disk[0xad7];
+    s16 result;
+    gstate_gamestate_pack(disk, dst);
+    result = gstate_temp_file_read_at(disk, 0L, (u16)GAM_SIZEOF_GAMESTATE);
+    gstate_gamestate_unpack(dst, disk);
+    return result;
+}
+
+s16 gstate_temp_write_gamestate(GameState *src) {
+    unsigned char disk[0xad7];
+    gstate_gamestate_pack(disk, src);
+    return gstate_temp_file_write_at(disk, 0L, (u16)GAM_SIZEOF_GAMESTATE);
+}
+
+s16 gstate_temp_read_combatant(Combatant *dst, s32 offset) {
+    unsigned char disk[0x5f];
+    s16 result;
+    gstate_combatant_pack(disk, dst);
+    result = gstate_temp_file_read_at(disk, offset, (u16)GAM_SIZEOF_COMBATANT);
+    gstate_combatant_unpack(dst, disk);
+    return result;
+}
+
+s16 gstate_temp_write_combatant(Combatant *src, u32 offset) {
+    unsigned char disk[0x5f];
+    gstate_combatant_pack(disk, src);
+    return gstate_temp_file_write_at(disk, offset, (u16)GAM_SIZEOF_COMBATANT);
+}
+
+s16 gstate_temp_read_combatant_state(CombatantState *dst, s32 offset) {
+    unsigned char disk[0x16];
+    s16 result;
+    gstate_combatant_state_pack(disk, dst);
+    result = gstate_temp_file_read_at(disk, offset, (u16)GAM_SIZEOF_COMBATANT_STATE);
+    gstate_combatant_state_unpack(dst, disk);
+    return result;
+}
+
+s16 gstate_temp_write_combatant_state(CombatantState *src, u32 offset) {
+    unsigned char disk[0x16];
+    gstate_combatant_state_pack(disk, src);
+    return gstate_temp_file_write_at(disk, offset, (u16)GAM_SIZEOF_COMBATANT_STATE);
+}
+#endif
+
 static s16 far gstate_consume_rations_tick(s16 ctx) {
     s16 table_loaded;
     s16 i;

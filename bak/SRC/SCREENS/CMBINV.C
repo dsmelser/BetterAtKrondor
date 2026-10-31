@@ -709,9 +709,14 @@ static s16 cmbinv_actor_can_auto_equip(Actor far *actor, ItemSlot far *item) {
     if (actor->bResidence != RES_PARTY_SLOT) {
         return 0;
     }
+#ifdef BAK_NATIVE
+    /* Party slot n (from 1) is characters[n - 1]: 0x18 + n * 0x5f with 16-bit records. */
+    slot = gstate_find_party_slot(&g_gameState.characters[actor->loc.party_slot.wSlot_id - 1]) + 1;
+#else
     slot = gstate_find_party_slot((Combatant *)((char *)&g_gameState + 0x18 +
                                                   actor->loc.party_slot.wSlot_id * 0x5f)) +
            1;
+#endif
     return cmbinv_member_can_equip_cat(slot, item) != 0 &&
            cmbinv_find_equipped_in_category(actor, rec->wCategory) == 0;
 }
@@ -956,9 +961,14 @@ s16 cmbinv_actor_pickup_item(Actor far *dst_actor, Actor far *src_actor, ItemSlo
         if (src_actor != 0)
             cmbinv_actor_inv_remove_item(src_actor, item);
         if (dst_actor->bResidence == RES_PARTY_SLOT)
+#ifdef BAK_NATIVE
+            stat_actor_recalc_equip_bonuses(
+                &g_gameState.characters[dst_actor->loc.party_slot.wSlot_id - 1]);
+#else
             stat_actor_recalc_equip_bonuses(
                 (Combatant *)((char *)&g_gameState + 0x18 +
                                 dst_actor->loc.party_slot.wSlot_id * 0x5f));
+#endif
         return 1;
     }
 

@@ -124,7 +124,11 @@ void boot_sfx_resources_release(void) {
 void far boot_party_state_load_from_temp(void) {
     s16 i;
 
+#ifdef BAK_NATIVE
+    gstate_temp_read_gamestate(&g_gameState);
+#else
     gstate_temp_file_read_at(&g_gameState, 0L, 0xad7);
+#endif
     for (i = 0; i < CHARACTER_POOL_SIZE; i++) {
         g_gameState.characters[i].name = g_gameState.characterNames[i];
         g_gameState.characters[i].actor_record = actorspawn_objfixed(0, i + 1, 0L);
@@ -138,7 +142,11 @@ void far boot_party_state_save_to_temp(void) {
     s16 i;
 
     g_pendingTempWriteRegion = TWR_GAMESTATE;
+#ifdef BAK_NATIVE
+    gstate_temp_write_gamestate(&g_gameState);
+#else
     gstate_temp_file_write_at((unsigned char far *)&g_gameState, 0L, 0xad7);
+#endif
     actorspawn_destroy_and_persist(g_gameState.shared_inventory);
     actorspawn_destroy_and_persist(g_gameState.ground_pile);
     for (i = 0; i < CHARACTER_POOL_SIZE; i++) {

@@ -36,9 +36,11 @@ and checks that an incomplete folder is turned down cleanly.
 
 **Beyond the main menu** (M2):
 
-1. **The chapter books**: the HEG driver's sprite blit (slot 29) draws the pages' pictures.
-2. **The game state** (`TEMP.GAM`, saves): `boot_party_state_load_from_temp` reads 0xAD7 bytes straight into
-   `GameState`, which natively holds pointers; the plan's save serialization.
+1. **After the book**: a click on a page hangs (`mouse_button_pressed` does not poll host events); with
+   keys the book pages through, then the chapter cutscene stops in `draw_circle_bresenham` (CIRCLE.C
+   builds its span buffer's pointer as `seg << 16`). ASan also reports `bookview_init`'s 100-byte
+   `BookViewerState`, too small natively.
+2. **The game state**: done, see `TEMP.GAM` below; not yet exercised by the game, which stops before it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
    for saves. A common case: a table
@@ -47,6 +49,19 @@ and checks that an incomplete folder is turned down cleanly.
 4. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s (the dialog
    sprite cache in `ASKABOUT.C` still keeps them in 16 bits): the ASan preset reports them at the first
    write.
+
+## TEMP.GAM and saves
+
+`TEMP.GAM`, the working save (a save is a 100-byte header and a copy of it), keeps the original's 16-bit
+layout exactly: it stores absolute offsets into itself (the objfixed directory points at the actor pool at
+3A791h), and DOS saves must load natively and native saves in DOS. Its region offsets (`GAM_*` in
+`GSTATE.H`) come from the records' sizes there (`GAM_SIZEOF_*`). Three of its records hold near pointers, 2
+bytes on disk and 4 natively: `GameState` (AD7h on disk, AEFh natively), `Combatant` (5Fh, 63h) and
+`CombatantState` (16h, 18h); the others have none and keep their size. The three are read and written
+field by field (`gstate_temp_read_gamestate` and the others in `GSTATE.C`). No loader uses a stored pointer:
+the game sets each one again after a read, and the party's `inner` is always 0 on disk. So pointers, the far
+ones too, read back as NULL and are written as 0, where DOS writes whatever they held. `test_gstate.py`
+checks the native fields against the original's offsets and the round trip.
 
 ## Native-only code in the game sources
 
@@ -68,6 +83,8 @@ null) that expand to the original under Borland.
 | `SCREENS/CREDITS.C` | `credits_load` reads CRED.DAT's 16-bit string offsets aside and builds the pointer table from them |
 | `UI/NAMEDTBL.C` | label tables (`LBL_*.DAT`) are loaded into a handle with the string pool and the labels' pointers; the original rebases the records' 16-bit offsets in place and frees the pool as the lowest of them |
 | `GAME/STATE/GSTATE.C` | event 7535h (the chapter's default speaker) in chapter 0, before a game is loaded, gives what the original reads before its table (below) |
+| `GAME/STATE/GSTATE.C`, `GSTATE.H`, `SYS/BOOT.C`, `SCREENS/MAINMENU.C`, `COMBAT/ENC/CBENC.C`, `GAME/ENC/RGNENC.C`, `COMBAT/ACTOR/CACTOR.C` | `TEMP.GAM`'s records with near pointers are converted field by field (below); P1.DAT's `CombatantState`s too |
+| `COMBAT/ENC/CBENC.C`, `CBENC.H`, `SCREENS/CMBINV.C` | encounter pools sized with `RECORD_SIZE` (7 `Combatant`s, `CombatantState`s, `AnimSlot`s); `g_inner_pool_B` is a `NearPtr`; a party slot's `Combatant` taken as `characters[slot - 1]`, where the original adds the 16-bit stride to `g_gameState` |
 | `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |
