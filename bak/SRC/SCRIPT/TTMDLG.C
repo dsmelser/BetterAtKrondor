@@ -20,15 +20,15 @@ unsigned short g_nScriptEnhancedOpcodeDispatchEnabled = 0x0000;
 unsigned short g_aTtmFadeStepTable[7] = {0x0000, 0x0050, 0x0014, 0x000a, 0x0005, 0x0002, 0x0001};
 
 s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
-    register u16 img;
+    register NearWord img;
 
     img = g_pCurScriptObject->pAhPagedImage[0];
 
     if (arg == -1) {
         if (img = g_pCurScriptObject->pAhPagedImage[1])
-            blit_sprite_aa_edges((ImageRecord *)(*(u16 *)img),
-                                 0xa0 - ((ImageRecord *)*(u16 *)img)->nWidth / 2,
-                                 0x70 - ((ImageRecord *)*(u16 *)img)->nHeight,
+            blit_sprite_aa_edges((ImageRecord *)(*(NearWord *)img),
+                                 0xa0 - ((ImageRecord *)*(NearWord *)img)->nWidth / 2,
+                                 0x70 - ((ImageRecord *)*(NearWord *)img)->nHeight,
                                  g_pCurScriptObject->pCachedResource[0]);
         RETURN_AX;
     }
@@ -69,7 +69,7 @@ s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
             xs[0] = xs[3] = xs[1];
             xs[1] = xs[2] = tmp;
         }
-        emsimg_gouraud_blit_paged((u16 *)*(u16 *)img, xs, ys);
+        emsimg_gouraud_blit_paged((u16 *)*(NearWord *)img, xs, ys);
         RETURN_AX;
     }
 

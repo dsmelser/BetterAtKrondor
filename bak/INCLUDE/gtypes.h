@@ -31,6 +31,7 @@ typedef unsigned long u32;
  *
  * NearPtr: a near (DGROUP) data pointer held in an integer - a 16-bit offset in
  * the original, a full pointer natively. Users cast it back, e.g. (char *)p.
+ * NearWord is the same where the original's type is u16 rather than unsigned short.
  *
  * FP_OFF_ADD(p, n): advance far pointer p by n bytes within its segment (the
  * original's FP_OFF(p) += n).
@@ -41,10 +42,12 @@ typedef unsigned long u32;
  */
 #ifdef BAK_NATIVE
 typedef uintptr_t NearPtr;
+typedef uintptr_t NearWord;
 #define FP_OFF_ADD(p, n) ((p) = (void *)((char *)(p) + (n)))
 #define RETURN_AX return 0
 #else
 typedef unsigned short NearPtr;
+typedef u16 NearWord;
 #define FP_OFF_ADD(p, n) (FP_OFF(p) += (n))
 #define RETURN_AX return
 #endif

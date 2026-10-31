@@ -1228,7 +1228,7 @@ struct ScriptObject {
     short nBlockCount;
     unsigned char far *pTt3_data;
     unsigned char far *pTt3_end;
-    unsigned short pAhPagedImage[6];
+    NearPtr pAhPagedImage[6];
     unsigned short pAhFont[6];
     unsigned char far *pCachedResource[6];
     unsigned char huge *pFreemem[12];

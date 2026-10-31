@@ -982,8 +982,8 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                         townscene_anim_channel_play_sync(g_dialog_anim_channel);
                         if ((record->wSpeaker_id <= CHARACTER_POOL_SIZE) &&
                             (g_pCurScriptObject->pAhPagedImage[5] != 0)) {
-                            u16 *p = (u16 *)g_pCurScriptObject->pAhPagedImage[5];
-                            if (p != (u16 *)0) {
+                            NearWord *p = (NearWord *)g_pCurScriptObject->pAhPagedImage[5];
+                            if (p != (NearWord *)0) {
                                 emsimg_map_then_call_180c((u16 *)*p, 0xf, 0xb, 0);
                             }
                             askabout_actor_spr_blit_pal_swap(

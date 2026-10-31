@@ -103,7 +103,7 @@ void ttmscript_sfx_channels_stop_all(void) {
 }
 
 static s16 far ttmscript_opcode_disp_secondary(unsigned short p0, unsigned short p1, unsigned short p2, unsigned short p3,
-                                               unsigned short p4) {
+                                               NearPtr p4) {
     switch (g_nScriptCurOpcode) {
     case 0xc01f:
     case 0xc02f:
@@ -168,7 +168,7 @@ static s16 far ttmscript_opcode_disp_secondary(unsigned short p0, unsigned short
 
 static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned short param_2, s16 param_3,
                                               s16 param_4, unsigned short param_5, unsigned short param_6,
-                                              s16 param_7, unsigned short param_8) {
+                                              s16 param_7, NearPtr param_8) {
     unsigned char far *far *pfreemem;
 
     switch (g_nScriptCurOpcode) {
@@ -237,42 +237,53 @@ static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned s
 
         unsigned short saved_page_id;
         unsigned char far *ems_ptr;
+#ifdef BAK_NATIVE
+        NearWord sprite; /* param_3 holds the sprite in the original: 16 bits */
+#define TTM_SPRITE sprite
+#else
+#define TTM_SPRITE param_3
+#endif
 
         g_wTtmBlitTint = (g_nScriptCurOpcode & 0xf0) >> 4;
 
         if (g_pCurScriptObject->pAhPagedImage[param_4] &&
-            (param_3 = ((unsigned short *)g_pCurScriptObject->pAhPagedImage[param_4])[(unsigned short)param_3])) {
+            (TTM_SPRITE = ((NearPtr *)g_pCurScriptObject->pAhPagedImage[param_4])[(unsigned short)param_3])) {
 
-            saved_page_id = ((ImageRecord *)param_3)->wImageData;
+            saved_page_id = ((ImageRecord *)TTM_SPRITE)->wImageData;
 
             if (saved_page_id < 300) {
                 ems_ptr = ems_map_resource_pages(saved_page_id);
 
+#ifdef BAK_NATIVE
+                ((ImageRecord *)TTM_SPRITE)->wImageData = FP_SEG(ems_ptr);
+#else
                 ((ImageRecord *)param_3)->wImageData = ((unsigned short *)&ems_ptr)[1];
+#endif
             }
 
             if ((g_nScriptCurOpcode & 0x0f) == 7) {
-                jmp_via_2f48((unsigned char *)param_3, param_1, param_2, param_7, param_5, param_6,
-                             ((ImageRecord *)param_3)->nWidth >> 1,
-                             ((ImageRecord *)param_3)->nHeight >> 1);
+                jmp_via_2f48((unsigned char *)TTM_SPRITE, param_1, param_2, param_7, param_5, param_6,
+                             ((ImageRecord *)TTM_SPRITE)->nWidth >> 1,
+                             ((ImageRecord *)TTM_SPRITE)->nHeight >> 1);
             } else if ((g_nScriptCurOpcode & 0x0f) == 6) {
-                if (((ImageRecord *)param_3)->wUnk4 & 0x20) {
-                    emsimg_sprite_blit_scaled_paged((ImageRecord *)param_3, param_1, param_2,
+                if (((ImageRecord *)TTM_SPRITE)->wUnk4 & 0x20) {
+                    emsimg_sprite_blit_scaled_paged((ImageRecord *)TTM_SPRITE, param_1, param_2,
                                                     g_wTtmBlitTint, param_5, param_6);
                 } else {
-                    blit_image_stretched((ImageRecord *)param_3, param_1, param_2, g_wTtmBlitTint,
+                    blit_image_stretched((ImageRecord *)TTM_SPRITE, param_1, param_2, g_wTtmBlitTint,
                                          param_5, param_6);
                 }
             } else if ((g_nScriptCurOpcode & 0x0f) != 5) {
-                if (((ImageRecord *)param_3)->wUnk4 & 0x20) {
-                    resblit_sprite_frame((ImageRecord *)param_3, param_1, param_2, g_wTtmBlitTint);
+                if (((ImageRecord *)TTM_SPRITE)->wUnk4 & 0x20) {
+                    resblit_sprite_frame((ImageRecord *)TTM_SPRITE, param_1, param_2, g_wTtmBlitTint);
                 } else {
-                    blit_sprite_indirect((unsigned short)param_3, param_1, param_2, g_wTtmBlitTint);
+                    blit_sprite_indirect((NearPtr)TTM_SPRITE, param_1, param_2, g_wTtmBlitTint);
                 }
             }
 
-            ((ImageRecord *)param_3)->wImageData = saved_page_id;
+            ((ImageRecord *)TTM_SPRITE)->wImageData = saved_page_id;
         }
+#undef TTM_SPRITE
         break;
     }
     case 0xa601:
@@ -402,11 +413,11 @@ s16 ttmscript_interpret_loop(s16 block_index) {
         if ((g_nScriptCurOpcode & 0xf000) == 0xc000) {
             if (g_wScriptOpCursorCache == 0) {
 
-                if (ttmscript_opcode_disp_secondary(p0, p1, p2, p3, (unsigned short)scratchStr)) {
+                if (ttmscript_opcode_disp_secondary(p0, p1, p2, p3, (NearPtr)scratchStr)) {
                 }
             }
         } else if ((g_nScriptCurOpcode & 0xf000) == 0xa000) {
-            if (ttmscript_opcode_dispatch_main(p0, p1, p2, p3, p4, p5, p6, (unsigned short)scratchStr)) {
+            if (ttmscript_opcode_dispatch_main(p0, p1, p2, p3, p4, p5, p6, (NearPtr)scratchStr)) {
             }
         } else {
             switch (g_nScriptCurOpcode) {
@@ -436,19 +447,19 @@ s16 ttmscript_interpret_loop(s16 block_index) {
 
             case 0xf02f:
                 if (g_wScriptOpCursorCache == 0) {
-                    unsigned short h;
+                    NearPtr h;
                     si = g_pCurScriptAnimNode->wFld_14;
                     h = g_pCurScriptObject->pAhPagedImage[si];
                     if (h != 0)
                         emsimg_free_paged((void *)h);
                     g_pCurScriptObject->pAhPagedImage[si] =
-                        (unsigned short)resblit_load_asset_table(scratchStr, 2);
+                        (NearPtr)resblit_load_asset_table(scratchStr, 2);
                 }
                 break;
 
             case 0x80:
                 if (g_wScriptOpCursorCache == 0) {
-                    unsigned short h;
+                    NearPtr h;
                     si = g_pCurScriptAnimNode->wFld_14;
                     h = g_pCurScriptObject->pAhPagedImage[si];
                     if (h != 0)
@@ -769,8 +780,14 @@ s16 ttmscript_interpret_loop(s16 block_index) {
             case 0xa535:
             case 0xa536: {
 
+#ifdef BAK_NATIVE
+                NearWord sprite; /* si holds the sprite in the original: 16 bits */
+#define TTM_SPRITE sprite
+#else
+#define TTM_SPRITE si
+#endif
                 if (g_pCurScriptObject->pAhPagedImage[p3] == 0 ||
-                    (si = ((unsigned short *)g_pCurScriptObject->pAhPagedImage[p3])[p2]) == 0)
+                    (TTM_SPRITE = ((NearPtr *)g_pCurScriptObject->pAhPagedImage[p3])[p2]) == 0)
                     continue;
                 if ((g_nScriptCurOpcode & 0xf) == 6) {
 
@@ -780,15 +797,16 @@ s16 ttmscript_interpret_loop(s16 block_index) {
                     adscript_op_noop(p0, p1, p4, p5);
                 } else {
                     register s16 d;
-                    if ((t = ((((ImageRecord *)si)->nWidth >= 0) ? ((ImageRecord *)si)->nWidth
-                                                                 : -((ImageRecord *)si)->nWidth)) !=
+                    if ((t = ((((ImageRecord *)TTM_SPRITE)->nWidth >= 0) ? ((ImageRecord *)TTM_SPRITE)->nWidth
+                                                                 : -((ImageRecord *)TTM_SPRITE)->nWidth)) !=
                         0) {
-                        d = ((ImageRecord *)si)->nHeight + 2;
+                        d = ((ImageRecord *)TTM_SPRITE)->nHeight + 2;
                         adscript_op_noop(p0, p1, t, d);
                     }
                 }
                 break;
             }
+#undef TTM_SPRITE
 
             case 0xa404:
             case 0xa424:
