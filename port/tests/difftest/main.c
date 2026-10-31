@@ -26,7 +26,7 @@ static const DtEntry *const s_modules[] = {
     dt_timer_entries, dt_keyboard_entries, dt_int00_entries,
     dt_cdaudio_entries, dt_m32_entries, dt_midi_entries, dt_snddrv_entries,
     dt_polyrast_entries, dt_drawline_entries, dt_r3dtrig_entries, dt_vgablit_entries,
-    dt_heg_entries, dt_gstate_entries, dt_rtl_entries, dt_dosrw_entries, dt_r3d_entries, dt_decomp_entries, NULL,
+    dt_heg_entries, dt_gstate_entries, dt_rtl_entries, dt_dosrw_entries, dt_r3d_entries, dt_decomp_entries, dt_distdir_entries, NULL,
 };
 
 static jmp_buf s_failJump;
