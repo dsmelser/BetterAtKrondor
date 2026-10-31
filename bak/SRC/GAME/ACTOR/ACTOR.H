@@ -21,7 +21,7 @@
 #define RES_SELF_SPAWN 9
 
 typedef struct PartySlotCoords {
-    u16 wSlot_id;
+    unsigned short wSlot_id;
     unsigned char pPad[6];
 } PartySlotCoords;
 
@@ -52,7 +52,7 @@ typedef struct Actor {
     unsigned char temp_file_off[4];
     unsigned char kind;
     unsigned char chap_band;
-    u16 world_item_id;
+    unsigned short world_item_id;
     ContainerLocation loc;
     unsigned char bResidence;
     /** Item slots currently filled; mutable fill count, bounds every inventory loop, and equals @ref Actor::itemCapacity when full. */
@@ -176,12 +176,12 @@ typedef struct ActorSubrec04_EventState {
     unsigned char bRest_gold_cost;
     unsigned char bInvreq_arg_x;
     unsigned char bInvreq_arg_y;
-    u16 wShop_disposition_flags;
+    unsigned short wShop_disposition_flags;
 } ActorSubrec04_EventState;
 
 typedef struct ActorSubrec08_HotspotAction {
-    u16 wPad_0;
-    u16 wGame_state_event_id;
+    unsigned short wPad_0;
+    unsigned short wGame_state_event_id;
     unsigned char bWarp_kind;
     unsigned char bWarp_dest;
     unsigned char bHas_hotspot;
@@ -194,7 +194,7 @@ typedef struct ActorSubrec10_LastTouch {
 } ActorSubrec10_LastTouch;
 
 typedef struct ActorSubrec20_DoorVariant {
-    s16 nDoor_variant;
+    short nDoor_variant;
 } ActorSubrec20_DoorVariant;
 
 typedef union ActorSubrec01_Params {

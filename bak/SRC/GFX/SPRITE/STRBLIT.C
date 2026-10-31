@@ -33,8 +33,8 @@ s16 stretch_step_init(register s16 *step, register s16 dest_steps) {
 
 void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s16 dst_w,
                           s16 dst_h) {
-    u16 srcSeg;
-    u16 srcOff;
+    unsigned short srcSeg;
+    unsigned short srcOff;
     s16 i;
     s16 row;
     s16 rowStride;
@@ -119,7 +119,7 @@ void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s
         }
     }
 
-    *(s32 *)&srcOff = ((s32)(s16)image->wImageData << 16) | image->wImageOff;
+    *(s32 *)&srcOff = ((s32)(short)image->wImageData << 16) | image->wImageOff;
     if (0 < dstBottom - local_18 && 1 < dstRight - dstLeft) {
         if (g_graphics_context.bActiveVgaMode == 0x10) {
 

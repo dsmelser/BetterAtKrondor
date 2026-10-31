@@ -27,7 +27,7 @@ struct PolyListBlock {
     union {             /**< +0x2..+0x7, 6B: active arm (widest is @ref SpriteBillboard, 6B). */
         /** tag 0: face count + near offset to the @ref MeshPolygon array. */
         struct MeshPolyHeader {
-            u16 polyCount, firstPolyOff;
+            unsigned short polyCount, firstPolyOff;
         } poly;
         CircObj circ;           /**< tag 1: world-point circle. */
         SpriteBillboard sprite; /**< tag 2: sprite billboard. */
@@ -41,7 +41,7 @@ struct MeshPolygon {
     unsigned char bFlags; /**< +0x0, 1B: low 2 bits = type; 0x20 = back-face test; 0x80 = fill. */
     unsigned char abShadeOp
         [5]; /**< +0x1, 5B: shade/color operands -> @ref r3d_polygon_resolve_shade_color. */
-    u16
+    unsigned short
         wIdxListOff; /**< +0x6, 2B: near offset to the 0xff-terminated vertex-index list. */
 };
 

@@ -46,7 +46,7 @@ void far shop_items_compute_actor_prices(Actor far *actor) {
     for (itemId = 0; itemId < 0x8a; itemId++) {
         rec = itemtbl_record_ptr_by_id((s16)itemId);
         prices[(s16)itemId] =
-            ((s32)(u16)rec->nBase_price * ((s32)(s16)sub->interact_msg.bFlags + 100)) /
+            ((s32)(unsigned short)rec->nBase_price * ((s32)(s16)sub->interact_msg.bFlags + 100)) /
             100;
         prices[(s16)itemId] = (prices[(s16)itemId] * priceScale) / 100;
     }

@@ -12,7 +12,7 @@ unsigned char _dgroup_encmark_tail_1fd5[9] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 unsigned char g_render_actor_wstate_scratch[2] = {0xff, 0xff};
 unsigned char _dgroup_wstate_tail_1fe0[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-u16 g_bShakeActorEnabled = 0x0000;
+unsigned short g_bShakeActorEnabled = 0x0000;
 
 unsigned char g_bShakeJitterX = 0xff;
 unsigned char g_bShakeJitterY = 0xff;
@@ -35,8 +35,8 @@ void actoroverlay_image_1ff4_free(void) {
 }
 
 void actoroverlay_render_actor(WorldObject far *visible_entry) {
-    u16 savedRecordId;
-    u16 savedState;
+    unsigned short savedRecordId;
+    unsigned short savedState;
     ImageRecord **new_table_ptr;
 
     if (visible_entry->state.stateBits != 0) {
@@ -51,7 +51,7 @@ void actoroverlay_render_actor(WorldObject far *visible_entry) {
         }
         g_bOverlaySpriteIdxScratch = savedState;
         g_bOverlaySpriteIdxScratch--;
-        visible_entry->state.stateBits = (u16)&g_bOverlaySpriteIdxScratch;
+        visible_entry->state.stateBits = (unsigned short)&g_bOverlaySpriteIdxScratch;
         new_table_ptr = worldrender_table_swap(0, g_pAssetTable2);
         actorrender_entity(visible_entry);
         worldrender_table_swap(0, new_table_ptr);

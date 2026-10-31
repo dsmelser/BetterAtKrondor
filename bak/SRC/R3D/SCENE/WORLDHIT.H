@@ -3,9 +3,9 @@
 
 #include "structs.h"
 
-extern u16 g_wSkyColorR;
-extern u16 g_wSkyColorG;
-extern u16 g_wSkyColorB;
+extern unsigned short g_wSkyColorR;
+extern unsigned short g_wSkyColorG;
+extern unsigned short g_wSkyColorB;
 extern ImageRecord **g_pMapIconsTable;
 extern unsigned char g_abActorAnimTemplateDefault[10];
 extern unsigned char g_abActorAnimTemplateRanged[10];
@@ -26,7 +26,7 @@ extern void world_render_with_overlay(void far *overlay_target);
 extern void world_render_view(s16 force_overlay, s16 chapter_split);
 extern s16 world_rndr_actor_angle_actor(Combatant *from, Combatant *to);
 extern Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
-                                                  s16 *p_hit_out, u16 action_id, s16 speed,
+                                                  s16 *p_hit_out, unsigned short action_id, s16 speed,
                                                   char anim_override);
 extern void world_render_combat_grid_sprite(WorldObject *actor);
 extern void world_render_record_marker_dot(WorldObject far *entry);

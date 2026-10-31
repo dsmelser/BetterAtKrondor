@@ -14,19 +14,19 @@
 #include "SRC/SYS/EMSIMG.H"
 #include "r3d.h"
 
-s16 g_nHorizonScratchW;
+short g_nHorizonScratchW;
 unsigned char g_bCurSkyColorR;
 unsigned char g_bCurSkyColorG;
 unsigned char g_bCurSkyColorB;
 unsigned char g_bSkyBandSelectB;
 unsigned char g_bSkyBandSelectA;
-u16 g_wHorizonCamYaw;
-u16 g_wHorizonCamPitch;
-s16 g_nClipLineX0;
-s16 g_nClipLineY0;
-s16 g_nClipLineX1;
-s16 g_nClipLineY1;
-s16 g_nHorizonRowY;
+unsigned short g_wHorizonCamYaw;
+unsigned short g_wHorizonCamPitch;
+short g_nClipLineX0;
+short g_nClipLineY0;
+short g_nClipLineX1;
+short g_nClipLineY1;
+short g_nHorizonRowY;
 
 static unsigned char skyrender_clip_outcode(s16 x, s16 y) {
     unsigned char outcode;
@@ -46,7 +46,7 @@ static unsigned char skyrender_clip_outcode(s16 x, s16 y) {
 }
 
 static unsigned char skyrender_clip_line_cohen_suth(void) {
-    s16 swapTmp;
+    short swapTmp;
     unsigned char outcode1;
     unsigned char outcode0;
 
@@ -118,8 +118,8 @@ static void skyrender_horizon_fill_clip_rect(unsigned char reject_mask) {
 }
 
 static void skyrender_sky_ground_bands(void) {
-    s16 sSaveY0;
-    s16 sSaveY1;
+    short sSaveY0;
+    short sSaveY1;
     s16 iTmp;
     u16 uScroll;
     u16 uQuad;
@@ -212,10 +212,10 @@ static void skyrender_sky_ground_bands(void) {
 
 static void skyrender_compute_horizon_line(void) {
     s16 yOff;
-    s16 sinYaw;
+    short sinYaw;
     s16 iTmp;
-    s16 sinPitch;
-    s16 cosPitch;
+    short sinPitch;
+    short cosPitch;
 
     if ((R3D_DEG(90) < g_wHorizonCamYaw) && (g_wHorizonCamYaw <= R3D_UDEG(270))) {
         g_nHorizonScratchW = g_bCurSkyColorR;
@@ -256,8 +256,8 @@ static void skyrender_compute_horizon_line(void) {
     return;
 }
 
-void far skyrender_sky_and_ground(u16 sky_r, u16 sky_g, u16 sky_b, u16 cam_yaw,
-                                  u16 cam_pitch) {
+void far skyrender_sky_and_ground(unsigned short sky_r, unsigned short sky_g, unsigned short sky_b, unsigned short cam_yaw,
+                                  unsigned short cam_pitch) {
     unsigned char rejectMask;
 
     g_bCurSkyColorR = sky_r;

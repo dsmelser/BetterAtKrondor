@@ -27,14 +27,14 @@
 #include <stdlib.h>
 
 ZoneHotspot g_aZoneHotspots[10];
-u16 g_awHotspotPendingFlags[10];
+unsigned short g_awHotspotPendingFlags[10];
 
-u16 g_nHotspotCount = 0x0000;
-u16 g_wHotspotIterIdx = 0x0000;
-u16 g_wHotspotMatchIdx = 0x0000;
-u16 g_wHotspotEventEnabled = 0x0001;
-u16 g_bZoneEntryInProgress = 0x0000;
-u16 g_wHotspotIterCursor = 0x0000;
+unsigned short g_nHotspotCount = 0x0000;
+unsigned short g_wHotspotIterIdx = 0x0000;
+unsigned short g_wHotspotMatchIdx = 0x0000;
+unsigned short g_wHotspotEventEnabled = 0x0001;
+unsigned short g_bZoneEntryInProgress = 0x0000;
+unsigned short g_wHotspotIterCursor = 0x0000;
 char g_monst_filename_buf[12] = "Tzzxxyy.DAT";
 char g_aDefFileNames[12][13] = {
     0x64, 0x65, 0x66, 0x5f, 0x62, 0x6b, 0x67, 0x72, 0x2e, 0x64, 0x61, 0x74, 0x00, 0x64, 0x65, 0x66,
@@ -47,7 +47,7 @@ char g_aDefFileNames[12][13] = {
     0x2e, 0x64, 0x61, 0x74, 0x00, 0x64, 0x65, 0x66, 0x5f, 0x64, 0x69, 0x73, 0x61, 0x2e, 0x64, 0x61,
     0x74, 0x00, 0x64, 0x65, 0x66, 0x5f, 0x65, 0x6e, 0x61, 0x62, 0x2e, 0x64, 0x61, 0x74, 0x00, 0x64,
     0x65, 0x66, 0x5f, 0x62, 0x6c, 0x6f, 0x63, 0x2e, 0x64, 0x61, 0x74, 0x00};
-s16 g_aDefRecordSizes[12] = {21, 399, 10, 8, 13, 7, 21, 409, 19, 7, 7, 8};
+short g_aDefRecordSizes[12] = {21, 399, 10, 8, 13, 7, 21, 409, 19, 7, 7, 8};
 
 void far hotspotevt_monst_load_tbl_cur_id(void) {
     ResFile *file;
@@ -72,7 +72,7 @@ void far hotspotevt_monst_load_tbl_cur_id(void) {
 }
 
 void hotspotevt_flags_clear(void) {
-    u16 *pFlag;
+    unsigned short *pFlag;
     s16 i;
 
     pFlag = g_awHotspotPendingFlags;
@@ -143,11 +143,11 @@ s16 hotspotevt_activate_at_player(void) {
     return allNoInteraction;
 }
 
-u16 far hotspotevt_disp_pending_events(void) {
+unsigned short far hotspotevt_disp_pending_events(void) {
     s16 running;
-    u16 wEventMask;
-    u16 *pPendingFlag;
-    u16 wHaltFlag;
+    unsigned short wEventMask;
+    unsigned short *pPendingFlag;
+    unsigned short wHaltFlag;
     u16 eventBit;
     ZoneHotspot *evt;
 
@@ -218,7 +218,7 @@ s16 hotspotevt_dispatch_at_point(s16 target_type, unsigned char x, unsigned char
     ZoneHotspot *hotspot;
     s16 result;
     s16 more;
-    u16 statusFlag;
+    unsigned short statusFlag;
     u16 shouldFire;
 
     hotspot = hotspotevt_find_at_point(1, x, y);
@@ -424,7 +424,7 @@ void far hotspotevt_skill_check_trigger(s16 isAuto, ZoneHotspot *pHotspot, s16 *
         *out_a = 1;
         if (hotspotevt_scout_tried_read() == 0) {
             hotspotevt_scout_tried_set();
-            if (RND(100) <= stat_party_find_extreme(0xe, 0, (s16 *)0x0)) {
+            if (RND(100) <= stat_party_find_extreme(0xe, 0, (short *)0x0)) {
                 stat_party_broadcast_status_op(0xe, 1, 3);
                 if (*(u32 *)(buf + 0xa) != 0)
                     dialog_play_record(*(u32 *)(buf + 0xa), 1);
@@ -444,13 +444,13 @@ void far hotspotevt_skill_check_trigger(s16 isAuto, ZoneHotspot *pHotspot, s16 *
 void far hotspotevt_type1_encounter_run(ZoneHotspot *pHotspot, s16 *out_moved) {
     s16 combatStatus;
     s16 hasFired;
-    s16 landingHeading;
+    short landingHeading;
     s32 landingY;
     s32 landingX;
     unsigned char tileX;
     unsigned char tileY;
     s32 visitedTime;
-    s16 origHeading;
+    short origHeading;
     s16 facing;
     char buf[0x190];
     char worldCtr[12];
@@ -474,7 +474,7 @@ void far hotspotevt_type1_encounter_run(ZoneHotspot *pHotspot, s16 *out_moved) {
         if ((n = worldmove_step_tick_get()) == 0) {
             return;
         }
-        chance = stat_party_find_extreme(0xf, 0, (s16 *)0x0);
+        chance = stat_party_find_extreme(0xf, 0, (short *)0x0);
         g_gameState.nEvtArgActor0 = g_gameState.nEvtArgStat;
         if ((s16)chance < 0x5a) {
             chance = chance + (s16)(chance * 0x1e) / 100;
@@ -512,7 +512,7 @@ void far hotspotevt_type1_encounter_run(ZoneHotspot *pHotspot, s16 *out_moved) {
     }
     gstate_temp_file_read_at(&visitedTime, GAM_ENC_VISITED_TIME(*(u32 *)(buf + 2)), 4);
     if ((g_gameState.game_time - visitedTime) / 0x1e <= 0x1e) {
-        if (RND(100) <= stat_party_find_extreme(0xf, 0, (s16 *)0x0)) {
+        if (RND(100) <= stat_party_find_extreme(0xf, 0, (short *)0x0)) {
             stat_party_broadcast_status_op(0xf, 1, 3);
             hasFired = 1;
             g_gameState.nEvtArgCount = 0;
@@ -522,11 +522,11 @@ void far hotspotevt_type1_encounter_run(ZoneHotspot *pHotspot, s16 *out_moved) {
     } else {
         g_gameState.nEvtArgCount = 2;
     }
-    g_gameState.nEvtArgAux1 = *(s16 *)(buf + 0x3b);
+    g_gameState.nEvtArgAux1 = *(short *)(buf + 0x3b);
     if (*(u32 *)(buf + 6) != 0) {
         dialog_play_record(*(u32 *)(buf + 6), 1);
     }
-    combat_arena_actor_turn_loop((u16) * (u32 *)(buf + 2), &combatStatus, hasFired);
+    combat_arena_actor_turn_loop((unsigned short) * (u32 *)(buf + 2), &combatStatus, hasFired);
     g_pendingTempWriteRegion = TWR_ENCOUNTER_STATE;
     gstate_temp_file_write_at((unsigned char far *)&g_gameState.game_time,
                               GAM_ENC_FOUGHT_TIME(*(u32 *)(buf + 2)), 4);
@@ -566,7 +566,7 @@ void far hotspotevt_type1_encounter_run(ZoneHotspot *pHotspot, s16 *out_moved) {
         }
         hotspotevt_done_set();
         hotspotevt_enc_fought_set(*(u32 *)(buf + 2));
-        evtcond_dispatch_key_to_handler((u16) * (u32 *)(buf + 2));
+        evtcond_dispatch_key_to_handler((unsigned short) * (u32 *)(buf + 2));
     }
 LAB_759a_0a9c:
     if (combatStatus != 0 && combatStatus != 3) {
@@ -680,7 +680,7 @@ void far hotspotevt_trap_prefire_scout(s16 nReentry, ZoneHotspot *evt, s16 *pOut
         *pOut_ambush_just_armed = 1;
         if (hotspotevt_scout_tried_read() == 0) {
             hotspotevt_scout_tried_set();
-            if (RND(100) <= stat_party_find_extreme(0xe, 0, (s16 *)0)) {
+            if (RND(100) <= stat_party_find_extreme(0xe, 0, (short *)0)) {
                 stat_party_broadcast_status_op(0xe, 1L, 3);
                 if (trapRec.dwScout_dialog != 0)
                     dialog_play_record(trapRec.dwScout_dialog, 1);
@@ -703,8 +703,8 @@ typedef struct {
     s32 pos_z;
 } CamPos;
 
-void far hotspotevt_trap_main_fire(ZoneHotspot *pHotspot, u16 *pOut_status) {
-    s16 wOrig_heading;
+void far hotspotevt_trap_main_fire(ZoneHotspot *pHotspot, unsigned short *pOut_status) {
+    short wOrig_heading;
     s16 combat_status;
     s16 wHas_fired;
     GamePositionAndHeading landing_chosen;
@@ -729,7 +729,7 @@ void far hotspotevt_trap_main_fire(ZoneHotspot *pHotspot, u16 *pOut_status) {
                 if (worldmove_step_tick_get() == 0) {
                     return;
                 }
-                uStat = stat_party_find_extreme(0xf, 0, (s16 *)0);
+                uStat = stat_party_find_extreme(0xf, 0, (short *)0);
                 g_gameState.nEvtArgActor0 = g_gameState.nEvtArgStat;
                 if ((s16)uStat < 0x5a) {
                     uStat = uStat + (s16)(uStat * 0x1e) / 100;
@@ -763,7 +763,7 @@ void far hotspotevt_trap_main_fire(ZoneHotspot *pHotspot, u16 *pOut_status) {
     gstate_temp_file_read_at(&visitedTime, GAM_ENC_VISITED_TIME(trapRec.dwCombat_index), 4);
 
     if ((g_gameState.game_time - visitedTime) / 0x1e <= 0x1e) {
-        if (RND(100) <= stat_party_find_extreme(0xf, 0, (s16 *)0)) {
+        if (RND(100) <= stat_party_find_extreme(0xf, 0, (short *)0)) {
             stat_party_broadcast_status_op(0xf, 1, 3);
             wHas_fired = 1;
             g_gameState.nEvtArgCount = 0;
@@ -779,7 +779,7 @@ void far hotspotevt_trap_main_fire(ZoneHotspot *pHotspot, u16 *pOut_status) {
     if (trapRec.dwEntry_dialog != 0)
         dialog_play_record(trapRec.dwEntry_dialog, 1);
 
-    combat_arena_actor_turn_loop((u16)trapRec.dwCombat_index, &combat_status, wHas_fired);
+    combat_arena_actor_turn_loop((unsigned short)trapRec.dwCombat_index, &combat_status, wHas_fired);
 
     if (combat_status == 2) {
         *(CamPos far *)&g_world_camera->base.pos.xy.nWorld_x = *(CamPos far *)originalCamera;
@@ -822,7 +822,7 @@ void far hotspotevt_trap_main_fire(ZoneHotspot *pHotspot, u16 *pOut_status) {
             gstate_event_write(pHotspot->wEvent_key_post, 1);
         hotspotevt_done_set();
         hotspotevt_enc_fought_set(trapRec.dwCombat_index);
-        evtcond_dispatch_key_to_handler((u16)trapRec.dwCombat_index);
+        evtcond_dispatch_key_to_handler((unsigned short)trapRec.dwCombat_index);
     }
 
     if ((combat_status != 0) && (combat_status != 3)) {
@@ -893,8 +893,8 @@ void far hotspotevt_combat_play_sfx_voice(ZoneHotspot *evt) {
     if (hotspotevt_available(evt) != 0) {
         hotspotevt_bak_load_indexed_rec(9, buf, evt->dwDef_record_offset);
         if (RND(100) <= (unsigned char)buf[2]) {
-            if (*(u16 *)(buf + 3) != 0) {
-                gstate_event_write(*(u16 *)(buf + 3), 0);
+            if (*(unsigned short *)(buf + 3) != 0) {
+                gstate_event_write(*(unsigned short *)(buf + 3), 0);
             }
         }
         if (evt->wEvent_key_post != 0) {
@@ -912,8 +912,8 @@ void far hotspotevt_chance_trigger(ZoneHotspot *evt) {
     if (hotspotevt_available(evt) != 0) {
         hotspotevt_bak_load_indexed_rec(10, buf, evt->dwDef_record_offset);
         if (RND(100) <= (unsigned char)buf[2]) {
-            if (*(u16 *)(buf + 3) != 0) {
-                gstate_event_write(*(u16 *)(buf + 3), 1);
+            if (*(unsigned short *)(buf + 3) != 0) {
+                gstate_event_write(*(unsigned short *)(buf + 3), 1);
             }
         }
         if (evt->wEvent_key_post != 0) {
@@ -993,17 +993,17 @@ ZoneHotspot *hotspotevt_next_entry_19byte(s16 mode) {
 }
 
 void hotspotevt_done_reset_all(void) {
-    u16 *p;
+    unsigned short *p;
 
-    p = (u16 *)0;
+    p = (unsigned short *)0;
     do {
         gstate_event_write((u16)(p + 200), 0);
-        p = (u16 *)((s16)p + 1);
-    } while (p < (u16 *)0x12c0);
+        p = (unsigned short *)((s16)p + 1);
+    } while (p < (unsigned short *)0x12c0);
 }
 
 void far hotspotevt_done_set(void) {
-    u16 slot;
+    unsigned short slot;
     slot = (g_gameState.nZoneId - 1) * 400;
     slot += (u16)g_apCombat_zone_actor_lists[0]->bRef_pair_index * 10;
     slot += g_wHotspotMatchIdx;
@@ -1012,7 +1012,7 @@ void far hotspotevt_done_set(void) {
 }
 
 void far hotspotevt_done_clear(void) {
-    u16 slot;
+    unsigned short slot;
     slot = (g_gameState.nZoneId - 1) * 400;
     slot += (u16)g_apCombat_zone_actor_lists[0]->bRef_pair_index * 10;
     slot += g_wHotspotMatchIdx;
@@ -1020,7 +1020,7 @@ void far hotspotevt_done_clear(void) {
 }
 
 s16 far hotspotevt_done_read(void) {
-    u16 slot;
+    unsigned short slot;
     slot = (g_gameState.nZoneId - 1) * 400;
     slot += (u16)g_apCombat_zone_actor_lists[0]->bRef_pair_index * 10;
     slot += g_wHotspotMatchIdx;
@@ -1049,7 +1049,7 @@ void hotspotevt_scout_tried_clear(void) {
     return;
 }
 
-u16 far hotspotevt_scout_tried_read(void) {
+unsigned short far hotspotevt_scout_tried_read(void) {
     s16 key = g_wHotspotMatchIdx;
     return gstate_event_read(HOTSPOT_SCOUT_TRIED(key));
 }
@@ -1076,7 +1076,7 @@ void far hotspotevt_scouted_clear(void) {
     return;
 }
 
-u16 far hotspotevt_scouted_read(void) {
+unsigned short far hotspotevt_scouted_read(void) {
     s16 key = g_wHotspotMatchIdx;
     return gstate_event_read(HOTSPOT_SCOUTED(key));
 }
@@ -1098,7 +1098,7 @@ void hotspotevt_enc_fought_clear(u32 key) {
     return;
 }
 
-u16 far hotspotevt_enc_fought_read(u32 key) {
+unsigned short far hotspotevt_enc_fought_read(u32 key) {
     s16 lo = (s16)key;
     if ((s32)key < 1000) {
         return gstate_event_read(ENCOUNTER_FOUGHT(lo));

@@ -4,18 +4,18 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-extern u16 g_aTtmTextStringOffsets[9];
+extern unsigned short g_aTtmTextStringOffsets[9];
 extern ScriptObject far *g_pScriptObjectListHead;
 extern ScriptObject far *g_pCurScriptObject;
 extern ScriptAnimNode *g_pScriptObjectChainHead;
 extern ScriptAnimNode *g_pCurScriptAnimNode;
 extern unsigned char g_bTtmViewportClampFlag;
-extern u16 g_nVgaRenderMode;
+extern unsigned short g_nVgaRenderMode;
 
 extern void adscript_set_dbb_if_202d_eq_0c(void);
 extern s16 adscript_resource_load(FileRef *file);
 extern s16 adscript_select_object(s16 id);
-extern s16 adscript_channel_dispatch_loop(u16 script_obj_id);
+extern short adscript_channel_dispatch_loop(unsigned short script_obj_id);
 extern void adscript_object_unload(s16 param_1);
 extern void adscript_renderer_reset(void);
 extern s16 adscript_run_then_apply_palette(s16 block_index);

@@ -9,9 +9,9 @@ s16 near lzss_alloc_codec_buffers(void) {
     g_lzhPutBuf = 0;
     g_lzhPutLen = '\0';
 
-    g_pLzssLson = (u16 far *)alloc_far(0x2002UL, 0L);
-    g_pLzssRson = (u16 far *)alloc_far(0x2202UL, 0L);
-    g_pLzssDad = (u16 far *)alloc_far(0x2002UL, 0L);
+    g_pLzssLson = (unsigned short far *)alloc_far(0x2002UL, 0L);
+    g_pLzssRson = (unsigned short far *)alloc_far(0x2202UL, 0L);
+    g_pLzssDad = (unsigned short far *)alloc_far(0x2002UL, 0L);
     *(u32 *)&g_pLzssTextBuf = *(u32 *)&g_pCurStreamDesc->pScratch;
     return 0;
 }

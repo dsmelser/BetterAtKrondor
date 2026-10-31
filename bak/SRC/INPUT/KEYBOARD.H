@@ -6,7 +6,7 @@
 extern unsigned char g_abAdapterRowStrideShift[16];
 extern unsigned char g_keyboard_installed;
 extern unsigned char g_bCapsLockEnabled;
-extern u16 g_wIsrLastKeyEventDead;
+extern unsigned short g_wIsrLastKeyEventDead;
 extern unsigned char g_input_mode_lut[2];
 extern unsigned char g_bUnused2cfa[250];
 extern unsigned char g_key_state[121];

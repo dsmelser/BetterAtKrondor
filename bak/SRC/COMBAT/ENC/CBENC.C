@@ -44,11 +44,11 @@ char *combatenc_build_save_filename(s16 slot) {
     return g_combat_save_filename;
 }
 
-s16 g_anStatCheckThreshold[9] = {10, 10, 10, 0, 0, 0, 0, 0, 0};
-u16 g_ai_flee_threshold_table[10] = {0x0055, 0x0037, 0x002d, 0x0023, 0x0019,
+short g_anStatCheckThreshold[9] = {10, 10, 10, 0, 0, 0, 0, 0, 0};
+unsigned short g_ai_flee_threshold_table[10] = {0x0055, 0x0037, 0x002d, 0x0023, 0x0019,
                                                 0x0014, 0x000a, 0x0005, 0x0005, 0x0000};
 
-static s16 cbenc_dead_1410 = 0;
+static short cbenc_dead_1410 = 0;
 
 #include "structs.h"
 
@@ -58,7 +58,7 @@ void far combatenc_pty_load_chap_state(void) {
     s16 slot;
 
     g_combat_actors_B = (Combatant *)galloc_safe_zcalloc(0x299);
-    g_inner_pool_B = (u16)galloc_safe_zcalloc(0x9a);
+    g_inner_pool_B = (unsigned short)galloc_safe_zcalloc(0x9a);
     g_anim_pool_B = (AnimSlot *)galloc_safe_zcalloc(0x77);
 
     gstate_temp_file_read_at(g_chapter_roster, (u32)GAM_ENC_ROSTER(g_encounter_id), 0xe);
@@ -113,7 +113,7 @@ void far combatenc_pty_load_chap_state(void) {
 #include "structs.h"
 
 void combatenc_persist_actors_to_temp(s16 srcEncounterId) {
-    s16 roster[7];
+    short roster[7];
     s16 i;
 
     gstate_temp_file_read_at(roster, (u32)(u16)GAM_ENC_ROSTER(srcEncounterId), 0xe);
@@ -225,8 +225,8 @@ void far combatenc_save_state(void) {
 }
 
 void combatenc_draw_actor_roster_idx(Combatant *actor) {
-    s16 x;
-    s16 y;
+    short x;
+    short y;
     char buf[10];
     s16 value;
 
@@ -236,7 +236,7 @@ void combatenc_draw_actor_roster_idx(Combatant *actor) {
             x = g_nBillboardScrX;
             y = g_nBillboardScrY;
             {
-                s16 bx = g_graphics_context.clip.xmin + 2;
+                short bx = g_graphics_context.clip.xmin + 2;
                 if (x < bx) {
                     x = bx;
                 } else {
@@ -247,7 +247,7 @@ void combatenc_draw_actor_roster_idx(Combatant *actor) {
                 }
             }
             {
-                s16 bx = g_graphics_context.clip.ymin + 2;
+                short bx = g_graphics_context.clip.ymin + 2;
                 if (y < bx) {
                     y = bx;
                 } else {
@@ -1003,7 +1003,7 @@ void far combatenc_actor_face_target(Combatant *actor) {
 }
 
 Actor far *combatenc_corpse_tbl_spawn_actor(s32 record_id, s16 slot) {
-    s16 rec[7];
+    short rec[7];
     Actor far *spawned;
 
     spawned = (Actor far *)0;
@@ -1121,17 +1121,17 @@ AnimSlot *g_anim_pool_B;
 s16 g_combat_count_B;
 unsigned char g_bssgap_511e[4];
 Combatant *g_actors_B_origin;
-s16 g_chapter_roster[7];
+short g_chapter_roster[7];
 /* Per-actor sprite tables: 11 near ImageRecord ** asset-table entries per row
    (22 bytes/row). Entries [2] and [10] of each row are never written (BSS zero). */
 ImageRecord **g_abCombatInnerPoolB[7][11];
 char g_combat_save_filename[14];
-u16 g_inner_pool_B;
+unsigned short g_inner_pool_B;
 
 void combatenc_chap_load_party_grn(s16 chapter) {
     unsigned char actorBuf[95];
     unsigned char innerBuf[22];
-    s16 roster[7];
+    short roster[7];
     s16 i;
     s16 count;
 

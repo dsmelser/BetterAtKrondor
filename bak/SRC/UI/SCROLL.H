@@ -3,8 +3,8 @@
 
 #include "structs.h"
 
-extern s16 g_nVgaScrollPageCount;
-extern s16 g_nVgaScrollPanStep;
+extern short g_nVgaScrollPageCount;
+extern short g_nVgaScrollPanStep;
 extern unsigned char far *g_pVgaScrollScratchBuf;
 
 extern void scrolltrans_pageflip_pan(s16 x_off, s16 line, s16 screen_width, s16 set_split);

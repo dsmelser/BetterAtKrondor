@@ -25,9 +25,9 @@
 
 /* Music-engine state.  g_alloc_to_pool routes alloc_far into the resource
  * pool while a music chunk loads (POOL.C flips it too, during pool sizing). */
-s16 g_alloc_to_pool = 0;
-s16 g_current_music_track = -1;
-u16 g_nMusicVolume = 0x7f;
+short g_alloc_to_pool = 0;
+short g_current_music_track = -1;
+unsigned short g_nMusicVolume = 0x7f;
 
 #ifdef V102CD
 static void v102_cdaudio_play_track(s16 track_id) {
@@ -86,7 +86,7 @@ void far audio_ambient_tick(void) {
 }
 
 s16 audio_music_play(s16 track_id) {
-    s16 prev;
+    short prev;
     s16 music_enabled;
 
     if ((g_sound_driver == SNDDRV_NONE) || (track_id == g_current_music_track) || (track_id == -999)) {

@@ -11,26 +11,26 @@
 
 
 char g_szRomanDigits[7] = "MDCLXVI";
-s16 g_anRomanValues[7] = {1000, 500, 100, 50, 10, 5, 1};
-s16 g_anRomanSubPair[7] = {100, 100, 10, 10, 1, 1, 0};
+short g_anRomanValues[7] = {1000, 500, 100, 50, 10, 5, 1};
+short g_anRomanSubPair[7] = {100, 100, 10, 10, 1, 1, 0};
 
 struct BookStyleBlock {
-    s16 nFontSlot;
-    s16 nBaselineYOff;
-    s16 nFgColor;
-    s16 nBgColor;
-    u16 wStyleFlags;
+    short nFontSlot;
+    short nBaselineYOff;
+    short nFgColor;
+    short nBgColor;
+    unsigned short wStyleFlags;
 };
 
 struct BookLayoutHdr {
-    s16 nMarginTop;
-    s16 nMarginBottom;
-    s16 nLineHeight;
-    s16 nVStepIndent;
-    s16 nVStepWrap;
-    s16 nVStepRetract;
-    s16 nVStepUndo;
-    u16 wAlignment;
+    short nMarginTop;
+    short nMarginBottom;
+    short nLineHeight;
+    short nVStepIndent;
+    short nVStepWrap;
+    short nVStepRetract;
+    short nVStepUndo;
+    unsigned short wAlignment;
 };
 
 typedef struct {
@@ -392,7 +392,7 @@ static void booktext_draw_page_number(BookPage far *page) {
     s16 saved_style;
     s16 width;
     char roman[30];
-    u16 value;
+    unsigned short value;
     s16 y;
 
     saved_fg = (char)g_graphics_context.bText_fg_color;
@@ -440,7 +440,7 @@ s16 booktext_render_page(PageDirectory far *page_directory, BookPage far *page, 
         s16 rowBias;
         s16 rowStep;
 
-        if ((s16)page->wPageNumber % 2 != 0) {
+        if ((short)page->wPageNumber % 2 != 0) {
             rowBias = 0x15d;
             rowStep = -1;
         } else {
@@ -476,16 +476,16 @@ s16 booktext_render_page(PageDirectory far *page_directory, BookPage far *page, 
 
         i = 0;
         pRes = (unsigned char far *)page + sizeof(BookPage);
-        while ((s16)page->wReservedCount > i) {
+        while ((short)page->wReservedCount > i) {
             i++;
             pRes += sizeof(BookReservedRect);
         }
 
         i = 0;
         pImg = (BookImage far *)pRes;
-        while ((s16)page->wImageCount > i) {
-            if (null_terminated_count(g_pBookViewer->pImageRecord) > (s16)pImg->wImage) {
-                blit_sprite_indirect((u16)g_pBookViewer->pImageRecord[pImg->wImage], pImg->nX,
+        while ((short)page->wImageCount > i) {
+            if (null_terminated_count(g_pBookViewer->pImageRecord) > (short)pImg->wImage) {
+                blit_sprite_indirect((unsigned short)g_pBookViewer->pImageRecord[pImg->wImage], pImg->nX,
                                      pImg->nY, pImg->wMirroring);
             }
             i++;
@@ -517,7 +517,7 @@ s16 booktext_render_page(PageDirectory far *page_directory, BookPage far *page, 
             g_pBookViewer->nCursorX = g_pBookViewer->nLineYNext;
         }
 
-        if ((s16)page->wPagePointer >= 0) {
+        if ((short)page->wPagePointer >= 0) {
             BookPage far *pNext;
 
             pNext = bookview_find_page_by_number(page_directory, page->wPagePointer);

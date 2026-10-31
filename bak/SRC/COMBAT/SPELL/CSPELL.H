@@ -3,9 +3,9 @@
 
 #include "structs.h"
 
-extern u16 g_nSpellSymbolAnimFrame;
+extern unsigned short g_nSpellSymbolAnimFrame;
 extern unsigned char g_bssgap_5154[6];
-extern s16 g_nSpellCount;
+extern short g_nSpellCount;
 extern unsigned char g_bssgap_5150[2];
 extern SpellDef *g_pSpellDefs;
 extern char *g_szSpellNameBlob;
@@ -14,16 +14,16 @@ extern unsigned char far *g_pSpellDocBlob;
 extern StatusEffectSlot *g_pStatusEffectPool;
 extern unsigned char far *g_pSpellScreenBuffer;
 extern ImageRecord **g_pCastfaceSpriteTable;
-extern u16 *g_pSpellCastableScratch;
-extern s16 g_nSnowParticleSeedX;
-extern s16 g_nSpellFontSlot;
-extern s16 g_nCombatTileEffectPending;
-extern s16 g_nCombatTileX;
-extern s16 g_nCombatTileY;
-extern s16 g_nSpellSymbolCount;
+extern unsigned short *g_pSpellCastableScratch;
+extern short g_nSnowParticleSeedX;
+extern short g_nSpellFontSlot;
+extern short g_nCombatTileEffectPending;
+extern short g_nCombatTileX;
+extern short g_nCombatTileY;
+extern short g_nSpellSymbolCount;
 extern SpellSymbolRecord *g_pSpellSymbolRecords;
-extern s16 *g_pSpellSymbolX;
-extern s16 *g_pSpellSymbolY;
+extern short *g_pSpellSymbolX;
+extern short *g_pSpellSymbolY;
 
 extern void cspell_gfx_wipe_horizontal_split(s16 x, s16 y, s16 w, s16 h);
 extern s16 cspell_compute_effect_magnitude(Combatant *actor, s16 level, s16 spell_id);

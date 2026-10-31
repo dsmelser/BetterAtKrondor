@@ -6,8 +6,8 @@
 #include "SRC/GFX/SPRITE/SPRTHNKS.H"
 #include "SRC/SCRIPT/ADSCRIPT.H"
 
-s16 g_nCreditsScrollYOffset;
-s16 g_nCreditsMaxLabelHeight;
+short g_nCreditsScrollYOffset;
+short g_nCreditsMaxLabelHeight;
 
 void menulbl_calc_max_label_width(void) {
     ImageRecord **table;
@@ -46,7 +46,7 @@ void menulbl_scroll_step_and_draw(s16 a, s16 b, s16 c) {
                 h = table[i]->nWidth;
                 adv = table[i]->nHeight;
                 if (-g_nCreditsMaxLabelHeight < dst_y) {
-                    blit_sprite_indirect((u16)table[i], c, dst_y, 0);
+                    blit_sprite_indirect((unsigned short)table[i], c, dst_y, 0);
                     adscript_op_noop(c, dst_y, h, adv);
                     flag = 0;
                 }

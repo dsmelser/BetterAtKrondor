@@ -3,14 +3,14 @@
 
 #include "structs.h"
 
-extern u16 midi_stub_return_cx_via_nop_alt(void far *ptr);
+extern unsigned short midi_stub_return_cx_via_nop_alt(void far *ptr);
 extern void midi_chord_event_thunk_0b6e(void far *ptr, s16 note);
 extern s16 midi_stub_return_cx_via_nop(void far *ptr);
 extern void midi_seek_volume_preserve_thunk(void far *midi_state);
-extern void midi_cmd6_far_wrapper(u16 voice_count);
+extern void midi_cmd6_far_wrapper(unsigned short voice_count);
 extern void midi_event_callback_thunk_0a8b(void far *ptr, s16 count);
 extern unsigned char midi_driver_install_dispatch(u16 offset, u16 seg);
-extern u16 midi_cmd1_save_cx_303b4_thunk(void far *ptr);
+extern unsigned short midi_cmd1_save_cx_303b4_thunk(void far *ptr);
 extern void midi_track_init_thunk(AudioTrackHandle far *handle, s16 start_flag);
 extern void midi_fade_queue_handle(AudioTrackHandle far *handle, s16 target, s16 step, s16 dir);
 extern void midi_cmd4_far_wrapper(s16 a);
@@ -23,29 +23,29 @@ extern void midi_set_note_velocity_thunk(s16 velocity);
 extern void midi_apply_ctrl_change_thunk(void far *state, s16 ctrl_num, s16 value, s16 channel);
 extern void midi_init_thunk_0678(void);
 extern void midi_pitch_bend_step_far_thunk(void far *midi_obj, s16 direction);
-extern void midi_queue_command(char kind, u16 arg2, u16 arg3, u16 slot0, u16 slot1,
-                               u16 slot2, u16 slot3, u16 slot4, u16 slot5);
+extern void midi_queue_command(char kind, unsigned short arg2, unsigned short arg3, unsigned short slot0, unsigned short slot1,
+                               unsigned short slot2, unsigned short slot3, unsigned short slot4, unsigned short slot5);
 extern s16 near midi_dispatch_command(s16 cmd);
 extern void midi_cmd0_program_change(void);
-extern u16 midi_cmd1_save_cx_303b4(void);
+extern unsigned short midi_cmd1_save_cx_303b4(void);
 extern void midi_cmd2_driver_dispatch_pair(void);
-extern void midi_scheduler_pause_refcount(u16 flag);
+extern void midi_scheduler_pause_refcount(unsigned short flag);
 extern void midi_cmd4_call_driver_13000(void);
 extern s16 midi_seek_with_volume_preserve(void);
 extern void midi_call_dispatch_cmd_13000(void);
-extern u16 midi_cmd7_set_global_clamped(void);
+extern unsigned short midi_cmd7_set_global_clamped(void);
 extern void midi_track_init(void);
 extern void midi_cmd9_release_and_recompute(void);
 extern s16 midi_cmd0a_adjust_hold_count(void);
 extern void midi_fade_program(void);
 extern void midi_track_write_byte_15a_inner(void);
-extern s16 midi_pitch_bend_step(u16 base_off, u16 direction);
+extern s16 midi_pitch_bend_step(unsigned short base_off, unsigned short direction);
 extern void midi_cmd0e_apply_vel_track(void);
 extern void midi_chord_propagate_setting(s16 track_near, unsigned char setting_UNUSED);
 extern unsigned char midi_track_read_byte_158_inner(void);
-extern unsigned char midi_sound_slot_unlock(u16 offset, u16 seg);
+extern unsigned char midi_sound_slot_unlock(unsigned short offset, unsigned short seg);
 extern void midi_stub_nop(void);
-extern u16 midi_stub_return_ax(void);
+extern unsigned short midi_stub_return_ax(void);
 extern void midi_cmd13_voice_release(void);
 extern void midi_cmd14_voice_set_value(void);
 extern void midi_apply_controller_change();
@@ -71,7 +71,7 @@ extern void near midi_dispatch_sysex(void);
 extern void near midi_dispatch_meta_or_control();
 extern void near midi_consume_event_sysex_f0();
 extern unsigned char near midi_scale_velocity(unsigned char velocity, unsigned char volume);
-extern u16 near midi_lookup_track_state(u16 match_off, u16 match_seg);
+extern unsigned short near midi_lookup_track_state(unsigned short match_off, unsigned short match_seg);
 extern void *near midi_track_parse_program_table(void *track);
 
 #endif

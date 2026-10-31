@@ -61,7 +61,7 @@ s16 far invinspect_quantity_picker_dlg(ItemSlot far *item, s16 param_2, s16 para
     register s16 value;
     register MenuPage *page;
     s16 maxValue;
-    u16 dirty;
+    unsigned short dirty;
     char *label;
     u16 action;
 
@@ -338,8 +338,8 @@ void far invinspect_item_flow(ItemSlot far *item, s16 affecting, MenuPage *page)
     s16 dstY;
     ItemRecord far *irec;
     MenuEntry *savedEntries;
-    u16 savedCount;
-    u16 dirty;
+    unsigned short savedCount;
+    unsigned short dirty;
     char buf[80];
 
     irec = itemtbl_record_ptr(item);
@@ -394,10 +394,10 @@ void far invinspect_item_flow(ItemSlot far *item, s16 affecting, MenuPage *page)
     screen_frame_sync_buffers_rect(0xb, 0x79);
 
     if (item->item_id == 0x85) {
-        g_gameState.nEvtArgCount = (s16)item->condition;
+        g_gameState.nEvtArgCount = (short)item->condition;
         dialog_play_record(0x1b7761UL, 0);
     } else {
-        g_gameState.nEvtArgCount = (s16)item->item_id;
+        g_gameState.nEvtArgCount = (short)item->item_id;
         dialog_play_record(0x1b7741UL, 0);
         dialog_input_wait_release(1, 1);
         if (page != (MenuPage *)0) {

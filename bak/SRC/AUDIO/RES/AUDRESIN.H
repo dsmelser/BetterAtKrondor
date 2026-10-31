@@ -5,23 +5,23 @@
 #include "SRC/IO/RESOURCE.H"
 
 extern unsigned char g_abIntensityCurve[64];
-extern u16 g_nSfxResourceId;
+extern unsigned short g_nSfxResourceId;
 extern unsigned char far *g_pSsmChunkBuf;
 extern AudioListNode far *g_pActiveAudioListHead;
-extern u16 g_bAudioTimerInstalled;
-extern u16 g_nSfxSampleSlot;
-extern u16 g_nSfxWorkSlot;
+extern unsigned short g_bAudioTimerInstalled;
+extern unsigned short g_nSfxSampleSlot;
+extern unsigned short g_nSfxWorkSlot;
 extern SfxLoopPri *g_pSfxLoopPriorityTable;
 extern void far *g_pSfxDriver;
 extern void far *g_pMusicDriver;
-extern u16 g_nAudioBufLastError;
+extern unsigned short g_nAudioBufLastError;
 extern unsigned char g_bAudioLooseTag;
-extern s16 g_nAudioFilterMode;
+extern short g_nAudioFilterMode;
 extern MusicChunkHeader far *g_pMusicChunkBuf;
 extern ResFile *g_music_archive;
 extern s16 g_music_archive_owned;
-extern u16 g_bMusicDriverInstalled;
-extern u16 g_nAudioStreamCodec;
+extern unsigned short g_bMusicDriverInstalled;
+extern unsigned short g_nAudioStreamCodec;
 
 /**
  * @brief Sound-driver ids: indices into the SFX driver-tag table
@@ -78,6 +78,6 @@ extern char g_szMusicTag_APS[5];
 extern char g_szMusicTag_ATD[5];
 extern char g_szMusicTag_APA[5];
 extern char g_szMusicTag_ADS[5];
-extern s16 g_nSfxDriverMode;
+extern short g_nSfxDriverMode;
 
 #endif

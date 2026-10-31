@@ -3,22 +3,22 @@
 
 #include "structs.h"
 
-extern u16 g_wDrawPolyTopVertexOff;
-extern u16 g_wDrawPolyBottomVertexOff;
-extern u16 g_wDrawPolyChain1VertexCount;
-extern u16 g_wDrawPolyChain2VertexCount;
-extern u16 g_wDrawPolyChainRemaining;
-extern u16 g_wDrawPolyEdgeWalkOff;
-extern u16 g_wRasterEdgeColumnOff;
-extern s16 g_nDrawPolyLastVertexX;
-extern s16 g_nDrawPolyLastVertexY;
-extern u16 g_wDrawPolySpanBufRetSeg;
-extern u16 g_wDrawPolyOutlineVertexCount;
-extern u16 g_wDrawPolyClipReplayByteCount;
+extern unsigned short g_wDrawPolyTopVertexOff;
+extern unsigned short g_wDrawPolyBottomVertexOff;
+extern unsigned short g_wDrawPolyChain1VertexCount;
+extern unsigned short g_wDrawPolyChain2VertexCount;
+extern unsigned short g_wDrawPolyChainRemaining;
+extern unsigned short g_wDrawPolyEdgeWalkOff;
+extern unsigned short g_wRasterEdgeColumnOff;
+extern short g_nDrawPolyLastVertexX;
+extern short g_nDrawPolyLastVertexY;
+extern unsigned short g_wDrawPolySpanBufRetSeg;
+extern unsigned short g_wDrawPolyOutlineVertexCount;
+extern unsigned short g_wDrawPolyClipReplayByteCount;
 extern unsigned char g_bRasterSpanDiStride;
 extern unsigned char g_bDrawPolyReplayPending;
 
-extern void fill_spans_dispatch(u16 off, u16 seg);
+extern void fill_spans_dispatch(unsigned short off, unsigned short seg);
 extern void blit_rect_buf_dispatch(unsigned char far *far_ptr);
 extern s16 draw_polygon(s16 count, s16 *xs, s16 *ys);
 extern void near draw_polygon_edges(void);

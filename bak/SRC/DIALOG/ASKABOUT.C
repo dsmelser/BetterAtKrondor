@@ -28,14 +28,14 @@
 #include "SRC/GAME/ACTOR/ITEMTBL.H"
 
 
-u16 *g_pKeywordTable = {0};
+unsigned short *g_pKeywordTable = {0};
 MenuPage *g_pKeywordMenuScratch = {0};
 ActSpriteCache *g_pActSpriteCache = {0};
 
 void askabout_keyword_table_free(void) {
-    if (g_pKeywordTable != (u16 *)0) {
+    if (g_pKeywordTable != (unsigned short *)0) {
         galloc_zfree(g_pKeywordTable);
-        g_pKeywordTable = (u16 *)0;
+        g_pKeywordTable = (unsigned short *)0;
     }
     if (g_pKeywordMenuScratch != (MenuPage *)0) {
         galloc_zfree(g_pKeywordMenuScratch);
@@ -48,14 +48,14 @@ void far askabout_keyword_table_load(void) {
     ResFile *file;
     s16 i;
 
-    if (g_pKeywordTable == (u16 *)0) {
+    if (g_pKeywordTable == (unsigned short *)0) {
         file = res_fopen("KEYWORD.DAT", "rb");
         res_fread(&size, 2, 1, file);
         g_pKeywordTable = galloc_safe_zcalloc(size);
         res_fread(g_pKeywordTable, 1, size, file);
         res_fclose(file);
         for (i = 0; i < (s16)*g_pKeywordTable; i = i + 1) {
-            *(u16 *)((char *)g_pKeywordTable + 2 + i * 2) +=
+            *(unsigned short *)((char *)g_pKeywordTable + 2 + i * 2) +=
                 (s16)((u16)g_pKeywordTable - 2);
         }
     }
@@ -73,7 +73,7 @@ char *askabout_name_or_keyword_lookup(s16 id) {
     } else {
         askabout_keyword_table_load();
 
-        return (char *)*(u16 *)((char *)g_pKeywordTable + (id + 0x124) * 2 + 2);
+        return (char *)*(unsigned short *)((char *)g_pKeywordTable + (id + 0x124) * 2 + 2);
     }
 }
 
@@ -97,7 +97,7 @@ void askabout_free_paged_image_table(void) {
     return;
 }
 
-s16 far askabout_actor_spr_cache_get(u16 actor_id, s16 pal_shift) {
+s16 far askabout_actor_spr_cache_get(unsigned short actor_id, s16 pal_shift) {
     s16 slot;
     s16 free_slot;
     char fname[16];
@@ -118,7 +118,7 @@ s16 far askabout_actor_spr_cache_get(u16 actor_id, s16 pal_shift) {
     if ((s16)actor_id < 0x31) {
         sprintf(fname, "ACT%03d%s", (s16)actor_id, (pal_shift < 0) ? "A.BMP" : ".BMP");
         g_pActSpriteCache->pActorId[free_slot] = actor_id;
-        g_pActSpriteCache->pAssetTable[free_slot] = (u16)resblit_load_asset_table(fname, 2);
+        g_pActSpriteCache->pAssetTable[free_slot] = (unsigned short)resblit_load_asset_table(fname, 2);
         sprintf(fname, "ACT%03d.PAL", (s16)actor_id);
         g_pActSpriteCache->pChunk[free_slot] = chunk_load_into_slot(fname);
         *g_pActSpriteCache->pChunk[free_slot] = 0x3f;
@@ -135,7 +135,7 @@ typedef struct {
     unsigned char b;
 } PalEntry;
 
-void far askabout_actor_spr_blit_pal_swap(u16 actor_id, s16 pal_shift, s16 frame_idx,
+void far askabout_actor_spr_blit_pal_swap(unsigned short actor_id, s16 pal_shift, s16 frame_idx,
                                           unsigned char far *pal_buf) {
     s16 x;
     s16 y;
@@ -187,8 +187,8 @@ void far askabout_actor_spr_blit_pal_swap(u16 actor_id, s16 pal_shift, s16 frame
     return;
 }
 
-u16 far askabout_dispatch_topic(u16 topic_id) {
-    u16 avail;
+unsigned short far askabout_dispatch_topic(unsigned short topic_id) {
+    unsigned short avail;
 
     avail = gstate_event_read(topic_id);
     switch (topic_id) {
@@ -256,7 +256,7 @@ static s16 far askabout_menu_page_build(unsigned char far *keyword_table) {
     i = availCount = 0;
 
     for (; i < keyword_table[5]; i++) {
-        if (askabout_dispatch_topic(*(u16 far *)(kw_ptr + i * 10)) != 0) {
+        if (askabout_dispatch_topic(*(unsigned short far *)(kw_ptr + i * 10)) != 0) {
             ++availCount;
         }
     }
@@ -270,14 +270,14 @@ static s16 far askabout_menu_page_build(unsigned char far *keyword_table) {
     i = writeIdx = 0;
 
     for (; i < keyword_table[5]; i++) {
-        if (askabout_dispatch_topic(*(u16 far *)(kw_ptr + i * 10)) != 0) {
+        if (askabout_dispatch_topic(*(unsigned short far *)(kw_ptr + i * 10)) != 0) {
             entries[writeIdx].wWidget_type =
-                (gstate_event_read(KEYWORD_ASKED(*(u16 far *)(kw_ptr + i * 10))) != 0)
+                (gstate_event_read(KEYWORD_ASKED(*(unsigned short far *)(kw_ptr + i * 10))) != 0)
                     ? 8
                     : 6;
             entries[writeIdx].pPrimary_label =
-                (char *)*(u16 *)((char *)g_pKeywordTable +
-                                            (*(u16 far *)(kw_ptr + i * 10) - 1) * 2 + 2);
+                (char *)*(unsigned short *)((char *)g_pKeywordTable +
+                                            (*(unsigned short far *)(kw_ptr + i * 10) - 1) * 2 + 2);
             entries[writeIdx].wAction_id = i + 0x80;
             ++writeIdx;
         }
@@ -318,7 +318,7 @@ static s16 far askabout_menu_page_build(unsigned char far *keyword_table) {
 
 s16 far askabout_dialog_run(unsigned char far *keyword_table, char *npc_name) {
     char speechText[80];
-    u16 needsRedraw;
+    unsigned short needsRedraw;
     MenuPage *page;
     u16 result;
     s16 choiceIdx;
@@ -359,10 +359,10 @@ s16 far askabout_dialog_run(unsigned char far *keyword_table, char *npc_name) {
 
 static void far askabout_menu_wdg_build_global(DDXRecord far *record) {
     s16 maxw;
-    s16 nHeight;
-    s16 nWidth;
-    s16 nY;
-    s16 nX;
+    short nHeight;
+    short nWidth;
+    short nY;
+    short nX;
     MenuEntry *entries;
     unsigned char far *kw;
     MenuPage *page;
@@ -387,9 +387,9 @@ static void far askabout_menu_wdg_build_global(DDXRecord far *record) {
     i = maxw = 0;
     for (; i < (s16)page->wEntry_count;) {
         memset(&entries[i], 0, 0x21);
-        gstate_event_write(*(u16 far *)kw, 0);
+        gstate_event_write(*(unsigned short far *)kw, 0);
         entries[i].pPrimary_label = (char *)*(
-            u16 *)((char *)g_pKeywordTable + (*(u16 far *)kw - 1) * 2 + 2);
+            unsigned short *)((char *)g_pKeywordTable + (*(unsigned short far *)kw - 1) * 2 + 2);
         if ((tw = font_text_width_ds(entries[i].pPrimary_label) + 10) > maxw)
             maxw = tw;
         i++;
@@ -412,10 +412,10 @@ static void far askabout_menu_wdg_build_global(DDXRecord far *record) {
 
 static void far askabout_build_party_select_menu(DDXRecord far *record) {
     s16 max_width;
-    s16 nHeight;
-    s16 nWidth;
-    s16 nY;
-    s16 nX;
+    short nHeight;
+    short nWidth;
+    short nY;
+    short nX;
     MenuEntry *src;
     MenuPage *page;
     s16 i;
@@ -457,7 +457,7 @@ static void far askabout_build_party_select_menu(DDXRecord far *record) {
 }
 
 s16 far askabout_menu_page_run_selection(DDXRecord far *record) {
-    u16 needsRedraw;
+    unsigned short needsRedraw;
     MenuPage *page;
     u16 result;
     u16 j;

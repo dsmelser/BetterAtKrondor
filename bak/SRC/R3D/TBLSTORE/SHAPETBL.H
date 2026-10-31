@@ -60,13 +60,13 @@ struct Shape {
     unsigned char *animFrameCounts;
 
     /** 0x08, 2B: LOD-descriptor count. */
-    s16 lodCount;
+    short lodCount;
 
     /** 0x0A, 2B near: LOD-descriptor array. */
     void *lodArray;
 
     /** 0x0C, 2B: signed bounding half-extent; `radius << shift` = cull/LOD extent. */
-    s16 radius;
+    short radius;
 
     /** 0x0E, 6B: bbox min; runtime-built meshes only, unread by render/collision. */
     Vec3Short aabbMin;
@@ -79,9 +79,9 @@ struct Shape {
 /** 6B LOD descriptor — @ref Shape::lodArray points to @ref Shape::lodCount of these; the renderer
  *  picks the first whose @ref LodDescriptor::nThreshold >= the projected actor scale (last entry = fallback). */
 struct LodDescriptor {
-    s16 nThreshold;            /**< +0x0 selected when projScale <= threshold (last = fallback) */
-    s16 nPartCount;            /**< +0x2 number of @ref MeshPartRecord */
-    u16 wPartBaseOff; /**< +0x4 near offset to the @ref MeshPartRecord array */
+    short nThreshold;            /**< +0x0 selected when projScale <= threshold (last = fallback) */
+    short nPartCount;            /**< +0x2 number of @ref MeshPartRecord */
+    unsigned short wPartBaseOff; /**< +0x4 near offset to the @ref MeshPartRecord array */
 };
 
 

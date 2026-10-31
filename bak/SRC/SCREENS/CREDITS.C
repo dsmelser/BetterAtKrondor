@@ -15,15 +15,15 @@
 
 unsigned char *g_pCreditsBlob;
 char **g_credits_strings;
-s16 g_credits_pair_count;
-s16 g_credits_scroll_y;
+short g_credits_pair_count;
+short g_credits_scroll_y;
 
-u16 g_nCreditsPassCount = 0x0000;
+unsigned short g_nCreditsPassCount = 0x0000;
 
 void credits_load(void) {
     ResFile *file;
     s16 i;
-    u16 blobSize;
+    unsigned short blobSize;
 
     file = res_fopen("cred.dat", "rb");
     res_fread(&g_credits_pair_count, 2, 1, file);

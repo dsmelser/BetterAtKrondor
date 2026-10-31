@@ -6,15 +6,15 @@
 #include "SRC/SYS/EMSDET.H"
 #include "SRC/SYS/BOOT.H"
 
-u16 g_free_memory_kb;
-u16 g_wEmsFreeListHead;
+unsigned short g_free_memory_kb;
+unsigned short g_wEmsFreeListHead;
 s16 *g_pEmsPageNextTbl;
 s16 g_anEmsPageMap[8];
 
 s16 g_ems_present = 0;
-u16 g_ems_total_pages = 0x0000;
-u16 g_ems_free_pages = 0x0000;
-u16 g_ems_frame_segment = 0x0000;
+unsigned short g_ems_total_pages = 0x0000;
+unsigned short g_ems_free_pages = 0x0000;
+unsigned short g_ems_frame_segment = 0x0000;
 char s_ems_driver_signature[8] = "EMMXXXX0";
 
 s16 ems_init(void) {
@@ -38,7 +38,7 @@ s16 ems_init(void) {
     return 0;
 }
 
-u16 ems_get_free_memory(void) {
+unsigned short ems_get_free_memory(void) {
     return g_free_memory_kb;
 }
 

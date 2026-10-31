@@ -4,18 +4,18 @@
 #include "structs.h"
 #include "SRC/GAME/ACTOR/ACTOR.H"
 
-extern s16 g_anStatCheckThreshold[9];
-extern u16 g_ai_flee_threshold_table[10];
+extern short g_anStatCheckThreshold[9];
+extern unsigned short g_ai_flee_threshold_table[10];
 extern unsigned char g_bssgap_5128[2];
 extern Combatant *g_combat_actors_B;
 extern AnimSlot *g_anim_pool_B;
 extern s16 g_combat_count_B;
 extern unsigned char g_bssgap_511e[4];
 extern Combatant *g_actors_B_origin;
-extern s16 g_chapter_roster[7];
+extern short g_chapter_roster[7];
 extern ImageRecord **g_abCombatInnerPoolB[7][11];
 extern char g_combat_save_filename[14];
-extern u16 g_inner_pool_B;
+extern unsigned short g_inner_pool_B;
 
 extern void combatenc_chap_load_party_grn(s16 chapter);
 extern void combatenc_actor_flee_tile_east(Combatant *actor);

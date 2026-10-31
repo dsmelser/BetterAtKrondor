@@ -15,9 +15,9 @@
 ImageRecord **g_tile_sprite;
 ImageRecord **g_pCompassSpriteSheet;
 
-u16 g_nSkyHorizonRowCached = 0xffff;
-u16 g_bTexturedPolyEnabled = 0x0001;
-s16 g_nGlyphColorShift = 0;
+unsigned short g_nSkyHorizonRowCached = 0xffff;
+unsigned short g_bTexturedPolyEnabled = 0x0001;
+short g_nGlyphColorShift = 0;
 
 void uiwidget_tile_sprite_load(void) {
     g_tile_sprite = resblit_load_asset_table("pat.bmp", 0);
@@ -48,7 +48,7 @@ static void uiwidget_tile_sprite_fill_rect(s16 x, s16 y, s16 w, s16 h, s16 sprit
             iy = 0;
             if (iy < g_graphics_context.clip.ymax) {
                 do {
-                    blit_sprite_indirect((u16)g_tile_sprite[sprite_index], x + ix, y + iy, 0);
+                    blit_sprite_indirect((unsigned short)g_tile_sprite[sprite_index], x + ix, y + iy, 0);
                     iy += step_y;
                 } while (iy < g_graphics_context.clip.ymax);
             }

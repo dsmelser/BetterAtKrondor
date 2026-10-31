@@ -6,7 +6,7 @@
 
 void far visentry_mark_dollar_flag14(VisibleEntryList *list) {
     WorldObject far *entry;
-    u16 state;
+    unsigned short state;
     s16 i;
     s16 count;
 
@@ -27,14 +27,14 @@ void far visentry_mark_dollar_flag14(VisibleEntryList *list) {
 }
 
 void far visentry_render_actor_tmp_anim(WorldObject far *entry) {
-    u16 savedState;
+    unsigned short savedState;
     unsigned char stateLow;
 
     savedState = entry->state.stateBits;
     stateLow = savedState & 0xff;
     g_render_actor_wstate_scratch[0] = 0;
     g_render_actor_wstate_scratch[1] = stateLow;
-    entry->state.stateBits = (u16)g_render_actor_wstate_scratch;
+    entry->state.stateBits = (unsigned short)g_render_actor_wstate_scratch;
     actorrender_entity(entry);
     entry->state.stateBits = savedState;
     return;

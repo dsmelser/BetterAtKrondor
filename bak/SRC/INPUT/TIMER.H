@@ -5,10 +5,10 @@
 
 extern char g_timer_installed;
 extern s16 g_nFrameTickCountdown;
-extern u16 g_nTimerPitDivisor;
-extern u16 g_nTimerBiosChainReload;
-extern u16 g_nTimerBiosChainCountdown;
-extern u16 g_registry_slot_mask;
+extern unsigned short g_nTimerPitDivisor;
+extern unsigned short g_nTimerBiosChainReload;
+extern unsigned short g_nTimerBiosChainCountdown;
+extern unsigned short g_registry_slot_mask;
 extern TimerCallback g_aTimerCallback[16];
 extern TimerSched g_aTimerSched[16];
 

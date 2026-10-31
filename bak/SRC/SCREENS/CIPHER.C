@@ -186,18 +186,18 @@ s16 far cipher_dial_puzzle_run(s16 nPuzzleId) {
             screen_frame_present();
         }
         audio_play(4);
-        blit_sprite_indirect((u16)pImgTable[0], 0x1e, 0x17, 0);
+        blit_sprite_indirect((unsigned short)pImgTable[0], 0x1e, 0x17, 0);
         screen_frame_present();
-        blit_sprite_indirect((u16)pImgTable[0], 0x1e, 0x17, 0);
+        blit_sprite_indirect((unsigned short)pImgTable[0], 0x1e, 0x17, 0);
         g_nFrameTickCountdown = 0x3c;
         while (g_nFrameTickCountdown != 0) {
             screen_frame_present();
         }
         audio_play(4);
 
-        blit_sprite_indirect((u16)pImgTable[1], 0x100, 0x14, 0);
+        blit_sprite_indirect((unsigned short)pImgTable[1], 0x100, 0x14, 0);
         screen_frame_present();
-        blit_sprite_indirect((u16)pImgTable[1], 0x100, 0x14, 0);
+        blit_sprite_indirect((unsigned short)pImgTable[1], 0x100, 0x14, 0);
         g_nFrameTickCountdown = 0xc8;
         while (g_nFrameTickCountdown != 0) {
             screen_frame_present();

@@ -50,9 +50,9 @@
 #include "SRC/SYS/CFGPARSE.H"
 #endif
 
-u16 g_wSkyColorR = 0x00d7;
-u16 g_wSkyColorG = 0x00e4;
-u16 g_wSkyColorB = 0x00a8;
+unsigned short g_wSkyColorR = 0x00d7;
+unsigned short g_wSkyColorG = 0x00e4;
+unsigned short g_wSkyColorB = 0x00a8;
 ImageRecord **g_pMapIconsTable = {0};
 unsigned char g_abActorAnimTemplateDefault[10] = {0xff, 0xff, 0xff, 0xff, 0xff,
                                                   0xff, 0xff, 0xff, 0xff, 0xff};
@@ -61,7 +61,7 @@ unsigned char g_abActorAnimTemplateRanged[10] = {0x0c, 0xff, 0xff, 0xff, 0xff,
 
 void world_render_scene_dispatch(s16 animate) {
 #ifdef V102CD
-    s16 saved_heading;
+    short saved_heading;
     if (animate != 0) {
         rgnenc_corpse_tbl_iterate_22byte();
     }
@@ -146,7 +146,7 @@ void world_render_scene_dispatch(s16 animate) {
 
 void far world_render_frame(s16 animate) {
     WorldObject far *pVis;
-    u16 *pOff;
+    unsigned short *pOff;
     s16 i;
 
     pOff = g_pwVisibleEntryOffsets;
@@ -190,7 +190,7 @@ void world_render_sky_texture_free(void) {
 }
 
 void world_render_frame_full(void) {
-    u16 *pOff;
+    unsigned short *pOff;
     WorldObject entry;
     WorldObject far *pVis;
     WorldObject far *pEntry;
@@ -263,7 +263,7 @@ void far world_render_frame_with_hittest(void) {
     s32 *dist;
     u16 kind;
     WorldObject far *pVis;
-    u16 *pOff;
+    unsigned short *pOff;
 
     pOff = g_pwVisibleEntryOffsets;
     dist = g_pVisibleEntryDistances;
@@ -407,7 +407,7 @@ void far world_render_actor_at_position(s16 actor_kind, s16 gridX, s16 gridY) {
     animState[0] = (unsigned char)actor_kind;
     entry.shapeId = 0;
     entry.orientation.pitch = entry.orientation.roll = entry.orientation.yaw = 0;
-    entry.state.stateBits = (u16)animState;
+    entry.state.stateBits = (unsigned short)animState;
     if (gridX == -1) {
         if (screen_cursor_get_y() > 0x8c) {
             entry.pos.xy.nWorld_y = 0;
@@ -442,7 +442,7 @@ void far world_render_actor_at_tile(s16 actor_id, s16 tile_x, s16 tile_y, s16 z,
     entry.shapeId = actor_id;
     entry.orientation.pitch = entry.orientation.roll = 0;
     entry.orientation.yaw = yaw;
-    entry.state.stateBits = (u16)animBuf.b;
+    entry.state.stateBits = (unsigned short)animBuf.b;
     entry.pos.xy.nWorld_x = (s32)(tile_x * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
     entry.pos.xy.nWorld_y = (s32)(tile_y * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     entry.pos.nWorld_z = z;
@@ -517,7 +517,7 @@ void far world_render_view(s16 force_overlay, s16 chapter_split) {
     if (g_game_mode != 2) {
         g_render_camera_scratch->base.pos.nWorld_z = (s32)g_nWorldViewFovNormal;
     } else {
-        g_render_camera_scratch->base.pos.nWorld_z = (s32)*(s16 *)&g_nWorldViewFovChapter;
+        g_render_camera_scratch->base.pos.nWorld_z = (s32)*(short *)&g_nWorldViewFovChapter;
     }
     g_render_camera_scratch->base.orientation.roll = 0;
     g_render_camera_scratch->base.orientation.yaw = g_world_camera->base.orientation.yaw;
@@ -583,7 +583,7 @@ typedef struct {
 
 #pragma option -O-b
 Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
-                                           s16 *p_hit_out, u16 action_id, s16 speed,
+                                           s16 *p_hit_out, unsigned short action_id, s16 speed,
                                            char anim_override) {
     Combatant *tgt;
     Combatant *hit;
@@ -611,7 +611,7 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
 
     *(AnimBuf10 *)animBuf =
         *(AnimBuf10 far *)MK_FP(FP_SEG(g_pMapIconsTable), (u16)g_abActorAnimTemplateRanged);
-    targetIsActionClass = (u16)(tgt->inner->creatureType == (s16)action_id);
+    targetIsActionClass = (u16)(tgt->inner->creatureType == (short)action_id);
 
     /* No random deflection once the shot already hit, or when the target has
      * no class record; otherwise deflect the heading by a random ±[0x400,0x700). */
@@ -624,11 +624,11 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
         deflectAngle = (s16)RNDR(0x400, 0x6ff) * r_local;
     }
 
-    projectile.base.shapeId = (s16)action_id;
+    projectile.base.shapeId = (short)action_id;
     if (targetIsActionClass == 0) {
         projectile.base.state.animationState = 0;
     } else {
-        projectile.base.state.animationState = (s16)(u16)(unsigned char *)animBuf;
+        projectile.base.state.animationState = (short)(u16)(unsigned char *)animBuf;
         if (anim_override != -1) {
             animBuf[0] = anim_override;
         }
@@ -648,7 +648,7 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
     startPos.nZ = (s32)250; /* z set but never read — the 2D distance below only uses nX/nY */
     projectile.base.orientation.pitch = projectile.base.orientation.roll = 0;
     projectile.base.orientation.yaw =
-        (s16)world_rndr_actor_angle_actor(attacker, tgt) + (s16)deflectAngle;
+        (short)world_rndr_actor_angle_actor(attacker, tgt) + (short)deflectAngle;
     if ((action_id == 0x26) || (action_id == 3)) {
         projectile.angularVelocity.roll =
             3000; /* 0xbb8 pitch-delta scalar (3000) stored to struct field */
@@ -657,7 +657,7 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
     }
     projectile.angularVelocity.pitch = projectile.angularVelocity.yaw = 0;
     projectile.linearVelocity.nX = projectile.linearVelocity.nY = projectile.linearVelocity.nZ = 0;
-    projectile.forwardVelocity = (s16)speed;
+    projectile.forwardVelocity = (short)speed;
     dx = startPos.nX - projectile.base.pos.xy.nWorld_x;
     travelDist =
         distdir_octagonal_distance_dxdy(dx, dy = (startPos.nY - projectile.base.pos.xy.nWorld_y));
@@ -673,7 +673,7 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
         arcDelta = (stepCount < 10000) ? 400 / (stepCount + 4) : (s16)RND(0x14) - 5;
         projectile.base.pos.nWorld_z += 200;
     }
-    canHitOthers = (targetIsActionClass == 0) && ((u16)action_id != 5);
+    canHitOthers = (targetIsActionClass == 0) && ((unsigned short)action_id != 5);
     for (step = 0; step < stepCount; step++) {
         if (action_id == 4) {
             if (stepCount >> 2 < step) {
@@ -712,12 +712,12 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
             break;
         if (scr[1] < 0)
             break;
-        if ((s16)projectile.base.shapeId == -1)
+        if ((short)projectile.base.shapeId == -1)
             break;
         if (hit != 0)
             break;
     }
-    if ((s16)projectile.base.shapeId == -1) {
+    if ((short)projectile.base.shapeId == -1) {
         *p_hit_out = 0;
     }
     *(s16 far *)&pShape->radius = radius;
@@ -732,7 +732,7 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
 
 void far world_render_combat_grid_sprite(WorldObject *actor) {
     Shape far *pShape;
-    s16 savedFlip;
+    short savedFlip;
     WorldObject entry;
     s16 actorIdx;
 

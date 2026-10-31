@@ -17,18 +17,18 @@
 #include "gfx169d.h"
 #include "SRC/R3D/TBLSTORE/SHAPETBL.H"
 
-u16 g_spriteBankCount;
+unsigned short g_spriteBankCount;
 PagedArrayEntry *g_spriteBanks;
 ImageRecord *g_pBillboardSpriteImg;
-s16 g_nBillboardScrX;
-s16 g_nBillboardScrY;
-s16 g_nBillboardW;
-s16 g_nBillboardH;
-u16 g_nFogRemapTableCount;
-u16 g_wSpriteFogBucketWidth;
+short g_nBillboardScrX;
+short g_nBillboardScrY;
+short g_nBillboardW;
+short g_nBillboardH;
+unsigned short g_nFogRemapTableCount;
+unsigned short g_wSpriteFogBucketWidth;
 u32 g_lSpriteFogOnsetDist;
 s32 g_lSpriteFogFarDist;
-u16 g_nLodBucketWidth;
+unsigned short g_nLodBucketWidth;
 u32 g_dwLodNearThreshold;
 u32 g_lFarCullDist;
 
@@ -106,14 +106,14 @@ ImageRecord *worldrender_paged_array_get(s16 index) {
 s16 *worldrender_mesh_vertex_to_world(unsigned char idx, s16 *out_vec3) {
     struct {
         Vec3Short far *vp;
-        s16 vx;
-        s16 vy;
-        s16 vz;
+        short vx;
+        short vy;
+        short vz;
     } L;
     Mat3x3 mat;
 
     if (idx != 0xff) {
-        s16 neg_shift = -(s16)g_abR3dState.wMeshScaleResidual;
+        short neg_shift = -(short)g_abR3dState.wMeshScaleResidual;
         L.vp = (Vec3Short far *)MK_FP(FP_SEG(g_abR3dState.pCurActorPagedRec),
                                       g_abR3dState.wMeshVertexPoolOff);
         *(Vec3Short near *)&L.vx = L.vp[idx];
@@ -139,7 +139,7 @@ void worldrender_sprite_billboard(unsigned char far *entry) {
     s16 scaleQ10;
     s16 nOffX;
     register s16 nHalf;
-    u16 wScale;
+    unsigned short wScale;
     s16 nAdjY;
     s16 nScrX;
     s16 nScrY;
@@ -164,7 +164,7 @@ void worldrender_sprite_billboard(unsigned char far *entry) {
     }
 
     if (entry[4] != 0) {
-        wScale = (u16)(r3d_imul_full32(g_wActorProjScale,
+        wScale = (unsigned short)(r3d_imul_full32(g_wActorProjScale,
                                                   (u16)(unsigned char)entry[4]) >>
                                   8);
     } else {
@@ -181,8 +181,8 @@ void worldrender_sprite_billboard(unsigned char far *entry) {
             return;
         }
         scaleQ10 = (s16)(((s32)(s16)wScale << 10) / (s32)nHalf);
-        g_nBillboardW = (s16)((s32)g_nBillboardW * (s32)scaleQ10 >> 10);
-        g_nBillboardH = (s16)((s32)g_nBillboardH * (s32)scaleQ10 >> 10);
+        g_nBillboardW = (short)((s32)g_nBillboardW * (s32)scaleQ10 >> 10);
+        g_nBillboardH = (short)((s32)g_nBillboardH * (s32)scaleQ10 >> 10);
 
         nScrX = g_nViewportCenterX + (s16)(((s32)vec3[0] << g_nScreenShift) / (s32)vec3[1]);
         nScrY = g_nViewportCenterY - (s16)(((s32)vec3[2] << g_nScreenShift) / (s32)vec3[1]);
@@ -302,7 +302,7 @@ void worldrender_textured_quad_lod(s16 texture_index, s16 *xs, s16 *ys) {
                 lDist = lDist / 0x640;
                 lDist = lDist << 1;
             }
-            if ((s16)g_nFogRemapTableCount + 1 > lDist) {
+            if ((short)g_nFogRemapTableCount + 1 > lDist) {
                 if (lDist != 0) {
                     g_polyRasterState.nRemapTableOff =
                         ((s16)lDist << 8) + (FOG_REMAP_TAB_OFF - 0x100);
@@ -320,9 +320,9 @@ void worldrender_textured_quad_lod(s16 texture_index, s16 *xs, s16 *ys) {
             g_polyRasterState.nRemapTableOff = 0;
             emsimg_gouraud_blit_paged(pHandle, xs, ys);
         } else if (lDist < g_lFarCullDist) {
-            lDist = (lDist - g_dwLodNearThreshold) / (s16)g_nLodBucketWidth;
-            if ((s16)g_nFogRemapTableCount <= lDist) {
-                lDist = (u32)((s16)g_nFogRemapTableCount - 1);
+            lDist = (lDist - g_dwLodNearThreshold) / (short)g_nLodBucketWidth;
+            if ((short)g_nFogRemapTableCount <= lDist) {
+                lDist = (u32)((short)g_nFogRemapTableCount - 1);
             }
             g_polyRasterState.nRemapTableOff = ((s16)lDist << 8) + FOG_REMAP_TAB_OFF;
             emsimg_gouraud_blit_paged(pHandle, xs, ys);

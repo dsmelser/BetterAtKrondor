@@ -19,9 +19,9 @@ ImageRecord **emsimg_migrate_to_ems(ImageRecord **image_record_list) {
     u32 linear_base;
     u32 linear_cur;
 
-    sizeBytes = (*(u32(far *)(u16 *,
-                                        u16 *))g_renderer_vtable.pfn_image_install)(
-        (u16 *)image_record_list, (u16 *)&i);
+    sizeBytes = (*(u32(far *)(unsigned short *,
+                                        unsigned short *))g_renderer_vtable.pfn_image_install)(
+        (unsigned short *)image_record_list, (unsigned short *)&i);
 
     if ((page_id = ems_alloc_pages(sizeBytes)) != 0) {
 

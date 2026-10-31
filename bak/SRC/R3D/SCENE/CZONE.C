@@ -13,11 +13,11 @@
 #include "SRC/R3D/VIS/VISENTRY.H"
 
 VisibleEntryList *g_apCombat_zone_actor_lists[9];
-s16 g_nCombat_zone_count;
+short g_nCombat_zone_count;
 unsigned char g_abOpenZoneTileX[9];
 unsigned char g_abOpenZoneTileY[9];
 s32 g_lZoneDefaultZ;
-u16 g_wZoneDefaultYaw;
+unsigned short g_wZoneDefaultYaw;
 
 unsigned char g_nOpenZoneTileCount = 0x00;
 char g_szZoneWldFilename[12] = "Tzzxxyy.WLD";
@@ -97,13 +97,13 @@ void far czone_resync_on_world_move(void) {
 }
 
 struct ZoneActorRecord {
-    u16 wId;
+    unsigned short wId;
     EulerAngles variant;
     WorldPos worldpos;
 };
 
 void far czone_load_actors(unsigned char zone, unsigned char x, unsigned char y, VisibleEntryList *list) {
-    u16 count;
+    unsigned short count;
     ResFile *fp;
     s16 i;
     s16 throttle_reset;
@@ -120,7 +120,7 @@ void far czone_load_actors(unsigned char zone, unsigned char x, unsigned char y,
     g_szZoneWldFilename[5] = 0x30 | y / 10;
     g_szZoneWldFilename[6] = 0x30 | y % 10;
     fp = res_fopen(g_szZoneWldFilename, "rb");
-    count = (u16)(res_filelength(fp) / 0x14);
+    count = (unsigned short)(res_filelength(fp) / 0x14);
 
     if (300 < (s16)count) {
         count = 300;

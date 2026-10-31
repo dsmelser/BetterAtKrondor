@@ -17,7 +17,7 @@ CombatAiActionFn far *g_combat_ai_action_table[8] = {
     &combataipath_low_health_action, &combataipath_action_6,     &combataipath_action_100_1,
     &combataipath_action_100_2,      &combataipath_action_60064, &combataipath_action_50064,
     &combataipath_action_30064,      &combataipath_action_40064};
-u16 g_bActorAdjacentToTarget = 0x0000;
+unsigned short g_bActorAdjacentToTarget = 0x0000;
 unsigned char __dat_1492[138] = {
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x08, 0x00, 0x04, 0x00,
     0x06, 0x00, 0x03, 0x00, 0x02, 0x00, 0x07, 0x00, 0x05, 0x00, 0x02, 0x00, 0x04, 0x00, 0x08, 0x00,
@@ -38,7 +38,7 @@ static void far combataipath_rng_atk_tmp_tile(Combatant *actor, s16 x, s16 y) {
     AnimBuf10 animBuf;
     Combatant savedActor;
     CombatantState savedInner;
-    u16 action_id;
+    unsigned short action_id;
     s16 direction;
 
     hit = 1;
@@ -491,7 +491,7 @@ s16 far combataipath_action_40064(Combatant *actor) {
 
 #define AI_ACTION_FN ((CombatAiActionFn far *)(g_combat_ai_action_table - 1))
 
-#define AI_ACTION_INDEX ((s16 (*)[8])(g_combat_ai_action_table + 7))
+#define AI_ACTION_INDEX ((short (*)[8])(g_combat_ai_action_table + 7))
 
 void far combataipath_select_action(Combatant *actor) {
     s16(far * fn)(Combatant *);

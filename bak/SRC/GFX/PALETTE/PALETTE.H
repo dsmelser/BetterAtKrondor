@@ -20,7 +20,7 @@ extern void palette_build_blend_lut(s16 blend_factor);
 extern void palette_daylight_tick(void);
 extern s16 palette_compute_daylight(void);
 extern s16 palette_daylight_modulate(s16 base_brightness);
-extern TimerEventEntry *palette_fade_schedule(u16 sub_id, u32 duration);
+extern TimerEventEntry *palette_fade_schedule(unsigned short sub_id, u32 duration);
 extern void palette_fade_run_scheduled(TimerEventEntry *entry);
 extern unsigned char far *palette_set(unsigned char far *pal);
 

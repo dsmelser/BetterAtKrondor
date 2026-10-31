@@ -67,8 +67,8 @@ unsigned char far g_abStatNames[16][15] = {
 
 char g_speaker_kinds[6];
 char g_speaker_names[6][32];
-s16 g_nDialogAnchorX;
-s16 g_nDialogAnchorY;
+short g_nDialogAnchorX;
+short g_nDialogAnchorY;
 
 s16 g_nDialogChapterId = -1;
 u32 g_dwDialogInputCooldown = 0x00000000UL;
@@ -89,7 +89,7 @@ DialogStyleDescriptor g_dialog_style_table[7] = {
      {0x19, 0x00, 0x15, 0x00, 0x0e, 0x01, 0xa0, 0x00}},
     {{0x00, 0x01, 0x00, 0x00, 0x01, 0x04, 0x10, 0x03, 0x03, 0x0a, 0x0a, 0x14},
      {0x0d, 0x00, 0x0b, 0x00, 0x26, 0x01, 0x79, 0x00}}};
-u16 g_bDialogWorldAnchorValid = 0x0000;
+unsigned short g_bDialogWorldAnchorValid = 0x0000;
 unsigned char g_dialog_running = 0x00;
 
 s16 dialog_freemem_if_not_null(unsigned char far *ptr) {
@@ -806,8 +806,8 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
     s16 scrLoaded;
     s16 screenDirty;
     s16 bFirstOpen;
-    u16 partySpeaker;
-    u16 npcSpeaker;
+    unsigned short partySpeaker;
+    unsigned short npcSpeaker;
     s16 nSavedMusic;
     s16 nResult;
     s16 bNeedImageFree;
@@ -816,7 +816,7 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
     unsigned char styleRect[8];
     DDXRecord far *record;
     DdxOp far *op;
-    u16 savedPalBlend;
+    unsigned short savedPalBlend;
     unsigned char far *pSavedPalette;
     unsigned char *pSpeakerName;
     s16 chapterStack[5];
@@ -1204,11 +1204,11 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                         }
                         break;
                     case 5: {
-                        s16 far *q = &op->nA1;
+                        short far *q = &op->nA1;
                         screen_cursor_show_busy();
                         bNeedImageFree = 1;
                         for (i = 0; *q != 0 && i < 4; i = i + 1, q++) {
-                            askabout_actor_spr_cache_get((u16)*q, 0);
+                            askabout_actor_spr_cache_get((unsigned short)*q, 0);
                         }
                     } break;
                     case 17:
@@ -1221,11 +1221,11 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                     case 10:
                         if ((u16)op->nA1 > 1) {
                             g_gameState.nEvtArgDlgResult = stat_actor_get(
-                                &g_gameState.characters[g_speaker_kinds[(u16)op->nA1 - 2]],
+                                &g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
                                 op->nA2, 0);
                         } else {
                             g_gameState.nEvtArgDlgResult =
-                                stat_party_find_extreme(op->nA2, 0, (s16 *)0);
+                                stat_party_find_extreme(op->nA2, 0, (short *)0);
                         }
                         break;
                     case 9: {
@@ -1236,9 +1236,9 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                         u16 nA4_snap;
                         speakerSel = (u16)(unsigned char)op->nA1;
                         val = ((unsigned char far *)&op->nA1)[1];
-                        amt = (u16)op->nA3;
-                        amt_snap = (u16)op->nA3;
-                        nA4_snap = (u16)op->nA4;
+                        amt = (unsigned short)op->nA3;
+                        amt_snap = (unsigned short)op->nA3;
+                        nA4_snap = (unsigned short)op->nA4;
                         if (nA4_snap != amt_snap) {
                             amt = amt + RND(nA4_snap - amt_snap);
                         }
@@ -1257,15 +1257,15 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                         u16 amt;
                         u16 amt_snap;
                         u16 nA4_snap;
-                        amt = (u16)op->nA3;
-                        amt_snap = (u16)op->nA3;
-                        nA4_snap = (u16)op->nA4;
+                        amt = (unsigned short)op->nA3;
+                        amt_snap = (unsigned short)op->nA3;
+                        nA4_snap = (unsigned short)op->nA4;
                         if (nA4_snap != amt_snap) {
                             amt = amt + RND(nA4_snap - amt_snap);
                         }
                         if ((u16)op->nA1 > 1) {
                             stat_combatant_apply_condition(
-                                &g_gameState.characters[g_speaker_kinds[(u16)op->nA1 - 2]],
+                                &g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
                                 op->nA2, amt);
                         } else {
                             i = 0;
@@ -1280,7 +1280,7 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                     case 18:
                         if ((u16)op->nA1 > 1) {
                             stat_combatant_heal(
-                                &g_gameState.characters[g_speaker_kinds[(u16)op->nA1 - 2]],
+                                &g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
                                 op->nA2);
                         } else {
                             stat_party_heal_all(op->nA2);
@@ -1315,7 +1315,7 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                         break;
                     case 19:
                         combat_actor_bitmap_set_bit(
-                            (s16)&g_gameState.characters[g_speaker_kinds[(u16)op->nA1 - 2]],
+                            (s16)&g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
                             op->nA2);
                         break;
                     case 20:
@@ -1360,7 +1360,7 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                 if (record->wBody_len != 0) {
                     i = 0;
                     if (g_wTextWrapLinesRemaining != 0) {
-                        *(s16 far *)&record->wFlags &= ~0x40;
+                        *(short far *)&record->wFlags &= ~0x40;
                     }
                     do {
                         if (dialog_wait_for_acknowledge(
@@ -1421,7 +1421,7 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                                     continue;
                                 }
                                 {
-                                    u16 eventVal;
+                                    unsigned short eventVal;
                                     eventVal = gstate_event_read(pChoice->wCond);
                                     if ((eventVal < pChoice->wRange_min_or_mask) ||
                                         (pChoice->wRange_max_or_chapbits < eventVal))

@@ -50,21 +50,21 @@
 
 Combatant *g_current_actor;
 Combatant *g_picked_actor;
-u16 g_acting_actor_speed;
+unsigned short g_acting_actor_speed;
 s16 g_grid_tile_size;
-s16 g_cursor_tile_x;
-s16 g_cursor_tile_y;
-u16 g_wInCombatMode;
+short g_cursor_tile_x;
+short g_cursor_tile_y;
+unsigned short g_wInCombatMode;
 MenuPage *g_combat_menu;
 MenuPage *g_shoot_menu;
-u16 g_combat_menu_selected_item;
-u16 g_combat_menu_current_page;
-s16 g_nCurrentQuarrelKindIdx;
-u16 g_combat_cancelled;
-u16 g_combat_music_handle;
+unsigned short g_combat_menu_selected_item;
+unsigned short g_combat_menu_current_page;
+short g_nCurrentQuarrelKindIdx;
+unsigned short g_combat_cancelled;
+unsigned short g_combat_music_handle;
 Combatant *g_acting_actor;
-u16 g_traps_loaded_flag;
-u16 g_encounter_id;
+unsigned short g_traps_loaded_flag;
+unsigned short g_encounter_id;
 Combatant *g_pCombatActiveActors;
 AnimSlot *g_pCombatActiveAnimPool;
 s16 g_nCombatActiveCount;
@@ -75,16 +75,16 @@ ImageRecord **g_combat_sprites;
 ImageRecord **g_parch_bmx;
 ImageRecord **g_combat_render_table_prev;
 
-u16 g_bCombatGridTerrainFeaturesEnabled = 0x0001;
-u16 g_bCombatGridLinesEnabled = 0x0000;
+unsigned short g_bCombatGridTerrainFeaturesEnabled = 0x0001;
+unsigned short g_bCombatGridLinesEnabled = 0x0000;
 
-u16 g_dgroup_12c4 = 0x0001;
-u16 g_bShowActorRosterIndex = 0x0000;
-u16 g_bStormAmplify = 0x0000;
-u16 **g_pTerrainBackupGrid = {0};
-u16 g_awQuarrelKindItemIdTable[8] = {0x0002, 0x0003, 0x0004, 0x0005,
+unsigned short g_dgroup_12c4 = 0x0001;
+unsigned short g_bShowActorRosterIndex = 0x0000;
+unsigned short g_bStormAmplify = 0x0000;
+unsigned short **g_pTerrainBackupGrid = {0};
+unsigned short g_awQuarrelKindItemIdTable[8] = {0x0002, 0x0003, 0x0004, 0x0005,
                                                 0x0006, 0x0008, 0x0009, 0x0007};
-u16 g_quarrel_kind_field19_table[8] = {0x0045, 0x0037, 0x0039, 0x003d,
+unsigned short g_quarrel_kind_field19_table[8] = {0x0045, 0x0037, 0x0039, 0x003d,
                                                   0x003f, 0x0041, 0x0043, 0x003b};
 
 void far combat_arena_mode_enter(void) {
@@ -279,7 +279,7 @@ LAB_600f_0486:
     if (removed) {
         for (i = 0; i < g_combat_count_B; i++) {
             if (&g_combat_actors_B[i] == actor) {
-                rgnenc_persist_actor_removed((s16)g_encounter_id, i);
+                rgnenc_persist_actor_removed((short)g_encounter_id, i);
                 return;
             }
         }
@@ -710,14 +710,14 @@ void far combat_arena_resolve_melee_swing(Combatant *attacker, Combatant *defend
     return;
 }
 
-u16 combat_arena_anim_tbl_lookup_2d(s16 row, s16 col) {
+unsigned short combat_arena_anim_tbl_lookup_2d(s16 row, s16 col) {
     return g_pTerrainBackupGrid[row][col];
 }
 
 static void far combat_arena_burn_terr_cutsc(void) {
     s16 bDone;
     s16 y, x;
-    u16 duration;
+    unsigned short duration;
     s16 i;
     GridCombatant *pGcmbt;
 
@@ -939,7 +939,7 @@ static void far combat_arena_shootmenu_init(void) {
     return;
 }
 
-static s16 far combat_arena_menu_find_item_page(u16 item_id) {
+static s16 far combat_arena_menu_find_item_page(unsigned short item_id) {
     s16 i;
 
     for (i = 0; i < (s16)g_shoot_menu->wEntry_count; i++) {
@@ -1038,7 +1038,7 @@ static void far combat_arena_shootmenu_rebuild(void) {
 static void far combat_arena_shootmenu_qrl_cur(void) {
     MenuEntry *pE;
     s16 i;
-    u16 action_id;
+    unsigned short action_id;
     s16 x;
     s16 y;
 
@@ -1108,7 +1108,7 @@ void far combat_arena_draw_tgt_info_hud(Combatant *param_1, s16 param_2, s16 par
         param_1 = (Combatant *)0x0;
     }
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((u16)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     {
         register s16 x;
@@ -1182,7 +1182,7 @@ void far combat_arena_draw_tgt_info_panel(void) {
         target = (Combatant *)0x0;
     }
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((u16)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     pStr = (char *)"Choose a target";
     x = 0x82 - (font_text_width_ds(pStr) >> 1);
@@ -1250,7 +1250,7 @@ void far combat_arena_hud_melee_panel(void) {
     }
     g_graphics_context.bClip_enabled = 0;
     target = combat_actor_terr_under_cur();
-    blit_sprite_indirect((u16)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
     if ((combatgrid_actors_ortho_adj(g_current_actor, (Combatant *)target) != 0) &&
         ((s16)stat_actor_get(g_current_actor, 0x10, 0) > 1)) {
         hideSwing = 0;
@@ -1467,7 +1467,7 @@ static s16 combat_arena_action_is_allowed(s16 p1, s16 p2) {
     if (g_current_actor == 0)
         return 0;
     if (p2 != 3 && p2 != 4)
-        result = (s16)g_acting_actor_speed >= p1;
+        result = (short)g_acting_actor_speed >= p1;
     else
         result = 0;
     return result;
@@ -1587,7 +1587,7 @@ static void combat_arena_menu_entry_flags(void) {
 
 static void far combat_arena_turn_loop(void) {
     s16 b_done;
-    u16 menu_sel;
+    unsigned short menu_sel;
     s16 b_bail;
     s16 alive_count;
     u16 menu_result;
@@ -1713,7 +1713,7 @@ static void far combat_arena_view_rstr_disp(s16 param) {
 }
 
 static u16 far combat_arena_pick_target_actor(s16 requires_action_pred) {
-    u16 menuRedraw;
+    unsigned short menuRedraw;
     u16 menuResult;
     s16 done;
     s16 adjacent;
@@ -1935,7 +1935,7 @@ s16 combat_arena_dist_actors_by_id(s16 actor_id_a, s16 actor_id_b) {
     return dist;
 }
 
-void far combat_arena_show_message_by_id(s16 message_id, u16 *p_menu, s16 *p_param3,
+void far combat_arena_show_message_by_id(s16 message_id, unsigned short *p_menu, s16 *p_param3,
                                          s16 *p_param4, s16 *p_param5, s16 *p_spell_result,
                                          s16 *p_spell_out, s16 *p_param8, MenuPage **p_menu_slot,
                                          s16 *p_param10, s16 *p_param11) {
@@ -2449,7 +2449,7 @@ void far combat_arena_actor_turn_loop(s16 encounter_id, s16 *p_status, s16 b_has
     Combatant *cursorTarget;
     MenuPage *menu;
     s16 hudState;
-    u16 menuConsumed;
+    unsigned short menuConsumed;
     u16 menuResult;
     s16 done;
     s16 allowed;
@@ -2460,8 +2460,8 @@ void far combat_arena_actor_turn_loop(s16 encounter_id, s16 *p_status, s16 b_has
     s16 spellRecId;
     s16 castArg;
     s16 allPartyDown;
-    s16 prevTileX;
-    s16 prevTileY;
+    short prevTileX;
+    short prevTileY;
     s16 i;
     s16 flags;
     s16 menu_redraw;
@@ -2642,7 +2642,7 @@ void far combat_arena_actor_turn_loop(s16 encounter_id, s16 *p_status, s16 b_has
                 combat_arena_swap_tgt_state();
                 if (combatenc_count_active_enemies() > 1) {
                     if (combat_arena_all_targets_immune() == 0) {
-                        if (hotspotevt_monst_dispatch_by_tag((s32)(s16)g_encounter_id) == 0) {
+                        if (hotspotevt_monst_dispatch_by_tag((s32)(short)g_encounter_id) == 0) {
                             dialog_play_record(0x20, 0);
                         } else {
                             dialog_play_record(0x142, 0);

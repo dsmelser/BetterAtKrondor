@@ -49,7 +49,7 @@ Combatant **g_active_combatants;
 ImageRecord **g_aCombatInnerPool[7][11];
 CombatResCacheCol g_aCombatResCacheKindFlag;
 CombatResCacheCol g_aCombatResCacheRefcount;
-u16 g_aCombatResCacheKey[8];
+unsigned short g_aCombatResCacheKey[8];
 ImageRecord **g_aCombatResCacheValue[8][3];
 
 #define MAX_COMBAT_ACTORS 7
@@ -373,7 +373,7 @@ void combat_actor_deploy_encounter(void) {
                            (g_world_camera->base.orientation.yaw & 0xe000U) + R3D_DEG(180);
             if ((g_world_camera->base.orientation.yaw & 0x1000U) != 0)
                 pose.nFacing += R3D_DEG(45);
-            rgnenc_persist_actor_placed((s32)(s16)g_encounter_id, slot_index,
+            rgnenc_persist_actor_placed((s32)(short)g_encounter_id, slot_index,
                                         (EncounterObjectState *)&pose);
         }
     }
@@ -448,7 +448,7 @@ s16 combat_actor_cnt_qrls_kind(Combatant *actor, s16 kind) {
     return total;
 }
 
-static void combat_actor_copy_11_words(u16 *dst, u16 *src) {
+static void combat_actor_copy_11_words(unsigned short *dst, unsigned short *src) {
     s16 i;
     for (i = 0; i < 11; i++) {
         dst[i] = src[i];
@@ -572,7 +572,7 @@ ImageRecord **far combat_actor_bnames_load_cached(s16 creatureType, s16 col) {
     return assetTable;
 }
 
-u16 g_wCombatSpinnerYaw = 0;
+unsigned short g_wCombatSpinnerYaw = 0;
 
 void far combat_actor_rsrc_load_3values(s16 creatureType, ImageRecord ***table) {
     ImageRecord **loaded[3];
@@ -1020,7 +1020,7 @@ void combat_actor_draw_float_damage(Combatant *actor) {
 }
 
 static void combat_actor_render_status_vfx(Combatant *actor) {
-    s16 slot;
+    short slot;
     SpellDef *spell;
     s16 i;
     s16 n;
@@ -1191,7 +1191,7 @@ s16 far combat_actor_trace_proj_path(Combatant *shooter, Combatant *target, s16 
         if ((hitActor != (Combatant *)0x0) && ((hitActor->inner->flags & CAF_DEAD) != 0)) {
             hitActor = (Combatant *)0x0;
         }
-        if (((s16)motion_state.base.shapeId == -1) ||
+        if (((short)motion_state.base.shapeId == -1) ||
             (((hitActor != (Combatant *)0x0 && (hitActor != target)) && (hitActor != shooter)))) {
             result = 0;
             break;
@@ -1204,8 +1204,8 @@ s16 far combat_actor_trace_proj_path(Combatant *shooter, Combatant *target, s16 
 
 static void far combat_actor_grid_rndr_terr_prop(GridCombatant *combatant, s16 col, s16 row,
                                                  u16 terrain_kind, s16 skip_viewport_setup) {
-    s16 actor_id;
-    u16 yaw;
+    short actor_id;
+    unsigned short yaw;
 
     g_nActorSpriteFlip = 0;
     if (skip_viewport_setup == 0) {
@@ -1249,9 +1249,9 @@ static void far combat_actor_grid_rndr_terr_prop(GridCombatant *combatant, s16 c
 
 static void far combat_actor_grid_rndr_tile_feat(s16 cell_kind, s16 tile_x, s16 tile_y) {
     s16 screen[3];
-    s16 world_x;
-    s16 world_y;
-    s16 saved_ymax;
+    short world_x;
+    short world_y;
+    short saved_ymax;
     u16 field4;
     GridCombatant *combatant;
 
@@ -1366,7 +1366,7 @@ void far combat_actor_grid_render(WorldObject *focus_actor) {
                     world_render_actor_at_position(2, col, row);
                 }
                 if ((actor->inner->flags & CAF_KNOCKBACK) != 0) {
-                    g_nActorKnockbackColorIdx = (s16)(char)actor->inner->knockbackFrame;
+                    g_nActorKnockbackColorIdx = (short)(char)actor->inner->knockbackFrame;
                 }
                 combat_actor_rndr_stat_vfx_pre(actor);
                 if ((actor->inner->creatureType != -1) && (terrain_kind != 9)) {
@@ -1576,7 +1576,7 @@ void far combat_actor_show_push_prompt(void) {
     s16 y;
 
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((u16)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     y = 0x9a;
     font_draw_text_ds("Object will be pushed.", 0x50, y);
@@ -1586,7 +1586,7 @@ static void far combat_actor_path_blocked_msg(void) {
     s16 y;
 
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((u16)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     y = 0x9a;
     font_draw_text_ds("Path is blocked!", 0x50, y);
@@ -1614,7 +1614,7 @@ void far combat_actor_draw_stats_panel(Combatant *actor) {
     if (actor != (Combatant *)0 && !!actor->charSlot) {
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
         resblit_sprite_frame(g_pHeadsBmxAssetTable[(s16)actor->charSlot - 1], 0xe, 0x8f, 0);
-        blit_sprite_indirect((u16)*g_parch_bmx, 0x49, 0x81, 0);
+        blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
         g_graphics_context.bText_fg_color = 0;
         y = 0x84;
         x = 0x82 - (font_text_width_ds(actor->name) >> 1);

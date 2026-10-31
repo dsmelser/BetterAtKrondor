@@ -3,11 +3,11 @@
 
 #include "structs.h"
 
-extern u16 g_nCreditsPassCount;
+extern unsigned short g_nCreditsPassCount;
 extern unsigned char *g_pCreditsBlob;
 extern char **g_credits_strings;
-extern s16 g_credits_pair_count;
-extern s16 g_credits_scroll_y;
+extern short g_credits_pair_count;
+extern short g_credits_scroll_y;
 
 extern void credits_load(void);
 extern void credits_free(void);

@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern u16 g_wCombatSpinnerYaw;
+extern unsigned short g_wCombatSpinnerYaw;
 extern s16 g_combat_count_A;
 extern Combatant *g_combat_actors_A;
 extern AnimSlot *g_anim_pool_A;
@@ -12,7 +12,7 @@ extern Combatant **g_active_combatants;
 extern ImageRecord **g_aCombatInnerPool[7][11];
 extern CombatResCacheCol g_aCombatResCacheKindFlag;
 extern CombatResCacheCol g_aCombatResCacheRefcount;
-extern u16 g_aCombatResCacheKey[8];
+extern unsigned short g_aCombatResCacheKey[8];
 extern ImageRecord **g_aCombatResCacheValue[8][3];
 
 extern void combat_actor_deploy_encounter(void);

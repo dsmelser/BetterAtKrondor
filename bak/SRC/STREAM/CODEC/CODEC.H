@@ -15,7 +15,7 @@ extern unsigned char huge *g_pStreamReadDst;
 extern unsigned char huge *g_pCurCodecScratch;
 extern StreamDesc *g_apStreamSlots[100];
 extern s16 g_nStreamBytesWritten;
-extern u16 g_wCodecBytesRemaining;
+extern unsigned short g_wCodecBytesRemaining;
 extern unsigned char g_bCurStreamOpMode;
 extern unsigned char g_bCurStreamDescFlags;
 extern char huge *g_pCurStreamSrcCursor;

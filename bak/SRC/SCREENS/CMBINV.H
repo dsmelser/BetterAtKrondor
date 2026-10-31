@@ -4,7 +4,7 @@
 #include "structs.h"
 #include "SRC/GAME/ACTOR/ACTOR.H"
 
-extern u16 g_inventory_screen_mode;
+extern unsigned short g_inventory_screen_mode;
 extern unsigned char g_bIsRestEncounter;
 extern Actor far *g_other_inventory_actor;
 extern Actor far *g_pDroppedItemActor;

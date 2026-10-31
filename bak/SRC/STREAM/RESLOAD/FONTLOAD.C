@@ -9,7 +9,7 @@
 #include "SRC/STREAM/RESLOAD/IFFREAD.H"
 #include "SRC/STREAM/CODEC/STREAM.H"
 
-u16 g_font_chunk_tag_ptr = (u16)"FNT:";
+unsigned short g_font_chunk_tag_ptr = (unsigned short)"FNT:";
 
 s16 font_load(FileRef *filename) {
     s16 openedCache;

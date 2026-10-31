@@ -5,7 +5,7 @@
 
 extern unsigned char g_nEncounterMarkerColorIdx;
 extern unsigned char g_render_actor_wstate_scratch[2];
-extern u16 g_bShakeActorEnabled;
+extern unsigned short g_bShakeActorEnabled;
 extern unsigned char g_bShakeJitterX;
 extern unsigned char g_bShakeJitterY;
 extern ImageRecord **g_pAssetTable2;

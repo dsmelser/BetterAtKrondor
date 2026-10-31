@@ -22,8 +22,8 @@
 
 extern char g_aTtmTextBuf0[41];
 extern char g_aTtmTextBuf1[41];
-u16 g_aTtmTextStringOffsets[9] = {(u16)g_aTtmTextBuf0,
-                                             (u16)g_aTtmTextBuf1,
+unsigned short g_aTtmTextStringOffsets[9] = {(unsigned short)g_aTtmTextBuf0,
+                                             (unsigned short)g_aTtmTextBuf1,
                                              0x0000,
                                              0x0000,
                                              0x0000,
@@ -36,7 +36,7 @@ ScriptObject far *g_pCurScriptObject = {0};
 ScriptAnimNode *g_pScriptObjectChainHead = {0};
 ScriptAnimNode *g_pCurScriptAnimNode = {0};
 unsigned char g_bTtmViewportClampFlag = 0x00;
-u16 g_nVgaRenderMode = 0x0004;
+unsigned short g_nVgaRenderMode = 0x0004;
 
 char g_aTtmTextBuf0[41] = "1234567890123456789012345678901234567890";
 char g_aTtmTextBuf1[41] = "1234567890123456789012345678901234567890";
@@ -117,7 +117,7 @@ s16 adscript_resource_load(FileRef *file) {
     if (g_pCurScriptObject == (ScriptObject far *)0L) {
         return -1;
     }
-    g_pCurScriptObject->nBlockCount = (s16)page_count;
+    g_pCurScriptObject->nBlockCount = (short)page_count;
     g_pCurScriptObject->pBlocks = (ScriptBlock far *far *)alloc_far(
         (u32)((u16)(page_count + 1) << 2), ALLOC_FAR_ZERO_FILL);
     g_pCurScriptObject->pTt3_data = (unsigned char far *)tt3_buf;
@@ -139,7 +139,7 @@ s16 adscript_select_object(s16 id) {
     return 0;
 }
 
-static void adscript_object_chain_append(u16 id_a, u16 tag, u16 id_b) {
+static void adscript_object_chain_append(unsigned short id_a, unsigned short tag, unsigned short id_b) {
     ScriptAnimNode *pTail;
 
     if (g_pScriptObjectChainHead == (ScriptAnimNode *)0x0) {
@@ -174,13 +174,13 @@ char far *adscript_skip_aligned_cstring(char far *p) {
     return p;
 }
 
-s16 adscript_channel_dispatch_loop(u16 script_obj_id) {
+short adscript_channel_dispatch_loop(unsigned short script_obj_id) {
     unsigned char far *saved;
     unsigned char far *cur;
-    s16 bi;
-    u16 id_a;
-    u16 cx;
-    u16 dx;
+    short bi;
+    unsigned short id_a;
+    unsigned short cx;
+    unsigned short dx;
 
     id_a = 0;
     if (adscript_select_object(script_obj_id) && g_pCurScriptObject != (ScriptObject far *)0L &&
@@ -199,7 +199,7 @@ s16 adscript_channel_dispatch_loop(u16 script_obj_id) {
                 if (FP_OFF(g_pCurScriptObject->pTt3_end) <= FP_OFF(cur))
                     return 0;
                 FP_OFF(cur) += 2;
-                cx = *(u16 far *)saved;
+                cx = *(unsigned short far *)saved;
 
                 if (cx == 0xff0) {
 
@@ -213,7 +213,7 @@ s16 adscript_channel_dispatch_loop(u16 script_obj_id) {
                 case 15:
 
                     if (cx == 0xaf1f || cx == 0xaf2f) {
-                        dx = *(u16 far *)cur;
+                        dx = *(unsigned short far *)cur;
                         dx <<= 1;
                         do {
                             FP_OFF(cur) += 2;
@@ -225,7 +225,7 @@ s16 adscript_channel_dispatch_loop(u16 script_obj_id) {
 
                 case 1:
 
-                    dx = *(u16 far *)cur;
+                    dx = *(unsigned short far *)cur;
                     FP_OFF(cur) += 2;
                     if (cx == 0x1111)
                         adscript_object_chain_append(id_a, script_obj_id, dx);
@@ -243,7 +243,7 @@ s16 adscript_channel_dispatch_loop(u16 script_obj_id) {
 
                 default:
 
-                    return (s16)-1;
+                    return (short)-1;
 
                 case 0:
 
@@ -369,8 +369,8 @@ void adscript_blit_full_other_page(void) {
 }
 
 void adscript_rndr_blit_other_page(s16 x, s16 y, s16 w, s16 h) {
-    u16 savedSrcPage;
-    u16 savedDstPage;
+    unsigned short savedSrcPage;
+    unsigned short savedDstPage;
 
     savedSrcPage = g_graphics_context.wGfxBlitSrcPage;
     savedDstPage = g_graphics_context.wGfxBlitDstPage;

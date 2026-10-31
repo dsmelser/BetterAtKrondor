@@ -93,9 +93,9 @@ void map_color_remap_free(void) {
 void far map_main_loop(void) {
     s16 keep_running;
     s16 moved;
-    u16 redraw_menu;
+    unsigned short redraw_menu;
     s16 redraw_caption;
-    u16 pending_events;
+    unsigned short pending_events;
     s16 key_repeat_armed;
     MenuEntry *focused_entry;
     MenuEntry *prev_focused_entry;
@@ -113,7 +113,7 @@ void far map_main_loop(void) {
     key_repeat_armed = 0;
     focused_entry = (MenuEntry *)0;
     g_nHotspotActivateRequest = 0;
-    map_camera_snap_face_south(&g_lExploreCameraZSaved, (s16 *)&g_wExploreCameraYawSaved);
+    map_camera_snap_face_south(&g_lExploreCameraZSaved, (short *)&g_wExploreCameraYawSaved);
     g_full_redraw_needed = 1;
     menupage_begin(g_pReqMapPage);
     g_nMapReloadPending = 1;
@@ -464,7 +464,7 @@ void far map_main_loop(void) {
 
 #include "structs.h"
 
-void far map_camera_snap_face_south(s32 *pSavedZ, s16 *pSavedYaw) {
+void far map_camera_snap_face_south(s32 *pSavedZ, short *pSavedYaw) {
     if (g_full_redraw_needed == 0) {
         if (g_pColorRemap != (unsigned char *)0x0) {
             g_world_widget->colorRemap = g_pColorRemap;
@@ -477,7 +477,7 @@ void far map_camera_snap_face_south(s32 *pSavedZ, s16 *pSavedYaw) {
     return;
 }
 
-void map_camera_restore_z_yaw(s32 new_pos_z, s16 new_yaw) {
+void map_camera_restore_z_yaw(s32 new_pos_z, short new_yaw) {
     if (g_full_redraw_needed == 0) {
         g_gameState.lInsetCameraPosZ = g_world_camera->base.pos.nWorld_z;
         g_world_camera->base.pos.nWorld_z = new_pos_z;
@@ -489,11 +489,11 @@ void map_camera_restore_z_yaw(s32 new_pos_z, s16 new_yaw) {
 
 #include "structs.h"
 
-u16 g_full_redraw_needed = 0x0000;
-s16 g_nMapReloadPending = 1;
+unsigned short g_full_redraw_needed = 0x0000;
+short g_nMapReloadPending = 1;
 unsigned char *g_pColorRemap = {0};
 
-u16 g_wExploreCameraYawSaved;
+unsigned short g_wExploreCameraYawSaved;
 s32 g_lWorldZMin;
 s32 g_lWorldZMax;
 s32 g_lWorldZStep;
@@ -503,8 +503,8 @@ MenuPage *g_pReqMapPage;
 void far map_animate_camera_to_tile(TileMoveRecord *ptr) {
     s32 savedCameraZ;
     s32 saved_z;
-    s16 savedCameraYaw;
-    s16 step_speed;
+    short savedCameraYaw;
+    short step_speed;
     s16 saved_redraw;
     s16 out_target;
     unsigned char tile_x;

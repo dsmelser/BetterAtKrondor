@@ -291,7 +291,7 @@ s16 palette_daylight_modulate(s16 base_brightness) {
     return 0x40 - ramp;
 }
 
-TimerEventEntry *far palette_fade_schedule(u16 sub_id, u32 duration) {
+TimerEventEntry *far palette_fade_schedule(unsigned short sub_id, u32 duration) {
     g_gameState.nPalFadeDirty = 1;
     return timerpool_upsert(1, sub_id, 0x80, duration);
 }
@@ -306,7 +306,7 @@ void far palette_fade_run_scheduled(TimerEventEntry *entry) {
     switch (entry->wSub_id) {
     case 0:
         if (phase < 8)
-            g_gameState.nPalDaynightDelta = (s16)(phase * phase);
+            g_gameState.nPalDaynightDelta = (short)(phase * phase);
         else
             g_gameState.nPalDaynightDelta = 0x31;
         if (entry->nValue == 0)
@@ -317,7 +317,7 @@ void far palette_fade_run_scheduled(TimerEventEntry *entry) {
         if (phase < 8) {
             if (phase != 0) {
                 phase = 8 - phase;
-                g_gameState.nPalBlendWeight = (s16)(phase * phase) + 8;
+                g_gameState.nPalBlendWeight = (short)(phase * phase) + 8;
             } else {
                 g_gameState.nPalBlendWeight = 0x40;
                 g_gameState.nPalFadeDirty = 1;
@@ -330,13 +330,13 @@ void far palette_fade_run_scheduled(TimerEventEntry *entry) {
         return;
     case 2:
         if (phase < 8)
-            g_gameState.nPalAreaBrightness = (s16)(phase * phase);
+            g_gameState.nPalAreaBrightness = (short)(phase * phase);
         else
             g_gameState.nPalAreaBrightness = 0x31;
         break;
     case 3:
         if (phase < 8)
-            g_gameState.nPalBrightnessBoost = (s16)(phase * phase);
+            g_gameState.nPalBrightnessBoost = (short)(phase * phase);
         else
             g_gameState.nPalBrightnessBoost = 0x31;
         break;

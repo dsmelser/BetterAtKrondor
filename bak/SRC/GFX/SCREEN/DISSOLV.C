@@ -12,7 +12,7 @@ static u16 tap_table[62] = {
     0x0000, 0x00D8, 0x0000, 0x0120, 0x0000, 0x0388, 0x0000, 0x0720, 0x0000, 0x0900, 0x0000,
     0x1400, 0x0000, 0x3280, 0x0000, 0x4800, 0x0000, 0xA300};
 
-u16 dissolve_transition_lfsr(s16 origin_x, s16 origin_y, u16 width, u16 height) {
+unsigned short dissolve_transition_lfsr(s16 origin_x, s16 origin_y, u16 width, u16 height) {
     u16 width_m1;
     u16 height_m1;
     u16 x_coord;

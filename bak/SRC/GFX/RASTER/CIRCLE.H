@@ -3,12 +3,12 @@
 
 #include "structs.h"
 
-extern s16 g_nCircleCenterX;
-extern s16 g_nCircleClipCenterY;
-extern s16 g_nCircleClipDyMax;
-extern s16 g_nCircleClipDyMin;
-extern s16 g_nCircleClipTopY;
-extern u16 far *g_pSpanBufCursor;
+extern short g_nCircleCenterX;
+extern short g_nCircleClipCenterY;
+extern short g_nCircleClipDyMax;
+extern short g_nCircleClipDyMin;
+extern short g_nCircleClipTopY;
+extern unsigned short far *g_pSpanBufCursor;
 extern CirclePlotterFn *g_pfnCirclePlotter;
 
 extern void draw_circle(s16 radius, s16 cx, s16 cy);

@@ -8,12 +8,12 @@ extern u32 g_dwDialogInputCooldown;
 extern unsigned char g_abTextSpeedScale[3];
 extern s16 g_nTabWidth;
 extern DialogStyleDescriptor g_dialog_style_table[7];
-extern u16 g_bDialogWorldAnchorValid;
+extern unsigned short g_bDialogWorldAnchorValid;
 extern unsigned char g_dialog_running;
 extern char g_speaker_kinds[6];
 extern char g_speaker_names[6][32];
-extern s16 g_nDialogAnchorX;
-extern s16 g_nDialogAnchorY;
+extern short g_nDialogAnchorX;
+extern short g_nDialogAnchorY;
 
 extern s16 dialog_play_record(u32 record_key, s16 modal_flag);
 extern s16 dialog_show_by_key(u32 key, s16 interactive);

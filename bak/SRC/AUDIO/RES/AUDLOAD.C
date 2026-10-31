@@ -10,9 +10,9 @@
 
 s16 music_chunk_load_and_link(ResFile *file, char mode) {
     s32 size;
-    u16 out_size[2];
+    unsigned short out_size[2];
     AudioListNode far *node;
-    u16 scratch;
+    unsigned short scratch;
     s16 allocTag;
 
     res_fread(&size, 4, 1, file);
@@ -23,7 +23,7 @@ s16 music_chunk_load_and_link(ResFile *file, char mode) {
 
     node->wId = scratch;
     res_fread(&scratch, 1, 1, file);
-    *(u16 far *)&node->bPriority = (unsigned char)scratch;
+    *(unsigned short far *)&node->bPriority = (unsigned char)scratch;
     res_fread(&scratch, 1, 1, file);
     node->wFlags = (unsigned char)scratch;
 

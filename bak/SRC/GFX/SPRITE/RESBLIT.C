@@ -26,7 +26,7 @@ ImageRecord **g_pHeadsBmxAssetTable = 0;
 
 void resblit_alloc_ems_64k(char *path, s16 *out_handle) {
     unsigned char far *dest_far;
-    u16 saved_src_page;
+    unsigned short saved_src_page;
 
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage1Base;
     resblit_load_pal_or_stream(path);

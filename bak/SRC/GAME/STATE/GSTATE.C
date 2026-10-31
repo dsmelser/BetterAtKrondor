@@ -37,7 +37,7 @@ char g_restRegenPerChar[CHARACTER_POOL_SIZE] = {
     1  // Patrus
 };
 
-u16 far gstate_event_read(u16 id) {
+unsigned short far gstate_event_read(unsigned short id) {
 
     if (id < 0x2134) {
         return (g_gameState.event_bitmap_lo[id >> 3] & (1 << (id & 7))) ? 1 : 0;
@@ -65,10 +65,10 @@ u16 far gstate_event_read(u16 id) {
         return g_gameState.nEvtArgCount;
     case 1: {
         s32 g = g_gameState.nParty_gold / 10;
-        return (g > 0xffffL) ? 0xffff : (u16)g;
+        return (g > 0xffffL) ? 0xffff : (unsigned short)g;
     }
     case 2:
-        return (g_gameState.nParty_gold > 0xffff) ? 0xffff : (u16)g_gameState.nParty_gold;
+        return (g_gameState.nParty_gold > 0xffff) ? 0xffff : (unsigned short)g_gameState.nParty_gold;
     case 7:
         return g_gameState.nChapter;
     case 19:
@@ -81,21 +81,21 @@ u16 far gstate_event_read(u16 id) {
         return gstate_is_party_member(CHR_PUG) ? CHR_PUG
                                                : g_chapterDefaultSpeaker[g_gameState.nChapter - 1];
     case 10: {
-        s16 h = (s16)(g_gameState.game_time % 0xa8c0 / 0x708);
+        short h = (short)(g_gameState.game_time % 0xa8c0 / 0x708);
         return (h >= 4 && h < 0x14) ? 1 : 0;
     }
     case 9: {
-        s16 h = (s16)(g_gameState.game_time % 0xa8c0 / 0x708);
+        short h = (short)(g_gameState.game_time % 0xa8c0 / 0x708);
         return (h < 4 || h >= 0x14) ? 1 : 0;
     }
     case 12:
-        return (u16)(g_gameState.game_time % 0xa8c0 / 0x708);
+        return (unsigned short)(g_gameState.game_time % 0xa8c0 / 0x708);
     case 14:
-        return (u16)g_gameState.lEvtArgGoldCost;
+        return (unsigned short)g_gameState.lEvtArgGoldCost;
     case 15:
-        return (u16)g_gameState.lEvtArgValue;
+        return (unsigned short)g_gameState.lEvtArgValue;
     case 18:
-        return (u16)g_gameState.lEvtArgAuxValue;
+        return (unsigned short)g_gameState.lEvtArgAuxValue;
     case 20:
     case 21:
     case 22:

@@ -19,10 +19,10 @@ extern s16 g_anHexVertexX6[6];
 extern s16 g_anHexVertexY6[6];
 extern s16 *g_apHexVertexX[7];
 extern s16 *g_apHexVertexY[7];
-extern s16 g_aClassGroupModifier[3][4];
-extern u16 g_aClassCombatGroup[59];
-extern u16 g_aClassProficiencyMask[64];
-extern u16 g_aClassWeaknessMask[64];
+extern short g_aClassGroupModifier[3][4];
+extern unsigned short g_aClassCombatGroup[59];
+extern unsigned short g_aClassProficiencyMask[64];
+extern unsigned short g_aClassWeaknessMask[64];
 extern unsigned char *g_pSpellWeaTable;
 extern unsigned char *g_pSpellResTable;
 

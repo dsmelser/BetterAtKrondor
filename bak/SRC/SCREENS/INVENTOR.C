@@ -33,13 +33,13 @@
 #include "SRC/COMBAT/ARENA/COMBAT.H"
 
 
-s16 g_nInvSelItemAnchorX;
-s16 g_nInvSelItemAnchorY;
-s16 g_nInvSelItemIconDx;
-s16 g_nInvSelItemIconDy;
-s16 g_nCursorSaveRectX;
-s16 g_nCursorSaveRectY;
-u16 g_inventory_actor_kind;
+short g_nInvSelItemAnchorX;
+short g_nInvSelItemAnchorY;
+short g_nInvSelItemIconDx;
+short g_nInvSelItemIconDy;
+short g_nCursorSaveRectX;
+short g_nCursorSaveRectY;
+unsigned short g_inventory_actor_kind;
 
 ImageRecord **g_pInvSpriteLoAssetTable = {0};
 ImageRecord **g_pInvSpriteHiAssetTable = {0};
@@ -218,10 +218,10 @@ static void invui_portrait_panel_draw(s16 mode, s16 tick) {
 }
 
 void far invui_cur_spr_paint_ctrd(ImageRecord *sprite, s16 mode) {
-    s16 nx;
-    s16 ny;
-    s16 dstX;
-    s16 dstY;
+    short nx;
+    short ny;
+    short dstX;
+    short dstY;
 
     if ((sprite != (ImageRecord *)0) && (mode == 0)) {
         g_graphics_context.bClip_enabled = 1;
@@ -326,8 +326,8 @@ void far invui_status_icons_render(u16 status_bits, s16 x, s16 y) {
     }
 }
 
-static void invui_grid_render(MenuPage *page, Actor far *actor, s16 selected_slot,
-                              s16 highlight_slot) {
+static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_slot,
+                              short highlight_slot) {
     MenuPage *pg = page;
     MenuEntry *e;
     s16 slot_idx;
@@ -408,7 +408,7 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, s16 selected_slo
     g_graphics_context.bGfx_fill_enabled = 1;
     slot_idx = 7;
     e = &pg->pEntries[7];
-    while ((s16)pg->wEntry_count > slot_idx) {
+    while ((short)pg->wEntry_count > slot_idx) {
         if (e->wSprite_base != 0) {
             ItemSlot far *slot;
             ItemRecord far *item;
@@ -543,8 +543,8 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, s16 selected_slo
     invui_draw_text_aligned_shadow((char far *)buf, 0x103, 0xb7, 2, -1, -1);
 }
 
-void far invui_render_present_sync(MenuPage *page, Actor far *actor, s16 selected_slot,
-                                   s16 highlight_slot) {
+void far invui_render_present_sync(MenuPage *page, Actor far *actor, short selected_slot,
+                                   short highlight_slot) {
     invui_grid_render(page, actor, selected_slot, highlight_slot);
     screen_frame_present();
     screen_frame_sync_buffers_rect(0, 200);
@@ -608,7 +608,7 @@ static void far invui_animate_item_fly(ImageRecord *image, s16 src_x, s16 src_y,
 
 s16 far invui_handle_item_drag(MenuPage *page, Actor far *actor, s16 selected_slot,
                                s16 *p_selected_slot) {
-    u16 consumed;
+    unsigned short consumed;
     s16 target_slot;
     s16 equip_portrait;
     s16 item_cat;

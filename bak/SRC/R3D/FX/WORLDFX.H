@@ -5,11 +5,11 @@
 
 extern VfxRec *g_pVfxSparkleScratch;
 extern VfxRec *g_pVfxParticlePool;
-extern s16 g_nVfxTickCountdown;
-extern u16 g_nVfxParticleColor;
+extern short g_nVfxTickCountdown;
+extern unsigned short g_nVfxParticleColor;
 extern VfxRec *g_pVfxVelocityPool;
-extern u16 g_wVfxActiveParticleCount;
-extern u16 g_nVfxParticleBurstOriginY;
+extern unsigned short g_wVfxActiveParticleCount;
+extern unsigned short g_nVfxParticleBurstOriginY;
 extern SavedClipRect g_savedClip;
 
 extern void worldfx_sparkle_burst(Combatant *actor, s16 color);
@@ -32,7 +32,7 @@ extern void worldfx_draw_actor_box_wireframe_front(Combatant *entity, s16 color_
 extern void worldfx_state_arm_minus2(void);
 extern void worldfx_depth_clip_actor_scr_y(Combatant *actor);
 extern void worldfx_clip_rect_restore(void);
-extern void worldfx_rndr_spr_shadow(s16 shadow_palette_idx);
+extern void worldfx_rndr_spr_shadow(short shadow_palette_idx);
 extern void worldfx_draw_path_segment(s16 gridX, s16 gridY);
 extern void worldfx_draw_world_line(s16 x1, s16 y1, s16 x2, s16 y2);
 extern void worldfx_draw_world_line_color(s16 x1, s16 y1, s16 x2, s16 y2, s16 color);

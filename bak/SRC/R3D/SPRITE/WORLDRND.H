@@ -3,18 +3,18 @@
 
 #include "structs.h"
 
-extern u16 g_spriteBankCount;
+extern unsigned short g_spriteBankCount;
 extern PagedArrayEntry *g_spriteBanks;
 extern ImageRecord *g_pBillboardSpriteImg;
-extern s16 g_nBillboardScrX;
-extern s16 g_nBillboardScrY;
-extern s16 g_nBillboardW;
-extern s16 g_nBillboardH;
-extern u16 g_nFogRemapTableCount;
-extern u16 g_wSpriteFogBucketWidth;
+extern short g_nBillboardScrX;
+extern short g_nBillboardScrY;
+extern short g_nBillboardW;
+extern short g_nBillboardH;
+extern unsigned short g_nFogRemapTableCount;
+extern unsigned short g_wSpriteFogBucketWidth;
 extern u32 g_lSpriteFogOnsetDist;
 extern s32 g_lSpriteFogFarDist;
-extern u16 g_nLodBucketWidth;
+extern unsigned short g_nLodBucketWidth;
 extern u32 g_dwLodNearThreshold;
 extern u32 g_lFarCullDist;
 

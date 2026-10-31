@@ -8,30 +8,30 @@
 #include "SRC/SYS/FARPTR.H"
 #include "SRC/STREAM/RESLOAD/IFFREAD.H"
 
-s16 g_palette_cycle_end[10];
-s16 g_palette_cycle_start[10];
-s16 g_palette_cycle_target[10];
+short g_palette_cycle_end[10];
+short g_palette_cycle_start[10];
+short g_palette_cycle_target[10];
 
-s16 g_palette_cycle_count = 0;
-s16 g_nPaletteScaledIntensity = 63;
-s16 g_nPaletteScaledLevel = 0;
+short g_palette_cycle_count = 0;
+short g_nPaletteScaledIntensity = 63;
+short g_nPaletteScaledLevel = 0;
 s16 g_nCurChunkSize = 768;
-u16 g_awPaletteSizeByAdapter[16] = {0x0000, 0x0102, 0x0011, 0x0011, 0x0102, 0x0300,
+unsigned short g_awPaletteSizeByAdapter[16] = {0x0000, 0x0102, 0x0011, 0x0011, 0x0102, 0x0300,
                                                0x0000, 0x0300, 0x0300, 0x0300, 0x0300, 0x0030,
                                                0x0030, 0x0030, 0x0030, 0x0300};
 char g_szPalVgaChunkTag[9] = "PAL:VGA:";
 char g_szPalEgaChunkTag[9] = "PAL:EGA:";
 char g_szPalCgaChunkTag[9] = "PAL:CGA:";
 char g_szPalEmptyChunkTag[1] = {0x00};
-u16 g_apszPalChunkTagByAdapter[16] = {
-    (u16)g_szPalEmptyChunkTag, (u16)g_szPalCgaChunkTag,
-    (u16)g_szPalEgaChunkTag,   (u16)g_szPalEgaChunkTag,
-    (u16)g_szPalCgaChunkTag,   (u16)g_szPalVgaChunkTag,
-    (u16)g_szPalEmptyChunkTag, (u16)g_szPalVgaChunkTag,
-    (u16)g_szPalVgaChunkTag,   (u16)g_szPalVgaChunkTag,
-    (u16)g_szPalVgaChunkTag,   (u16)g_szPalEgaChunkTag,
-    (u16)g_szPalVgaChunkTag,   (u16)g_szPalVgaChunkTag,
-    (u16)g_szPalVgaChunkTag,   (u16)g_szPalVgaChunkTag};
+unsigned short g_apszPalChunkTagByAdapter[16] = {
+    (unsigned short)g_szPalEmptyChunkTag, (unsigned short)g_szPalCgaChunkTag,
+    (unsigned short)g_szPalEgaChunkTag,   (unsigned short)g_szPalEgaChunkTag,
+    (unsigned short)g_szPalCgaChunkTag,   (unsigned short)g_szPalVgaChunkTag,
+    (unsigned short)g_szPalEmptyChunkTag, (unsigned short)g_szPalVgaChunkTag,
+    (unsigned short)g_szPalVgaChunkTag,   (unsigned short)g_szPalVgaChunkTag,
+    (unsigned short)g_szPalVgaChunkTag,   (unsigned short)g_szPalEgaChunkTag,
+    (unsigned short)g_szPalVgaChunkTag,   (unsigned short)g_szPalVgaChunkTag,
+    (unsigned short)g_szPalVgaChunkTag,   (unsigned short)g_szPalVgaChunkTag};
 unsigned char far *g_pCurPalette = {0};
 
 unsigned char far *chunk_load_into_slot(FileRef *file) {
@@ -86,9 +86,9 @@ unsigned char far *chunk_load_into_slot(FileRef *file) {
 
     pDst = pPalette;
     for (j = 0; j < 0x20; j++) {
-        *pDst = (unsigned char)(((s16)((u16 *)amgBuf)[j] >> 8) & 0x0f) << 2;
+        *pDst = (unsigned char)(((s16)((unsigned short *)amgBuf)[j] >> 8) & 0x0f) << 2;
         pDst++;
-        *pDst = (unsigned char)(((s16)((u16 *)amgBuf)[j] >> 4) & 0x0f) << 2;
+        *pDst = (unsigned char)(((s16)((unsigned short *)amgBuf)[j] >> 4) & 0x0f) << 2;
         pDst++;
         *pDst = (unsigned char)(amgBuf[j * 2] & 0x0f) << 2;
         pDst++;

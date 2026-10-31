@@ -25,7 +25,7 @@ void far worlddoor_load_door_records(VisibleEntryList *list) {
     Actor far *actor;
     ActorSubrecord far *sub20;
     ActorSubrecord far *sub1;
-    s16 door_variant;
+    short door_variant;
     u16 flags_val;
     u16 stateWord;
     u16 event_result;
@@ -71,7 +71,7 @@ void far worlddoor_load_door_records(VisibleEntryList *list) {
 }
 
 void far worlddoor_rndr_enc_mark_actor(WorldObject far *entry) {
-    s16 saved_variant;
+    short saved_variant;
     u16 state;
     unsigned char color_idx;
 
@@ -85,7 +85,7 @@ void far worlddoor_rndr_enc_mark_actor(WorldObject far *entry) {
             entry->shapeId = 0x5c;
         }
         g_nEncounterMarkerColorIdx = color_idx;
-        entry->state.stateBits = (u16)&g_nEncounterMarkerColorIdx;
+        entry->state.stateBits = (unsigned short)&g_nEncounterMarkerColorIdx;
         entry->orientation.pitch = 0;
         actorrender_entity(entry);
         entry->state.stateBits = state;

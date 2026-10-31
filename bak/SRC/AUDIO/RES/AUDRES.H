@@ -5,7 +5,7 @@
 #include "SRC/IO/RESOURCE.H"
 
 extern unsigned char far *audres_load_chunk_by_mode(ResFile *file, u16 size_lo, u16 size_hi,
-                                            u16 *out_size, u16 allocTag);
+                                            u16 *out_size, unsigned short allocTag);
 extern void audres_release_buffer_chain(AudFragNode far *head);
 extern s16 audres_stream_find_tagged_record(s16 stream, unsigned char tag);
 extern void far *audres_load_sorted_chain(s16 stream_id);

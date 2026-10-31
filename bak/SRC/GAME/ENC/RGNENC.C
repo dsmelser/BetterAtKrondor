@@ -27,11 +27,11 @@ EncounterObjectState *g_pEncounterObjectState;
 s16 g_nCombatTempZoneEncounterCount;
 unsigned char g_bCombatTempZoneRefPair;
 
-s16 g_nEncounter_record_count = 0;
-s16 g_nFixed_object_count = 0;
-s16 g_nVisible_entry_count = 0;
-u16 *g_pZoneShapeIndex = {0};
-u16 *g_pChapterShapeIds = {0};
+short g_nEncounter_record_count = 0;
+short g_nFixed_object_count = 0;
+short g_nVisible_entry_count = 0;
+unsigned short *g_pZoneShapeIndex = {0};
+unsigned short *g_pChapterShapeIds = {0};
 
 void far rgnenc_alloc_3bufs_init(void) {
     WorldObject far *p;
@@ -71,7 +71,7 @@ s16 far rgnenc_load_zone_shape_index(char *filename) {
         return 0;
     }
 
-    g_pZoneShapeIndex = (u16 *)galloc_safe_zcalloc(0xa);
+    g_pZoneShapeIndex = (unsigned short *)galloc_safe_zcalloc(0xa);
     fp = res_fopen(filename, "rb");
     res_fseek(fp, (s32)(((u16)g_gameState.nChapter - 1) << 3), SEEK_CUR);
     res_fread(g_pZoneShapeIndex, 2, 4, fp);
@@ -82,7 +82,7 @@ s16 far rgnenc_load_zone_shape_index(char *filename) {
     }
 
     for (i = 0; i < 4; i++) {
-        if ((s16)g_pZoneShapeIndex[i] != -1) {
+        if ((short)g_pZoneShapeIndex[i] != -1) {
             combat_actor_bnames_load_cached(g_pZoneShapeIndex[i], 0);
         }
     }
@@ -92,14 +92,14 @@ s16 far rgnenc_load_zone_shape_index(char *filename) {
 s16 far rgnenc_rel_object_state_group(void) {
     s16 i;
 
-    if (g_pZoneShapeIndex != (u16 *)0x0) {
+    if (g_pZoneShapeIndex != (unsigned short *)0x0) {
         for (i = 3; i >= 0; i--) {
             if (g_pZoneShapeIndex[i] != 0xffff) {
                 combat_actor_release_anim_images(g_pZoneShapeIndex[i]);
             }
         }
         galloc_zfree(g_pZoneShapeIndex);
-        g_pZoneShapeIndex = (u16 *)0x0;
+        g_pZoneShapeIndex = (unsigned short *)0x0;
         return 1;
     }
     return 0;
@@ -146,7 +146,7 @@ void far rgnenc_load_encounter_actors(void) {
     ZoneHotspot *pEvt;
     EncounterRecordTemplate *pTmpl;
     EncounterRecordTemplate *pTmplSrc;
-    s16 *pActorDelta;
+    short *pActorDelta;
     EncounterObjectState *pObjState;
     WorldObject far *pSlot;
     s32 nRecordId;
@@ -155,13 +155,13 @@ void far rgnenc_load_encounter_actors(void) {
     s16 nEncIdx;
     s16 nFlags;
     s16 bPlace;
-    u16 nShapeCount;
-    u16 aShapeIds[1];
+    unsigned short nShapeCount;
+    unsigned short aShapeIds[1];
     unsigned char bZoneY;
     unsigned char bZoneX;
     struct Type1BakRec type1_rec;
     struct Type7BakRec type7_rec;
-    s16 aActorSlots[7];
+    short aActorSlots[7];
     CombatantState inner;
     s16 j;
     EncounterActorAux *pAux;
@@ -247,7 +247,7 @@ void far rgnenc_load_encounter_actors(void) {
                         case 2:
                             pSlot->pos.xy.nWorld_x = nOriginX + *(s32 *)((char *)pActorDelta + 4);
                             pSlot->pos.xy.nWorld_y = nOriginY + *(s32 *)((char *)pActorDelta + 8);
-                            pSlot->orientation.yaw = *(s16 *)((char *)pActorDelta + 12);
+                            pSlot->orientation.yaw = *(short *)((char *)pActorDelta + 12);
                             pObjState->wKind_state = 0x300;
                             pObjState->wKind_state |= RND(3);
                             if (RND2(2))
@@ -309,7 +309,7 @@ void far rgnenc_load_encounter_actors(void) {
     }
 
     for (j = 4; j >= 4; j--) {
-        if (*(s16 *)&g_pZoneShapeIndex[j] != -1) {
+        if (*(short *)&g_pZoneShapeIndex[j] != -1) {
             combat_actor_release_anim_images(g_pZoneShapeIndex[j]);
         }
     }
@@ -481,7 +481,7 @@ void far rgnenc_mark_defended(u32 filter_encounter_id) {
     u32 enc_id;
     u16 kind_hi;
     s16 v;
-    s16 actor_ids[7];
+    short actor_ids[7];
     CombatantState inner;
 
     for (i = 0; i < g_nEncounter_record_count; i++) {
@@ -522,7 +522,7 @@ void far rgnenc_mark_defended(u32 filter_encounter_id) {
 void far rgnenc_complete_consume(u32 encounter_id) {
     s16 hit_count;
     s16 bSearching;
-    u16 saved_match_idx;
+    unsigned short saved_match_idx;
     ZoneHotspot *sub_entry;
     s16 key_index;
 
@@ -567,7 +567,7 @@ void far rgnenc_render_object(WorldObject far *entry, s16 bAnimTick) {
     unsigned char spriteDir;
     s16 i;
     unsigned char *state_bytes;
-    s16 *pRecordDelta;
+    short *pRecordDelta;
     ImageRecord **saved_table;
 
     record_idx = *(s16 *)(entry->state.stateBits + 2);
@@ -729,7 +729,7 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
                     for (dx = 0; dx < vertex_count; dx++) {
                         if (*(s32 *)(pActorPoly + 0xe + dx * 4) == pos_buf.xy.nWorld_x &&
                             *(s32 *)(pActorPoly + 0x1e + dx * 4) == pos_buf.xy.nWorld_y) {
-                            slot->orientation.yaw += (s16)facing_delta;
+                            slot->orientation.yaw += (short)facing_delta;
                             break;
                         }
                     }
@@ -745,18 +745,18 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
                         if (*(s32 *)(pActorPoly + 0xe + dx * 4) == pos_buf.xy.nWorld_x &&
                             *(s32 *)(pActorPoly + 0x1e + dx * 4) == pos_buf.xy.nWorld_y) {
                             slot->orientation.yaw =
-                                (s16)((u16)slot->orientation.yaw + R3D_UDEG(180));
+                                (short)((u16)slot->orientation.yaw + R3D_UDEG(180));
                             break;
                         }
                     }
                     if (dx == 2) {
                         if (out_dir == 2 || out_dir == 3) {
-                            slot->orientation.yaw = (s16)out_target;
+                            slot->orientation.yaw = (short)out_target;
                         }
                     }
                 } else {
                     slot->orientation.yaw =
-                        (s16)((u16)slot->orientation.yaw + R3D_UDEG(180));
+                        (short)((u16)slot->orientation.yaw + R3D_UDEG(180));
                 }
                 continue;
             }
@@ -765,8 +765,8 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
 }
 
 s16 far rgnenc_slot_actor_kind_eq_placed(WorldObject far *pSlot) {
-    s16 idx = pSlot->state.encounterAux->nEncounter_idx;
-    s16 state = (g_pEncounterObjectState[idx].wKind_state & 0xff08) >> 8;
+    short idx = pSlot->state.encounterAux->nEncounter_idx;
+    short state = (g_pEncounterObjectState[idx].wKind_state & 0xff08) >> 8;
     return state == 3;
 }
 
@@ -826,7 +826,7 @@ s16 far rgnenc_chap_shp_init(void) {
     s16 i;
     s16 j;
 
-    if (g_pChapterShapeIds != (u16 *)0) {
+    if (g_pChapterShapeIds != (unsigned short *)0) {
         return 0;
     }
     g_pChapterShapeIds = galloc_safe_zcalloc(6);
@@ -851,20 +851,20 @@ s16 far rgnenc_chap_shp_init(void) {
 s16 far rgnenc_release_sfx_slot_table(void) {
     s16 i;
 
-    if (g_pChapterShapeIds != (u16 *)0x0) {
+    if (g_pChapterShapeIds != (unsigned short *)0x0) {
         for (i = 2; i >= 0; i--) {
             if (g_pChapterShapeIds[i] != 0xffff) {
                 combat_actor_release_anim_images(g_pChapterShapeIds[i]);
             }
         }
         galloc_zfree(g_pChapterShapeIds);
-        g_pChapterShapeIds = (u16 *)0x0;
+        g_pChapterShapeIds = (unsigned short *)0x0;
         return 1;
     }
     return 0;
 }
 
-s16 far rgnenc_global_flag_tbl_contains(u16 id) {
+s16 far rgnenc_global_flag_tbl_contains(unsigned short id) {
     s16 i;
 
     i = 0;

@@ -4,7 +4,7 @@
 #include "SRC/STREAM/CODEC/STREAM.H"
 
 void far *stream_load_to_buffer(ResFile *file, u32 size, u32 *out_desc,
-                                u16 allocTag) {
+                                unsigned short allocTag) {
     register s16 stream_id;
     u32 stream_size_full;
     void far *block_far;
@@ -16,7 +16,7 @@ void far *stream_load_to_buffer(ResFile *file, u32 size, u32 *out_desc,
 
         if ((block_far = pool_acquire_buffer(stream_size_full, allocTag)) != (void far *)0) {
 
-            if ((u32)stream_read(stream_id, block_far, (u16)stream_size_full) !=
+            if ((u32)stream_read(stream_id, block_far, (unsigned short)stream_size_full) !=
                 stream_size_full) {
                 release_buffer(block_far, allocTag);
                 block_far = (void far *)0;

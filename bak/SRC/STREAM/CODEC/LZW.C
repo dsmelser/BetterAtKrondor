@@ -3,17 +3,17 @@
 #include "SRC/STREAM/CODEC/CODEC.H"
 
 unsigned char g_lzwEncOutBuf[12];
-u16 g_wLzwEncCurCode;
+unsigned short g_wLzwEncCurCode;
 unsigned char g_bLzwEncSeedPending;
 s32 g_lLzwOutByteCount;
-u16 g_wLzwOutBitPos;
-u16 g_wLzwEncMaxCode;
-u16 g_wLzwEncCodeBits;
+unsigned short g_wLzwOutBitPos;
+unsigned short g_wLzwEncMaxCode;
+unsigned short g_wLzwEncCodeBits;
 
-u16 g_nLzwTableSize = 0x138b;
-u16 g_nLzwNextFreeCode = 0x0000;
-u16 g_nLzwMode = 0x0000;
-u16 g_bLzwClearPending = 0x0000;
+unsigned short g_nLzwTableSize = 0x138b;
+unsigned short g_nLzwNextFreeCode = 0x0000;
+unsigned short g_nLzwMode = 0x0000;
+unsigned short g_bLzwClearPending = 0x0000;
 s32 g_lLzwBestRatio = 0x00000000UL;
 s32 g_lLzwRatioThresh = 0x00002710UL;
 s32 g_lLzwInputCount = 0x00000001UL;
@@ -78,7 +78,7 @@ s16 near lzw_compress_input(s16 flush) {
         for (;;) {
             if (*(s32 huge *)(g_pCurCodecScratch + ((s32)slot << 2)) == hashKey) {
                 g_wLzwEncCurCode =
-                    *(u16 huge *)(g_pCurCodecScratch + ((s32)slot << 1) + 0x4e2c);
+                    *(unsigned short huge *)(g_pCurCodecScratch + ((s32)slot << 1) + 0x4e2c);
                 goto next;
             }
             if (*(s32 huge *)(g_pCurCodecScratch + ((s32)slot << 2)) < 0) {
@@ -87,7 +87,7 @@ s16 near lzw_compress_input(s16 flush) {
                 g_lLzwOutputCount++;
                 g_wLzwEncCurCode = curByte;
                 if ((s16)g_nLzwNextFreeCode < 0x1000) {
-                    *(u16 huge *)(g_pCurCodecScratch + ((s32)slot << 1) + 0x4e2c) =
+                    *(unsigned short huge *)(g_pCurCodecScratch + ((s32)slot << 1) + 0x4e2c) =
                         g_nLzwNextFreeCode;
                     g_nLzwNextFreeCode++;
                     *(s32 huge *)(g_pCurCodecScratch + ((s32)slot << 2)) = hashKey;

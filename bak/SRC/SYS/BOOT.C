@@ -43,16 +43,16 @@
 #include "SRC/GAME/ACTOR/ACTSPAWN.H"
 #include "SRC/SCREENS/MAINMENU.H"
 
-u16 g_wTimerTickRegistrySlot;
-s16 g_nWorldViewYawNormal;
-s16 g_nWorldViewYawChapter;
-s16 g_nWorldViewFovNormal;
+unsigned short g_wTimerTickRegistrySlot;
+short g_nWorldViewYawNormal;
+short g_nWorldViewYawChapter;
+short g_nWorldViewFovNormal;
 unsigned char g_bssgap_4c53;
 unsigned char g_nWorldViewFovChapter;
 
 s16 g_nEmsInit = 1;
 s16 g_nEmsResourcesEnabled = 0;
-u16 g_wEmmPagesFree = 0x0000;
+unsigned short g_wEmmPagesFree = 0x0000;
 char g_szVmcodeOvl[11] = "vmcode.ovl";
 
 #ifdef V102CD
@@ -160,7 +160,7 @@ void boot_video_init_for_mode(s16 mode) {
 void boot_check_memory_or_die(void) {
     ResFile *file;
     s16 file_missing;
-    u16 emmPagesFree;
+    unsigned short emmPagesFree;
     u32 requiredBytes;
     u32 freeBytes;
 

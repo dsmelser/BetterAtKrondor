@@ -5,12 +5,12 @@
 
 extern s16 g_nEmsInit;
 extern s16 g_nEmsResourcesEnabled;
-extern u16 g_wEmmPagesFree;
+extern unsigned short g_wEmmPagesFree;
 extern char g_szVmcodeOvl[11];
-extern u16 g_wTimerTickRegistrySlot;
-extern s16 g_nWorldViewYawNormal;
-extern s16 g_nWorldViewYawChapter;
-extern s16 g_nWorldViewFovNormal;
+extern unsigned short g_wTimerTickRegistrySlot;
+extern short g_nWorldViewYawNormal;
+extern short g_nWorldViewYawChapter;
+extern short g_nWorldViewFovNormal;
 extern unsigned char g_bssgap_4c53;
 extern unsigned char g_nWorldViewFovChapter;
 

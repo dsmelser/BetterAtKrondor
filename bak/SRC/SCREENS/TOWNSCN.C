@@ -37,12 +37,12 @@
 #include "defines.h"
 
 
-u16 g_dialog_anim_channel;
+unsigned short g_dialog_anim_channel;
 
 TownScene *g_pCurrentTownScene = {0};
 MenuPage *g_pTownMenuPage = {0};
-s16 g_nTownSceneAnimHandle = -1;
-u16 g_dialog_in_scene = 0x0000;
+short g_nTownSceneAnimHandle = -1;
+unsigned short g_dialog_in_scene = 0x0000;
 
 static void far townscene_story_actors_destr(void) {
     s16 actor;
@@ -219,10 +219,10 @@ static void far townscene_dlg_play_rec_bubble(DDXRecord far *record) {
 }
 
 static void far townscene_cursor_wait_for_drag(void) {
-    s16 saved_x;
-    s16 saved_y;
-    s16 cur_x;
-    s16 cur_y;
+    short saved_x;
+    short saved_y;
+    short cur_x;
+    short cur_y;
     s16 abs_sum;
 
     saved_x = screen_cursor_get_x();
@@ -237,8 +237,8 @@ static void far townscene_cursor_wait_for_drag(void) {
         screen_cursor_get_position(&cur_x, &cur_y);
         cur_x -= saved_x;
         cur_y -= saved_y;
-        abs_sum = (cur_x < 0 ? (cur_x == (s16)-0x8000 ? 0x7fff : -cur_x) : cur_x) +
-                  (cur_y < 0 ? (cur_y == (s16)-0x8000 ? 0x7fff : -cur_y) : cur_y);
+        abs_sum = (cur_x < 0 ? (cur_x == (short)-0x8000 ? 0x7fff : -cur_x) : cur_x) +
+                  (cur_y < 0 ? (cur_y == (short)-0x8000 ? 0x7fff : -cur_y) : cur_y);
     } while (abs_sum <= 0xa);
     dialog_input_wait_release(1, 0);
     return;
@@ -258,7 +258,7 @@ static s16 far townscene_resolv_enc_outcome(Actor far *actor) {
     pSub = actorrec_get_subrecord(actor, SUBREC_EVENT_STATE);
     screen_cursor_set_shape(0);
     if (pSub->event_state.bPopup_retry_counter != 0) {
-        statValue = stat_party_find_extreme(0xb, 0, (s16 *)0x0);
+        statValue = stat_party_find_extreme(0xb, 0, (short *)0x0);
         g_gameState.nEvtArgActor0 = g_gameState.nEvtArgStat;
 
         if ((s16)statValue < 0x2d) {
@@ -316,7 +316,7 @@ void far townscene_main_loop(u16 scene_kind, s16 scene_index) {
     s16 sceneIdx;
     s16 savedMusic;
     s16 musicTrack;
-    u16 savedBlendMode;
+    unsigned short savedBlendMode;
     unsigned char far *pPalSaved;
     s16 needRefresh;
     TownSceneActor *pA;
@@ -340,7 +340,7 @@ void far townscene_main_loop(u16 scene_kind, s16 scene_index) {
     g_dialog_anim_channel = 0;
     g_nPalBlendMode = 0;
     g_nChapterSnapshotDeadStore = g_gameState.nChapter;
-    *((u16 *)&g_anim_slots[1] + 1) = g_gameState.nChapter;
+    *((unsigned short *)&g_anim_slots[1] + 1) = g_gameState.nChapter;
     screen_cursor_state_push_pop(1);
     screen_cursor_load_pack(1);
     palette_cycle_eb_toggle(0);
@@ -413,7 +413,7 @@ void far townscene_main_loop(u16 scene_kind, s16 scene_index) {
 
         /* Menu-run loop: block on the menu until the user picks an action. */
         while (action == 0) {
-            action = menupage_run(g_pTownMenuPage, (u16 *)&idx);
+            action = menupage_run(g_pTownMenuPage, (unsigned short *)&idx);
             if (screen_input_poll_confirm_cancel() == 2) {
                 screen_cursor_set_shape(3);
             }
@@ -463,7 +463,7 @@ void far townscene_main_loop(u16 scene_kind, s16 scene_index) {
                                                                            : g_dialog_anim_channel);
                     g_pPendingPalette = 0;
                     screen_cursor_set_shape(0);
-                    g_gameState.nEvtArgCount = (s16)pA->cClickCount;
+                    g_gameState.nEvtArgCount = (short)pA->cClickCount;
                     g_gameState.dwPopup_retry_state = 0;
                     if (g_pCurrentTownScene->pActor != 0) {
                         pSub = actorrec_get_subrecord((Actor far *)g_pCurrentTownScene->pActor,
@@ -577,11 +577,11 @@ void far townscene_main_loop(u16 scene_kind, s16 scene_index) {
                             (s16)pSub->event_state.bArg0,
                             (s32)pSub->event_state.wShop_disposition_flags,
                             (s16)pSub->event_state.bTeleport_cost_msb);
-                        if (*(u16 *)&g_gameState.abTeleportRecord[7] != 0) {
-                            scene_kind = *(u16 *)&g_gameState.abTeleportRecord[7];
-                            sceneIdx = *(u16 *)&g_gameState.abTeleportRecord[9];
-                            *(u16 *)&g_gameState.abTeleportRecord[7] =
-                                *(u16 *)&g_gameState.abTeleportRecord[9] = 0;
+                        if (*(unsigned short *)&g_gameState.abTeleportRecord[7] != 0) {
+                            scene_kind = *(unsigned short *)&g_gameState.abTeleportRecord[7];
+                            sceneIdx = *(unsigned short *)&g_gameState.abTeleportRecord[9];
+                            *(unsigned short *)&g_gameState.abTeleportRecord[7] =
+                                *(unsigned short *)&g_gameState.abTeleportRecord[9] = 0;
                         } else {
                             needRefresh = 1;
                         }
@@ -683,9 +683,9 @@ void far townscene_main_loop(u16 scene_kind, s16 scene_index) {
 
 void far townscene_cheat_menu_screen(void) {
     u16 sel;
-    u16 redraw;
+    unsigned short redraw;
     Actor far *actor;
-    u16 saved_chapter;
+    unsigned short saved_chapter;
     s16 i;
     MenuPage *page;
 
@@ -750,7 +750,7 @@ void far townscene_cheat_menu_screen(void) {
 }
 
 void far townscene_chest_open_with_cipher(void) {
-    u16 redraw;
+    unsigned short redraw;
     Actor far *actor;
     ActorSubrec01_Cipher far *pSub;
     MenuPage *page;

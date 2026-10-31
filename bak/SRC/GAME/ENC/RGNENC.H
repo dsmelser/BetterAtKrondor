@@ -3,11 +3,11 @@
 
 #include "structs.h"
 
-extern s16 g_nEncounter_record_count;
-extern s16 g_nFixed_object_count;
-extern s16 g_nVisible_entry_count;
-extern u16 *g_pZoneShapeIndex;
-extern u16 *g_pChapterShapeIds;
+extern short g_nEncounter_record_count;
+extern short g_nFixed_object_count;
+extern short g_nVisible_entry_count;
+extern unsigned short *g_pZoneShapeIndex;
+extern unsigned short *g_pChapterShapeIds;
 extern EncounterRecordTemplate *g_pEncounterRecordTemplates;
 extern s32 g_anEncounterRecordIds[5];
 extern WorldObject far *g_pFixed_object_entries;
@@ -39,6 +39,6 @@ extern s16 rgnenc_visible_pool_append_spawn(unsigned char far *pEntry);
 extern void rgnenc_vis_pool_remove_matching(unsigned char far *pKey);
 extern s16 rgnenc_chap_shp_init(void);
 extern s16 rgnenc_release_sfx_slot_table(void);
-extern s16 rgnenc_global_flag_tbl_contains(u16 id);
+extern s16 rgnenc_global_flag_tbl_contains(unsigned short id);
 
 #endif

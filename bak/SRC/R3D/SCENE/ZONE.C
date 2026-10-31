@@ -29,16 +29,16 @@
 #include "SRC/R3D/ACTOR/ACTOROVL.H"
 #include "gfx169d.h"
 
-s16 g_game_mode;
+short g_game_mode;
 WorldEntity *g_world_camera;
 ViewContext *g_world_widget;
 unsigned char g_bZoneSkyColor;
 unsigned char g_bZoneGroundColor;
 void *g_pZoneGridData;
-s16 g_nZoneRenderTableCount;
+short g_nZoneRenderTableCount;
 char g_szZoneMapFilename[13];
 
-u16 g_wZoneFlags = 0x0000;
+unsigned short g_wZoneFlags = 0x0000;
 char g_szZoneRefFilenameTmpl[11] = "ZzzREF.DAT";
 
 void far zone_subsystem_init(void) {
@@ -67,7 +67,7 @@ void far zone_subsystem_shutdown(void) {
 
 void far zone_load(void) {
     ResFile *file;
-    s16 slot;
+    short slot;
     s32 inset_z;
     ImageRecord **render_table;
 
@@ -129,9 +129,9 @@ void far zone_load(void) {
     world_render_sky_texture_load();
     if ((g_wZoneFlags & 1) == 0) {
         sprintf(g_szZoneMapFilename, "Z%02uH.BMX", (u16)g_gameState.nZoneId);
-        g_pSkyPanoAssetTable = (u16 *)resblit_load_asset_table(g_szZoneMapFilename, 1);
+        g_pSkyPanoAssetTable = (unsigned short *)resblit_load_asset_table(g_szZoneMapFilename, 1);
     } else {
-        g_pSkyPanoAssetTable = (u16 *)0x0;
+        g_pSkyPanoAssetTable = (unsigned short *)0x0;
     }
     actoroverlay_image_1ff4_load();
     slot = 0;
@@ -206,7 +206,7 @@ void far zone_world_scene_teardown(void) {
     actoroverlay_image_1ff4_free();
     if ((g_wZoneFlags & 1) == 0) {
         emsimg_free_paged(g_pSkyPanoAssetTable);
-        g_pSkyPanoAssetTable = (u16 *)0x0;
+        g_pSkyPanoAssetTable = (unsigned short *)0x0;
     }
     world_render_sky_texture_free();
     uiwidget_compass_free();

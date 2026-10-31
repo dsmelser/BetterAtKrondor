@@ -6,11 +6,11 @@
 extern unsigned char g_nOpenZoneTileCount;
 extern char g_szZoneWldFilename[12];
 extern VisibleEntryList *g_apCombat_zone_actor_lists[9];
-extern s16 g_nCombat_zone_count;
+extern short g_nCombat_zone_count;
 extern unsigned char g_abOpenZoneTileX[9];
 extern unsigned char g_abOpenZoneTileY[9];
 extern s32 g_lZoneDefaultZ;
-extern u16 g_wZoneDefaultYaw;
+extern unsigned short g_wZoneDefaultYaw;
 
 extern void czone_subsystem_init(void);
 extern void czone_cache_evict_lru_slot(void);

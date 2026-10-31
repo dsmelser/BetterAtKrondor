@@ -9,7 +9,7 @@
 
 unsigned char g_abStatMin[17] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-u16 g_awStatMax[17] = {0x01f4, 0x01f4, 0x01f4, 0x01f4, 0x00c8, 0x00c8,
+unsigned short g_awStatMax[17] = {0x01f4, 0x01f4, 0x01f4, 0x01f4, 0x00c8, 0x00c8,
                                   0x00c8, 0x00c8, 0x00c8, 0x00c8, 0x00c8, 0x00c8,
                                   0x00c8, 0x0064, 0x00c8, 0x00c8, 0x03e8};
 unsigned char g_abStatClampMin[17] = {0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -30,7 +30,7 @@ unsigned char g_abStatRatioMax[17] = {0x03, 0x03, 0x01, 0x01, 0x02, 0x03, 0x01, 
                                       0x05, 0x05, 0x20, 0x02, 0x03, 0x08, 0x01, 0x00};
 #endif
 
-void stat_apply_modifier(u16 *mod, s16 *stat) {
+void stat_apply_modifier(unsigned short *mod, s16 *stat) {
     if (((*mod & 0x100) == 0) || (g_wInCombatMode != 0)) {
         if (((*mod & 0x200) != 0) && (*(u32 *)(mod + 5) < g_gameState.game_time)) {
             *mod = 0;
@@ -41,7 +41,7 @@ void stat_apply_modifier(u16 *mod, s16 *stat) {
             if ((*mod & 0x800) != 0) {
                 *stat = (s32)(s16)(*stat * (mod[2] + 100)) / 100;
             } else {
-                *stat += (s16)mod[2];
+                *stat += (short)mod[2];
             }
         }
     }
@@ -93,7 +93,7 @@ u16 stat_actor_get(Combatant *actor, s16 stat_idx, s16 mode) {
     s16 rowIdx;
     u16 n;
     u16 statMask;
-    u16 *modPtr;
+    unsigned short *modPtr;
     ConditionInfo far *cond;
     s16 rank;
     u16 ratio;
@@ -127,7 +127,7 @@ u16 stat_actor_get(Combatant *actor, s16 stat_idx, s16 mode) {
     if (a->charSlot != 0) {
         statMask = 1 << (unsigned char)stat_idx;
         n = 0;
-        modPtr = (u16 *)&g_gameState.aActorStatModifiers[rowIdx][0];
+        modPtr = (unsigned short *)&g_gameState.aActorStatModifiers[rowIdx][0];
         while ((s16)n < 8) {
             if ((*modPtr != 0) && ((modPtr[1] & statMask) != 0)) {
                 stat_apply_modifier(modPtr, (s16 *)&value);
@@ -269,7 +269,7 @@ u16 far stat_combatant_modify(Combatant *actor, s16 stat_idx, s32 delta, s16 mod
 
     if ((actor->charSlot != 0) &&
         (gstate_event_read(SKILL_SELECTED(rowIdx * 0x11 + stat_idx)) != 0)) {
-        delta += (delta * (s16)g_gameState.aSkillTrainRate[rowIdx]) / 0x34;
+        delta += (delta * (short)g_gameState.aSkillTrainRate[rowIdx]) / 0x34;
     }
     delta += (s16)(u16)slot->frac;
     slot->frac = (unsigned char)(delta % 0x100);
@@ -309,7 +309,7 @@ clamp_finalize:
     return (u16)slot->base;
 }
 
-u16 far stat_party_find_extreme(s16 stat_id, s16 mode, s16 *result_out) {
+u16 far stat_party_find_extreme(s16 stat_id, s16 mode, short *result_out) {
     s16 member_idx;
     u16 cur_val;
     u16 extreme;
@@ -337,7 +337,7 @@ u16 far stat_party_find_extreme(s16 stat_id, s16 mode, s16 *result_out) {
             }
         }
     }
-    if (result_out != (s16 *)0) {
+    if (result_out != (short *)0) {
         *result_out = g_gameState.nEvtArgStat;
     }
     return extreme;
@@ -432,7 +432,7 @@ void far stat_modifier_table_insert(Combatant *actor, ActorStatModifier *pNewMod
     *pBest = *pNewMod;
 }
 
-void far stat_actor_clear_mods_mask(Combatant *actor, u16 mask) {
+void far stat_actor_clear_mods_mask(Combatant *actor, unsigned short mask) {
     s16 party_slot_idx;
     s16 i;
 

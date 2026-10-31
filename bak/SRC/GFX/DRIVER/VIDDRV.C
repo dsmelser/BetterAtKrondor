@@ -8,19 +8,19 @@
 
 void huge *g_pVideoDriverTemplate = {0};
 char g_szDrvSuffix_BAD[3] = {'B', 'A', 'D'};
-u16 g_apVideoDriverChunkNames[13] = {0x003a,
-                                                (u16)g_szDrvSuffix_CGA,
-                                                (u16)g_szDrvSuffix_EGA,
-                                                (u16)g_szDrvSuffix_TAN,
-                                                (u16)g_szDrvSuffix_HER,
-                                                (u16)g_szDrvSuffix_MCG,
-                                                (u16)g_szDrvSuffix_BAD,
-                                                (u16)g_szDrvSuffix_EVA,
-                                                (u16)g_szDrvSuffix_VGA,
-                                                (u16)g_szDrvSuffix_EVG,
-                                                (u16)g_szDrvSuffix_HVG,
-                                                (u16)g_szDrvSuffix_HEG,
-                                                (u16)g_szDrvSuffix_NEW};
+unsigned short g_apVideoDriverChunkNames[13] = {0x003a,
+                                                (unsigned short)g_szDrvSuffix_CGA,
+                                                (unsigned short)g_szDrvSuffix_EGA,
+                                                (unsigned short)g_szDrvSuffix_TAN,
+                                                (unsigned short)g_szDrvSuffix_HER,
+                                                (unsigned short)g_szDrvSuffix_MCG,
+                                                (unsigned short)g_szDrvSuffix_BAD,
+                                                (unsigned short)g_szDrvSuffix_EVA,
+                                                (unsigned short)g_szDrvSuffix_VGA,
+                                                (unsigned short)g_szDrvSuffix_EVG,
+                                                (unsigned short)g_szDrvSuffix_HVG,
+                                                (unsigned short)g_szDrvSuffix_HEG,
+                                                (unsigned short)g_szDrvSuffix_NEW};
 char g_szVideoChunkName[10] = "OVL:     ";
 char g_szDrvSuffix_CGA[5] = "CGA:";
 char g_szDrvSuffix_EGA[5] = "EGA:";

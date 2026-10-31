@@ -8,7 +8,7 @@
 #include "SRC/STREAM/BUFLOAD/CHUNKRD.H"
 
 ProximityZoneSettings far *g_pCurProximityZoneRec;
-u16 g_nProximityTableCount;
+unsigned short g_nProximityTableCount;
 ProximityZone far *far *g_pProximityTable;
 
 void far proximity_table_load(char *file) {
@@ -33,11 +33,11 @@ void far proximity_table_free(void) {
     return;
 }
 
-unsigned char far proximity_scan_list(ProximityScanHit *out_hit, WorldPos2 *pos, u16 record_seg,
-                              u16 *record_offsets, s16 count) {
+unsigned char far proximity_scan_list(ProximityScanHit *out_hit, WorldPos2 *pos, unsigned short record_seg,
+                              unsigned short *record_offsets, s16 count) {
     s16 i;
     ProximityRecord far *pRecord;
-    u16 *pOffset;
+    unsigned short *pOffset;
 
     pOffset = record_offsets + (count - 1);
     if (g_pProximityTable != (ProximityZone far *far *)0) {

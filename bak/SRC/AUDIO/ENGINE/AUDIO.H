@@ -4,9 +4,9 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-extern s16 g_alloc_to_pool;
-extern s16 g_current_music_track;
-extern u16 g_nMusicVolume;
+extern short g_alloc_to_pool;
+extern short g_current_music_track;
+extern unsigned short g_nMusicVolume;
 
 extern void audio_ambient_tick(void);
 extern s16 audio_music_play(s16 track_id);

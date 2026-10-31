@@ -4,7 +4,7 @@
 #include "structs.h"
 
 extern CombatAiActionFn far *g_combat_ai_action_table[8];
-extern u16 g_bActorAdjacentToTarget;
+extern unsigned short g_bActorAdjacentToTarget;
 extern unsigned char __dat_1492[138];
 
 extern s16 combataipath_actor_walk_path(Combatant *actor, s16 ranged);

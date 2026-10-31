@@ -5,8 +5,8 @@
 #include "SRC/GFX/RASTER/PRESENT.H"
 #include <conio.h>
 
-s16 g_nVgaScrollPageCount;
-s16 g_nVgaScrollPanStep;
+short g_nVgaScrollPageCount;
+short g_nVgaScrollPanStep;
 unsigned char far *g_pVgaScrollScratchBuf;
 
 void far scrolltrans_scroll_fast(s16 direction, s16 speed, s16 distance) {

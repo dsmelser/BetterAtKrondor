@@ -37,8 +37,8 @@
 WorldHotspot *g_pWorldHitTestTable;
 s32 g_anEntityKindRenderDist[43];
 
-u16 g_nHitTestEntryCount = 0x0000;
-u16 g_nHitTestWriteSlot = 0x0000;
+unsigned short g_nHitTestEntryCount = 0x0000;
+unsigned short g_nHitTestWriteSlot = 0x0000;
 
 void far wcursor_load_detect_dat(void) {
     ResFile *file;
@@ -57,8 +57,8 @@ void wcursor_free_detect_dat(void) {
 }
 
 s16 far wcursor_dispatch_action(void) {
-    s16 cursor_x;
-    s16 cursor_y;
+    short cursor_x;
+    short cursor_y;
     s16 slot_index;
     s16 dispatch_idx;
     s16 scan_count;
@@ -271,7 +271,7 @@ void far wcursor_click_fixedobj_full(WorldHotspot *pHotspot) {
     unsigned char bWarp_dest;
     s16 bGo;
     s16 bFlag1Clear;
-    u16 uEventFlag;
+    unsigned short uEventFlag;
 
     pos_x = pHotspot->pEntity->pos.xy.nWorld_x;
     pos_y = pHotspot->pEntity->pos.xy.nWorld_y;
@@ -528,7 +528,7 @@ void far wcursor_click_inn_or_lock_npc(WorldHotspot *pHotspot) {
     s16 bHandled;
     s16 bDenied;
     s16 sfx_handle;
-    s16 member_idx;
+    short member_idx;
     s16 stat_val;
     u32 deferred_msg;
     ActorSubrecord far *pHotspotRec;
@@ -795,7 +795,7 @@ s16 far wcursor_object_toggle_open_close(WorldHotspot *pHotspot) {
     if (state_word == 0)
         return;
 
-    if (gstate_event_read((u16)DOOR_OPEN(id)) != 0) {
+    if (gstate_event_read((unsigned short)DOOR_OPEN(id)) != 0) {
 
         if (i != 0) {
             dialog_viewport_clip_point(pHotspot->rect.x + pHotspot->rect.width / 2,
@@ -813,7 +813,7 @@ s16 far wcursor_object_toggle_open_close(WorldHotspot *pHotspot) {
         }
         screen_cursor_show_busy();
         audio_sfx_register_pair_38_39();
-        gstate_event_write((u16)DOOR_OPEN(id), 0);
+        gstate_event_write((unsigned short)DOOR_OPEN(id), 0);
         state_word &= 0xf7ff;
         audio_play(0x26);
         for (i = 7; i >= 0; i--) {
@@ -837,7 +837,7 @@ s16 far wcursor_object_toggle_open_close(WorldHotspot *pHotspot) {
             return;
         screen_cursor_show_busy();
         audio_sfx_register_pair_38_39();
-        gstate_event_write((u16)DOOR_OPEN(id), 1);
+        gstate_event_write((unsigned short)DOOR_OPEN(id), 1);
         state_word |= 0x800;
         audio_play(0x26);
         i = 0;

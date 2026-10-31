@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern s16 g_nSpinWaitTicks;
+extern short g_nSpinWaitTicks;
 
 extern void audioteardown_rel_strm_bufs(void);
 extern void audioteardown_spin_wait_drain(void);

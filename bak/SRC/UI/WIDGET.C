@@ -13,12 +13,12 @@
 
 ImageRecord **g_pButtonSpriteUp;
 ImageRecord **g_pBtnSpriteDownSheet;
-s16 g_nScrollTrackOffset;
+short g_nScrollTrackOffset;
 unsigned char g_saved_clip_enabled;
-u16 g_saved_clip_ymax;
-u16 g_saved_clip_xmin;
-u16 g_saved_clip_xmax;
-u16 g_saved_clip_ymin;
+unsigned short g_saved_clip_ymax;
+unsigned short g_saved_clip_xmin;
+unsigned short g_saved_clip_xmax;
+unsigned short g_saved_clip_ymin;
 
 static char _str_name_tmpl[13] = "01234567.012";
 static char _str_ext_tmpl[5] = ".bmx";
@@ -264,7 +264,7 @@ void widget_menu_draw(MenuEntry *widget, s16 x, s16 y, s16 hover_flag) {
 }
 
 void widget_button_render_full(MenuEntry *button, s16 x, s16 y, s16 pressed, s16 sprite_set) {
-    u16 base_color;
+    unsigned short base_color;
     s16 bx;
     s16 by;
     s16 hy;
@@ -508,7 +508,7 @@ void widget_render_button(MenuEntry *widget, s16 x_off, s16 y_off, s16 hover_fla
     return;
 }
 
-void widget_push_clip_rect(s16 xmin, s16 ymin, s16 xmax, s16 ymax) {
+void widget_push_clip_rect(short xmin, short ymin, short xmax, short ymax) {
     g_saved_clip_enabled = g_graphics_context.bClip_enabled;
     g_saved_clip_ymax = g_graphics_context.clip.ymax;
     g_saved_clip_xmin = g_graphics_context.clip.xmin;

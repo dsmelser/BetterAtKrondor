@@ -3,9 +3,9 @@
 
 #include "structs.h"
 
-extern u16 g_nSkyHorizonRowCached;
-extern u16 g_bTexturedPolyEnabled;
-extern s16 g_nGlyphColorShift;
+extern unsigned short g_nSkyHorizonRowCached;
+extern unsigned short g_bTexturedPolyEnabled;
+extern short g_nGlyphColorShift;
 extern ImageRecord **g_tile_sprite;
 extern ImageRecord **g_pCompassSpriteSheet;
 

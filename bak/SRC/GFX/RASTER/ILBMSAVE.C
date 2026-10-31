@@ -78,7 +78,7 @@ static void far ilbmsave_write_body_chunk(FILE *stream) {
 static void far ilbmsave_screen_save(char *filename) {
     register FILE *fp;
     u32 dwordBe;
-    u16 wordBe;
+    unsigned short wordBe;
 
     if ((fp = fopen(filename, "wb")) != 0) {
         fwrite(s_iff_form, 4, 1, fp);
@@ -109,7 +109,7 @@ static void far ilbmsave_screen_save(char *filename) {
 }
 
 void far ilbmsave_draw_unclipped_alt_buf(char *filename) {
-    u16 saved_dst_page;
+    unsigned short saved_dst_page;
     s16 saved_clip_enabled;
 
     saved_dst_page = g_graphics_context.wGfxBlitDstPage;

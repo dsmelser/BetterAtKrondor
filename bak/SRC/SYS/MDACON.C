@@ -3,13 +3,13 @@
 #include "structs.h"
 #include "SRC/SYS/MDACON.H"
 
-u16 g_bMdaEnabled = 0x0000;
+unsigned short g_bMdaEnabled = 0x0000;
 
 void mdacon_clear_screen(void) {
-    u16 far *p;
+    unsigned short far *p;
     s16 i;
 
-    p = (u16 far *)0xb0000000L;
+    p = (unsigned short far *)0xb0000000L;
 
     for (i = 0; i < 0x780; i++) {
         *p++ = 7;

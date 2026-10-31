@@ -5,16 +5,16 @@
 
 unsigned char g_bLzwOutputSuspended;
 unsigned char g_bLzwNeedSeedCode;
-u16 g_wLzwInBufBitsTotal;
-u16 g_wLzwInBitPos;
+unsigned short g_wLzwInBufBitsTotal;
+unsigned short g_wLzwInBitPos;
 unsigned char far *g_pLzwScratchTail;
-u16 g_wLzwNewCode;
-u16 g_wLzwPrevCode;
-u16 g_wLzwLastByte;
-u16 g_wLzwResetWidthPending;
-u16 g_wLzwNextCode;
-u16 g_wLzwMaxCode;
-u16 g_wLzwCodeBits;
+unsigned short g_wLzwNewCode;
+unsigned short g_wLzwPrevCode;
+unsigned short g_wLzwLastByte;
+unsigned short g_wLzwResetWidthPending;
+unsigned short g_wLzwNextCode;
+unsigned short g_wLzwMaxCode;
+unsigned short g_wLzwCodeBits;
 
 void near lzh_decoder_init(void) {
     register s16 j;

@@ -149,7 +149,7 @@ void far worldframe_debug_print_compass(WorldObject far *entry) {
     mdacon_printf(0x14, 0x16, "East : %s", (mask & 8) ? "WALL" : "    ");
 }
 
-void far worldframe_vislist_cull_occl(u16 seg, u16 *offsets, s32 *data, s16 *count) {
+void far worldframe_vislist_cull_occl(unsigned short seg, unsigned short *offsets, s32 *data, s16 *count) {
     s32 boundNorth = 0x7fffffff;
     s32 boundEast = 0x7fffffff;
     s32 boundSouth = 0;
@@ -265,7 +265,7 @@ void far worldframe_render_chapter_full(void) {
 void far worldframe_render_chapter(s16 animate) {
     WorldObject far *pEntry;
     s16 i;
-    u16 *slotPtr;
+    unsigned short *slotPtr;
 
     slotPtr = g_pwVisibleEntryOffsets;
     r3d_camera_setup_view(g_world_widget);
@@ -308,7 +308,7 @@ void far worldframe_chapter_tick_objects(void) {
     s16 screen_x;
     s16 screen_y;
     WorldObject far *pEntry;
-    u16 *slot_ptr;
+    unsigned short *slot_ptr;
     s16 in[3];
     s16 out[3];
     Mat3x3 viewRot;
@@ -384,8 +384,8 @@ void far worldframe_chapter_tick_objects(void) {
                 g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.width = scale * 2;
                 g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.height = scale * 2;
                 g_nHitTestWriteSlot++;
-                g_nHitTestWriteSlot = (s16)g_nHitTestWriteSlot % 10;
-                if ((s16)g_nHitTestEntryCount < 10) {
+                g_nHitTestWriteSlot = (short)g_nHitTestWriteSlot % 10;
+                if ((short)g_nHitTestEntryCount < 10) {
                     goto commit;
                 }
             }
@@ -418,8 +418,8 @@ void far worldframe_chapter_tick_objects(void) {
             g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.width = g_nBillboardW;
             g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.height = g_nBillboardH;
             g_nHitTestWriteSlot++;
-            g_nHitTestWriteSlot = (s16)g_nHitTestWriteSlot % 10;
-            if ((s16)g_nHitTestEntryCount < 10) {
+            g_nHitTestWriteSlot = (short)g_nHitTestWriteSlot % 10;
+            if ((short)g_nHitTestEntryCount < 10) {
             commit:
                 g_nHitTestEntryCount++;
             }
@@ -435,15 +435,15 @@ void far worldframe_chapter_tick_objects(void) {
     return;
 }
 
-void far worldframe_vislist_reorder(u16 visible_seg, u16 *visible_offsets, s16 count) {
+void far worldframe_vislist_reorder(unsigned short visible_seg, unsigned short *visible_offsets, s16 count) {
     s16 outerIdx;
     s16 innerIdx;
-    u16 *pOuterSlot;
-    u16 savedSlot;
+    unsigned short *pOuterSlot;
+    unsigned short savedSlot;
     WorldObject far *pOuter;
     WorldObject far *pInner;
-    u16 *pDst;
-    u16 *pInnerSlot;
+    unsigned short *pDst;
+    unsigned short *pInnerSlot;
     u16 outerKind;
     u16 innerKind;
     s16 i;

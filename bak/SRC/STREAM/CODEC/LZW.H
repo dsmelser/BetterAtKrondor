@@ -3,22 +3,22 @@
 
 #include "structs.h"
 
-extern u16 g_nLzwTableSize;
-extern u16 g_nLzwNextFreeCode;
-extern u16 g_nLzwMode;
-extern u16 g_bLzwClearPending;
+extern unsigned short g_nLzwTableSize;
+extern unsigned short g_nLzwNextFreeCode;
+extern unsigned short g_nLzwMode;
+extern unsigned short g_bLzwClearPending;
 extern s32 g_lLzwBestRatio;
 extern s32 g_lLzwRatioThresh;
 extern s32 g_lLzwInputCount;
 extern s32 g_lLzwOutputCount;
 extern unsigned char g_lzwHiMask[9];
 extern unsigned char g_lzwLoMask[9];
-extern u16 g_wLzwEncCodeBits;
-extern u16 g_wLzwEncMaxCode;
-extern u16 g_wLzwOutBitPos;
+extern unsigned short g_wLzwEncCodeBits;
+extern unsigned short g_wLzwEncMaxCode;
+extern unsigned short g_wLzwOutBitPos;
 extern s32 g_lLzwOutByteCount;
 extern unsigned char g_bLzwEncSeedPending;
-extern u16 g_wLzwEncCurCode;
+extern unsigned short g_wLzwEncCurCode;
 extern unsigned char g_lzwEncOutBuf[12];
 
 extern s16 near lzw_reset_state(void);

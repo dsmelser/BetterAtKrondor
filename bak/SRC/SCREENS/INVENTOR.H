@@ -12,21 +12,21 @@ extern unsigned char far *g_pCursorSaveBufActive;
 extern unsigned char far *g_pCursorSaveBufA;
 extern unsigned char far *g_pCursorSaveBufB;
 extern u32 g_dwDblClickDeadline;
-extern s16 g_nInvSelItemAnchorX;
-extern s16 g_nInvSelItemAnchorY;
-extern s16 g_nInvSelItemIconDx;
-extern s16 g_nInvSelItemIconDy;
-extern s16 g_nCursorSaveRectX;
-extern s16 g_nCursorSaveRectY;
-extern u16 g_inventory_actor_kind;
+extern short g_nInvSelItemAnchorX;
+extern short g_nInvSelItemAnchorY;
+extern short g_nInvSelItemIconDx;
+extern short g_nInvSelItemIconDy;
+extern short g_nCursorSaveRectX;
+extern short g_nCursorSaveRectY;
+extern unsigned short g_inventory_actor_kind;
 
 extern void invui_inspect_image_cleanup(void);
 extern void invui_inspect_images_load_once(s16 load_lock_images);
 extern void invui_portrait_refresh_animated(s16 portrait_idx, s16 prev_portrait, s16 anim_step);
 extern void invui_portr_panel_fill_pulsing(s16 state, s16 phase);
 extern void invui_cur_spr_paint_ctrd(ImageRecord *sprite, s16 mode);
-extern void invui_render_present_sync(MenuPage *page, Actor far *actor, s16 selected_slot,
-                                      s16 highlight_slot);
+extern void invui_render_present_sync(MenuPage *page, Actor far *actor, short selected_slot,
+                                      short highlight_slot);
 extern s16 invui_handle_item_drag(MenuPage *page, Actor far *actor, s16 selected_slot,
                                   s16 *p_selected_slot);
 extern void invui_draw_text_aligned_shadow(char far *text, s16 x, s16 y, s16 align, s16 fg_color,

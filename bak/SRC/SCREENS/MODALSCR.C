@@ -50,7 +50,7 @@ void modalscreen_teleport_dat_load(s16 n_index) {
 
 s16 far modalscreen_pending_scene_trans(void) {
     PlayerSpawnRecord spawn;
-    u16 scene_kind;
+    unsigned short scene_kind;
     s16 hadPending;
 
     spawn = *(PlayerSpawnRecord *)g_gameState.abTeleportRecord;
@@ -68,10 +68,10 @@ s16 far modalscreen_pending_scene_trans(void) {
             g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
             draw_rect_filled(0, 0, 0x140, 200);
         }
-        while (*(u16 *)&g_gameState.abTeleportRecord[7] != 0) {
-            scene_kind = *(u16 *)&g_gameState.abTeleportRecord[7];
-            *(u16 *)&g_gameState.abTeleportRecord[7] = 0;
-            townscene_main_loop(scene_kind, *(u16 *)&g_gameState.abTeleportRecord[9]);
+        while (*(unsigned short *)&g_gameState.abTeleportRecord[7] != 0) {
+            scene_kind = *(unsigned short *)&g_gameState.abTeleportRecord[7];
+            *(unsigned short *)&g_gameState.abTeleportRecord[7] = 0;
+            townscene_main_loop(scene_kind, *(unsigned short *)&g_gameState.abTeleportRecord[9]);
         }
         if (g_gameState.abTeleportRecord[0] != '\0') {
             spawn = *(PlayerSpawnRecord *)g_gameState.abTeleportRecord;
@@ -142,13 +142,13 @@ static void far modalscreen_teleport_dest_sel(MenuPage *page, ImageRecord **asse
 }
 
 s16 modalscreen_teleport_spell_run(s16 current_city, s32 cost_base, s16 cost_per_unit) {
-    u16 savedBlend;
+    unsigned short savedBlend;
     unsigned char far *savedPal;
     unsigned char far *palChunk;
     MenuPage *page;
     MenuEntry *destEntry;
     ImageRecord **assetTbl;
-    u16 redraw;
+    unsigned short redraw;
     s16 hoverCity;
     s16 prevHoverCity;
     s16 result;
@@ -259,7 +259,7 @@ s16 modalscreen_teleport_spell_run(s16 current_city, s32 cost_base, s16 cost_per
 
         if (action != 0 &&
             (menupage_state_0e7c() == 2 || key_is_down(0x2a) != 0 || key_is_down(0x36) != 0)) {
-            g_gameState.nEvtArgCount = (s16)(action != 1);
+            g_gameState.nEvtArgCount = (short)(action != 1);
             dialog_play_record(0x13d663L, 0);
             redraw = 1;
         } else {
@@ -370,13 +370,13 @@ s16 modalscreen_teleport_spell_run(s16 current_city, s32 cost_base, s16 cost_per
 #define SLOT_PTR(act, id) (&ACTOR_ITEM((act), (id) - 0x80))
 
 void modalscreen_req_inv_run(s16 kind_or_id, s16 tax, s16 qty_mult, s16 char_slot) {
-    u16 redraw;
+    unsigned short redraw;
     u16 i;
     u16 action;
     unsigned char far *palChunk;
     s16 partySlot;
     Actor far *act_rec;
-    u16 savedBlend;
+    unsigned short savedBlend;
     unsigned char far *savedPal;
     register MenuPage *page;
     MenuEntry *entry;
@@ -467,7 +467,7 @@ void modalscreen_req_inv_run(s16 kind_or_id, s16 tax, s16 qty_mult, s16 char_slo
                 g_gameState.lEvtArgGoldCost = (s32)price;
                 if (rec->wCategory == 4 || rec->wCategory == 1) {
                     if ((slot_ptr->flags & 0xe000) == 0 || dialog_play_record(0x13d66f, 0) == 0) {
-                        g_gameState.nEvtArgCount = (s16)(rec->wCategory == 4);
+                        g_gameState.nEvtArgCount = (short)(rec->wCategory == 4);
                         dialog_play_record(0x13d670, 0);
 
                         if (gstate_event_read(0x104) != 0) {
@@ -501,15 +501,15 @@ void modalscreen_req_inv_run(s16 kind_or_id, s16 tax, s16 qty_mult, s16 char_slo
 #define SLOT_PTR(act, id) (&ACTOR_ITEM((act), (id) - 0x80))
 
 void modalscreen_inventory_request(u16 category_mask, s16 discount_pct) {
-    u16 redraw;
+    unsigned short redraw;
     u16 i;
     u16 action;
     s16 timeFlags;
-    u16 allowEventDialog;
+    unsigned short allowEventDialog;
     unsigned char far *palChunk;
     s16 party_slot;
     Actor far *act_rec;
-    u16 savedBlend;
+    unsigned short savedBlend;
     unsigned char far *savedPal;
     register MenuPage *page;
     MenuEntry *entry;
@@ -704,7 +704,7 @@ void modalscreen_rest_until_time(Actor far *pActor) {
     s16 done;
     s16 firstLoop;
     u32 saved_time;
-    u16 saved_blend;
+    unsigned short saved_blend;
     unsigned char far *saved_pal;
     unsigned char far *pal_chunk;
     ActorSubrecord far *sub;
@@ -768,7 +768,7 @@ void modalscreen_rest_until_time(Actor far *pActor) {
         }
         g_gameState.lEvtArgGoldCost = (s32)(s16)sub->event_state.bRest_gold_cost * 10;
         g_gameState.lEvtArgValue = (s32)(s16)sub->event_state.bRest_target_hour;
-        g_gameState.nEvtArgCount = (s16)!firstLoop;
+        g_gameState.nEvtArgCount = (short)!firstLoop;
         if (dialog_play_record(0x13d672, 0) == 0) {
             g_dialog_in_scene = 0;
             gstate_advance_hours(1, 100, 0x85);

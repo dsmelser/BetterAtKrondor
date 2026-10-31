@@ -5,9 +5,9 @@
 
 BookViewerState *g_pBookViewer;
 
-u16 g_wTextWrapXAccum = 0x0000;
-u16 g_wTextWrapLinesDrawn = 0x0000;
-u16 g_wTextWrapLinesRemaining = 0x0000;
+unsigned short g_wTextWrapXAccum = 0x0000;
+unsigned short g_wTextWrapLinesDrawn = 0x0000;
+unsigned short g_wTextWrapLinesRemaining = 0x0000;
 
 #include <stdlib.h>
 
@@ -211,7 +211,7 @@ s16 bookview_show(char *filename, s16 page_number) {
                    (g_bJoystick0Installed != 0 &&
                     (joystick_button_pressed(0) != 0 || joystick_button_pressed(1) != 0))) {
             }
-            if ((s16)page->wNextPageNumber == -2 ||
+            if ((short)page->wNextPageNumber == -2 ||
                 (page->wNextPageNumber == page->wPagePointer && g_pBookViewer->nTerminate != 0)) {
                 goto set_rc_terminate;
             }

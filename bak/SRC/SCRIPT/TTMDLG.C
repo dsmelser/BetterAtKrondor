@@ -15,9 +15,9 @@
 #include "SRC/DIALOG/DIALOG.H"
 #include "SRC/SCRIPT/ADSCRIPT.H"
 
-u16 g_wScriptEnhancedAuxFlag = 0x0000;
-u16 g_nScriptEnhancedOpcodeDispatchEnabled = 0x0000;
-u16 g_aTtmFadeStepTable[7] = {0x0000, 0x0050, 0x0014, 0x000a, 0x0005, 0x0002, 0x0001};
+unsigned short g_wScriptEnhancedAuxFlag = 0x0000;
+unsigned short g_nScriptEnhancedOpcodeDispatchEnabled = 0x0000;
+unsigned short g_aTtmFadeStepTable[7] = {0x0000, 0x0050, 0x0014, 0x000a, 0x0005, 0x0002, 0x0001};
 
 s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
     register u16 img;

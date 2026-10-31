@@ -18,11 +18,11 @@
 MenuEntry *g_pMenuHoverEntry;
 MenuEntry *g_pMenuPressAnchor;
 MenuEntry *g_pMenuClickedEntry;
-u16 g_wMenuDragSubMode;
-u16 g_wMenuDragState;
+unsigned short g_wMenuDragSubMode;
+unsigned short g_wMenuDragState;
 
-s16 g_nJoyXVel = 0;
-s16 g_nJoyYVel = 0;
+short g_nJoyXVel = 0;
+short g_nJoyYVel = 0;
 
 MenuPage *menupage_load(char *filename) {
     ResFile *file;
@@ -133,7 +133,7 @@ void menupage_end(MenuPage *page) {
 }
 
 void menupage_draw(MenuPage *page) {
-    u16 bgColor;
+    unsigned short bgColor;
 
     bgColor = page->wBg_color;
     g_graphics_context.bClip_enabled = 0;
@@ -222,8 +222,8 @@ void menupage_cursor_joystick_step(void) {
 void menupage_navigate(MenuPage *page, s16 dx_sign, s16 dy_sign, s16 tab_mode) {
     s16 chosen;
     s16 count;
-    s16 cur_x;
-    s16 cur_y;
+    short cur_x;
+    short cur_y;
     s16 dist_x;
     s16 sign_x;
     s16 sign_y;
@@ -317,7 +317,7 @@ void menupage_navigate(MenuPage *page, s16 dx_sign, s16 dy_sign, s16 tab_mode) {
     return;
 }
 
-s16 menupage_run(MenuPage *page, u16 *out_consumed) {
+s16 menupage_run(MenuPage *page, unsigned short *out_consumed) {
     s16 i;
     u16 key;
     MenuEntry *entry;
@@ -332,7 +332,7 @@ s16 menupage_run(MenuPage *page, u16 *out_consumed) {
         if ((((g_pMenuPressAnchor != (MenuEntry *)0x0) && (g_wMenuDragState == 1)) &&
              (g_pMenuPressAnchor->wWidget_type == 2)) &&
             (g_wMenuDragSubMode == 3)) {
-            u16 sub_state;
+            unsigned short sub_state;
             sub_state = g_pMenuPressAnchor->wSub_state;
             widget_scrollbar_update(g_pMenuPressAnchor);
             if (g_pMenuPressAnchor->wSub_state != sub_state) {
@@ -385,7 +385,7 @@ s16 menupage_run(MenuPage *page, u16 *out_consumed) {
             } else if (g_wMenuDragSubMode == 4) {
                 widget_list_scroll(g_pMenuClickedEntry, 0);
             } else if (g_wMenuDragSubMode == 3) {
-                u16 sub_state;
+                unsigned short sub_state;
                 sub_state = g_pMenuClickedEntry->wSub_state;
                 widget_scrollbar_update(g_pMenuClickedEntry);
                 if (g_pMenuPressAnchor->wSub_state != sub_state) {
@@ -415,13 +415,13 @@ s16 menupage_run(MenuPage *page, u16 *out_consumed) {
     return key;
 }
 
-s16 far menupage_input_poll(MenuPage *page, u16 *out_consumed) {
-    register u16 *pConsumed;
+s16 far menupage_input_poll(MenuPage *page, unsigned short *out_consumed) {
+    register unsigned short *pConsumed;
     s16 actionId;
     s16 relX;
     s16 relY;
     s16 i;
-    u16 prevDragState;
+    unsigned short prevDragState;
     s16 input;
     MenuEntry *prevAnchor;
     register MenuEntry *widget;

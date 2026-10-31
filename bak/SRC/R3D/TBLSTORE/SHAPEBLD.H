@@ -20,7 +20,7 @@
  * @note Kept as one struct rather than separate globals — do not split.
  */
 typedef struct ShapeBuilder {
-    s16 nSegmentRadius;               /**< +0x00 */
+    short nSegmentRadius;               /**< +0x00 */
     unsigned char far *bumpCursor;      /**< +0x02, 4B: allocation cursor into the shape block. */
     unsigned char bFirstVtxFlag;        /**< +0x06 */
     unsigned char bReserved_07;         /**< +0x07 dead alignment pad */

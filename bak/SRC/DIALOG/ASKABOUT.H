@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern u16 *g_pKeywordTable;
+extern unsigned short *g_pKeywordTable;
 extern MenuPage *g_pKeywordMenuScratch;
 extern ActSpriteCache *g_pActSpriteCache;
 
@@ -13,9 +13,9 @@ extern void askabout_keyword_table_free(void);
 extern void askabout_keyword_table_load(void);
 extern char *askabout_name_or_keyword_lookup(s16 id);
 extern void askabout_free_paged_image_table(void);
-extern void askabout_actor_spr_blit_pal_swap(u16 actor_id, s16 pal_shift, s16 frame_idx,
+extern void askabout_actor_spr_blit_pal_swap(unsigned short actor_id, s16 pal_shift, s16 frame_idx,
                                              unsigned char far *pal_buf);
-extern s16 askabout_actor_spr_cache_get(u16 actor_id, s16 pal_shift);
-extern u16 askabout_dispatch_topic(u16 topic_id);
+extern s16 askabout_actor_spr_cache_get(unsigned short actor_id, s16 pal_shift);
+extern unsigned short askabout_dispatch_topic(unsigned short topic_id);
 
 #endif

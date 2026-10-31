@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern u16 g_bMdaEnabled;
+extern unsigned short g_bMdaEnabled;
 
 extern void mdacon_clear_screen(void);
 extern void mdacon_write_string(s16 col, s16 row, char *str);

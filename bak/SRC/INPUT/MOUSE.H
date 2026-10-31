@@ -3,14 +3,14 @@
 
 #include "structs.h"
 
-extern u16 g_mouse_x_mickeys;
-extern u16 g_mouse_y_mickeys;
+extern unsigned short g_mouse_x_mickeys;
+extern unsigned short g_mouse_y_mickeys;
 extern void far *g_pMouseHandlerCb;
 extern unsigned char g_abMouseCbStack[400];
-extern u16 g_wSavedVgaGcReg0AndIdx;
-extern u16 g_wSavedVgaGcReg1And4;
-extern u16 g_wSavedVgaGcReg5And8;
-extern u16 g_wSavedVgaScReg2AndIdx;
+extern unsigned short g_wSavedVgaGcReg0AndIdx;
+extern unsigned short g_wSavedVgaGcReg1And4;
+extern unsigned short g_wSavedVgaGcReg5And8;
+extern unsigned short g_wSavedVgaScReg2AndIdx;
 extern unsigned char g_bSavedVgaGcReg3;
 extern unsigned char g_bVgaGcReg5ModeA;
 extern unsigned char g_bVgaGcReg5Mode8AltA;

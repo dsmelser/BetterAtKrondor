@@ -26,7 +26,7 @@ s16 far savegame_write(char *filename) {
     s16 chunk;
     s16 src_fd;
     s32 remaining;
-    u16 version;
+    unsigned short version;
     char temp_path[50];
 
     ok = 1;
@@ -79,7 +79,7 @@ s16 far savegame_read(char *filename) {
     s16 src_fd;
     s16 dest_fd;
     s32 remaining;
-    u16 far *version_ptr;
+    unsigned short far *version_ptr;
     char temp_path[50];
     s16 ok;
     s16 chunk;
@@ -97,7 +97,7 @@ s16 far savegame_read(char *filename) {
         if ((src_fd = open(filename, -0x7fff)) >= 0) {
             if (dos_read(g_pMainScratchBuf, 100, src_fd) != 100)
                 ok = 0;
-            version_ptr = (u16 far *)((char huge *)g_pMainScratchBuf + 0x62);
+            version_ptr = (unsigned short far *)((char huge *)g_pMainScratchBuf + 0x62);
             if (ok != 0 && *version_ptr != 0x16)
                 ok = 0;
             while (ok != 0 && remaining != 0) {

@@ -6,7 +6,7 @@
 #include "SRC/INPUT/TIMER.H"
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
-s16 g_nSpinWaitTicks;
+short g_nSpinWaitTicks;
 
 void audioteardown_rel_strm_bufs(void) {
     if (g_pSfxDriver != 0) {

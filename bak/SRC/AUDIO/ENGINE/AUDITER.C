@@ -2,7 +2,7 @@
 #include "SRC/AUDIO/RES/AUDRESIN.H"
 #include "SRC/AUDIO/ENGINE/AUDITER.H"
 
-s16 g_nAudioIterFilter;
+short g_nAudioIterFilter;
 AudioListNode far *g_pAudioIterCursor;
 
 AudioListNode far *audio_iter(s16 filter) {

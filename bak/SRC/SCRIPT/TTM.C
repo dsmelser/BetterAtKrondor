@@ -49,21 +49,21 @@
 #include "SRC/UI/MENULBL.H"
 
 
-s16 g_nPaletteCycleSavedDuration;
-s16 g_nScriptTickOverride;
-s16 g_nScriptSubOriginX;
-s16 g_nScriptSubOriginY;
-u16 g_wTtmBlitTint;
-u16 g_nScriptCurOpcode;
-u16 g_wScriptOpCursorCache;
-s16 g_aPaletteCycleBandEnd[3];
-s16 g_aPaletteCycleBandStart[3];
-u16 g_wScript537fbOpVestigial;
-u16 g_aTtmResourceSlots[20];
+short g_nPaletteCycleSavedDuration;
+short g_nScriptTickOverride;
+short g_nScriptSubOriginX;
+short g_nScriptSubOriginY;
+unsigned short g_wTtmBlitTint;
+unsigned short g_nScriptCurOpcode;
+unsigned short g_wScriptOpCursorCache;
+short g_aPaletteCycleBandEnd[3];
+short g_aPaletteCycleBandStart[3];
+unsigned short g_wScript537fbOpVestigial;
+unsigned short g_aTtmResourceSlots[20];
 char g_szTtmScratch[100];
 unsigned char far *g_pPendingPalette;
 
-static void ttmscript_sfx_channel_register(u16 handle) {
+static void ttmscript_sfx_channel_register(unsigned short handle) {
     s16 i;
 
     if (handle != 0) {
@@ -76,7 +76,7 @@ static void ttmscript_sfx_channel_register(u16 handle) {
     return;
 }
 
-static void ttmscript_resource_slot_release(u16 handle) {
+static void ttmscript_resource_slot_release(unsigned short handle) {
     s16 i;
 
     if (handle != 0) {
@@ -102,8 +102,8 @@ void ttmscript_sfx_channels_stop_all(void) {
     } while (i < 0x14);
 }
 
-static s16 far ttmscript_opcode_disp_secondary(u16 p0, u16 p1, u16 p2, u16 p3,
-                                               u16 p4) {
+static s16 far ttmscript_opcode_disp_secondary(unsigned short p0, unsigned short p1, unsigned short p2, unsigned short p3,
+                                               unsigned short p4) {
     switch (g_nScriptCurOpcode) {
     case 0xc01f:
     case 0xc02f:
@@ -166,9 +166,9 @@ static s16 far ttmscript_opcode_disp_secondary(u16 p0, u16 p1, u16 p2, u16 p3,
     return 0;
 }
 
-static s16 far ttmscript_opcode_dispatch_main(u16 param_1, u16 param_2, s16 param_3,
-                                              s16 param_4, u16 param_5, u16 param_6,
-                                              s16 param_7, u16 param_8) {
+static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned short param_2, s16 param_3,
+                                              s16 param_4, unsigned short param_5, unsigned short param_6,
+                                              s16 param_7, unsigned short param_8) {
     unsigned char far *far *pfreemem;
 
     switch (g_nScriptCurOpcode) {
@@ -198,7 +198,7 @@ static s16 far ttmscript_opcode_dispatch_main(u16 param_1, u16 param_2, s16 para
         g_graphics_context.bGfx_fill_enabled = 1;
     L_draw_circle_body:
 
-        param_5 = (u16)(param_4 >> 1);
+        param_5 = (unsigned short)(param_4 >> 1);
         param_6 = param_1 + param_5;
         param_7 = param_2 + param_5;
 
@@ -235,20 +235,20 @@ static s16 far ttmscript_opcode_dispatch_main(u16 param_1, u16 param_2, s16 para
     case 0xa536:
     case 0xa5a7: {
 
-        u16 saved_page_id;
+        unsigned short saved_page_id;
         unsigned char far *ems_ptr;
 
         g_wTtmBlitTint = (g_nScriptCurOpcode & 0xf0) >> 4;
 
         if (g_pCurScriptObject->pAhPagedImage[param_4] &&
-            (param_3 = ((u16 *)g_pCurScriptObject->pAhPagedImage[param_4])[(u16)param_3])) {
+            (param_3 = ((unsigned short *)g_pCurScriptObject->pAhPagedImage[param_4])[(unsigned short)param_3])) {
 
             saved_page_id = ((ImageRecord *)param_3)->wImageData;
 
             if (saved_page_id < 300) {
                 ems_ptr = ems_map_resource_pages(saved_page_id);
 
-                ((ImageRecord *)param_3)->wImageData = ((u16 *)&ems_ptr)[1];
+                ((ImageRecord *)param_3)->wImageData = ((unsigned short *)&ems_ptr)[1];
             }
 
             if ((g_nScriptCurOpcode & 0x0f) == 7) {
@@ -267,7 +267,7 @@ static s16 far ttmscript_opcode_dispatch_main(u16 param_1, u16 param_2, s16 para
                 if (((ImageRecord *)param_3)->wUnk4 & 0x20) {
                     resblit_sprite_frame((ImageRecord *)param_3, param_1, param_2, g_wTtmBlitTint);
                 } else {
-                    blit_sprite_indirect((u16)param_3, param_1, param_2, g_wTtmBlitTint);
+                    blit_sprite_indirect((unsigned short)param_3, param_1, param_2, g_wTtmBlitTint);
                 }
             }
 
@@ -328,7 +328,7 @@ static s16 far ttmscript_opcode_dispatch_main(u16 param_1, u16 param_2, s16 para
 s16 ttmscript_interpret_loop(s16 block_index) {
     s16 p0, p1, p2, p3, p4, p5, p6;
     s16 frame_hold_was_clear;
-    u16 far *w;
+    unsigned short far *w;
     char *scratchStr;
     s16 low;
     u32 sz;
@@ -341,7 +341,7 @@ s16 ttmscript_interpret_loop(s16 block_index) {
     if (g_pCurScriptObject == 0)
         return 0;
 
-    w = (u16 far *)g_pCurScriptObject->pBlocks[block_index];
+    w = (unsigned short far *)g_pCurScriptObject->pBlocks[block_index];
     g_wScriptOpCursorCache = g_pCurScriptAnimNode->wOpCursor;
     g_nScriptPendingJumpTarget = -1;
 
@@ -375,7 +375,7 @@ s16 ttmscript_interpret_loop(s16 block_index) {
                 FP_OFF(w) += p0 * 4 + 2;
             } else {
                 scratchStr = ttmscript_strcpy_to_scratch(0, (char far *)w);
-                w = (u16 far *)adscript_skip_aligned_cstring((char far *)w);
+                w = (unsigned short far *)adscript_skip_aligned_cstring((char far *)w);
             }
         } else {
             scratchStr = (char *)0;
@@ -402,11 +402,11 @@ s16 ttmscript_interpret_loop(s16 block_index) {
         if ((g_nScriptCurOpcode & 0xf000) == 0xc000) {
             if (g_wScriptOpCursorCache == 0) {
 
-                if (ttmscript_opcode_disp_secondary(p0, p1, p2, p3, (u16)scratchStr)) {
+                if (ttmscript_opcode_disp_secondary(p0, p1, p2, p3, (unsigned short)scratchStr)) {
                 }
             }
         } else if ((g_nScriptCurOpcode & 0xf000) == 0xa000) {
-            if (ttmscript_opcode_dispatch_main(p0, p1, p2, p3, p4, p5, p6, (u16)scratchStr)) {
+            if (ttmscript_opcode_dispatch_main(p0, p1, p2, p3, p4, p5, p6, (unsigned short)scratchStr)) {
             }
         } else {
             switch (g_nScriptCurOpcode) {
@@ -436,19 +436,19 @@ s16 ttmscript_interpret_loop(s16 block_index) {
 
             case 0xf02f:
                 if (g_wScriptOpCursorCache == 0) {
-                    u16 h;
+                    unsigned short h;
                     si = g_pCurScriptAnimNode->wFld_14;
                     h = g_pCurScriptObject->pAhPagedImage[si];
                     if (h != 0)
                         emsimg_free_paged((void *)h);
                     g_pCurScriptObject->pAhPagedImage[si] =
-                        (u16)resblit_load_asset_table(scratchStr, 2);
+                        (unsigned short)resblit_load_asset_table(scratchStr, 2);
                 }
                 break;
 
             case 0x80:
                 if (g_wScriptOpCursorCache == 0) {
-                    u16 h;
+                    unsigned short h;
                     si = g_pCurScriptAnimNode->wFld_14;
                     h = g_pCurScriptObject->pAhPagedImage[si];
                     if (h != 0)
@@ -643,7 +643,7 @@ s16 ttmscript_interpret_loop(s16 block_index) {
             case 0x2022:
                 if (g_wScriptOpCursorCache == 0)
                     g_nScriptTickOverride =
-                        p0 + abs((s16)((u16)rand() % (u16)(p1 - p0)));
+                        p0 + abs((short)((u16)rand() % (u16)(p1 - p0)));
                 break;
 
             case 0x1021:
@@ -743,8 +743,8 @@ s16 ttmscript_interpret_loop(s16 block_index) {
         if (g_nScriptCurOpcode >= 0xa000 && g_nScriptCurOpcode <= 0xafff) {
             switch (g_nScriptCurOpcode) {
             case 0xa5a7:
-                read_4words_from_2tables((u16 *)&p0, (u16 *)&p1, (u16 *)&p4,
-                                         (u16 *)&p5);
+                read_4words_from_2tables((unsigned short *)&p0, (unsigned short *)&p1, (unsigned short *)&p4,
+                                         (unsigned short *)&p5);
                 p4 -= p0;
                 p5 -= p1;
                 adscript_op_noop(p0, p1, p4, p5);
@@ -770,7 +770,7 @@ s16 ttmscript_interpret_loop(s16 block_index) {
             case 0xa536: {
 
                 if (g_pCurScriptObject->pAhPagedImage[p3] == 0 ||
-                    (si = ((u16 *)g_pCurScriptObject->pAhPagedImage[p3])[p2]) == 0)
+                    (si = ((unsigned short *)g_pCurScriptObject->pAhPagedImage[p3])[p2]) == 0)
                     continue;
                 if ((g_nScriptCurOpcode & 0xf) == 6) {
 
@@ -857,7 +857,7 @@ char *ttmscript_strcpy_to_scratch(s16 param_1, char far *param_2) {
 
     (void)_SI;
     i = 0;
-    if (param_1 < (s16)g_wScreen_height) {
+    if (param_1 < (short)g_wScreen_height) {
         if (param_1 == 0) {
             while (*param_2 != '\0') {
                 g_szTtmScratch[i] = *param_2;
@@ -889,7 +889,7 @@ void ttmscript_pal_cycle_band_add(s16 param_1, s16 param_2) {
     return;
 }
 
-u16 ttmscript_lookup_coord_global(u16 idx) {
+unsigned short ttmscript_lookup_coord_global(unsigned short idx) {
     switch (idx) {
     case 0:
         return g_graphics_context.wVgaFrontPageBase;
@@ -904,8 +904,8 @@ u16 ttmscript_lookup_coord_global(u16 idx) {
     }
 }
 
-void ttmscript_screen_trans_disp(u16 param_1, u16 param_2, s16 param_3, s16 param_4,
-                                 u16 param_5, u16 param_6) {
+void ttmscript_screen_trans_disp(unsigned short param_1, unsigned short param_2, s16 param_3, s16 param_4,
+                                 unsigned short param_5, unsigned short param_6) {
     s32 tempA;
     s32 tempB;
     u16 xsave;
@@ -916,7 +916,7 @@ void ttmscript_screen_trans_disp(u16 param_1, u16 param_2, s16 param_3, s16 para
     u16 ycenter;
     s16 dy;
     s16 bound;
-    u16 savedDstPage;
+    unsigned short savedDstPage;
     s16 i;
     s16 halfW;
 

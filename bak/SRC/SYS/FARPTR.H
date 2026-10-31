@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern u32 near normalize_far_ptr(u16 offset, u16 seg);
+extern u32 near normalize_far_ptr(unsigned short offset, unsigned short seg);
 extern void near normalize_far_ptr_flatten();
 extern u32 near far_ptr_add_offset(u16 ptr_lo, u16 addend, u16 rotate, u16 ptr_hi);
 extern void near far_ptr_sub_offset(void);

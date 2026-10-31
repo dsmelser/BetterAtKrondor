@@ -46,12 +46,12 @@
 #include "SRC/COMBAT/STATS/CBSTAT.H"
 #include "defines.h"
 
-u16 g_nSpellSymbolAnimFrame = 0x0000;
+unsigned short g_nSpellSymbolAnimFrame = 0x0000;
 unsigned char __dat_165e[12] = {0x0f, 0x00, 0x8e, 0x00, 0x48, 0x00,
                                 0x8e, 0x00, 0x82, 0x00, 0x8e, 0x00};
 
 unsigned char g_bssgap_5154[6];
-s16 g_nSpellCount;
+short g_nSpellCount;
 unsigned char g_bssgap_5150[2];
 SpellDef *g_pSpellDefs;
 char *g_szSpellNameBlob;
@@ -60,16 +60,16 @@ unsigned char far *g_pSpellDocBlob;
 StatusEffectSlot *g_pStatusEffectPool;
 unsigned char far *g_pSpellScreenBuffer;
 ImageRecord **g_pCastfaceSpriteTable;
-u16 *g_pSpellCastableScratch;
-s16 g_nSnowParticleSeedX;
-s16 g_nSpellFontSlot;
-s16 g_nCombatTileEffectPending;
-s16 g_nCombatTileX;
-s16 g_nCombatTileY;
-s16 g_nSpellSymbolCount;
+unsigned short *g_pSpellCastableScratch;
+short g_nSnowParticleSeedX;
+short g_nSpellFontSlot;
+short g_nCombatTileEffectPending;
+short g_nCombatTileX;
+short g_nCombatTileY;
+short g_nSpellSymbolCount;
 SpellSymbolRecord *g_pSpellSymbolRecords;
-s16 *g_pSpellSymbolX;
-s16 *g_pSpellSymbolY;
+short *g_pSpellSymbolX;
+short *g_pSpellSymbolY;
 
 void cspell_subsystem_load(void) {
     ResFile *f;
@@ -157,7 +157,7 @@ s16 cspell_status_effect_alloc_slot(void) {
 }
 
 s16 cspell_status_effect_add(Combatant *actor, s16 type, s16 source, s16 duration, unsigned char flag) {
-    s16 slot;
+    short slot;
 
     slot = actor->inner->statusHead;
     if (slot == -1) {
@@ -182,7 +182,7 @@ s16 cspell_status_effect_add(Combatant *actor, s16 type, s16 source, s16 duratio
 }
 
 void cspell_status_effect_remove(Combatant *actor, s16 slot) {
-    s16 cur;
+    short cur;
 
     if ((slot >= 0) && (slot <= 0x14)) {
         if (actor->inner->statusHead == slot) {
@@ -260,11 +260,11 @@ void far cspell_apply_damage_armor_wear(Combatant *actor, s16 damage) {
 s16 far cspell_actor_stat_get_comb_dflt(Combatant *actor, s16 spell_id) {
     register SpellDef *pSpell;
     s16 power;
-    s16 cost;
+    short cost;
 
     pSpell = &g_pSpellDefs[spell_id];
     power = stat_actor_get(actor, 0x10, 0);
-    cost = (pSpell->nCost_max < power) ? pSpell->nCost_max : (s16)(power - 1);
+    cost = (pSpell->nCost_max < power) ? pSpell->nCost_max : (short)(power - 1);
     return cost;
 }
 
@@ -401,8 +401,8 @@ static void cspell_actor_walk_steps(Combatant *caster, Combatant *target, s16 st
 
 void cspell_apply_hit_at(Combatant *caster, Combatant **target_ptr, s16 src_id, s16 *dst_ptr,
                          s16 magnitude, s16 spell_kind, s16 knockback) {
-    u16 animKind;
-    u16 knockbackVal;
+    unsigned short animKind;
+    unsigned short knockbackVal;
     s16 burstSpread;
 
     g_nVfxParticleColor = src_id;
@@ -671,7 +671,7 @@ void far cspell_perform_ranged_hit(Combatant *param_1, Combatant *param_2, s16 p
 void far cspell_select_target_tile(void) {
     s16 tile_chosen;
     s16 tile_in_range;
-    u16 consumed;
+    unsigned short consumed;
 #ifdef V102CD
     s16 valid;
 #endif
@@ -745,7 +745,7 @@ static void far cspell_summon_actor(Combatant *param_1, s16 param_2) {
     Combatant tmpActor;
     CombatantState tmpInner;
     s16 hit;
-    s16 slot;
+    short slot;
 
     hit = 1;
     tmpActor.inner = &tmpInner;
@@ -1056,7 +1056,7 @@ void cspell_try_add_status_effect(Combatant *actor, s16 stat_idx, s16 value) {
     s16 i;
     s16 isNew;
     ActorStatModifier newMod;
-    u16 *mod;
+    unsigned short *mod;
 
     slotIdx = actor->charSlot - 1;
 
@@ -1067,7 +1067,7 @@ void cspell_try_add_status_effect(Combatant *actor, s16 stat_idx, s16 value) {
     newMod.payload.dwTExpiry = g_gameState.game_time << 1;
     i = 0;
     isNew = 1;
-    mod = (u16 *)&g_gameState.aActorStatModifiers[slotIdx];
+    mod = (unsigned short *)&g_gameState.aActorStatModifiers[slotIdx];
     for (; i < 8;) {
         stat_apply_modifier(mod, &applyOut);
         if (*mod != 0 && mod[1] == newMod.payload.wStatMask && *mod != 0x100) {
@@ -1643,7 +1643,7 @@ s16 far cspell_collect_castable(Combatant *caster, s16 category) {
     while (spell_id < g_nSpellCount) {
         if ((g_pSpellDefs[spell_id].nSchool == category) || (category == -1)) {
             if (cspell_check_castable(spell_id, caster, category) != 0) {
-                g_pSpellCastableScratch[count] = (u16)g_pSpellDefs[spell_id].pName;
+                g_pSpellCastableScratch[count] = (unsigned short)g_pSpellDefs[spell_id].pName;
                 count = count + 1;
             }
         }
@@ -1785,8 +1785,8 @@ static void far cspell_draw_spr_path_5th_off(s16 sprite_idx, s16 start, s16 end,
 }
 
 static s16 far cspell_hotspot_hittest_at_cursor(Combatant *actor) {
-    s16 cx;
-    s16 cy;
+    short cx;
+    short cy;
     s16 xbox;
     s16 ybox;
     s16 result;
@@ -1983,8 +1983,8 @@ static void cspell_info_panel_show(s16 spell_index, s16 has_cost, Combatant *act
 
 static s16 far cspell_hotspot_cursor_in_range(s16 min_index, s16 max_index) {
     s16 x_lo;
-    s16 cursor_x;
-    s16 cursor_y;
+    short cursor_x;
+    short cursor_y;
     s16 hit;
     register s16 box_w;
     register s16 box_h;
@@ -2128,8 +2128,8 @@ static void far cspell_cast_menu_open_transition(void) {
 }
 
 #define CASTFACE_FRAME(slot)                                                                       \
-    (*(u16 *)((char *)&g_nSpellSymbolAnimFrame + 4 + (slot) * 4))
-#define CASTFACE_SPRITE(slot) (*(u16 *)((char *)__dat_15dc + 0x82 + (slot) * 4))
+    (*(unsigned short *)((char *)&g_nSpellSymbolAnimFrame + 4 + (slot) * 4))
+#define CASTFACE_SPRITE(slot) (*(unsigned short *)((char *)__dat_15dc + 0x82 + (slot) * 4))
 
 s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_caster_slot,
                           s16 *preselect_spell) {
@@ -2138,7 +2138,7 @@ s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_cas
     u16 school;
     s16 prevSchool;
     u16 action;
-    u16 done_flag;
+    unsigned short done_flag;
     s16 redrawCount;
     s16 done;
     s16 spell_index;
@@ -2146,7 +2146,7 @@ s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_cas
     s16 prevHotspot;
     s16 state;
     s16 saved_palblend;
-    u16 can_cast[MAX_ACTIVE_PARTY];
+    unsigned short can_cast[MAX_ACTIVE_PARTY];
     s16 casterSlot;
     s16 save_flag;
     unsigned char far *pDest;

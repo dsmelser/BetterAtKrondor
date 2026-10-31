@@ -4,8 +4,8 @@
 #include "structs.h"
 
 extern char g_szRomanDigits[7];
-extern s16 g_anRomanValues[7];
-extern s16 g_anRomanSubPair[7];
+extern short g_anRomanValues[7];
+extern short g_anRomanSubPair[7];
 
 extern s16 booktext_render_page(PageDirectory far *page_directory, BookPage far *page,
                                 s16 redraw_bg);

@@ -19,9 +19,9 @@
 #include "SRC/SYS/CFGPARSE.H"
 #endif
 
-s16 g_nVisibleEntryCount;
-u16 g_wVisibleEntrySegment;
-u16 *g_pwVisibleEntryOffsets;
+short g_nVisibleEntryCount;
+unsigned short g_wVisibleEntrySegment;
+unsigned short *g_pwVisibleEntryOffsets;
 s32 g_aFilterTable[43];
 s32 *g_pVisibleEntryDistances;
 
@@ -70,13 +70,13 @@ void proxscan_full(ViewContext *widget) {
 }
 
 void proxscan_run(VisibleEntryList *list, s32 *party_pos) {
-    s16 count;
+    short count;
     s16 i;
     WorldObject far *entry_ptr;
     Shape far *prec;
     s32 threshold;
     s32 metric;
-    u16 *puOff;
+    unsigned short *puOff;
     OctPos local_pos;
     register s32 *plDist;
 
@@ -115,7 +115,7 @@ void proxscan_run(VisibleEntryList *list, s32 *party_pos) {
 }
 
 void proxscan_filter_by_distance(s32 *origin) {
-    s16 max_count;
+    short max_count;
     s16 i;
     WorldObject far *entry_ptr;
     Shape far *prec;
@@ -123,7 +123,7 @@ void proxscan_filter_by_distance(s32 *origin) {
     s32 metric;
     OctPos local_pos;
     register s32 *plDist;
-    register u16 *puOff;
+    register unsigned short *puOff;
 
     max_count = g_nVisible_entry_count;
     entry_ptr = (WorldObject far *)g_pVisible_entry_pool;
@@ -153,14 +153,14 @@ void proxscan_filter_by_distance(s32 *origin) {
 }
 
 void proxscan_object_list(s32 *origin) {
-    s16 max_count;
+    short max_count;
     s16 i;
     WorldObject far *record_ptr;
     s32 score;
     s32 metric;
     OctPos local_pos;
     register s32 *plDist;
-    register u16 *puOff;
+    register unsigned short *puOff;
 
     max_count = g_nFixed_object_count;
     record_ptr = g_pFixed_object_entries;
@@ -201,13 +201,13 @@ void proxscan_all_zones_for_encounter(ViewContext *pContext) {
 }
 
 void proxscan_encounter_records(VisibleEntryList *list, s32 *party_pos) {
-    s16 count;
+    short count;
     s16 i;
     WorldObject far *entry_ptr;
     Shape far *prec;
     s32 threshold;
     s32 metric;
-    u16 *puOff;
+    unsigned short *puOff;
     OctPos local_pos;
     register s32 *plDist;
 
@@ -248,7 +248,7 @@ void proxscan_encounter_records(VisibleEntryList *list, s32 *party_pos) {
 
 s16 proxscan_vis_rec_kind_0e3e(void) {
     WorldObject far *entry_ptr;
-    u16 *puOff;
+    unsigned short *puOff;
     s32 *plDist;
     register s16 i;
 
@@ -303,7 +303,7 @@ void proxscan_visibility(ViewContext *pViewContext) {
 }
 
 void proxscan_region_bucket(VisibleEntryList *region, s32 *party_pos) {
-    s16 count;
+    short count;
     s16 i;
     s16 keep;
     WorldObject far *entry_ptr;
@@ -313,7 +313,7 @@ void proxscan_region_bucket(VisibleEntryList *region, s32 *party_pos) {
     s16 view_xy[3];
     OctPos local_pos;
     register s32 *plDist;
-    register u16 *puOff;
+    register unsigned short *puOff;
 
     count = region->wEntry_count;
     entry_ptr = region->pEntries;
@@ -355,8 +355,8 @@ void proxscan_region_bucket(VisibleEntryList *region, s32 *party_pos) {
 
 void proxscan_world_objects(s32 *p_pos) {
     register s32 *plDist;
-    register u16 *puOff;
-    s16 count;
+    register unsigned short *puOff;
+    short count;
     s16 i;
     s16 keep;
     WorldObject far *entry_ptr;
@@ -410,7 +410,7 @@ void proxscan_paged_dispatch_all(void) {
     s16 i;
     s32 *party_pos;
 #ifdef V102CD
-    s16 saved_heading;
+    short saved_heading;
 #endif
 
     party_pos = &g_world_camera->base.pos.xy.nWorld_x;
@@ -508,7 +508,7 @@ void far proxscan_draw_cmap_inset_markers(void) {
     s32 *position;
     s16 i;
 #ifdef V102CD
-    s16 saved_heading;
+    short saved_heading;
 #endif
 
     position = &g_world_camera->base.pos.xy.nWorld_x;
@@ -639,7 +639,7 @@ void far proxscan_broadcast_scene_events(void) {
     s32 *position;
     s16 i;
 #ifdef V102CD
-    s16 saved_heading;
+    short saved_heading;
 #endif
 
     position = &g_world_camera->base.pos.xy.nWorld_x;

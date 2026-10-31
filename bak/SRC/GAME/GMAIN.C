@@ -39,16 +39,16 @@
 
 unsigned char g_bssgap_4863[3];
 GameState g_gameState;
-u16 g_bPaletteCycleEbActive;
-u16 g_wVgaScratchPageBase;
-u16 g_wGameFontSlot;
-u16 *g_pSkyPanoAssetTable;
+unsigned short g_bPaletteCycleEbActive;
+unsigned short g_wVgaScratchPageBase;
+unsigned short g_wGameFontSlot;
+unsigned short *g_pSkyPanoAssetTable;
 #ifdef V102CD
 s16 g_cd_present;
 #endif
 WorldEntity *g_render_camera_scratch;
 ViewContext *g_active_window;
-u16 g_nChapterAtLoopExit;
+unsigned short g_nChapterAtLoopExit;
 
 #ifdef V102CD
 unsigned char g_cdaudio_state[70] = {
@@ -166,7 +166,7 @@ s16 far gmain_start_dispatch(s16 mode) {
             iconTable = resblit_load_asset_table("fmap_icn.bmp", 0);
             g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wGfxBlitDstPage =
                 g_graphics_context.wVgaPage2Base;
-            blit_sprite_indirect((u16)iconTable[iconIndex], iconX - 3, iconY - 3, 0);
+            blit_sprite_indirect((unsigned short)iconTable[iconIndex], iconX - 3, iconY - 3, 0);
             free_image_record(iconTable);
         }
         vsync_hook(1);
@@ -414,7 +414,7 @@ void far gmain_cutsc_play_fullmap_scene(s16 scene_index) {
 
 void far gmain_restart_from_save_flow(void) {
     u16 run_result;
-    u16 do_cutscene;
+    unsigned short do_cutscene;
     s16 chapter_arg;
     s16 channel_arg;
     s16 sec_ch_arg;

@@ -33,7 +33,7 @@ char actorrender_frustum_cull(void) {
     scale = r3d_actor_proj_scale_compute(&args);
     if (scale > SHAPE_SCALE_UNITY) {
         g_abR3dState.wActorProjScale = SHAPE_SCALE_UNITY;
-    } else if (!(g_abR3dState.wActorProjScale = (u16)scale)) {
+    } else if (!(g_abR3dState.wActorProjScale = (unsigned short)scale)) {
         return 1;
     }
 
@@ -74,7 +74,7 @@ scale_adjust:
     if (recScale == SHAPE_SCALE_UNITY)
         goto done;
     if (recScale == -1) {
-        g_abR3dState.wActorProjScale = (u16)recScaleClamp;
+        g_abR3dState.wActorProjScale = (unsigned short)recScaleClamp;
         goto done;
     }
 
@@ -83,7 +83,7 @@ scale_adjust:
         scale = 0L;
     else if ((s32)recScaleClamp < scale)
         scale = (s32)recScaleClamp;
-    g_abR3dState.wActorProjScale = (u16)scale;
+    g_abR3dState.wActorProjScale = (unsigned short)scale;
 done:
     return 0;
 }
@@ -233,7 +233,7 @@ void actorrender_mesh_parts(s16 part_off, s16 part_count, s16 *part_ptr_array) {
             unsigned char far *poly_list;
             g_abR3dState.wMeshVertexPoolOff = ((MeshPartRecord far *)pPart)->wVertexPoolOff;
             g_abR3dState.wMeshPartVertexCount =
-                (u16)((MeshPartRecord far *)pPart)->bVertexCount;
+                (unsigned short)((MeshPartRecord far *)pPart)->bVertexCount;
             if (g_abR3dState.pCurMeshPartVisTable != 0 &&
                 ((MeshPartRecord far *)pPart)->bGroupId != 0xff) {
                 for (variantIdx =
@@ -253,7 +253,7 @@ void actorrender_mesh_parts(s16 part_off, s16 part_count, s16 *part_ptr_array) {
                 if (!g_abR3dState.bCurMeshLod) {
                     r3d_mesh_part_polygons(poly_list);
                 } else if (g_abR3dState.bCurMeshLod == 3) {
-                    r3d_mesh_part_polygons_lod3((u16 far *)poly_list);
+                    r3d_mesh_part_polygons_lod3((unsigned short far *)poly_list);
                 } else {
                     r3d_mesh_polygons(poly_list);
                 }
@@ -269,7 +269,7 @@ void actorrender_mesh_parts(s16 part_off, s16 part_count, s16 *part_ptr_array) {
 void actorrender_entity(WorldObject far *entry) {
     Shape far *pRec;
     struct LodDescriptor far *pDesc;
-    u16 recordId;
+    unsigned short recordId;
     s16 nPage;
     s16 nDesc;
     s16 nParts;
@@ -292,7 +292,7 @@ void actorrender_entity(WorldObject far *entry) {
 
     g_abR3dState.pCurMeshPartVisTable = (unsigned char *)entry->state.stateBits;
     g_abR3dState.wMeshScaleShift = pRec->shift;
-    g_abR3dState.nMeshBoundHalfExtent = (s32)(s16)pRec->radius << g_abR3dState.wMeshScaleShift;
+    g_abR3dState.nMeshBoundHalfExtent = (s32)(short)pRec->radius << g_abR3dState.wMeshScaleShift;
 
     r3d_setup_actor_in_camera_space((WorldObject *)entry, FP_SEG(entry));
     if (actorrender_frustum_cull() != 0) {

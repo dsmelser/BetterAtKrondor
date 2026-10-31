@@ -22,7 +22,7 @@
  */
 
 /* Whole degrees -> the renderer's binary angle (0x10000 per turn, 0x4000 == 90 deg). */
-#define R3D_DEG(deg) ((s16)((s32)(deg) * 0x10000L / 360))
+#define R3D_DEG(deg) ((short)((s32)(deg) * 0x10000L / 360))
 
 /* As R3D_DEG, but the unsigned binary angle (0..0xffff), for headings that are
  * carried and combined in unsigned form (where the >=180 deg half is positive). */
@@ -42,7 +42,7 @@
  * @note The (entry, entry_seg) pair is one far pointer split into offset and
  *       segment words; the caller passes (ptr, FP_SEG(ptr)).
  */
-extern void r3d_setup_actor_in_camera_space(WorldObject *entry, u16 entry_seg);
+extern void r3d_setup_actor_in_camera_space(WorldObject *entry, unsigned short entry_seg);
 
 /**
  * Assembles the transform that places one actor's mesh into camera space.
@@ -149,7 +149,7 @@ extern void r3d_camera_setup_view(ViewContext *widget);
  *       drives the builder's X slot and the second its Z slot; the middle
  *       Y axis is forced to zero.
  */
-extern void r3d_light_set_direction(s16 elevation, s16 azimuth);
+extern void r3d_light_set_direction(short elevation, short azimuth);
 
 /**
  * Builds a 3x3 rotation matrix, in Q14 fixed point (0x4000 == 1.0), from a
@@ -333,7 +333,7 @@ extern void r3d_mesh_polygons(unsigned char far *part_header);
  * coordinates. The argument has the same layout as the siblings' part
  * header: polygon count, then the polygon-record array offset.
  */
-extern void r3d_mesh_part_polygons_lod3(u16 far *part_header);
+extern void r3d_mesh_part_polygons_lod3(unsigned short far *part_header);
 
 /**
  * Maps a projected 2D point into screen space in place: adds the viewport
@@ -613,7 +613,7 @@ extern void near r3d_apply_viewport_offset_long(void);
  * degrees)); the angle wraps naturally, so negative and out-of-range values
  * are fine.
  */
-extern s16 r3d_tbl_sin(s16 angle);
+extern short r3d_tbl_sin(s16 angle);
 
 /**
  * Returns the cosine of a 16-bit binary angle as a Q14 short (0x4000 ==
@@ -622,7 +622,7 @@ extern s16 r3d_tbl_sin(s16 angle);
  * naturally. Full turn = 65536 angle units. r3d_tbl_sin shares the same
  * table via a phase shift.
  */
-extern s16 r3d_tbl_cos(s16 angle);
+extern short r3d_tbl_cos(s16 angle);
 
 /**
  * Computes the arcsine of a Q14 sine value (0x4000 == 1.0) by table lookup,
@@ -649,7 +649,7 @@ extern s16 r3d_tbl_atan2(s16 y, s16 x);
  * (smaller << 9) / larger and do all octant and sign folding themselves; no
  * bounds check is performed.
  */
-extern s16 r3d_tbl_atan_lookup_raw(s16 idx);
+extern short r3d_tbl_atan_lookup_raw(s16 idx);
 
 /**
  * Computes the signed 3-element dot product of two 16-bit vectors,

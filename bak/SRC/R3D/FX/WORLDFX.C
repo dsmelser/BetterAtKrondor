@@ -21,10 +21,10 @@
 #include "SRC/COMBAT/ARENA/COMBAT.H"
 #include "gfx169d.h"
 
-u16 g_nVfxParticleColor;
+unsigned short g_nVfxParticleColor;
 VfxRec *g_pVfxVelocityPool;
-u16 g_wVfxActiveParticleCount;
-u16 g_nVfxParticleBurstOriginY;
+unsigned short g_wVfxActiveParticleCount;
+unsigned short g_nVfxParticleBurstOriginY;
 SavedClipRect g_savedClip;
 
 VfxRec *g_pVfxSparkleScratch = {0};
@@ -91,7 +91,7 @@ void far worldfx_flux_vortex_step_particle(s16 slot, s16 base_ang_step) {
 
 void far worldfx_render_particle_blast(Combatant *actor, s16 color) {
     s16 radius;
-    s16 saved_status;
+    short saved_status;
     s16 i;
 
     radius = 1;
@@ -254,7 +254,7 @@ void worldfx_ptcl_overlay_render_front(Combatant *pActor) {
 }
 
 void far worldfx_rndr_rand_flash_at_actor(Combatant *actor) {
-    s16 scr_buf[7];
+    short scr_buf[7];
     WorldObject entry;
     (void)scr_buf;
     entry.shapeId = 4;
@@ -418,7 +418,7 @@ static s16 actor_box_verts[8][3] = {
     {-140, 140, 0},    {140, 140, 0},   {140, 140, 400}, {-140, 140, 400},
     {-140, -140, 400}, {-140, -140, 0}, {140, -140, 0},  {140, -140, 400},
 };
-s16 g_nVfxTickCountdown = 0;
+short g_nVfxTickCountdown = 0;
 
 void worldfx_actor_box_scr_verts(Vec3Short *vertex_buf, Combatant *actor) {
     s16 out[3];
@@ -516,7 +516,7 @@ void worldfx_clip_rect_restore(void) {
     return;
 }
 
-void far worldfx_rndr_spr_shadow(s16 shadow_palette_idx) {
+void far worldfx_rndr_spr_shadow(short shadow_palette_idx) {
     s16 x, y, w, h;
 
     world_rndr_apply_window_vport();

@@ -38,8 +38,8 @@
 #include "SRC/SYS/CFGPARSE.H"
 
 MenuPage *g_pReqMainPage = {0};
-s16 g_nSceneReloadPending = 0;
-s16 g_nHotspotActivateRequest = 0;
+short g_nSceneReloadPending = 0;
+short g_nHotspotActivateRequest = 0;
 
 void far worldloop_req_main_screen_load(void) {
     g_pReqMainPage = menupage_load("req_main.dat");
@@ -56,15 +56,15 @@ void far worldloop_req_main_screen_unload(void) {
     return;
 }
 
-s16 far world3d_main_loop(void) {
+short far world3d_main_loop(void) {
 
-    s16 exit_mode;
+    short exit_mode;
     s16 keep_running;
-    u16 redraw_menu;
+    unsigned short redraw_menu;
     s16 redraw_caption;
-    u16 pending_events;
-    u16 key_repeat_armed;
-    u16 refusal_mode;
+    unsigned short pending_events;
+    unsigned short key_repeat_armed;
+    unsigned short refusal_mode;
     MenuEntry *focused_entry;
     MenuEntry *prev_focused_entry;
     u16 action_id;
@@ -356,7 +356,7 @@ s16 far world3d_main_loop(void) {
             case 3:
             case 4: {
                 u16 chap_sub = action_id - 2;
-                if (g_gameState.partySize > (s16)chap_sub) {
+                if (g_gameState.partySize > (short)chap_sub) {
                     if (menupage_state_0e7c() == 2 || key_is_down(0x2a) != 0 ||
                         key_is_down(0x36) != 0) {
 
@@ -418,7 +418,7 @@ s16 far world3d_main_loop(void) {
     return exit_mode;
 }
 
-void worldloop_camera_snap_reset(s32 *pSavedZ, s16 *pSavedYaw) {
+void worldloop_camera_snap_reset(s32 *pSavedZ, short *pSavedYaw) {
     if (g_full_redraw_needed != 0) {
         g_world_widget->colorRemap = NULL;
         *pSavedZ = g_world_camera->base.pos.nWorld_z;
@@ -429,7 +429,7 @@ void worldloop_camera_snap_reset(s32 *pSavedZ, s16 *pSavedYaw) {
     return;
 }
 
-void worldloop_camera_set_pos_z_yaw(s32 pos_z, s16 yaw) {
+void worldloop_camera_set_pos_z_yaw(s32 pos_z, short yaw) {
     if (g_full_redraw_needed != 0) {
         if (g_pColorRemap != (unsigned char *)0x0) {
             g_world_widget->colorRemap = g_pColorRemap;

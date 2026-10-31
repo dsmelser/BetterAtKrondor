@@ -20,7 +20,7 @@
 #include "SRC/R3D/SCENE/CZONE.H"
 
 void far worldcross_dungeon_descent_anim(void) {
-    u16 probe_kind;
+    unsigned short probe_kind;
     s16 sfx_handle;
     s16 descent_steps;
     s16 waiting_for_key;

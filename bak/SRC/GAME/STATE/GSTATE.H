@@ -67,7 +67,7 @@ extern char g_fatigueDrainPerChar[6];
  */
 extern char g_restRegenPerChar[6];
 
-extern u16 gstate_event_read(u16 event_idx);
+extern unsigned short gstate_event_read(unsigned short event_idx);
 extern s16 gstate_event_write(u16 event_id, u16 value);
 
 #define HOTSPOT_SCOUT_TRIED(idx) ((idx) + 5200)
@@ -96,7 +96,7 @@ extern s16 gstate_temp_file_write_at(unsigned char far *src_far, u32 offset, u16
 #define GAM_ENCOUNTER_TABLE sizeof(GameState)
 #define GAM_OBJFIXED_LOCATION(idx)                                                                 \
     ((idx) * sizeof(ObjFixedLocationCacheEntry) + (GAM_ENCOUNTER_TABLE + sizeof(EncounterTable)))
-#define GAM_ENC_ROSTER(idx) ((idx) * (7 * sizeof(s16)) + (GAM_OBJFIXED_LOCATION(20) + 0x28))
+#define GAM_ENC_ROSTER(idx) ((idx) * (7 * sizeof(short)) + (GAM_OBJFIXED_LOCATION(20) + 0x28))
 #define GAM_ENC_FOUGHT_TIME(idx) ((idx) * sizeof(u32) + GAM_ENC_ROSTER(700))
 #define GAM_ENC_VISITED_TIME(idx) ((idx) * sizeof(u32) + GAM_ENC_FOUGHT_TIME(700))
 #define GAM_ENC_OBJ_STATE(idx) ((idx) * sizeof(EncounterObjectState) + GAM_ENC_VISITED_TIME(700))

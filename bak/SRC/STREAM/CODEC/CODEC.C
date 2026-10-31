@@ -21,7 +21,7 @@ unsigned char g_codecRawTransitBuf[50];
 char huge *g_pCurStreamSrcCursor;
 unsigned char g_bCurStreamDescFlags;
 unsigned char g_bCurStreamOpMode;
-u16 g_wCodecBytesRemaining;
+unsigned short g_wCodecBytesRemaining;
 s16 g_nStreamBytesWritten;
 StreamDesc *g_apStreamSlots[100];
 unsigned char huge *g_pCurCodecScratch;

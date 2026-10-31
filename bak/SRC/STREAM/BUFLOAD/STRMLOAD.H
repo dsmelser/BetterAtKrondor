@@ -5,6 +5,6 @@
 #include "SRC/IO/RESOURCE.H"
 
 extern void far *stream_load_to_buffer(ResFile *file, u32 size, u32 *out_desc,
-                                       u16 allocTag);
+                                       unsigned short allocTag);
 
 #endif

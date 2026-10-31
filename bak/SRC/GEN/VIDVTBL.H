@@ -4,8 +4,8 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-typedef u32(far *AllocFarFn)(u32 size, u16 unused,
-                                       u16 flags);
+typedef u32(far *AllocFarFn)(u32 size, unsigned short unused,
+                                       unsigned short flags);
 typedef s16(far *FreememFn)(u32 ptr);
 typedef s16(far *ReadFarThunkFn)(s16 fd, void *buf, u16 count);
 typedef s16(far *CloseFarThunkFn)(s16 fd);

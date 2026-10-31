@@ -3,16 +3,16 @@
 
 #include "structs.h"
 
-extern u16 g_wLzwCodeBits;
-extern u16 g_wLzwMaxCode;
-extern u16 g_wLzwNextCode;
-extern u16 g_wLzwResetWidthPending;
-extern u16 g_wLzwLastByte;
-extern u16 g_wLzwPrevCode;
-extern u16 g_wLzwNewCode;
+extern unsigned short g_wLzwCodeBits;
+extern unsigned short g_wLzwMaxCode;
+extern unsigned short g_wLzwNextCode;
+extern unsigned short g_wLzwResetWidthPending;
+extern unsigned short g_wLzwLastByte;
+extern unsigned short g_wLzwPrevCode;
+extern unsigned short g_wLzwNewCode;
 extern unsigned char far *g_pLzwScratchTail;
-extern u16 g_wLzwInBitPos;
-extern u16 g_wLzwInBufBitsTotal;
+extern unsigned short g_wLzwInBitPos;
+extern unsigned short g_wLzwInBufBitsTotal;
 extern unsigned char g_bLzwNeedSeedCode;
 extern unsigned char g_bLzwOutputSuspended;
 

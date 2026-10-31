@@ -33,7 +33,7 @@
 
 unsigned char g_bssgap_4c34[2];
 GridCombatant *g_combatant_table;
-s16 g_combatant_count;
+short g_combatant_count;
 CombatTile g_combat_tile_grid[8][13];
 s16 g_nCombatTerrainWallColor;
 unsigned char g_combat_move_map[8][13];
@@ -42,7 +42,7 @@ unsigned char far *g_pPalLoadedBuf = {0};
 unsigned char far *g_pPalAltA = {0};
 unsigned char far *g_pPalAltB = {0};
 unsigned char far *g_pPalBlendScratch = {0};
-u16 g_nPalBlendMode = 0x0000;
+unsigned short g_nPalBlendMode = 0x0000;
 unsigned char far *g_pPalLastInstalled = {0};
 char g_rgbDayNightCycle_4f4[15] = {0x0a, 0x14, 0x17, 0x00, 0x00, 0x00, 0x36, 0x2c,
                                    0x12, 0x03, 0x17, 0x01, 0x06, 0x0b, 0x21};
@@ -171,7 +171,7 @@ void far combatgrid_tick_tile_effect(char x, char y) {
     }
 }
 
-void combatgrid_set_tile_effect(char x, char y, u16 type, s16 timer) {
+void combatgrid_set_tile_effect(char x, char y, unsigned short type, s16 timer) {
     g_combat_tile_grid[x][y].wTerrain = type;
     g_combat_tile_grid[x][y].nEffectTimer = timer;
 }
@@ -387,14 +387,14 @@ s16 far combatgrid_tiles_over_thresh(void) {
     return (u16)(count >= 0x18);
 }
 
-void far combatgrid_build_combatant_list(WorldPos2 *pWorldPos, s16 *pViewState) {
+void far combatgrid_build_combatant_list(WorldPos2 *pWorldPos, short *pViewState) {
     s16 dupIdx;
     s16 i;
     WorldObject far *entry;
     Shape far *shape;
     s16 iPhantom;
     s16 tileXY[2];
-    s16 entryCount;
+    short entryCount;
     s32 dist;
     s32 maxDist;
     s32 coords[3];
@@ -520,9 +520,9 @@ void combatgrid_load_traps_dat(void) {
     unsigned char tileY;
     s16 recordCount;
     s16 i;
-    s16 recordId;
-    s16 start_idx;
-    u16 effectType;
+    short recordId;
+    short start_idx;
+    unsigned short effectType;
     s32 offset;
 
     recordCount = 0;
@@ -561,7 +561,7 @@ void combatgrid_load_traps_dat(void) {
         } else {
 
             recordId =
-                (recordId < 0) ? ((recordId == (s16)0x8000) ? 0x7fff : -recordId) : recordId;
+                (recordId < 0) ? ((recordId == (short)0x8000) ? 0x7fff : -recordId) : recordId;
             if (recordId == 10 || recordId == 0xb || recordId == 0xc || recordId == 0xd) {
                 combatgrid_set_tile_effect(tileX, tileY, recordId, -1);
                 g_combatant_table[g_combatant_count].paged_id = 0xb;
@@ -819,7 +819,7 @@ void far combatgrid_apply_tile_status_fx(s16 tile_x, s16 tile_y, s16 target_acto
     return;
 }
 
-void combatgrid_mark_engagement_line(s16 x1, s16 y1, s16 x2, s16 y2, s16 paged_id,
+void combatgrid_mark_engagement_line(s16 x1, s16 y1, s16 x2, s16 y2, short paged_id,
                                      s16 do_register) {
     s16 sx;
     s16 sy;
@@ -1252,7 +1252,7 @@ void combatgrid_apply_engage_links(s16 start_idx) {
     }
 }
 
-void far combatgrid_place_tile_fx_at_cur(u16 type, s16 timer) {
+void far combatgrid_place_tile_fx_at_cur(unsigned short type, s16 timer) {
     u16 terrain;
 
     while (combat_arena_wait_confirm_cancel() != 0)
@@ -1579,7 +1579,7 @@ void far combatgrid_rndr_engagement_lines(void) {
     return;
 }
 
-void combatgrid_unhighlight_terr_type(u16 terrain) {
+void combatgrid_unhighlight_terr_type(unsigned short terrain) {
     s16 x;
     s16 y;
 

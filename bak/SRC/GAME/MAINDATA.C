@@ -2,8 +2,8 @@
 #include "SRC/AUDIO/RES/AUDRESIN.H"
 #include "SRC/GAME/MAINDATA.H"
 
-s16 g_nPolygonTextureMode = 1;
-u16 g_nWorldRenderJitter = 0x0000;
+short g_nPolygonTextureMode = 1;
+unsigned short g_nWorldRenderJitter = 0x0000;
 #ifdef V102CD
 char *g_versionBanner = "Version 1.02 CD";
 #else

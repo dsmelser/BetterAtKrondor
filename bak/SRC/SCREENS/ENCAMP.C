@@ -23,23 +23,23 @@
 #include "SRC/DIALOG/DIALOG.H"
 #include "SRC/GAME/ACTOR/ITEMTBL.H"
 
-u16 g_wEncampHotspotSubW;
-u16 g_wEncampHotspotSubH;
-u16 g_wEncampHotspotBoxW;
-u16 g_wEncampHotspotBoxH;
-u16 g_wEncampHotspotCount;
-u16 g_wEncampClockVertexCount;
+unsigned short g_wEncampHotspotSubW;
+unsigned short g_wEncampHotspotSubH;
+unsigned short g_wEncampHotspotBoxW;
+unsigned short g_wEncampHotspotBoxH;
+unsigned short g_wEncampHotspotCount;
+unsigned short g_wEncampClockVertexCount;
 
-u16 *g_pEncampBmpAssetTable = {0};
-u16 *g_pEncampHotspotX = {0};
-u16 *g_pEncampHotspotY = {0};
-u16 *g_pClockHandVertsX = {0};
-u16 *g_pClockHandVertsY = {0};
+unsigned short *g_pEncampBmpAssetTable = {0};
+unsigned short *g_pEncampHotspotX = {0};
+unsigned short *g_pEncampHotspotY = {0};
+unsigned short *g_pClockHandVertsX = {0};
+unsigned short *g_pClockHandVertsY = {0};
 unsigned char *g_pEncampPaletteRemapLut = {0};
 
 void far encamp_run(void) {
     s16 running;
-    u16 menuSelChanged;
+    unsigned short menuSelChanged;
     s16 menuRedrawFrames;
     s16 bgRedrawFrames;
     s16 hoverHotspot;
@@ -176,7 +176,7 @@ void far encamp_run(void) {
                     switch (screen_input_poll_confirm_cancel()) {
                     case 0:
                         if (prevHotspot == hoverHotspot) {
-                            targetTime = (s32)(s16)hoverHotspot * 0x708;
+                            targetTime = (s32)(short)hoverHotspot * 0x708;
                             hoverHotspot = -1;
                             advancing = 1;
                             showCancelBtn = 1;
@@ -261,11 +261,11 @@ void far encamp_run(void) {
 
 void far encamp_load(void) {
     register ResFile *file;
-    u16 *ptx;
-    u16 *pty;
+    unsigned short *ptx;
+    unsigned short *pty;
     register s16 i;
 
-    g_pEncampBmpAssetTable = (u16 *)resblit_load_asset_table("encamp.bmp", 2);
+    g_pEncampBmpAssetTable = (unsigned short *)resblit_load_asset_table("encamp.bmp", 2);
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage1Base;
     resblit_load_pal_or_stream("encamp.scx");
     file = res_fopen("encamp.dat", "rb");
@@ -325,8 +325,8 @@ void encamp_proj_trail_emit_facing(s16 a, s16 b, s16 c, u16 d, u16 e, u16 f) {
     s16 ascending;
     s16 bmpIdx;
     u16 i;
-    u16 *px;
-    u16 *py;
+    unsigned short *px;
+    unsigned short *py;
 
     startHour = (s32)d / 0x708;
     curHour = (s32)e / 0x708;
@@ -371,8 +371,8 @@ void encamp_proj_trail_emit_facing(s16 a, s16 b, s16 c, u16 d, u16 e, u16 f) {
 }
 
 s16 encamp_hotspot_at_cursor(void) {
-    u16 *px;
-    u16 *py;
+    unsigned short *px;
+    unsigned short *py;
     s16 halfW;
     s16 halfH;
     s16 curX;
@@ -540,4 +540,4 @@ LAB_check:
 
 char *g_apszEncampStatColHeaders[2] = {"Health/Stamina", "Rations"};
 char *g_pszHpSeparator = " of ";
-u16 g_anEncampStatColX[2] = {0x0054, 0x0090};
+unsigned short g_anEncampStatColX[2] = {0x0054, 0x0090};

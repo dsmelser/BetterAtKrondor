@@ -20,12 +20,12 @@
 #include "SRC/GAME/ENC/HOTSPOT.H"
 #include "SRC/GAME/ENC/RGNENC.H"
 
-u16 g_bWorldCrossing = 0x0000;
-u16 g_nWorldCrossingKind = 0x0000;
+unsigned short g_bWorldCrossing = 0x0000;
+unsigned short g_nWorldCrossingKind = 0x0000;
 u32 g_dwWorldCrossingCoord = 0x00000000UL;
 
-s16 g_nWorldStepSpeed;
-s16 g_nWorldGridStride;
+short g_nWorldStepSpeed;
+short g_nWorldGridStride;
 s32 g_lWorldTimePerStep;
 
 void worldmove_dat_load(void) {
@@ -86,11 +86,11 @@ void worldmove_rgn_chap_trans_apply(void) {
 
 s16 far worldmove_party_attempt_move(s16 mode) {
     s16 out_target;
-    u16 saved_crossing_kind;
+    unsigned short saved_crossing_kind;
     u32 saved_crossing_coord;
     s16 out_dir;
     WorldPos pos_save;
-    s16 step;
+    short step;
     s16 result;
 
     step = g_nWorldStepSpeed;
@@ -153,7 +153,7 @@ L_fail:
     return 0;
 }
 
-void worldmove_apply_turn_step(s16 direction) {
+void worldmove_apply_turn_step(short direction) {
     worldmove_heading_step(&g_world_camera->base.orientation.yaw, g_nWorldGridStride, direction);
     g_nWorldRenderJitter = RND2(0x10);
 }
@@ -428,7 +428,7 @@ bail:
     return 0;
 }
 
-void worldmove_heading_step(s16 *heading, s16 step, s16 direction) {
+void worldmove_heading_step(short *heading, short step, short direction) {
     if (direction == 3) {
         step = -step;
     }
@@ -725,8 +725,8 @@ s16 worldmove_prox_find_near_pos(WorldPos *pos) {
     return 0;
 }
 
-void worldmove_cross_get_probe_result(u16 *out_kind, u32 *out_coord) {
-    if (out_kind != (u16 *)0x0) {
+void worldmove_cross_get_probe_result(unsigned short *out_kind, u32 *out_coord) {
+    if (out_kind != (unsigned short *)0x0) {
         *out_kind = g_nWorldCrossingKind;
     }
     if (out_coord != (u32 *)0x0) {
@@ -752,7 +752,7 @@ s16 worldmove_step_once_along_axis(void) {
     return 1;
 }
 
-s16 worldmove_step_pending_get(void) {
+short worldmove_step_pending_get(void) {
     return g_gameState.nWorldStepPending;
 }
 
@@ -777,7 +777,7 @@ void worldmove_step_tick_reset(void) {
     g_gameState.world_step_tick = 1;
 }
 
-u16 worldmove_step_tick_get(void) {
+unsigned short worldmove_step_tick_get(void) {
     return g_gameState.world_step_tick;
 }
 
@@ -790,6 +790,6 @@ void worldmove_step_tick_advance(void) {
     }
 }
 
-u16 worldmove_step_ticks_per_step(void) {
-    return (u16)(0x640 / g_nWorldStepSpeed);
+unsigned short worldmove_step_ticks_per_step(void) {
+    return (unsigned short)(0x640 / g_nWorldStepSpeed);
 }

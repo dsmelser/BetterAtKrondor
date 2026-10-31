@@ -21,7 +21,7 @@
 #include "SRC/COMBAT/SPELL/CSPELL.H"
 #include "SRC/GAME/WORLD/MAP.H"
 
-u16 g_aPalEventBitMask[9] = {0x0001, 0x0002, 0x0004, 0x0008, 0x0010,
+unsigned short g_aPalEventBitMask[9] = {0x0001, 0x0002, 0x0004, 0x0008, 0x0010,
                                         0x0020, 0x0040, 0x0080, 0x0100};
 unsigned char g_event_caption_glyph_table[9] = {0x1d, 0x1e, 0x1f, 0x21, 0x20,
                                                 0x22, 0x23, 0x24, 0x25};
@@ -29,8 +29,8 @@ ImageRecord **g_pCastBmp = {0};
 
 void far spellfx_cast_and_dispatch(void) {
     s16 nSpellId;
-    s16 nEffectParam;
-    s16 nDamage;
+    short nEffectParam;
+    short nDamage;
 
     cspell_subsystem_load();
     nSpellId =
@@ -73,7 +73,7 @@ void far spellfx_cast_and_dispatch(void) {
     }
 }
 
-void far spellfx_palette_fade_slot0(s16 caster_slot, s16 damage, s16 effect_param) {
+void far spellfx_palette_fade_slot0(short caster_slot, short damage, s16 effect_param) {
     u32 duration;
 
     audio_play(0x3a);
@@ -88,7 +88,7 @@ void far spellfx_palette_fade_slot0(s16 caster_slot, s16 damage, s16 effect_para
     return;
 }
 
-void far spellfx_combat_play_hit_effect(s16 caster_slot, s16 damage, s16 effect_param) {
+void far spellfx_combat_play_hit_effect(short caster_slot, short damage, s16 effect_param) {
     u32 duration;
 
     if (g_game_mode == 2) {
@@ -105,7 +105,7 @@ void far spellfx_combat_play_hit_effect(s16 caster_slot, s16 damage, s16 effect_
     return;
 }
 
-void far spellfx_overworld_pal_fade_slot2(s16 caster_slot, s16 damage, s16 effect_param) {
+void far spellfx_overworld_pal_fade_slot2(short caster_slot, short damage, s16 effect_param) {
     u32 duration;
 
     if (g_game_mode != 2) {
@@ -122,7 +122,7 @@ void far spellfx_overworld_pal_fade_slot2(s16 caster_slot, s16 damage, s16 effec
     return;
 }
 
-void far spellfx_combat_damage_flash_sfx(s16 caster_slot, s16 damage, s16 effect_param) {
+void far spellfx_combat_damage_flash_sfx(short caster_slot, short damage, s16 effect_param) {
     s32 duration;
 
     audio_play(0x51);
@@ -135,7 +135,7 @@ void far spellfx_combat_damage_flash_sfx(s16 caster_slot, s16 damage, s16 effect
     return;
 }
 
-void far spellfx_palette_event_with_sound(s16 caster_slot, s16 damage, s16 effect_param) {
+void far spellfx_palette_event_with_sound(short caster_slot, short damage, s16 effect_param) {
     s32 duration;
 
     audio_play(0x51);
@@ -148,7 +148,7 @@ void far spellfx_palette_event_with_sound(s16 caster_slot, s16 damage, s16 effec
     return;
 }
 
-void far spellfx_show_msg_pal_fade(s16 caster_slot, s16 damage, s16 effect_param) {
+void far spellfx_show_msg_pal_fade(short caster_slot, short damage, s16 effect_param) {
     u32 duration;
 
     audio_play(0xc);
@@ -161,7 +161,7 @@ void far spellfx_show_msg_pal_fade(s16 caster_slot, s16 damage, s16 effect_param
     return;
 }
 
-void far spellfx_save_then_cmap_recs(s16 target, s16 damage) {
+void far spellfx_save_then_cmap_recs(short target, short damage) {
     spellfx_party_member_take_damage(target, damage);
     if (RND(100) <= (u16)(damage * 10)) {
         audio_play(0xc);
@@ -171,7 +171,7 @@ void far spellfx_save_then_cmap_recs(s16 target, s16 damage) {
     }
 }
 
-void far spellfx_combat_roll_outcome(s16 casterSlot, s16 damage) {
+void far spellfx_combat_roll_outcome(short casterSlot, short damage) {
     spellfx_party_member_take_damage(casterSlot, damage);
     if (RND(100) <= (u16)(damage * 10)) {
         audio_play(0xd);
@@ -181,7 +181,7 @@ void far spellfx_combat_roll_outcome(s16 casterSlot, s16 damage) {
     }
 }
 
-void far spellfx_save_cmap_scene_events(s16 target, s16 damage) {
+void far spellfx_save_cmap_scene_events(short target, short damage) {
     spellfx_party_member_take_damage(target, damage);
     if (RND(100) <= (u16)((damage - 4) * 10)) {
         audio_play(0xd);
@@ -191,7 +191,7 @@ void far spellfx_save_cmap_scene_events(s16 target, s16 damage) {
     }
 }
 
-TimerEventEntry *far spellfx_pal_event_timer_upsert(u16 subId, s32 value) {
+TimerEventEntry *far spellfx_pal_event_timer_upsert(unsigned short subId, s32 value) {
     return timerpool_upsert(2, subId, 0x80, value);
 }
 
@@ -210,8 +210,8 @@ s16 spellfx_event_mask_test_bit(s16 bitIndex) {
     return g_gameState.wPalEventMask & g_aPalEventBitMask[bitIndex];
 }
 
-s16 far spellfx_actor_has_ration(WorldObject far *entry) {
-    register s16 result;
+short far spellfx_actor_has_ration(WorldObject far *entry) {
+    register short result;
     Actor far *actor;
     s16 i;
 
@@ -232,8 +232,8 @@ s16 far spellfx_actor_has_ration(WorldObject far *entry) {
     return result;
 }
 
-s16 far spellfx_actor_has_special_item(WorldObject far *entry) {
-    s16 result;
+short far spellfx_actor_has_special_item(WorldObject far *entry) {
+    short result;
     Actor far *actor;
     s16 i;
 
@@ -278,12 +278,12 @@ void far spellfx_run_request_cmap_dialog(s16 request_type) {
     register MenuPage *page;
     s32 saved_lInsetCameraPosZ;
     s32 saved_z;
-    s16 saved_yaw;
-    s16 saved_viewport_x;
-    s16 saved_viewport_y;
-    s16 saved_viewport_w;
-    s16 saved_viewport_h;
-    u16 redrawMenu;
+    short saved_yaw;
+    short saved_viewport_x;
+    short saved_viewport_y;
+    short saved_viewport_w;
+    short saved_viewport_h;
+    unsigned short redrawMenu;
     s16 renderScene;
 
     running = 1;
@@ -386,7 +386,7 @@ void spellfx_draw_events_caption(void) {
     g_graphics_context.bClip_enabled = 0;
     g_graphics_context.bText_style_flags = 1;
 
-    blit_sprite_indirect((u16)*g_pCastBmp, 0x80, 2, 0);
+    blit_sprite_indirect((unsigned short)*g_pCastBmp, 0x80, 2, 0);
 
     prev_slot = font_activate(0);
     font_activate(g_nSpellFontSlot);
@@ -405,12 +405,12 @@ void spellfx_draw_events_caption(void) {
     font_activate(prev_slot);
 }
 
-void far spellfx_party_member_take_damage(s16 roster_slot, s16 damage) {
+void far spellfx_party_member_take_damage(short roster_slot, short damage) {
     Combatant *member;
     s16 i;
 
     member = &g_gameState.characters[g_gameState.activeParty[roster_slot]];
-    stat_combatant_modify(member, 0x10, (s32)(s16)(-damage << 8), 100);
+    stat_combatant_modify(member, 0x10, (s32)(short)(-damage << 8), 100);
 
     if (g_gameState.nChapter == 8) {
         for (i = 0; i < member->actor_record->itemCount; i++) {

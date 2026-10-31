@@ -3,9 +3,9 @@
 
 #include "structs.h"
 
-extern s16 g_nVisibleEntryCount;
-extern u16 g_wVisibleEntrySegment;
-extern u16 *g_pwVisibleEntryOffsets;
+extern short g_nVisibleEntryCount;
+extern unsigned short g_wVisibleEntrySegment;
+extern unsigned short *g_pwVisibleEntryOffsets;
 extern s32 g_aFilterTable[43];
 extern s32 *g_pVisibleEntryDistances;
 

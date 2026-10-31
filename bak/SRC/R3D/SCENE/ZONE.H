@@ -3,15 +3,15 @@
 
 #include "structs.h"
 
-extern u16 g_wZoneFlags;
+extern unsigned short g_wZoneFlags;
 extern char g_szZoneRefFilenameTmpl[11];
-extern s16 g_game_mode;
+extern short g_game_mode;
 extern WorldEntity *g_world_camera;
 extern ViewContext *g_world_widget;
 extern unsigned char g_bZoneSkyColor;
 extern unsigned char g_bZoneGroundColor;
 extern void *g_pZoneGridData;
-extern s16 g_nZoneRenderTableCount;
+extern short g_nZoneRenderTableCount;
 extern char g_szZoneMapFilename[13];
 
 extern void zone_subsystem_init(void);

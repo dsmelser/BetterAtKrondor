@@ -102,8 +102,8 @@ static void far charscreen_draw_sheet_stat_row(s16 stat_idx, s16 value, s16 part
     s16 x_base;
     s16 y_pos;
     s16 skillIdx;
-    u16 selected;
-    u16 improved;
+    unsigned short selected;
+    unsigned short improved;
     char buf[10];
 
     x_base = stat_idx > 9 ? 0x93 : 0x1e;
@@ -170,7 +170,7 @@ static void far charscreen_draw_stat_row(s16 stat_idx, s16 cur_val, s16 max_val,
     s16 fgColor;
     s16 shadowColor;
     char buf[10];
-    u16 improved;
+    unsigned short improved;
 
     y = stat_idx * 0xb + 0x1c;
     skillIdx = party_slot * 0x11 + stat_idx;
@@ -251,10 +251,10 @@ static void far charscreen_info_draw(Combatant *actor, MenuPage *page, s16 party
 }
 
 void charscreen_info_loop(Combatant *actor) {
-    u16 memberIdx;
+    unsigned short memberIdx;
     s16 firstDraw;
-    u16 redrawFlag;
-    u16 savedBlendMode;
+    unsigned short redrawFlag;
+    unsigned short savedBlendMode;
     MenuPage *page;
     unsigned char far *savedPal;
     unsigned char far *pal_buf;
@@ -284,11 +284,11 @@ void charscreen_info_loop(Combatant *actor) {
         do {
             do {
                 if (redrawFlag != 0) {
-                    memberIdx = (u16)g_gameState.activeParty[slot];
+                    memberIdx = (unsigned short)g_gameState.activeParty[slot];
                     actor = &g_gameState.characters[memberIdx];
                     page->pEntries[2].bActive_flag = (unsigned char)gstate_actor_is_caster(actor);
                     if (redrawFlag != 1) {
-                        memberIdx = (u16)g_gameState.activeParty[slot];
+                        memberIdx = (unsigned short)g_gameState.activeParty[slot];
                         actor = &g_gameState.characters[memberIdx];
                         charscreen_info_draw(actor, page, memberIdx, 1, pal_buf);
                         if ((g_pPalQueuedForFlip != (unsigned char far *)0x0) && (firstDraw != 0)) {
@@ -418,9 +418,9 @@ static s32 charscreen_temple_heal_price(Combatant *actor, s16 multiplier_pct) {
 }
 
 void charscreen_temple_heal_menu(s16 actor_filter, s16 mode) {
-    u16 member_idx;
-    u16 redraw_flag;
-    u16 saved_blend_mode;
+    unsigned short member_idx;
+    unsigned short redraw_flag;
+    unsigned short saved_blend_mode;
     MenuPage *page;
     unsigned char far *saved_pal;
     unsigned char far *pal_buf;

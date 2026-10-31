@@ -46,15 +46,15 @@
 
 EnginePrefs *g_engine_prefs = {0};
 s16 g_nMenuReentering = 0;
-u16 g_wSaveSlotDirValid = 0x0000;
-u16 g_wSaveFileValid = 0x0000;
-u16 g_wMenuCursorPreset = 0x0001;
+unsigned short g_wSaveSlotDirValid = 0x0000;
+unsigned short g_wSaveFileValid = 0x0000;
+unsigned short g_wMenuCursorPreset = 0x0001;
 
-u16 g_wCurrentSaveSlotKey;
-u16 g_wCurrentSaveFileKey;
+unsigned short g_wCurrentSaveSlotKey;
+unsigned short g_wCurrentSaveFileKey;
 s16 g_wBookmarkFmapX;
 s16 g_wBookmarkFmapY;
-u16 g_wBookmarkCompassIcon;
+unsigned short g_wBookmarkCompassIcon;
 char g_szSaveSlotDirName_51cc[13];
 unsigned char g_abSaveFileHeader[90];
 
@@ -94,7 +94,7 @@ s16 mainmenu_save_main_menu(s16 reentering) {
     s16 bFirstFade = 1;
     s16 bFullRender = 1;
     s16 bRecheckSaves = 1;
-    u16 wRedraw = 0;
+    unsigned short wRedraw = 0;
     u16 overlay;
     s16 track_id;
     u16 key;
@@ -326,9 +326,9 @@ s16 mainmenu_save_load_game_dialog(void) {
     s16 file_dirty;
     s16 labels_dirty;
     s16 page_active;
-    u16 slot_key;
-    u16 file_key;
-    u16 file_click;
+    unsigned short slot_key;
+    unsigned short file_key;
+    unsigned short file_click;
     s16 nav_a;
     s16 nav_b;
     s16 nav_c;
@@ -450,7 +450,7 @@ s16 mainmenu_save_load_game_dialog(void) {
         }
 
         page_active = 0;
-        action_key = menupage_run(page, (u16 *)&file_dirty);
+        action_key = menupage_run(page, (unsigned short *)&file_dirty);
         if (action_key) {
             page_active = (menupage_state_0e7c() == 2) ? 1 : 0;
         } else {
@@ -657,7 +657,7 @@ s16 mainmenu_save_save_game_dialog(void) {
             slot_dirty = 0;
         }
         if (slot_reload != 0) {
-            if (listwidget_get_current_entry(slot_list, &slot_text, (u16 *)&slot_key)) {
+            if (listwidget_get_current_entry(slot_list, &slot_text, (unsigned short *)&slot_key)) {
                 mainmenu_save_enum_files_slot(file_list, slot_text, slot_key);
             }
             if (need_file_sel != 0) {
@@ -675,9 +675,9 @@ s16 mainmenu_save_save_game_dialog(void) {
             dbl_single = 0;
         }
         if (file_dirty != 0) {
-            if (listwidget_get_current_entry(slot_list, (char **)0, (u16 *)0) != 0) {
+            if (listwidget_get_current_entry(slot_list, (char **)0, (unsigned short *)0) != 0) {
                 page->pEntries[2].wEnable_gate = 0;
-                if (listwidget_get_current_entry(file_list, (char **)0, (u16 *)0) != 0)
+                if (listwidget_get_current_entry(file_list, (char **)0, (unsigned short *)0) != 0)
                     page->pEntries[3].wEnable_gate = 0;
                 else
                     page->pEntries[3].wEnable_gate = 1;
@@ -688,10 +688,10 @@ s16 mainmenu_save_save_game_dialog(void) {
             file_dirty = 0;
         }
         if (file_reload != 0) {
-            if (listwidget_get_current_entry(slot_list, &slot_text, (u16 *)0) != 0) {
+            if (listwidget_get_current_entry(slot_list, &slot_text, (unsigned short *)0) != 0) {
                 dlgwidget_dialog_focus_widget(dialog, 1);
                 dlgwidget_dialog_set_widget_text(dialog, 0, slot_text);
-                if (listwidget_get_current_entry(file_list, &file_text, (u16 *)0) != 0)
+                if (listwidget_get_current_entry(file_list, &file_text, (unsigned short *)0) != 0)
                     dlgwidget_dialog_set_widget_text(dialog, 1, file_text);
                 else
                     dlgwidget_dialog_set_widget_text(dialog, 1, "");
@@ -754,19 +754,19 @@ s16 mainmenu_save_save_game_dialog(void) {
     skip_labels_reset:
 
         page_active = 0;
-        dispatch_key = menupage_run(page, (u16 *)&lbl_dirty);
+        dispatch_key = menupage_run(page, (unsigned short *)&lbl_dirty);
         if (dlgwidget_text_input_dialog_pump(dialog) != 0) {
             dispatch_key = 0xc1;
         } else if (dispatch_key != 0) {
             page_active = (menupage_state_0e7c() == 2);
             goto dispatch;
-        } else if (listwidget_handle_click(slot_list, (u16 *)&click_out) != 0) {
+        } else if (listwidget_handle_click(slot_list, (unsigned short *)&click_out) != 0) {
             if (click_out != 0)
                 file_reload = 1;
             else
                 dispatch_key = 0xc5;
             goto dispatch;
-        } else if (listwidget_handle_click(file_list, (u16 *)&click_out) != 0) {
+        } else if (listwidget_handle_click(file_list, (unsigned short *)&click_out) != 0) {
             if (click_out != 0 && (dbl_armed != 0 || dbl_pending != 0 || dbl_single != 0)) {
                 if (dbl_pending != 0) {
                     dbl_armed = 0;
@@ -789,8 +789,8 @@ s16 mainmenu_save_save_game_dialog(void) {
             }
             if (dbl_single != 0) {
                 names_match = 0;
-                if (listwidget_get_current_entry(slot_list, &slot_text, (u16 *)0) != 0 &&
-                    listwidget_get_current_entry(file_list, &file_text, (u16 *)0) != 0) {
+                if (listwidget_get_current_entry(slot_list, &slot_text, (unsigned short *)0) != 0 &&
+                    listwidget_get_current_entry(file_list, &file_text, (unsigned short *)0) != 0) {
                     char *p;
                     dlgwidget_dialog_rstrip_widgets(dialog);
                     p = dlgwidget_dialog_widget_text_ptr(dialog, 0);
@@ -850,7 +850,7 @@ s16 mainmenu_save_save_game_dialog(void) {
                 dialog_play_record(0x7a, 1);
             } else if (dialog_play_record(0x70, 1) == 0) {
                 if (listwidget_get_current_entry(slot_list, &slot_text,
-                                                 (u16 *)&slot_key) != 0) {
+                                                 (unsigned short *)&slot_key) != 0) {
                     sprintf(sprintf_buf, "%s\\%s.G%02d", "GAMES", slot_text, slot_key);
                     if (mainmenu_save_rmdir_recursive(sprintf_buf) == 0)
                         dialog_play_record(0x7f, 1);
@@ -871,9 +871,9 @@ s16 mainmenu_save_save_game_dialog(void) {
                 dialog_play_record(0x7b, 1);
             } else if (dialog_play_record(0x71, 1) == 0) {
                 if (listwidget_get_current_entry(slot_list, &slot_text,
-                                                 (u16 *)&slot_key) != 0 &&
+                                                 (unsigned short *)&slot_key) != 0 &&
                     listwidget_get_current_entry(file_list, (char **)0,
-                                                 (u16 *)&file_key) != 0) {
+                                                 (unsigned short *)&file_key) != 0) {
                     sprintf(sprintf_buf, "%s\\%s.G%02d\\SAVE%02d.GAM", "GAMES", slot_text, slot_key,
                             file_key);
                     remove(sprintf_buf);
@@ -938,7 +938,7 @@ s16 mainmenu_save_save_game_dialog(void) {
                 rc = mainmenu_savelist_find_by_text(slot_list, slot_text);
             }
             listwidget_set_selection(slot_list, rc);
-            if (listwidget_get_current_entry(slot_list, &slot_text, (u16 *)&slot_key) !=
+            if (listwidget_get_current_entry(slot_list, &slot_text, (unsigned short *)&slot_key) !=
                 0) {
                 mainmenu_save_enum_files_slot(file_list, slot_text, slot_key);
             }
@@ -953,7 +953,7 @@ s16 mainmenu_save_save_game_dialog(void) {
                 }
             } else {
                 listwidget_set_selection(file_list, rc);
-                listwidget_get_current_entry(file_list, &file_text, (u16 *)&file_key);
+                listwidget_get_current_entry(file_list, &file_text, (unsigned short *)&file_key);
             }
             mainmenu_save_party_to_tmp();
             strcpy((char *)g_abSaveFileHeader, file_text);
@@ -996,7 +996,7 @@ s16 mainmenu_save_save_game_dialog(void) {
         commit_slot_selection:
             if (running == 0) {
                 if (listwidget_get_current_entry(slot_list, &slot_text,
-                                                 (u16 *)&slot_key) != 0) {
+                                                 (unsigned short *)&slot_key) != 0) {
                     strcpy(g_szSaveSlotDirName_51cc, slot_text);
                     g_wCurrentSaveSlotKey = slot_key;
                     g_wSaveSlotDirValid = 1;
@@ -1014,13 +1014,13 @@ s16 mainmenu_save_save_game_dialog(void) {
                 dialog_play_record(0x7d, 1);
                 continue;
             }
-            if (listwidget_get_current_entry(slot_list, &slot_text, (u16 *)&slot_key) !=
+            if (listwidget_get_current_entry(slot_list, &slot_text, (unsigned short *)&slot_key) !=
                 0) {
                 strcpy(g_szSaveSlotDirName_51cc, slot_text);
                 g_wCurrentSaveSlotKey = slot_key;
                 g_wSaveSlotDirValid = 1;
                 if (listwidget_get_current_entry(file_list, &file_text,
-                                                 (u16 *)&file_key) != 0) {
+                                                 (unsigned short *)&file_key) != 0) {
                     strcpy((char *)g_abSaveFileHeader, file_text);
                     g_wCurrentSaveFileKey = file_key;
                     g_wSaveFileValid = 1;
@@ -1059,7 +1059,7 @@ s16 mainmenu_save_prefs_menu_run(void) {
     s16 dirty_text;
     s16 dirty_audio;
     s16 dirty_combat;
-    u16 menupage_redraw;
+    unsigned short menupage_redraw;
     s16 labels_redraw;
     s16 overlay_mode;
     s16 file_error;
@@ -1384,7 +1384,7 @@ void far mainmenu_save_show_ctrd_modal(void) {
     uiwidget_draw_text_shadowed_dflt(g_versionBanner, 0xaa, 0xae, 0xa0 - (textWidth >> 1),
                                      0x38);
     if (record != (ImageRecord **)0x0) {
-        blit_sprite_indirect((u16)*record, 0xa0 - ((*record)->nWidth >> 1), 100, 0);
+        blit_sprite_indirect((unsigned short)*record, 0xa0 - ((*record)->nWidth >> 1), 100, 0);
     }
     screen_frame_present();
     while (combat_arena_wait_confirm_cancel() == 0)
@@ -1603,7 +1603,7 @@ void mainmenu_save_slot_exists(void) {
 void mainmenu_save_request_load_game(void) {
     MenuPage *page;
     ListWidget *list;
-    u16 slotKey;
+    unsigned short slotKey;
     char *slotText;
 
     if (mainmenu_save_games_dir_exists() == 0)
@@ -1624,7 +1624,7 @@ done:;
 }
 
 s16 mainmenu_save_enum_directories(ListWidget *list) {
-    u16 slotKey;
+    unsigned short slotKey;
     struct ffblk dta;
     char local_path[50];
     s16 rc;
@@ -1666,7 +1666,7 @@ s16 mainmenu_save_parse_filename(char *filename, char *out_name, s16 *out_slot) 
 }
 
 s16 mainmenu_save_enum_files_slot(ListWidget *list, char *slot_name, s16 slot_id) {
-    u16 key;
+    unsigned short key;
     s16 state;
     char title[14];
     char dta[30];
@@ -1710,9 +1710,9 @@ s16 mainmenu_save_parse_read_title(char *title_buf, char *sig_block, s16 *out_sa
     return 0;
 }
 
-s16 mainmenu_savelist_insert_sorted(ListWidget *list, char *label, u16 key) {
+s16 mainmenu_savelist_insert_sorted(ListWidget *list, char *label, unsigned short key) {
     s16 count;
-    u16 entryKey;
+    unsigned short entryKey;
     s16 index;
 
     count = listwidget_count(list);
@@ -1734,7 +1734,7 @@ s16 mainmenu_savelist_nextfree_key(ListWidget *list) {
     s16 count;
     s16 prev_key;
     s16 i;
-    u16 key;
+    unsigned short key;
 
     count = listwidget_count(list);
     prev_key = 0;
@@ -1766,7 +1766,7 @@ s16 mainmenu_savelist_nextfree_nobm(ListWidget *list) {
     s16 count;
     s16 prev_key;
     s16 i;
-    u16 key;
+    unsigned short key;
 
     count = listwidget_count(list);
     prev_key = 0;
@@ -1803,7 +1803,7 @@ s16 mainmenu_savelist_find_by_text(ListWidget *list, char *text) {
     index = 0;
     if (index < count) {
         do {
-            if (listwidget_get_entry_at(list, index, &label, (u16 *)0) != 0 &&
+            if (listwidget_get_entry_at(list, index, &label, (unsigned short *)0) != 0 &&
                 stricmp(label, text) == 0) {
                 return index;
             }

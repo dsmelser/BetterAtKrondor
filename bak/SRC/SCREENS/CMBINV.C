@@ -34,7 +34,7 @@
 #include "defines.h"
 
 
-u16 g_inventory_screen_mode = 0x0000;
+unsigned short g_inventory_screen_mode = 0x0000;
 unsigned char g_bIsRestEncounter = 0x00;
 Actor far *g_other_inventory_actor = {0};
 Actor far *g_pDroppedItemActor = {0};
@@ -51,7 +51,7 @@ void cmbinv_combat_encounter_begin(MenuPage *page, Actor far *actor, s16 pageBas
     ActorSubrecord far *subrec;
     char grid[28];
     MenuEntry *entry;
-    u16 category;
+    unsigned short category;
     s16 found;
 
     maxX = 0;
@@ -189,13 +189,13 @@ void cmbinv_combat_encounter_begin(MenuPage *page, Actor far *actor, s16 pageBas
 
 s16 cmbinv_inventory_screen_run(Actor far *actor, s16 idx, s16 flag) {
 
-    u16 needRedraw;
+    unsigned short needRedraw;
     s16 fadeIn;
     s16 selSlot;
     s16 page;
     s16 result;
-    u16 savedEntryCount;
-    u16 savedBlendMode;
+    unsigned short savedEntryCount;
+    unsigned short savedBlendMode;
     unsigned char far *savedInstalledPal;
     unsigned char far *palBuf;
 
@@ -262,13 +262,13 @@ s16 cmbinv_inventory_screen_run(Actor far *actor, s16 idx, s16 flag) {
         if (needRedraw != 0) {
             if (memberIdx != 0) {
                 g_gameState.nEvtArgActor0 =
-                    (s16)(signed char)((char *)&g_gameState.partySize)[memberIdx];
+                    (short)(signed char)((char *)&g_gameState.partySize)[memberIdx];
                 stat_actor_recalc_equip_bonuses(
                     &g_gameState.characters[g_gameState.nEvtArgActor0]);
             } else {
 
                 g_gameState.nEvtArgActor0 =
-                    (s16)(signed char)g_gameState.activeParty[RND(g_gameState.partySize)];
+                    (short)(signed char)g_gameState.activeParty[RND(g_gameState.partySize)];
             }
             cmbinv_combat_encounter_begin(g_pInventoryMenuPage, actor, page * 6);
             invui_render_present_sync(g_pInventoryMenuPage, actor, memberIdx, selSlot);
@@ -313,7 +313,7 @@ s16 cmbinv_inventory_screen_run(Actor far *actor, s16 idx, s16 flag) {
                 if (((action < 2) || (4 < action)) && (action != 0x7f)) {
                     if (action == 0x20) {
 
-                        if ((s16)(g_gameState.nEvtArgCount = g_inventory_actor_kind) >= 0) {
+                        if ((short)(g_gameState.nEvtArgCount = g_inventory_actor_kind) >= 0) {
                             dialog_play_record(0x1b7751L, 0);
                         }
                         action = 0;
@@ -1048,7 +1048,7 @@ s16 cmbinv_actor_drop_item_at_pos(Actor far *src_actor, ItemSlot far *item) {
     ItemRecord far *item_rec;
 
     item_rec = itemtbl_record_ptr(item);
-    g_gameState.nEvtArgItemId = (s16)item->item_id;
+    g_gameState.nEvtArgItemId = (short)item->item_id;
     if ((item->flags & 0x40) && (item_rec->wCategory == 1 || item_rec->wCategory == 3)) {
     dialog_774e:
         dialog_play_record(0x1b774eL, 0);
@@ -1070,7 +1070,7 @@ s16 cmbinv_actor_drop_item_at_pos(Actor far *src_actor, ItemSlot far *item) {
                                     g_world_camera->base.pos.xy.nWorld_y);
     }
     g_pDroppedItemActor = g_other_inventory_actor;
-    g_gameState.nEvtArgCount = (s16)g_other_inventory_actor->bResidence;
+    g_gameState.nEvtArgCount = (short)g_other_inventory_actor->bResidence;
     if (cmbinv_actor_pickup_item(g_other_inventory_actor, src_actor, item) == 0) {
         dialog_play_record(0x1b7748L, 0);
         goto return_neg1;

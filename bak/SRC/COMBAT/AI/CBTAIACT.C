@@ -86,7 +86,7 @@ void far combataiact_ranged_attack_turn(Combatant *actor) {
     Combatant *target;
     s16 distance;
     s16 hit;
-    u16 actionId;
+    unsigned short actionId;
     s16 knockback;
     s16 cspell_slot;
 

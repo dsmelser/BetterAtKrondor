@@ -7,11 +7,11 @@
 extern unsigned char g_bInventoryShopMode;
 extern unsigned char g_abInvQuizAnswerTable[13];
 extern unsigned char g_bPicklockSuccess;
-extern s16 g_nPicklockMode;
+extern short g_nPicklockMode;
 extern unsigned char far *g_pPicklockWorkingInv;
 extern Actor far *g_pPicklockOwnerActor;
-extern s16 g_nPicklockScore;
-extern s16 g_nPicklockDiffTier;
+extern short g_nPicklockScore;
+extern short g_nPicklockDiffTier;
 
 extern s16 picklock_screen_run(s16 score, s16 mode, Actor far *record);
 extern void picklock_lock_slide_animation(s16 dir);

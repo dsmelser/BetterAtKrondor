@@ -33,12 +33,12 @@
 void far itemuse_view_look_south_modal(void) {
     s32 savedInsetZ;
     s32 savedZ;
-    s16 savedYaw;
-    u16 savedRedraw;
-    s16 savedViewX;
-    s16 savedViewY;
-    s16 savedViewW;
-    s16 savedViewH;
+    short savedYaw;
+    unsigned short savedRedraw;
+    short savedViewX;
+    short savedViewY;
+    short savedViewW;
+    short savedViewH;
 
     savedRedraw = g_full_redraw_needed;
     savedInsetZ = g_gameState.lInsetCameraPosZ;
@@ -86,7 +86,7 @@ s16 itemuse_dispatch_on_target(Actor far *actor, ItemSlot far *item, ItemSlot fa
     s16 result;
     s16 combat_result;
     u16 flags;
-    u16 category;
+    unsigned short category;
     Combatant *member;
     s16 outcome;
     s16 i;
@@ -130,7 +130,7 @@ s16 itemuse_dispatch_on_target(Actor far *actor, ItemSlot far *item, ItemSlot fa
         return -1;
     }
 
-    g_gameState.nEvtArgCount = (s16)item->item_id;
+    g_gameState.nEvtArgCount = (short)item->item_id;
     actor->needsFlush = TRUE;
 
     if (category != 0 && (s16)category <= 4) {
@@ -228,7 +228,7 @@ s16 itemuse_dispatch_on_target(Actor far *actor, ItemSlot far *item, ItemSlot fa
                     target->flags &= ~0x20;
                     outcome = 1;
                 } else {
-                    g_gameState.nEvtArgItemId = (s16)target->item_id;
+                    g_gameState.nEvtArgItemId = (short)target->item_id;
                     dialog_play_record(0x1b775e, 0);
                     g_gameState.nEvtArgItemId = (u16)item->item_id;
                     return -1;
@@ -267,7 +267,7 @@ s16 itemuse_dispatch_on_target(Actor far *actor, ItemSlot far *item, ItemSlot fa
     } else if (category == 0x10) {
 
         if (item->item_id == 'x') {
-            g_gameState.nEvtArgCount = (s16)item->condition;
+            g_gameState.nEvtArgCount = (short)item->condition;
             if (item->condition == ' ') {
                 s32 map_x = (g_world_camera->base.pos.xy.nWorld_x + -640000) / 0x8f7 + 0x90;
                 s32 map_y = 0xc0 - (g_world_camera->base.pos.xy.nWorld_y + -640000) / 0x92a;
@@ -281,7 +281,7 @@ s16 itemuse_dispatch_on_target(Actor far *actor, ItemSlot far *item, ItemSlot fa
                 g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
                 screen_clear_both_pages();
                 g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-                if ((g_gameState.nEvtArgCount = (s16)g_gameState.nZoneId) == 9) {
+                if ((g_gameState.nEvtArgCount = (short)g_gameState.nZoneId) == 9) {
                     g_graphics_context.bGfx_outline_color = 'l';
                     g_graphics_context.bClip_enabled = g_graphics_context.bGfx_fill_enabled = '\0';
                     draw_rect_filled((s16)map_x + -6, (s16)map_y + -5, 0xc, 10);
@@ -314,7 +314,7 @@ s16 itemuse_dispatch_on_target(Actor far *actor, ItemSlot far *item, ItemSlot fa
         outcome = 1;
         slot_mods = g_gameState.aActorStatModifiers[slot_idx];
         while (i < 8) {
-            stat_apply_modifier((u16 *)slot_mods, &stat_out);
+            stat_apply_modifier((unsigned short *)slot_mods, &stat_out);
             if (slot_mods->wMaskFlags != 0 &&
                 slot_mods->payload.wStatMask == modifier.payload.wStatMask) {
                 outcome = 0;
@@ -341,12 +341,12 @@ s16 itemuse_dispatch_on_target(Actor far *actor, ItemSlot far *item, ItemSlot fa
                     stat_combatant_apply_condition(member, i, -5);
                 }
             }
-            stat_combatant_modify(member, 0x10, (s32)((s16)heal_amt << 8), 100);
+            stat_combatant_modify(member, 0x10, (s32)((short)heal_amt << 8), 100);
             g_gameState.lEvtArgGoldCost = (s32)(s16)stat_actor_get(member, 0x10, 0);
             g_gameState.lEvtArgValue = (s32)(s16)stat_actor_get(member, 0x10, 1);
             g_gameState.lEvtArgGoldCost = (s32)(s16)stat_actor_get(member, 0x10, 0);
             g_gameState.lEvtArgValue = (s32)(s16)stat_actor_get(member, 0x10, 1);
-            g_gameState.lEvtArgAuxValue = (s32)(s16)heal_amt;
+            g_gameState.lEvtArgAuxValue = (s32)(short)heal_amt;
             if ((item->condition += 0xff) == '\0') {
                 cmbinv_actor_inv_remove_item(actor, item);
                 return -1;
@@ -513,7 +513,7 @@ done:
 void far itemuse_apply_stat_effects(Combatant *actor, ItemSlot far *item,
                                     ItemRecord far *record) {
     s16 slotIdx;
-    u16 event_idx;
+    unsigned short event_idx;
     s16 i;
 
     slotIdx = actor->charSlot - 1;
@@ -615,7 +615,7 @@ void far itemuse_party_tick_temporary(void) {
 }
 
 void far itemuse_cam_vert_raise_anim(s32 amplitude_z, s16 apex_hold_frames) {
-    u16 menuRedraw;
+    unsigned short menuRedraw;
     s16 sfxStarted;
     WorldEntity savedCamera;
     s32 zOffset;

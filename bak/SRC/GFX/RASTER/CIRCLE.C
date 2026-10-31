@@ -7,12 +7,12 @@
 #include "SRC/GFX/RASTER/CIRCLE.H"
 #include "SRC/GFX/RASTER/POLYGON.H"
 
-s16 g_nCircleCenterX;
-s16 g_nCircleClipCenterY;
-s16 g_nCircleClipDyMax;
-s16 g_nCircleClipDyMin;
-s16 g_nCircleClipTopY;
-u16 far *g_pSpanBufCursor;
+short g_nCircleCenterX;
+short g_nCircleClipCenterY;
+short g_nCircleClipDyMax;
+short g_nCircleClipDyMin;
+short g_nCircleClipTopY;
+unsigned short far *g_pSpanBufCursor;
 CirclePlotterFn *g_pfnCirclePlotter;
 
 void far draw_circle(s16 radius, s16 cx, s16 cy) {
@@ -37,11 +37,11 @@ u32 near draw_circle_bresenham(s16 radius, s16 cx, s16 cy) {
     register s16 x;
     register s16 r;
     s16 d;
-    u16 rows;
-    u16 far *p;
+    unsigned short rows;
+    unsigned short far *p;
 
     p = g_pSpanBufCursor =
-        (u16 far *)((s32)(s16)g_graphics_context_render.wSpanTableBufSeg << 16);
+        (unsigned short far *)((s32)(s16)g_graphics_context_render.wSpanTableBufSeg << 16);
     x = 0;
     r = radius;
     d = 3 - radius * 2;
@@ -81,7 +81,7 @@ u32 near draw_circle_bresenham(s16 radius, s16 cx, s16 cy) {
 void near record_circle_span(s16 dx, s16 dy) {
     s16 left;
     s16 right;
-    u16 far *p;
+    unsigned short far *p;
 
     left = (g_nCircleCenterX - dx) - (dx >> 1 >> 1 >> 1);
     right = g_nCircleCenterX + dx + (dx >> 1 >> 1 >> 1);

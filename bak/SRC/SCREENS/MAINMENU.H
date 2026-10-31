@@ -5,14 +5,14 @@
 
 extern EnginePrefs *g_engine_prefs;
 extern s16 g_nMenuReentering;
-extern u16 g_wSaveSlotDirValid;
-extern u16 g_wSaveFileValid;
-extern u16 g_wMenuCursorPreset;
-extern u16 g_wCurrentSaveSlotKey;
-extern u16 g_wCurrentSaveFileKey;
+extern unsigned short g_wSaveSlotDirValid;
+extern unsigned short g_wSaveFileValid;
+extern unsigned short g_wMenuCursorPreset;
+extern unsigned short g_wCurrentSaveSlotKey;
+extern unsigned short g_wCurrentSaveFileKey;
 extern s16 g_wBookmarkFmapX;
 extern s16 g_wBookmarkFmapY;
-extern u16 g_wBookmarkCompassIcon;
+extern unsigned short g_wBookmarkCompassIcon;
 extern char g_szSaveSlotDirName_51cc[13];
 extern unsigned char g_abSaveFileHeader[90];
 
@@ -42,7 +42,7 @@ extern s16 mainmenu_save_parse_filename(char *filename, char *out_name, s16 *out
 extern s16 mainmenu_save_enum_files_slot(ListWidget *list, char *slot_name, s16 slot_id);
 extern s16 mainmenu_save_parse_read_title(char *title_buf, char *sig_block, s16 *out_save_id,
                                           char *slot_name, s16 slot_id, s16 *ds_state);
-extern s16 mainmenu_savelist_insert_sorted(ListWidget *list, char *label, u16 key);
+extern s16 mainmenu_savelist_insert_sorted(ListWidget *list, char *label, unsigned short key);
 extern s16 mainmenu_savelist_nextfree_key(ListWidget *list);
 extern s16 mainmenu_savelist_nextfree_nobm(ListWidget *list);
 extern s16 mainmenu_savelist_find_by_text(ListWidget *list, char *text);

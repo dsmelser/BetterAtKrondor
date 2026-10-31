@@ -7,7 +7,7 @@
 
 s16 audio_stop_filter(s16 filter_mode) {
     AudioListNode far *node;
-    s16 prev_mode;
+    short prev_mode;
 
     prev_mode = g_nAudioFilterMode;
     if (filter_mode > 0)

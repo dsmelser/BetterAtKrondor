@@ -17,7 +17,7 @@ unsigned char g_key_ascii;
 unsigned char g_key_held;
 unsigned char g_key_shift_held;
 
-s16 g_text_input_drag_anchor = -1;
+short g_text_input_drag_anchor = -1;
 s16 g_nCursorBlinkOn = 0;
 u32 g_dwCursorBlinkPhaseStart = 0x00000000UL;
 
@@ -26,14 +26,14 @@ Dialog *dlgwidget_dialog_load(char *filename) {
     Dialog *dialog;
     DialogWidget *widget;
     void *string_table;
-    s16 label_offset;
-    u16 widget_count;
+    short label_offset;
+    unsigned short widget_count;
     u16 capacity;
-    s16 rect_x;
-    s16 rect_y;
-    s16 rect_w;
-    u16 label_x;
-    u16 label_y;
+    short rect_x;
+    short rect_y;
+    short rect_w;
+    unsigned short label_x;
+    unsigned short label_y;
     s16 has_fill_image;
     unsigned char bg_color;
     unsigned char fg_color;
@@ -122,7 +122,7 @@ void dlgwidget_dialog_destroy(Dialog *dialog) {
 }
 
 s16 dlgwidget_dialog_add_widget(Dialog *dialog, DialogWidget *widget, char *label_text, char *label,
-                                s16 label_x, s16 label_y) {
+                                short label_x, short label_y) {
     if (dialog->nWidget_count < dialog->nWidget_capacity) {
         dialog->pWidgets[dialog->nWidget_count++] = widget;
         dialog->nFocused_idx = 0;
@@ -178,8 +178,8 @@ void dlgwidget_dlg_focus_first_wdg(Dialog *dialog) {
 s16 dlgwidget_text_input_dialog_pump(Dialog *pDialog) {
     DialogWidget **widgets;
     char ch;
-    s16 x;
-    s16 y;
+    short x;
+    short y;
     s16 char_idx;
     DialogWidget *widget;
     s16 i;
@@ -316,7 +316,7 @@ void dlgwidget_dialog_render(Dialog *dialog, s16 show_selection) {
     }
 }
 
-DialogWidget *dlgwidget_create(u16 capacity, s16 rect_x, s16 rect_y, s16 rect_w,
+DialogWidget *dlgwidget_create(u16 capacity, short rect_x, short rect_y, short rect_w,
                                unsigned char bg_color, unsigned char fg_color, unsigned char cursor_color, unsigned char label_fg,
                                unsigned char selection_color, s16 has_fill_image) {
     DialogWidget *w;
@@ -338,7 +338,7 @@ DialogWidget *dlgwidget_create(u16 capacity, s16 rect_x, s16 rect_y, s16 rect_w,
     w->bSelection_color = selection_color;
     if (has_fill_image != 0) {
         w->pFill_image =
-            (unsigned char far *)alloc_far((u32)(u16)rect_byte_size(w->rect.width, w->rect.height), 0L);
+            (unsigned char far *)alloc_far((u32)(unsigned short)rect_byte_size(w->rect.width, w->rect.height), 0L);
     } else {
         w->pFill_image = (unsigned char far *)0x0;
     }
@@ -381,7 +381,7 @@ void far dlgwidget_set_text(DialogWidget *widget, char *text) {
     }
 }
 
-void dlgwidget_set_label_pos(DialogWidget *widget, char *label, s16 label_x, s16 label_y) {
+void dlgwidget_set_label_pos(DialogWidget *widget, char *label, short label_x, short label_y) {
     widget->nLabel_x = label_x;
     widget->nLabel_y = label_y;
     widget->pLabel = label;

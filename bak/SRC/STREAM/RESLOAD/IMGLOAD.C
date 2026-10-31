@@ -15,14 +15,14 @@
 
 void unpack_2bpp_to_byte_per_pixel(unsigned char huge *src, unsigned char huge *dst, u16 count);
 
-s16 iff_chunk_loader_2f1c(ResFile *file, u16 *count, u16 *out_handle) {
+s16 iff_chunk_loader_2f1c(ResFile *file, unsigned short *count, unsigned short *out_handle) {
 
-    u16 *width;
-    u16 *height;
+    unsigned short *width;
+    unsigned short *height;
     s16 i;
-    u16 n;
+    unsigned short n;
     s16 *slot;
-    u16 *buf;
+    unsigned short *buf;
     s16 rec;
 
     buf = 0;
@@ -31,15 +31,15 @@ s16 iff_chunk_loader_2f1c(ResFile *file, u16 *count, u16 *out_handle) {
         goto L_fail;
     if (res_fread(count, 2, 1, file) != 1)
         goto L_fail;
-    if (!(*out_handle = (u16)my_calloc((*count + 1) * 2, 1)))
+    if (!(*out_handle = (unsigned short)my_calloc((*count + 1) * 2, 1)))
         goto L_cleanup;
-    if (!(*(u16 *)*out_handle = (u16)my_calloc(10, *count)))
+    if (!(*(unsigned short *)*out_handle = (unsigned short)my_calloc(10, *count)))
         goto L_cleanup;
     if ((s32)(cached_file_chunk_size(file) + (-2L)) < (s32)(s16)(*count << 2))
         n = 1;
     else
         n = *count;
-    if (!(buf = (u16 *)my_malloc(n << 2)))
+    if (!(buf = (unsigned short *)my_malloc(n << 2)))
         goto L_cleanup;
     if (res_fread(buf, n << 2, 1, file) != 1)
         goto L_cleanup;
@@ -49,8 +49,8 @@ s16 iff_chunk_loader_2f1c(ResFile *file, u16 *count, u16 *out_handle) {
     slot = (s16 *)*out_handle;
     for (i = 0; i < (s16)*count; i++) {
         *slot = rec;
-        *(u16 *)(rec + 6) = *width;
-        *(u16 *)(rec + 8) = *height;
+        *(unsigned short *)(rec + 6) = *width;
+        *(unsigned short *)(rec + 8) = *height;
         if (*count == n) {
             width++;
             height++;
@@ -66,21 +66,21 @@ L_cleanup:
         my_free(buf);
     if (*out_handle != 0) {
         if (*(s16 *)*out_handle != 0)
-            my_free((void *)*(u16 *)*out_handle);
+            my_free((void *)*(unsigned short *)*out_handle);
         my_free((void *)*out_handle);
     }
 L_fail:
     return 0;
 }
 
-u16 bak_load_image_record_chunked(FileRef *fname) {
-    u16 *image;
+unsigned short bak_load_image_record_chunked(FileRef *fname) {
+    unsigned short *image;
     s16 stream;
     unsigned char huge *buf;
     unsigned char huge *walk;
     unsigned char huge *aux;
     void *scratch;
-    u16 record_count;
+    unsigned short record_count;
     s16 nread;
     s16 aux_size;
     s16 opened;
@@ -99,9 +99,9 @@ u16 bak_load_image_record_chunked(FileRef *fname) {
         if ((u16)(fname = cached_file_open(fname)) < 0)
             goto cleanup;
     }
-    if (iff_chunk_loader_2f1c(fname, &record_count, (u16 *)&image)) {
+    if (iff_chunk_loader_2f1c(fname, &record_count, (unsigned short *)&image)) {
         size =
-            (*(u32(far *)(u16 *, s16 *))g_renderer_vtable.pfn_image_install)(
+            (*(u32(far *)(unsigned short *, s16 *))g_renderer_vtable.pfn_image_install)(
                 image, &aux_size);
         if (!(buf = alloc_far(size, 0L)))
             goto cleanup;
@@ -128,7 +128,7 @@ u16 bak_load_image_record_chunked(FileRef *fname) {
                 walk = buf;
                 while (stream_read(stream, walk, 0x7fff) == 0x7fff)
                     walk += 0x7fff;
-                (*(void(far *)(u16 *, unsigned char far *, u32,
+                (*(void(far *)(unsigned short *, unsigned char far *, u32,
                                unsigned char far *,
                                u32))g_renderer_vtable.pfn_image_decode)(
                     image, buf, stream_size(stream), aux, size);
@@ -153,7 +153,7 @@ u16 bak_load_image_record_chunked(FileRef *fname) {
                                 }
                                 (*(void(far *)(
                                     unsigned char far *, unsigned char far *,
-                                    u16))g_renderer_vtable.pfn_unpack_nibbles_to_planes)(
+                                    unsigned short))g_renderer_vtable.pfn_unpack_nibbles_to_planes)(
                                     aux, walk, nread);
                                 walk += (u32)size * 2;
                             }
@@ -181,7 +181,7 @@ cleanup:
     }
     if (opened)
         cached_file_close(fname);
-    return (u16)image;
+    return (unsigned short)image;
 }
 
 void free_container_pair(s16 *container) {

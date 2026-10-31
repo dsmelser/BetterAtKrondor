@@ -24,30 +24,30 @@
 #include "SRC/DIALOG/DIALOG.H"
 #include "SRC/R3D/CORE/R3D.H"
 
-u16 g_wFmapMapWidth;
-u16 g_wFmapMapHeight;
-u16 g_wFmapHotspotW;
-u16 g_wFmapHotspotH;
-u16 g_wFmapTownCount;
-u16 g_wFmapLabelRectW;
-u16 g_wFmapLabelRectH;
+unsigned short g_wFmapMapWidth;
+unsigned short g_wFmapMapHeight;
+unsigned short g_wFmapHotspotW;
+unsigned short g_wFmapHotspotH;
+unsigned short g_wFmapTownCount;
+unsigned short g_wFmapLabelRectW;
+unsigned short g_wFmapLabelRectH;
 unsigned char far *g_pFmapLabelRectBuf;
 
 ImageRecord **g_pFmapIconTable = {0};
-u16 *g_pFmapTownXCoords = {0};
-u16 *g_pFmapTownYCoords = {0};
-u16 *g_pFmapTownLabels = {0};
+unsigned short *g_pFmapTownXCoords = {0};
+unsigned short *g_pFmapTownYCoords = {0};
+unsigned short *g_pFmapTownLabels = {0};
 
 void far fmap_screen_run(void) {
     s16 curTown;
     s16 pasteCounter;
-    u16 savedBlendMode;
+    unsigned short savedBlendMode;
     unsigned char far *savedPal;
     unsigned char far *palBuf;
     MenuPage *page;
     s16 running;
     s16 needFullRedraw;
-    u16 menuConsumed;
+    unsigned short menuConsumed;
     s16 redrawMenuCounter;
     s16 needSaveRect;
     s16 drawLabelCounter;
@@ -89,7 +89,7 @@ void far fmap_screen_run(void) {
     if (fmap_xy_lookup_for_chapter(&markerX, &markerY) != 0) {
         heading = g_world_camera->base.orientation.yaw;
         fmap_farptr_normalize(&heading);
-        iconBase = ((u16)heading >> 13) << 2;
+        iconBase = ((unsigned short)heading >> 13) << 2;
         haveMarker = 1;
     }
     while (running != 0) {
@@ -111,7 +111,7 @@ void far fmap_screen_run(void) {
                 g_graphics_context.wVgaPage2Base;
             resblit_load_pal_or_stream("fullmap.scr");
             if (haveMarker != 0) {
-                blit_sprite_indirect((u16)g_pFmapIconTable[iconBase], markerX - 3, markerY - 3,
+                blit_sprite_indirect((unsigned short)g_pFmapIconTable[iconBase], markerX - 3, markerY - 3,
                                      0);
             }
             menupage_draw(page);
@@ -144,9 +144,9 @@ void far fmap_screen_run(void) {
                 if (lastTick + 6 <= g_timer_ticks) {
                     lastTick = g_timer_ticks;
                     animFrame++;
-                    animFrame = (s16)animFrame % 4;
+                    animFrame = (short)animFrame % 4;
                 }
-                blit_sprite_indirect((u16)g_pFmapIconTable[iconBase + animFrame], markerX - 3,
+                blit_sprite_indirect((unsigned short)g_pFmapIconTable[iconBase + animFrame], markerX - 3,
                                      markerY - 3, 0);
             }
             if ((pasteCounter == 0) && (needSaveRect != 0)) {
@@ -179,7 +179,7 @@ void far fmap_screen_run(void) {
                     if (prevTown != curTown) {
                         prevLabelX = labelX;
                         prevLabelY = labelY;
-                        labelX = (s16)g_pFmapTownXCoords[curTown] + ((s16)g_wFmapMapWidth >> 1) -
+                        labelX = (s16)g_pFmapTownXCoords[curTown] + ((short)g_wFmapMapWidth >> 1) -
                                  (font_text_width_ds((char *)g_pFmapTownLabels[curTown]) >> 1);
                         labelY = g_pFmapTownYCoords[curTown] - g_wFmapLabelRectH;
                         pasteCounter = 2;
@@ -189,7 +189,7 @@ void far fmap_screen_run(void) {
                         drawLabelCounter = 2;
                     }
                 } else {
-                    labelX = (s16)g_pFmapTownXCoords[curTown] + ((s16)g_wFmapMapWidth >> 1) -
+                    labelX = (s16)g_pFmapTownXCoords[curTown] + ((short)g_wFmapMapWidth >> 1) -
                              (font_text_width_ds((char *)g_pFmapTownLabels[curTown]) >> 1);
                     labelY = g_pFmapTownYCoords[curTown] - g_wFmapLabelRectH;
                     needSaveRect = 1;
@@ -226,11 +226,11 @@ void far fmap_screen_run(void) {
 
 void fmap_twn_load(void) {
     ResFile *file;
-    u16 *labelPtr;
+    unsigned short *labelPtr;
     s16 i;
-    u16 *xPtr;
-    u16 *yPtr;
-    u16 len;
+    unsigned short *xPtr;
+    unsigned short *yPtr;
+    unsigned short len;
 
     g_wFmapLabelRectW = 0xffff;
     file = res_fopen("fmap_twn.dat", "rb");
@@ -246,7 +246,7 @@ void fmap_twn_load(void) {
         i = 0;
         while (i < (s16)g_wFmapTownCount) {
             res_fread(&len, 2, 1, file);
-            *labelPtr = (u16)galloc_safe_zcalloc(len);
+            *labelPtr = (unsigned short)galloc_safe_zcalloc(len);
             res_fread((void *)*labelPtr, 1, len, file);
             res_fread(xPtr, 2, 1, file);
             res_fread(yPtr, 2, 1, file);
@@ -263,7 +263,7 @@ void fmap_twn_load(void) {
     res_fclose(file);
     g_wFmapLabelRectH = g_graphics_context.pFont_height[0] + 1;
     g_pFmapLabelRectBuf =
-        alloc_far((u32)(u16)rect_byte_size(g_wFmapLabelRectW, g_wFmapLabelRectH), 0L);
+        alloc_far((u32)(unsigned short)rect_byte_size(g_wFmapLabelRectW, g_wFmapLabelRectH), 0L);
     g_pFmapIconTable = resblit_load_asset_table("fmap_icn.bmp", 0);
     return;
 }
@@ -283,12 +283,12 @@ void fmap_hotspots_unload(void) {
 }
 
 s16 far fmap_hit_test_cursor(void) {
-    u16 *px = g_pFmapTownXCoords;
-    u16 *py = g_pFmapTownYCoords;
+    unsigned short *px = g_pFmapTownXCoords;
+    unsigned short *py = g_pFmapTownYCoords;
     s16 halfW = (s16)(g_wFmapHotspotW - g_wFmapMapWidth) >> 1;
     s16 halfH = (s16)(g_wFmapHotspotH - g_wFmapMapHeight) >> 1;
-    s16 cx = screen_cursor_get_x();
-    s16 cy = screen_cursor_get_y();
+    short cx = screen_cursor_get_x();
+    short cy = screen_cursor_get_y();
     register s16 i;
     i = 0;
     if (i < (s16)g_wFmapTownCount) {

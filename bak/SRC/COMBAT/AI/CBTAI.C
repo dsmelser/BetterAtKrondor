@@ -337,7 +337,7 @@ s16 far combat_ai_try_aoe_cast_spell_7(Combatant *actor) {
     return result;
 }
 
-#define AI_TURN_INDEX (*(s16 (*)[8][8])((char *)&__dat_1492 + (0x152c - 0x1492)))
+#define AI_TURN_INDEX (*(short (*)[8][8])((char *)&__dat_1492 + (0x152c - 0x1492)))
 
 #define AI_TURN_FN ((EncounterAiTurnFn far *)((char *)&__dat_1492 + (0x1518 - 0x1492)))
 

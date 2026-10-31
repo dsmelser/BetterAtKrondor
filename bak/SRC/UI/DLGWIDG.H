@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern s16 g_text_input_drag_anchor;
+extern short g_text_input_drag_anchor;
 extern s16 g_nCursorBlinkOn;
 extern u32 g_dwCursorBlinkPhaseStart;
 extern unsigned char g_key_scancode;
@@ -16,7 +16,7 @@ extern void dlgwidget_dialog_destroy_bgs(Dialog *dialog);
 extern Dialog *dlgwidget_dialog_create(s16 capacity);
 extern void dlgwidget_dialog_destroy(Dialog *dialog);
 extern s16 dlgwidget_dialog_add_widget(Dialog *dialog, DialogWidget *widget, char *label_text,
-                                       char *label, s16 label_x, s16 label_y);
+                                       char *label, short label_x, short label_y);
 extern void dlgwidget_dialog_set_widget_text(Dialog *dialog, s16 widget_index, char *text);
 extern s16 dlgwidget_dialog_focus_widget(Dialog *dialog, s16 widget_idx);
 extern char *dlgwidget_dialog_widget_text_ptr(Dialog *dialog, s16 widget_idx);
@@ -25,13 +25,13 @@ extern void dlgwidget_dlg_focus_first_wdg(Dialog *dialog);
 extern s16 dlgwidget_text_input_dialog_pump(Dialog *pDialog);
 extern void dlgwidget_dialog_rstrip_widgets(Dialog *dialog);
 extern void dlgwidget_dialog_render(Dialog *dialog, s16 show_selection);
-extern DialogWidget *dlgwidget_create(u16 capacity, s16 rect_x, s16 rect_y, s16 rect_w,
+extern DialogWidget *dlgwidget_create(u16 capacity, short rect_x, short rect_y, short rect_w,
                                       unsigned char bg_color, unsigned char fg_color, unsigned char cursor_color,
                                       unsigned char label_fg, unsigned char selection_color, s16 has_fill_image);
 extern void dlgwidget_destroy(DialogWidget *widget);
 extern void dlgwidget_set_text(DialogWidget *widget, char *text);
-extern void dlgwidget_set_label_pos(DialogWidget *widget, char *label, s16 label_x,
-                                    s16 label_y);
+extern void dlgwidget_set_label_pos(DialogWidget *widget, char *label, short label_x,
+                                    short label_y);
 extern void dlgwidget_capture_background(DialogWidget *widget);
 extern s16 dlgwidget_text_char_at_point(DialogWidget *widget, s16 x, s16 y);
 extern void dlgwidget_text_delete_or_bksp(DialogWidget *widget);

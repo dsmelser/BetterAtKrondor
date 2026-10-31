@@ -4,7 +4,7 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-extern u16 g_font_chunk_tag_ptr;
+extern unsigned short g_font_chunk_tag_ptr;
 
 extern s16 font_load(FileRef *filename);
 extern void font_unload(s16 slot);

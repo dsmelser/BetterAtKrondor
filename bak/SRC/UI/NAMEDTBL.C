@@ -39,12 +39,12 @@ s16 namedtbl_free(s16 *table) {
     s16 i;
 
     if (table != (s16 *)0) {
-        minPtr = (void *)*(u16 *)table[1];
+        minPtr = (void *)*(unsigned short *)table[1];
         for (i = 1; i < *table; i = i + 1) {
             if ((*(s16 *)(table[1] + i * 10) != 0) &&
                 ((minPtr == (void *)0) ||
                  ((void *)*(u16 *)(table[1] + i * 10) < minPtr))) {
-                minPtr = (void *)*(u16 *)(table[1] + i * 10);
+                minPtr = (void *)*(unsigned short *)(table[1] + i * 10);
             }
         }
         if (minPtr != (void *)0) {

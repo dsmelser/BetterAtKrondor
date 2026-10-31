@@ -9,8 +9,8 @@
 #include "SRC/UI/WIDGET.H"
 #include "SRC/UI/UIWIDGET.H"
 
-ListWidget *far listwidget_attach(s16 x, s16 y, s16 width, s16 line_count, s16 capacity,
-                                  MenuPage *parent, s16 child_idx) {
+ListWidget *far listwidget_attach(short x, short y, short width, short line_count, short capacity,
+                                  MenuPage *parent, short child_idx) {
     ListWidget *ptr;
     void *labels;
     void *values;
@@ -60,13 +60,13 @@ ListWidget *far listwidget_attach(s16 x, s16 y, s16 width, s16 line_count, s16 c
     return (ListWidget *)0x0;
 }
 
-ListWidget *far listwidget_load(char *filename, MenuPage *parent, s16 child_idx) {
+ListWidget *far listwidget_load(char *filename, MenuPage *parent, short child_idx) {
     ResFile *file;
-    s16 x;
-    s16 y;
-    s16 width;
-    s16 line_count;
-    s16 capacity;
+    short x;
+    short y;
+    short width;
+    short line_count;
+    short capacity;
     s16 len;
     ListWidget *widget;
     char buf[256];
@@ -121,7 +121,7 @@ s16 listwidget_count(ListWidget *list) {
     return list ? list->wCount : -1;
 }
 
-s16 listwidget_insert_item(ListWidget *list, s16 pos, char *text, u16 payload) {
+s16 listwidget_insert_item(ListWidget *list, s16 pos, char *text, unsigned short payload) {
     char *dest;
 
     if (!list)
@@ -136,7 +136,7 @@ s16 listwidget_insert_item(ListWidget *list, s16 pos, char *text, u16 payload) {
         goto fail;
     dest = galloc_safe_zcalloc(strlen(text) + 1);
     if (dest != 0) {
-        u16 j;
+        unsigned short j;
         strcpy(dest, text);
         j = list->wCount;
         while ((s16)j > pos) {
@@ -171,15 +171,15 @@ s16 far listwidget_remove_item(ListWidget *list, s16 idx) {
     return 0;
 }
 
-s16 far listwidget_get_current_entry(ListWidget *list, char **out_label, u16 *out_value) {
-    u16 idx;
+s16 far listwidget_get_current_entry(ListWidget *list, char **out_label, unsigned short *out_value) {
+    unsigned short idx;
 
     if (list != (ListWidget *)0x0 && list->wCount != 0) {
         idx = list->pParent->wSub_state;
         if (out_label != (char **)0x0) {
             *out_label = list->pLabels[idx];
         }
-        if (out_value != (u16 *)0x0) {
+        if (out_value != (unsigned short *)0x0) {
             *out_value = list->pValues[idx];
         }
         return 1;
@@ -187,12 +187,12 @@ s16 far listwidget_get_current_entry(ListWidget *list, char **out_label, u16 *ou
     return 0;
 }
 
-s16 listwidget_get_entry_at(ListWidget *list, s16 index, char **out_label, u16 *out_value) {
+s16 listwidget_get_entry_at(ListWidget *list, s16 index, char **out_label, unsigned short *out_value) {
     if (((list != (ListWidget *)0x0) && (0 <= index)) && (index < (s16)list->wCount)) {
         if (out_label != (char **)0x0) {
             *out_label = list->pLabels[index];
         }
-        if (out_value != (u16 *)0x0) {
+        if (out_value != (unsigned short *)0x0) {
             *out_value = list->pValues[index];
         }
         return 1;
@@ -207,7 +207,7 @@ s16 listwidget_last_index(ListWidget *list) {
 s16 listwidget_set_selection(ListWidget *list, s16 index) {
     s16 vis;
     s16 half_vis;
-    u16 count;
+    unsigned short count;
 
     count = list->wCount;
     vis = list->nVisible_rows;
@@ -246,7 +246,7 @@ s16 listwidget_get_selection(ListWidget *list) {
     return list ? list->pParent->wSub_state : -1;
 }
 
-s16 far listwidget_handle_click(ListWidget *list, u16 *out_confirm) {
+s16 far listwidget_handle_click(ListWidget *list, unsigned short *out_confirm) {
     s16 half_vis;
     s16 old_scroll;
     s16 hit;
@@ -258,13 +258,13 @@ s16 far listwidget_handle_click(ListWidget *list, u16 *out_confirm) {
         if (hit != -1) {
             switch (screen_input_poll_confirm_cancel()) {
             case 1:
-                if (list->pParent->wSub_state != (u16)hit) {
+                if (list->pParent->wSub_state != (unsigned short)hit) {
                     count = list->wCount;
                     vis = list->nVisible_rows;
                     half_vis = vis >> 1;
                     old_scroll = list->wScroll_offset;
                     if (hit >= 0 && hit < count) {
-                        list->pParent->wSub_state = (u16)hit;
+                        list->pParent->wSub_state = (unsigned short)hit;
                         if (hit < old_scroll || old_scroll + vis <= hit) {
                             if (count <= vis || hit <= half_vis) {
                                 list->wScroll_offset = 0;
@@ -275,11 +275,11 @@ s16 far listwidget_handle_click(ListWidget *list, u16 *out_confirm) {
                             }
                         }
                     }
-                    if (out_confirm != (u16 *)0)
+                    if (out_confirm != (unsigned short *)0)
                         *out_confirm = 0;
                     return 1;
                 } else {
-                    if (out_confirm == (u16 *)0)
+                    if (out_confirm == (unsigned short *)0)
                         return 0;
                     *out_confirm = 1;
                     return 1;
@@ -293,7 +293,7 @@ s16 far listwidget_handle_click(ListWidget *list, u16 *out_confirm) {
 }
 
 s16 far listwidget_hit_test(ListWidget *list) {
-    s16 cur_x;
+    short cur_x;
     s16 rect_x;
     s16 rect_y;
     s16 inner_w2;
@@ -344,10 +344,10 @@ s16 listwidget_ensure_visible(ListWidget *list) {
 }
 
 void listwidget_draw(ListWidget *list) {
-    u16 count;
+    unsigned short count;
     s16 vis;
-    u16 row_idx;
-    u16 selected;
+    unsigned short row_idx;
+    unsigned short selected;
     s16 rect_x;
     s16 rect_y;
     s16 w;

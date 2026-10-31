@@ -106,7 +106,7 @@ void far combataiturn_ranged_attack(Combatant *attacker, Combatant *target, s16 
     s16 knockback;
     s16 slot;
     u16 damageFlags;
-    u16 actionId;
+    unsigned short actionId;
     s16 armor_stat;
     Combatant *actor;
 
@@ -348,7 +348,7 @@ void far combataiturn_take_actor_turn(Combatant *actor) {
         rand_pct = RND(100);
         if (rand_pct < 0x5b) {
             fn = *(u16(far **)(Combatant *)) &
-                 g_encounter_ai_action_table[*(s16 *)((char *)g_encounter_ai_action_table +
+                 g_encounter_ai_action_table[*(short *)((char *)g_encounter_ai_action_table +
                                                         ((s16)(signed char)actor->inner->aiEncounterProfile
                                                          << 4) +
                                                         (action_index << 1) + 0x10) -

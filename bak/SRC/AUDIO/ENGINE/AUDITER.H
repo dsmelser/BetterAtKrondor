@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern s16 g_nAudioIterFilter;
+extern short g_nAudioIterFilter;
 extern AudioListNode far *g_pAudioIterCursor;
 
 extern AudioListNode far *audio_iter(s16 filter);

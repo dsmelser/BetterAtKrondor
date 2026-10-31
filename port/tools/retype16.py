@@ -6,14 +6,22 @@ LP64 hosts), which silently changes struct layouts, file formats and 16-bit
 wraparound. This tool rewrites every integer type-specifier sequence in the
 game's C sources to the fixed-width names from ``bak/INCLUDE/gtypes.h``:
 
-    int, short, signed, short int, ...            -> s16
-    unsigned, unsigned int, unsigned short, ...    -> u16
+    int, signed, signed int                       -> s16
+    unsigned, unsigned int                         -> u16
     long, long int, signed long, ...               -> s32
     unsigned long, unsigned long int               -> u32
 
-``char`` types are left alone (8-bit everywhere). Under Borland the typedefs
-resolve to the original types, so the rewrite is byte-neutral for the DOS
-build; natively they resolve to <stdint.h> types.
+``char`` and ``short`` types are left alone: both already have the same width
+natively. ``short`` must not become ``s16``/``u16`` either, because under
+Borland those are ``int``/``unsigned int``, and BC++ 2.0 (which compiles a few
+of the game's modules) treats ``unsigned short`` differently from ``unsigned
+int``: it promotes ``unsigned short`` to signed ``int``, so a comparison with an
+``int`` is signed (verified: SHAPETBL.C's ``i < g_spriteBankCount`` assembles to
+JL with ``unsigned short`` and to JB with ``unsigned int``).
+
+Under Borland the typedefs resolve to exactly the original types, so the
+rewrite is byte-neutral for the DOS build; natively they resolve to <stdint.h>
+types.
 
 The rewrite is token-aware: comments, string/char literals, ``#include`` /
 ``#pragma`` / conditional directives and Borland inline ``asm`` statements
@@ -40,7 +48,7 @@ class SweepError(Exception):
 
 def canonical(words: list[str]) -> str | None:
     """Map a type-specifier keyword run to its fixed-width name (None = keep)."""
-    if "char" in words:
+    if "char" in words or "short" in words:
         return None
     is_unsigned = "unsigned" in words
     longs = words.count("long")

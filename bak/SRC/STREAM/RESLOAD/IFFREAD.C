@@ -82,7 +82,7 @@ s32 near chunk_seek_rollback(IffResReader *reader) {
 s32 chunk_seek(ResFile *handle, char *chunk_id, s16 mode) {
     IffResReader *reader;
     s16 len;
-    s16 saved_skip_count;
+    short saved_skip_count;
 
     if ((handle == 0) || ((reader = iff_reader_find(handle)) == 0)) {
         return -1L;

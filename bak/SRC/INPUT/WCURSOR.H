@@ -3,8 +3,8 @@
 
 #include "structs.h"
 
-extern u16 g_nHitTestEntryCount;
-extern u16 g_nHitTestWriteSlot;
+extern unsigned short g_nHitTestEntryCount;
+extern unsigned short g_nHitTestWriteSlot;
 extern WorldHotspot *g_pWorldHitTestTable;
 extern s32 g_anEntityKindRenderDist[43];
 

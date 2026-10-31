@@ -5,11 +5,11 @@
 #include "SRC/R3D/CORE/R3D.H"
 #include "SRC/SYS/PANICF.H"
 
-s16 g_nActorKnockbackColorIdx = 0;
-s16 g_nActorSpriteFlip = 0;
-u16 g_nActorShakeX = 0x0000;
-u16 g_nActorShakeY = 0x0000;
-u16 g_bForceOverlay = 0x0000;
+short g_nActorKnockbackColorIdx = 0;
+short g_nActorSpriteFlip = 0;
+unsigned short g_nActorShakeX = 0x0000;
+unsigned short g_nActorShakeY = 0x0000;
+unsigned short g_bForceOverlay = 0x0000;
 
 void *actormotion_xzmalloc(u16 size) {
     void *p;
@@ -26,7 +26,7 @@ void actormotion_xzfree(void *ptr) {
     free(ptr);
 }
 
-WorldEntity *actormotion_vec_alloc(u16 type_tag) {
+WorldEntity *actormotion_vec_alloc(unsigned short type_tag) {
     WorldEntity *entity;
 
     entity = actormotion_xzmalloc(0x24);

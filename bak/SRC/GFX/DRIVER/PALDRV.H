@@ -4,20 +4,20 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-extern s16 g_palette_cycle_count;
-extern s16 g_nPaletteScaledIntensity;
-extern s16 g_nPaletteScaledLevel;
+extern short g_palette_cycle_count;
+extern short g_nPaletteScaledIntensity;
+extern short g_nPaletteScaledLevel;
 extern s16 g_nCurChunkSize;
-extern u16 g_awPaletteSizeByAdapter[16];
+extern unsigned short g_awPaletteSizeByAdapter[16];
 extern char g_szPalVgaChunkTag[9];
 extern char g_szPalEgaChunkTag[9];
 extern char g_szPalCgaChunkTag[9];
 extern char g_szPalEmptyChunkTag[1];
-extern u16 g_apszPalChunkTagByAdapter[16];
+extern unsigned short g_apszPalChunkTagByAdapter[16];
 extern unsigned char far *g_pCurPalette;
-extern s16 g_palette_cycle_end[10];
-extern s16 g_palette_cycle_start[10];
-extern s16 g_palette_cycle_target[10];
+extern short g_palette_cycle_end[10];
+extern short g_palette_cycle_start[10];
+extern short g_palette_cycle_target[10];
 
 extern unsigned char far *chunk_load_into_slot(FileRef *file);
 extern unsigned char far *palette_set_active(unsigned char far *palette);

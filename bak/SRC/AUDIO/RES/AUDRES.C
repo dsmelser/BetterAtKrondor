@@ -7,7 +7,7 @@
 #include "SRC/STREAM/CODEC/STREAM.H"
 
 unsigned char far *audres_load_chunk_by_mode(ResFile *file, u16 size_lo, u16 size_hi, u16 *out_size,
-                                     u16 allocTag) {
+                                     unsigned short allocTag) {
     AudFragNode far *cursor;
     unsigned char ssmRecordTag;
     u32 sum;
@@ -201,7 +201,7 @@ s16 audres_resource_read_fragmented(s16 stream_id, AudFragNode far *fragment_lis
         *(u16 far *)(hdrp + 2) = (u16)((s32)(data_ptr - out_buf) + (s32)0xfffe);
         *(u16 far *)(hdrp + 4) = fragment_list->wSize;
 
-        stream_seek(stream_id, (u32)(u16)(fragment_list->wKey + 2), 0);
+        stream_seek(stream_id, (u32)(unsigned short)(fragment_list->wKey + 2), 0);
 
         if (stream_read(stream_id, data_ptr, fragment_list->wSize) != fragment_list->wSize) {
             return 0;

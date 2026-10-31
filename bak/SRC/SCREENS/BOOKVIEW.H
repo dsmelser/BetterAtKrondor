@@ -3,9 +3,9 @@
 
 #include "structs.h"
 
-extern u16 g_wTextWrapXAccum;
-extern u16 g_wTextWrapLinesDrawn;
-extern u16 g_wTextWrapLinesRemaining;
+extern unsigned short g_wTextWrapXAccum;
+extern unsigned short g_wTextWrapLinesDrawn;
+extern unsigned short g_wTextWrapLinesRemaining;
 extern BookViewerState *g_pBookViewer;
 
 extern void bookview_init(void);
