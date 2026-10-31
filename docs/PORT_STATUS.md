@@ -60,6 +60,7 @@ null) that expand to the original under Borland.
 | `DIALOG/ASKABOUT.C` | KEYWORD.DAT's 16-bit string offsets stay offsets and are resolved where a keyword is read (`KEYWORD`); the scratch menu's page and entries are cleared and sized at native size (`RECORD_SIZE`); a party member's name is read by its field, not by its offset in the game state; the dialog box comes back in a real four-word block (below) |
 | `SCREENS/CREDITS.C` | `credits_load` reads CRED.DAT's 16-bit string offsets aside and builds the pointer table from them |
 | `UI/NAMEDTBL.C` | label tables (`LBL_*.DAT`) are loaded into a handle with the string pool and the labels' pointers; the original rebases the records' 16-bit offsets in place and frees the pool as the lowest of them |
+| `GAME/STATE/GSTATE.C` | event 7535h (the chapter's default speaker) in chapter 0, before a game is loaded, gives what the original reads before its table (below) |
 | `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |
@@ -164,6 +165,10 @@ with user-supplied ROMs) comes after M1, behind a toggle.
 - **A null near string is empty.** DGROUP starts with four zero bytes, Borland's null-pointer check area,
   so a near pointer left 0 reads as an empty string. The dialogs rely on it: before a game is loaded the
   party's name pointers are 0, and the main menu's dialogs copy them (`NEAR_STR` natively).
+- **Chapter 0's default speaker comes from the byte before the table.** `gstate_event_read(7535h)` indexes
+  `g_chapterDefaultSpeaker` by chapter - 1, and the main menu's dialogs ask before any game is loaded: the
+  original reads the high byte of `g_pendingTempWriteRegion`, FFh while no save is pending, so the speaker
+  is -1 (and its name, read from before the party's records, empty).
 - **Four locals filled through the address of one.** The ask-about menu builders pass `&nX` to
   `dialog_apply_style_state`, which writes eight bytes: x, y, width and height land in `nX`, `nY`, `nWidth`
   and `nHeight` because Borland lays those locals out in a row. Natively the write hit the stack guard.

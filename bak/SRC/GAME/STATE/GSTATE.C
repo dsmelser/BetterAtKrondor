@@ -78,8 +78,18 @@ unsigned short far gstate_event_read(unsigned short id) {
     case 13:
         return g_gameState.nEvtArgDlgResult;
     case 5:
+#ifdef BAK_NATIVE
+        if (gstate_is_party_member(CHR_PUG))
+            return CHR_PUG;
+        /* Chapter 0 (no game loaded yet) reads the byte before the table: in the
+         * original's DGROUP the high byte of g_pendingTempWriteRegion (FFh when unarmed). */
+        if (g_gameState.nChapter == 0)
+            return (unsigned short)(char)((u16)g_pendingTempWriteRegion >> 8);
+        return g_chapterDefaultSpeaker[g_gameState.nChapter - 1];
+#else
         return gstate_is_party_member(CHR_PUG) ? CHR_PUG
                                                : g_chapterDefaultSpeaker[g_gameState.nChapter - 1];
+#endif
     case 10: {
         short h = (short)(g_gameState.game_time % 0xa8c0 / 0x708);
         return (h >= 4 && h < 0x14) ? 1 : 0;
