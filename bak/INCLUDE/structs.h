@@ -1085,7 +1085,7 @@ struct R3dRendererState {
     unsigned char bMeshRenormCount;
     unsigned char _pad_0xd[1];
     unsigned char bCurMeshLod;
-    unsigned char _pad_0xf[1];
+    unsigned char bCamSetupResetFlag;
     unsigned char bSkipFarEdgeCull;
     unsigned char bActorViewportClip;
     unsigned char _pad_0x12[1];
@@ -1105,10 +1105,10 @@ struct R3dRendererState {
     short nMeshOriginX;
     short nMeshOriginY;
     short nMeshOriginZ;
-    unsigned char _pad_0x71[12];
+    s32 camCurWorldPos[3];
     short nCamViewYaw;
     short nCamViewPitch;
-    unsigned char _pad_0x81[2];
+    short nCamViewHeading;
     short nCurModelIdx;
     void far *pCurActorPagedRec;
     unsigned char *pCurMeshPartVisTable;
@@ -1116,7 +1116,7 @@ struct R3dRendererState {
     s32 nActorBoundExtent;
     s32 nActorLodZ;
     unsigned short wActorProjScale;
-    unsigned char _pad_0x99[6];
+    short vec3LightDirObj[3];
     s32 nActorClampedCamZ;
     short nMeshNormOriginX;
     short nActorFarClipThreshold;
