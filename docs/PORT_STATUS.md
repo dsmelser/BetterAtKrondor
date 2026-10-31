@@ -28,16 +28,17 @@ through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the 
 party's portraits for EMS, plays the intro to its end and scrolls the credits, starting over until a key
 or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. Quit To
 DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
-come back, and Start New Game fades into chapter 1, whose opening book stops at BLITCHNK.ASM's
-`blit_chunky`. The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
+come back, and Start New Game fades into chapter 1, whose opening book pages through with keys or
+clicks; the chapter cutscene after it stops at its first speech bubble (below). The whole tour runs
+clean under the ASan preset. The MIDI the game sends is not played yet:
 `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
 **Beyond the main menu** (M2):
 
-1. **After the book**: the book pages through with keys or clicks, then the chapter cutscene stops in
-   `draw_circle_bresenham` (CIRCLE.C builds its span buffer's pointer as `seg << 16`).
+1. **After the book**: the book pages through with keys or clicks, then the chapter cutscene's first
+   speech bubble (`draw_circle`) stops at POLYGON.ASM's `fill_spans_dispatch`.
 2. **The game state**: done, see `TEMP.GAM` below; not yet exercised by the game, which stops before it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -85,6 +86,7 @@ null) that expand to the original under Borland.
 | `GAME/STATE/GSTATE.C`, `GSTATE.H`, `SYS/BOOT.C`, `SCREENS/MAINMENU.C`, `COMBAT/ENC/CBENC.C`, `GAME/ENC/RGNENC.C`, `COMBAT/ACTOR/CACTOR.C` | `TEMP.GAM`'s records with near pointers are converted field by field (below); P1.DAT's `CombatantState`s too |
 | `COMBAT/ENC/CBENC.C`, `CBENC.H`, `SCREENS/CMBINV.C` | encounter pools sized with `RECORD_SIZE` (7 `Combatant`s, `CombatantState`s, `AnimSlot`s); `g_inner_pool_B` is a `NearPtr`; a party slot's `Combatant` taken as `characters[slot - 1]`, where the original adds the 16-bit stride to `g_gameState` |
 | `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
+| `GFX/RASTER/CIRCLE.C` | `draw_circle_bresenham` builds the span table's far pointer with `MK_FP` (the original builds it as segment << 16) |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |
 | `INCLUDE/gfx169d.h` | the fog and cursor remap tables are views into one block, laid out as in POLYRAST.ASM's code segment from `FOG_REMAP_TAB_OFF`: the scaled blit reads them by those offsets and the combat code fills four more tables past the cursor one |
