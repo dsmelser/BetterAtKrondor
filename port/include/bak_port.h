@@ -1,0 +1,74 @@
+/*
+ * bak_port.h - services the native platform layer provides to the game code.
+ *
+ * Shared by game translation units (through bak_native.h) and port code. It
+ * declares no structures, so it is safe to include with or without packing.
+ */
+#ifndef BAK_PORT_H
+#define BAK_PORT_H
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * Segment emulation. The game builds far pointers from 16-bit DOS segments
+ * (VGA pages at A000-AC00, the EMS page frame, paragraph-aligned DOS
+ * allocations) and splits them again with FP_SEG/FP_OFF. Natively each
+ * segment value names a registered host block: MK_FP(seg, off) is that block's
+ * base plus off, and FP_SEG/FP_OFF of a pointer find the block containing it.
+ * Segment 0 maps to address 0, so MK_FP(0, n) sentinels keep their values.
+ */
+void *bak_seg_ptr(uint16_t seg);
+uint16_t bak_ptr_seg(const void *p);
+uint16_t bak_ptr_off(const void *p);
+uint16_t bak_seg_register(void *base, uint32_t size);
+void bak_seg_register_at(uint16_t seg, void *base, uint32_t size);
+void bak_seg_unregister(uint16_t seg);
+
+#define MK_FP(seg, off) ((void *)((char *)bak_seg_ptr((uint16_t)(seg)) + (uint16_t)(off)))
+#define FP_SEG(p) bak_ptr_seg((const void *)(p))
+#define FP_OFF(p) bak_ptr_off((const void *)(p))
+
+/*
+ * DOS memory (INT 21h AH=48h/49h). Blocks are host allocations registered in the
+ * segment table at a paragraph boundary, so a block's far pointer is seg:0000.
+ */
+void *bak_dos_alloc(uint32_t size, int zeroFill);
+int16_t bak_dos_free(void *block);
+uint32_t bak_dos_largest_free_block(void);
+
+/*
+ * LIM EMS 4.0 (INT 67h), emulated exactly: a 64 KB page frame registered at a
+ * fixed segment, 16 KB logical pages held on the host, and mapping copies
+ * pages in and out of the frame as the hardware's bank switching would appear.
+ */
+uint16_t bak_ems_frame_segment(void);                      /* AH=41h, BX */
+uint16_t bak_ems_unallocated_pages(void);                  /* AH=42h, BX */
+uint16_t bak_ems_allocate(uint16_t pages);                 /* AH=43h, DX = handle */
+void bak_ems_release(uint16_t handle);                     /* AH=45h */
+void bak_ems_map_multiple(uint16_t handle, const int16_t *pairs, int count); /* AX=5000h */
+
+/* I/O ports (VGA sequencer/CRTC/attribute registers, ...), emulated by the platform. */
+uint8_t bak_port_in8(uint16_t port);
+void bak_port_out8(uint16_t port, uint8_t value);
+void bak_port_out16(uint16_t port, uint16_t value);
+
+/*
+ * Called from the game's wait loops: pumps host events, advances the virtual
+ * PIT and presents the display when a new frame is due.
+ */
+void bak_idle(void);
+#define BAK_IDLE() bak_idle()
+
+/* Abort with a message naming a routine the port does not implement yet. */
+_Noreturn void bak_unimplemented(const char *what, const char *file, int line);
+#define BAK_UNIMPLEMENTED(what) bak_unimplemented((what), __FILE__, __LINE__)
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -1,0 +1,113 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "win-x86-clangcl",
+      "displayName": "Windows x86 (clang-cl)",
+      "description": "Run from an x86 Visual Studio environment (port/tools/win-build.cmd sets one up).",
+      "inherits": "base",
+      "architecture": {
+        "value": "x86",
+        "strategy": "external"
+      },
+      "toolset": {
+        "value": "host=x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-cl",
+        "CMAKE_C_COMPILER_TARGET": "i686-pc-windows-msvc",
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER_TARGET": "i686-pc-windows-msvc"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "win-x86-msvc",
+      "displayName": "Windows x86 (MSVC cl)",
+      "inherits": "base",
+      "architecture": {
+        "value": "x86",
+        "strategy": "external"
+      },
+      "toolset": {
+        "value": "host=x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-x86",
+      "displayName": "Linux i686 (clang -m32)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_FLAGS": "-m32"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "win-x86-clangcl",
+      "configurePreset": "win-x86-clangcl"
+    },
+    {
+      "name": "win-x86-msvc",
+      "configurePreset": "win-x86-msvc"
+    },
+    {
+      "name": "linux-x86",
+      "configurePreset": "linux-x86"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "win-x86-clangcl",
+      "configurePreset": "win-x86-clangcl",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-x86",
+      "configurePreset": "linux-x86",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
