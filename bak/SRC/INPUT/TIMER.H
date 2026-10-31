@@ -4,7 +4,14 @@
 #include "structs.h"
 
 extern char g_timer_installed;
+#ifdef BAK_NATIVE
+/* The timer interrupt counts this down while the game waits on it; natively each
+ * access first runs the interrupts that are due (BAK_POLLED). */
+extern s16 g_nFrameTickCountdownValue;
+#define g_nFrameTickCountdown BAK_POLLED(g_nFrameTickCountdownValue)
+#else
 extern s16 g_nFrameTickCountdown;
+#endif
 extern unsigned short g_nTimerPitDivisor;
 extern unsigned short g_nTimerBiosChainReload;
 extern unsigned short g_nTimerBiosChainCountdown;

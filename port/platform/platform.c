@@ -109,19 +109,15 @@ bool platform_pump_events(void) {
         case SDL_EVENT_MOUSE_BUTTON_UP:
             mouse_handle_event(&e);
             break;
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP:
+            keyboard_handle_event(&e);
+            break;
         default:
             break;
         }
     }
     return running;
-}
-
-void bak_idle(void) {
-    if (!platform_pump_events()) {
-        platform_shutdown();
-        exit(0);
-    }
-    SDL_Delay(1);
 }
 
 _Noreturn void bak_unimplemented(const char *what, const char *file, int line) {

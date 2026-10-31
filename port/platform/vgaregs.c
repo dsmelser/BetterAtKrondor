@@ -58,21 +58,22 @@ void bak_vga_wait_retrace(int next) {
     uint64_t phase = frame_phase(now);
     if (next || phase >= RETRACE_NS) {
         uint64_t target = now - phase + FRAME_NS;
+        /* Interrupts keep coming while the game waits for retrace. */
         for (;;) {
-            if (!platform_pump_events()) {
-                platform_shutdown();
-                exit(0);
-            }
+            bak_poll();
             now = SDL_GetTicksNS();
             if (now >= target)
                 break;
-            SDL_DelayPrecise(target - now);
+            SDL_DelayPrecise(target - now < 250000 ? target - now : 250000);
         }
     }
     video_present();
 }
 
 uint8_t bak_port_in8(uint16_t port) {
+    uint8_t value;
+    if (machine_port_in8(port, &value))
+        return value;
     switch (port) {
     case 0x3DA:
         return input_status_1();
@@ -113,6 +114,8 @@ uint8_t bak_port_in8(uint16_t port) {
 }
 
 void bak_port_out8(uint16_t port, uint8_t value) {
+    if (machine_port_out8(port, value))
+        return;
     switch (port) {
     case 0x3C4:
         s_seqIndex = value;

@@ -12,14 +12,15 @@ Where the native port stands. Update this file in the same commit as the work it
 | Native build skeleton: CMake presets, `bak_native.h`, Borland RTL shims, generated ASM stubs | ✅ all 188 C modules compile (clang-cl x86) and link |
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
-| SDL3 platform layer | 🚧 window + present, VGA register file + 70 Hz retrace clock, chunky VRAM, segment table, DOS paths, INT 33h mouse; timer and keyboard ⬜ |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, the vtable thunks; **next: `KEYBOARD.ASM`** |
+| SDL3 platform layer | ✅ window + present, VGA registers + 70 Hz retrace, chunky VRAM, segment table, DOS paths, INT 33h mouse, keyboard, timer, BIOS data area (sound ⬜) |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, the vtable thunks; **next: `CDAUDIO.ASM`** |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
 
 **Current behaviour.** With the game files present, `betterkrondor --data <dir>` opens its window, enters the
-game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs the mouse, loads the cursor images (LZW-compressed) and stops at
-`keyboard_install` with "Not implemented yet". Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
+game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs mouse, keyboard and timer, loads the game font and shows the
+"Loading Betrayal at Krondor... please wait." screen, then stops at the 1.02 CD-drive check
+(`CDAUDIO.ASM`) with "Not implemented yet". Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
 against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash).
 
 ## Native-only code in the game sources
@@ -62,6 +63,9 @@ that runs the original routines from the reference build against the translation
 | `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c` | no logic: each routine forwards to a vtable slot |
 | `INPUT/MOUSE.ASM` | `port/asm/mouse.c`, `mouse_data.c` | `test_mouse.py`: INT 33h call sequences of install/clip/restore/set-position, queries, the event callback's register save/restore and latch parking on a planar VGA |
 | `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
+| `INPUT/KEYBOARD.ASM` | `port/asm/keyboard.c`, `keyboard_data.c` | `test_keyboard.py`: the tables; 1500-byte random key sequences through the INT 9 handler (BIOS shift state and buffer, key states, channels) with and without the Tandy paths; `kbhit_read`; queries; the INT 1Ch axis tick; install/restore |
+| `INPUT/TIMER.ASM` | `port/asm/timer.c`, `timer_data.c` | `test_timer.py`: registry alloc/free; the order of callbacks over runs of IRQ 0 ticks and the BIOS chaining; install/restore |
+| `INPUT/INT00.ASM` | `port/asm/int00.c` | `test_int00.py`: the handler's retry rule on 2000+ overflowing DIV/IDIV, against `bak_div8`/`bak_idiv8`; install/restore |
 | `STREAM/CODEC/LZWDEC.ASM` | `port/asm/lzwdec.c` | `test_lzw.py`: memory streams read through `stream_read` in random chunk sizes (suspend and resume mid-string), random, text-like, run-heavy and image-like data, resets, truncated input; the output must also equal the encoded input |
 
 ## Video drivers (VMCODE.OVL)
@@ -106,7 +110,10 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
 
 | Service | Implementation |
 |---|---|
-| INT 33h mouse | `port/platform/mouse.c`: the host pointer's position over the picture, in the ranges the game sets (four units per pixel); the game's event handler runs from the event pump, where the game waits, as the interrupt would have arrived |
+| Interrupts | `port/platform/machine.c`: host events and a virtual 8253 become interrupts when the game polls (`bak_poll`: its wait loops, input and timer reads, retrace waits). Vectors 08h/09h/1Ch are a table the install routines replace and chain through; the BIOS INT 8 handler counts time and calls 1Ch. Reading the variables the timer advances (`g_nFrameTickCountdown`, `g_timer_ticks`, `g_dwSysTickCount`) polls first, so bare spins on them work |
+| INT 33h mouse | `port/platform/mouse.c`: the host pointer's position over the picture, in the ranges the game sets (four units per pixel); the driver calls the game's handler as an interrupt |
+| Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
+| BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |
 
 ## Known divergences from the original
 
@@ -120,6 +127,8 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
 - **Slack after DOS blocks.** Every emulated DOS block is followed by 4 KB of slack, so the original's
   overruns past a block (the LZW decoder can spell long strings beyond its scratch area) stay in memory the
   game owns instead of reaching the host heap.
+- **Division the divide-error handler cannot resolve.** Where the original hangs (DIV by zero, or an
+  unsigned overflow its arithmetic shift cannot shrink), the translated code stops with a message.
 - **Memory past the VGA window** (A000:0000 + 64 KB) reads as FFh and ignores writes, as on a VGA-only PC.
 
 Placeholder values to revisit: the remaining ASM data tables (zero), the emulated DOS free memory

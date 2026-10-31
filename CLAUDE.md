@@ -20,6 +20,7 @@ behaviour is checked against the original instead (see Verification).
 ```
 port\tools\win-build.cmd [preset]                 # Windows: VS env + configure + build (default win-x86-clangcl)
 build\win-x86-clangcl\betterkrondor.exe --data <game dir> [--user <save dir>]
+port\tools\win-build.cmd win-x86-clangcl-asan     # AddressSanitizer: finds buffers sized for 16-bit pointers
 uv run --group difftest pytest -q port/tests       # differential tests (needs work/ref, see port/tests/README.md)
 python -I port/tools/gen_asm_stubs.py              # regenerate placeholders for unported ASM modules
 python -I port/tools/asm_publics.py                # inventory of the in-EXE ASM modules

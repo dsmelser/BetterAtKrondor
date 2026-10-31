@@ -96,9 +96,14 @@ void bak_int33_set_ratio(int16_t horizontal, int16_t vertical) {
     trace(0x0F, (uint16_t)horizontal, (uint16_t)vertical);
 }
 
+static void call_handler(void) {
+    s_mouse.handler((uint16_t)s_mouse.x, (uint16_t)s_mouse.y, s_mouse.buttons);
+}
+
+/* The driver calls the handler from its interrupt. */
 static void dispatch(uint16_t events) {
     if (s_mouse.handler != NULL && (events & s_mouse.eventMask) != 0)
-        s_mouse.handler((uint16_t)s_mouse.x, (uint16_t)s_mouse.y, s_mouse.buttons);
+        bak_run_isr(call_handler);
 }
 
 /* The host pointer over the 320x200 picture, as a position in the driver's ranges: the

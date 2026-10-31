@@ -235,6 +235,44 @@ class Machine:
                                f"expected {args_sp:04X})")
         return out
 
+    def call_interrupt(self, target: str | tuple[int, int], ss: int | None = None,
+                       sp: int = 0xFFF0, **regs: int) -> Regs:
+        """Enter an interrupt handler as the CPU would (FLAGS, CS, IP pushed); it ends
+        with IRET, or by chaining to another handler that does."""
+        seg, off = self.resolve(target)
+        ss = self.data_seg if ss is None else ss
+        top = sp
+        # The return address in the frame: the sentinel, or (cs_frame/ip_frame) where a
+        # fault happened, which the handler may read; either way the call ends there.
+        ret_seg, ret_off = regs.pop("cs_frame", RETURN_SEG), regs.pop("ip_frame", RETURN_OFF)
+        sp = self._push(ss, sp, regs.get("flags", 0x0202))
+        sp = self._push(ss, sp, ret_seg)
+        sp = self._push(ss, sp, ret_off)
+        out = self._run(seg, off, self.linear(ret_seg, ret_off), sp, ss, dict(regs))
+        if out.sp != top:
+            raise MachineError(f"unbalanced stack after the interrupt (SP {out.sp:04X}, "
+                               f"expected {top:04X})")
+        return out
+
+    def vector(self, n: int) -> tuple[int, int]:
+        """(segment, offset) of interrupt vector n in the interrupt table at 0000:0000."""
+        off, seg = struct.unpack("<HH", self.uc.mem_read(4 * n, 4))
+        return seg, off
+
+    def set_vector(self, n: int, seg: int, off: int) -> None:
+        self.uc.mem_write(4 * n, struct.pack("<HH", off, seg))
+
+    def deliver_through_vector(self, n: int) -> None:
+        """From an interrupt hook: enter the handler interrupt table entry n names, as the
+        CPU does (the hook sees IP at the faulting or following instruction)."""
+        ss, sp = self.reg("ss"), self.reg("sp")
+        for word in (self.reg("flags"), self.reg("cs"), self.reg("ip")):
+            sp = self._push(ss, sp, word)
+        self.set_reg("sp", sp)
+        seg, off = self.vector(n)
+        self.set_reg("cs", seg)
+        self.set_reg("ip", off)
+
     def regs(self) -> Regs:
         r = {name: self.uc.reg_read(_REGS[name]) for name in
              ("ax", "bx", "cx", "dx", "si", "di", "bp", "sp", "ds", "es", "ss", "flags")}

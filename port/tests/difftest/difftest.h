@@ -70,5 +70,8 @@ extern const DtEntry dt_pixel_entries[];
 extern const DtEntry dt_farptr_entries[];
 extern const DtEntry dt_mouse_entries[];
 extern const DtEntry dt_lzw_entries[];
+extern const DtEntry dt_timer_entries[];
+extern const DtEntry dt_keyboard_entries[];
+extern const DtEntry dt_int00_entries[];
 
 #endif

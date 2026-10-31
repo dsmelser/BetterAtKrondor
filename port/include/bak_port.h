@@ -85,11 +85,34 @@ void bak_port_out8(uint16_t port, uint8_t value);
 void bak_port_out16(uint16_t port, uint16_t value);
 
 /*
- * Called from the game's wait loops: pumps host events, advances the virtual
- * PIT and presents the display when a new frame is due.
+ * Interrupts (port/platform/machine.c). Host events and the virtual timer become the
+ * PC's interrupts when the game polls: bak_poll runs what is due (timer ticks, key and
+ * mouse events) and shows a frame at the display rate; bak_idle does the same from a
+ * wait loop and sleeps when nothing was due. Both do nothing inside an interrupt.
+ * Vectors 08h (IRQ 0), 09h (IRQ 1) and 1Ch (the BIOS user tick) are a table the game's
+ * install routines replace and chain through.
  */
+typedef void BakIsr(void);
+void bak_poll(void);
 void bak_idle(void);
 #define BAK_IDLE() bak_idle()
+BakIsr *bak_get_vector(uint8_t n);
+void bak_set_vector(uint8_t n, BakIsr *isr);
+void bak_run_isr(BakIsr *isr);
+_Bool bak_in_isr(void);
+/* A variable an interrupt updates, read where the game waits for it: polls first. */
+#define BAK_POLLED(var) (*(bak_poll(), &(var)))
+
+/* The BIOS data area (0040:0000), also reachable as MK_FP(0x40, off). */
+unsigned char *bak_bios_data(void);
+
+/*
+ * DIV and IDIV of the byte forms as they behave under the game's divide-error handler
+ * (port/asm/int00.c): an overflowing quotient is retried with the dividend halved; a
+ * division the handler cannot resolve stops with a message (the original hangs).
+ */
+uint8_t bak_div8(uint16_t ax, uint8_t divisor, uint8_t *remainder);
+int8_t bak_idiv8(int16_t ax, int8_t divisor, int8_t *remainder);
 
 /* Abort with a message naming a routine the port does not implement yet. */
 _Noreturn void bak_unimplemented(const char *what, const char *file, int line);

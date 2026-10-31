@@ -430,12 +430,9 @@ void vga_set_buffer_offset(s16 x, s16 y) {
 
 /* ---- slots 34-35: DAC ------------------------------------------------------------- */
 
-/* AL = AX / 63, as DIV with an 8-bit divisor; the quotient must fit in AL. */
+/* AL = AX / 63, a DIV with an 8-bit divisor (overflow goes to the divide-error handler). */
 static unsigned char div63(u16 ax) {
-    u16 q = (u16)(ax / 63);
-    if (q > 0xFF)
-        BAK_UNIMPLEMENTED("vga_palette_lerp_dac: divide overflow (INT 0 in the original)");
-    return (unsigned char)q;
+    return bak_div8(ax, 0x3F, NULL);
 }
 
 /*
