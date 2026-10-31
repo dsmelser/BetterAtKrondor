@@ -74,8 +74,17 @@ target_include_directories(bakgame PRIVATE
     "${CMAKE_SOURCE_DIR}/bak/INCLUDE"
     "${CMAKE_SOURCE_DIR}/bak")
 target_compile_definitions(bakgame PRIVATE $<$<STREQUAL:${BAK_VERSION},102>:V102CD=1>)
+# The original writes into string literals (DOS had no read-only memory) and its build
+# never merges identical ones (Borland's -d is off): game literals are writable, one copy
+# per occurrence.
+if(MSVC)
+    set(BAK_WRITABLE_STRINGS /GF-)
+else()
+    set(BAK_WRITABLE_STRINGS -fwritable-strings)
+endif()
 target_compile_options(bakgame PRIVATE
     ${BAK_C_SEMANTICS}
+    ${BAK_WRITABLE_STRINGS}
     ${BAK_FORCE_INCLUDE} "${CMAKE_SOURCE_DIR}/port/include/bak_native.h")
 
 if(CMAKE_C_COMPILER_ID STREQUAL "Clang" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")

@@ -84,9 +84,10 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
   with BC++ 2.0) compiles `i < g_spriteBankCount` to a signed `JL` with `unsigned short`, but to `JB` with
   `unsigned int`. BC++ 3.0/3.1 treat the two alike. Promotion semantics therefore differ by compiler
   band (`X_*` bands in `bak/RECIPES.MAK`).
-- **The original writes into string literals** (`CFGPARSE.C`'s `g_cfgResourceDrivePrefix = "x:"`).
-  DOS had no memory protection; natively literals are read-only, so each such site needs a writable buffer.
-  Expect more.
+- **The original writes into string literals** (`CFGPARSE.C`'s `g_cfgResourceDrivePrefix = "x:"`;
+  `resblit_load_asset_table` turns every `"name.bmp"` it is given into `"name.bmx"` in place). DOS had no
+  memory protection and Borland's `-d` (merge duplicate strings) is off, so every literal is its own
+  writable copy. The game library is compiled the same way (`/GF-`, `-fwritable-strings`).
 - **The EMS globals are misnamed.** In `SYS/EMSDET.C`, `g_ems_free_pages` receives the page-frame segment
   (INT 67h AH=41h), `g_ems_total_pages` the free page count (AH=42h) and `g_ems_frame_segment` the handle
   (AH=43h). Not renamed yet.
