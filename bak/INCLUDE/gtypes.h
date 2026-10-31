@@ -49,6 +49,17 @@ typedef unsigned short NearPtr;
 #define RETURN_AX return
 #endif
 
+/*
+ * NEAR_PTR_SIZE: the size of a near data pointer, which the original writes as 2 where
+ * it sizes or steps through a table of pointers. An int constant either way, so the
+ * arithmetic around it keeps its type.
+ */
+#ifdef BAK_NATIVE
+#define NEAR_PTR_SIZE ((s16)sizeof(void *))
+#else
+#define NEAR_PTR_SIZE 2
+#endif
+
 /** @brief Boolean true value (1). */
 #define TRUE 1
 /** @brief Boolean false value (0). */
