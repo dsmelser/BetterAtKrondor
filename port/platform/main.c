@@ -14,17 +14,6 @@
 
 void bak_main(int16_t argc, char **argv);
 
-static const char *s_dataDir = ".";
-static const char *s_userDir = ".";
-
-const char *platform_data_dir(void) {
-    return s_dataDir;
-}
-
-const char *platform_user_dir(void) {
-    return s_userDir;
-}
-
 static void usage(void) {
     fprintf(stderr,
             "usage: betterkrondor [--data DIR] [--user DIR] [game options]\n"
@@ -36,14 +25,14 @@ int main(int argc, char *argv[]) {
     /* Port options are consumed here; the rest (e.g. the game's own -S<n>) go to the game. */
     char **gameArgv = calloc((size_t)argc + 1, sizeof *gameArgv);
     int gameArgc = 0;
-    bool userGiven = false;
+    const char *dataDir = ".";
+    const char *userDir = NULL;
     gameArgv[gameArgc++] = argv[0];
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--data") == 0 && i + 1 < argc) {
-            s_dataDir = argv[++i];
+            dataDir = argv[++i];
         } else if (strcmp(argv[i], "--user") == 0 && i + 1 < argc) {
-            s_userDir = argv[++i];
-            userGiven = true;
+            userDir = argv[++i];
         } else if (strcmp(argv[i], "--help") == 0) {
             usage();
             return 0;
@@ -51,8 +40,7 @@ int main(int argc, char *argv[]) {
             gameArgv[gameArgc++] = argv[i];
         }
     }
-    if (!userGiven)
-        s_userDir = s_dataDir;
+    platform_set_dirs(dataDir, userDir != NULL ? userDir : dataDir);
 
     int trace = SDL_getenv("BAK_TRACE") != NULL;
     if (trace)

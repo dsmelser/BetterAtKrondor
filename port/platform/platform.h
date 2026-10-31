@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 /* Game data directory (the user's copy) and the writable user directory (saves, TEMP.GAM). */
+void platform_set_dirs(const char *dataDir, const char *userDir);
 const char *platform_data_dir(void);
 const char *platform_user_dir(void);
 

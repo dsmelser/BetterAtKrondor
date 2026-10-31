@@ -13,6 +13,22 @@
 #include "bak_rtl.h"
 #include "platform.h"
 
+static const char *s_dataDir = ".";
+static const char *s_userDir = ".";
+
+void platform_set_dirs(const char *dataDir, const char *userDir) {
+    s_dataDir = dataDir;
+    s_userDir = userDir;
+}
+
+const char *platform_data_dir(void) {
+    return s_dataDir;
+}
+
+const char *platform_user_dir(void) {
+    return s_userDir;
+}
+
 /* Errors go to stderr, and to a message box unless BAK_HEADLESS is set (CI, scripted runs). */
 static void report_error(const char *msg) {
     fprintf(stderr, "%s\n", msg);

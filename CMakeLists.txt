@@ -108,19 +108,50 @@ file(GLOB BAK_PORT_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/port/compat/*.c"
     "${CMAKE_SOURCE_DIR}/port/drivers/*.c"
     "${CMAKE_SOURCE_DIR}/port/asm/*.c")
+list(REMOVE_ITEM BAK_PORT_SOURCES "${CMAKE_SOURCE_DIR}/port/platform/main.c")
 
-add_executable(betterkrondor ${BAK_PORT_SOURCES})
-target_include_directories(betterkrondor PRIVATE
+# Everything native except the process entry point: shared by the game and the test runner.
+add_library(bakport OBJECT ${BAK_PORT_SOURCES})
+target_include_directories(bakport PUBLIC
     "${CMAKE_SOURCE_DIR}/port/compat/include"
     "${CMAKE_SOURCE_DIR}/port/include"
     "${CMAKE_SOURCE_DIR}/bak/INCLUDE"
     "${CMAKE_SOURCE_DIR}/bak")
-target_compile_definitions(betterkrondor PRIVATE
+target_compile_definitions(bakport PUBLIC
     BAK_VERSION=${BAK_VERSION}
     $<$<STREQUAL:${BAK_VERSION},102>:V102CD=1>)
-target_compile_options(betterkrondor PRIVATE ${BAK_C_WARNINGS} ${BAK_C_SEMANTICS})
-target_link_libraries(betterkrondor PRIVATE bakgame SDL3::SDL3)
+target_compile_options(bakport PUBLIC ${BAK_C_WARNINGS} ${BAK_C_SEMANTICS})
+if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    # bak_game_begin.h pushes the packing that bak_game_end.h pops: across headers on purpose.
+    if(MSVC)
+        target_compile_options(bakport PUBLIC /clang:-Wno-pragma-pack)
+    else()
+        target_compile_options(bakport PUBLIC -Wno-pragma-pack)
+    endif()
+endif()
+target_link_libraries(bakport PUBLIC SDL3::SDL3)
+
+add_executable(betterkrondor "${CMAKE_SOURCE_DIR}/port/platform/main.c")
+target_link_libraries(betterkrondor PRIVATE bakport bakgame SDL3::SDL3)
 
 # --- Tests -------------------------------------------------------------------------------
+#
+# Differential tests (port/tests): pytest runs original routines from the reference build
+# in Unicorn and their C translations in bak_difftest, then compares. They need uv and the
+# reference artifacts in work/ref (see port/tests/README.md); without them they skip.
+
+file(GLOB BAK_DIFFTEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/port/tests/difftest/*.c")
+add_executable(bak_difftest ${BAK_DIFFTEST_SOURCES})
+target_link_libraries(bak_difftest PRIVATE bakport bakgame SDL3::SDL3)
 
 enable_testing()
+find_program(BAK_UV uv)
+if(BAK_UV)
+    add_test(NAME difftest
+             COMMAND "${BAK_UV}" run --group difftest pytest -q port/tests
+             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+    set_tests_properties(difftest PROPERTIES
+        ENVIRONMENT "BAK_DIFFTEST_EXE=$<TARGET_FILE:bak_difftest>")
+else()
+    message(STATUS "uv not found: the differential tests are not registered with ctest")
+endif()

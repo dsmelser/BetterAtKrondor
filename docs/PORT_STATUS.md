@@ -13,13 +13,14 @@ Where the native port stands. Update this file in the same commit as the work it
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ⬜ **next: boot stops here** |
 | SDL3 platform layer | 🚧 window + present, VGA register file, segment table, DOS paths; timer and input ⬜ |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | ⬜ |
-| Differential test harness (Unicorn) | ⬜ |
-| Boots the user's data to the main menu | ⬜ (needs the GOG copy) |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND` |
+| Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
+| Boots the user's data to the main menu | ⬜ |
 
 **Current behaviour.** With the game files present, `betterkrondor --data <dir>` opens its window, enters the
 game, parses `resource.cfg` and `drive.cfg`, and stops at `video_init` with "Not implemented yet". Without
-them it says where it looked. CI runs exactly this smoke test against placeholder files.
+them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
+against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash).
 
 ## Native-only code in the game sources
 
@@ -41,10 +42,17 @@ Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or on
 
 ## ASM modules
 
-All 50 TASM modules of the 1.02 link are generated placeholders (`port/tools/gen_asm_stubs.py`):
+The 50 TASM modules of the 1.02 link start as generated placeholders (`port/tools/gen_asm_stubs.py`):
 routines abort with their name, and the data the C code uses is zero-initialized (16 `*_data.c` files)
 until the module's `db`/`dw`/`dd` tables are converted. Re-run the generator after adding headers; it never
 overwrites a file whose GENERATED marker has been removed.
+
+A module leaves the placeholder state only with a differential test (`port/tests/test_<module>.py`)
+that runs the original routines from the reference build against the translation.
+
+| Module | Translation | Verified by |
+|---|---|---|
+| `SYS/RAND.ASM` | `port/asm/rand.c` | `test_rand.py`: seed table, cold start, 2000 draws after reset, random states |
 
 ## What the port has taught us about the original
 

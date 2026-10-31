@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read # the differential tests download the latest reference-build artifact
 
 jobs:
   windows-x86:
@@ -37,6 +38,25 @@ jobs:
           if (-not $p.WaitForExit(30000)) { $p.Kill(); Get-Content smoke.err; throw "hung" }
           Get-Content smoke.err
           if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3) { throw ("exit code 0x{0:X8}" -f $p.ExitCode) }
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Fetch the reference artifacts (latest successful reference build)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run=$(gh run list --workflow reference.yml --status success --limit 1 \
+                  --json databaseId --jq '.[0].databaseId')
+          if [ -z "$run" ] || ! gh run download "$run" -n "reference-$run" -D work/ref; then
+            echo "::warning::No reference artifacts available: the differential tests will skip"
+          fi
+
+      - name: Differential tests (originals in Unicorn vs the C translations)
+        shell: bash
+        env:
+          BAK_DIFFTEST_EXE: build/win-x86-clangcl/bak_difftest.exe
+        run: uv run --group difftest pytest -q -rs port/tests
 
   linux-x86-game:
     # Compile-only portability check of the game sources (no SDL) on a 32-bit Linux target.

@@ -10,6 +10,8 @@ dependencies = ["bakbuild"]
 
 [dependency-groups]
 dev = ["ruff>=0.6", "mypy>=1.11"]
+# Differential tests of the native port (port/tests): original routines run in Unicorn.
+difftest = ["unicorn>=2.1.4", "pytest>=8"]
 
 [tool.uv]
 # Python is uv-managed (latest, pinned in .python-version) — not from nix.
