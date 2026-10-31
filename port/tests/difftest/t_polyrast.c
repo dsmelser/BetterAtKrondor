@@ -1,4 +1,5 @@
-/* GFX/RASTER/POLYRAST.ASM: the scaled sprite blit and edge stepper (port/asm/polyrast.c). */
+/* GFX/RASTER/POLYRAST.ASM: the scaled sprite blit, the textured quad blit and the edge
+ * stepper (port/asm/polyrast.c). */
 #include <stdint.h>
 #include <string.h>
 
@@ -53,6 +54,24 @@ static void cmd_blit(DtIn *in, DtOut *out) {
     dt_put_u8(out, bak_vga_sequencer(2));
 }
 
+/* polyrast.quad u16 record[5], s16 xs[4], ys[4] -> u8 map mask, s16 xs[4], ys[4] */
+static void cmd_quad(DtIn *in, DtOut *out) {
+    u16 rec[5];
+    s16 xs[4], ys[4];
+    for (int i = 0; i < 5; i++)
+        rec[i] = dt_u16(in);
+    for (int i = 0; i < 4; i++)
+        xs[i] = (s16)dt_u16(in);
+    for (int i = 0; i < 4; i++)
+        ys[i] = (s16)dt_u16(in);
+    polyrast_gouraud_blit_clipped(rec, xs, ys);
+    dt_put_u8(out, bak_vga_sequencer(2));
+    for (int i = 0; i < 4; i++)
+        dt_put_u16(out, (u16)xs[i]);
+    for (int i = 0; i < 4; i++)
+        dt_put_u16(out, (u16)ys[i]);
+}
+
 /* polyrast.out u16 port, u8 value: an OUT to the emulated hardware */
 static void cmd_out(DtIn *in, DtOut *out) {
     (void)out;
@@ -76,6 +95,7 @@ const DtEntry dt_polyrast_entries[] = {
     DT_COMMAND("polyrast.write", cmd_write),
     DT_COMMAND("polyrast.read", cmd_read),
     DT_COMMAND("polyrast.blit", cmd_blit),
+    DT_COMMAND("polyrast.quad", cmd_quad),
     DT_COMMAND("polyrast.out", cmd_out),
     DT_COMMAND("polyrast.step", cmd_step),
     DT_GLOBAL(g_polyRasterState),

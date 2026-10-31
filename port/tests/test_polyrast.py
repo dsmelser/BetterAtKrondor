@@ -1,10 +1,12 @@
-"""POLYRAST.ASM's scaled sprite blit and edge stepper against port/asm/polyrast.c.
+"""POLYRAST.ASM's scaled sprite blit, textured quad blit and edge stepper against
+port/asm/polyrast.c.
 
 The original draws on a planar VGA model; display memory, viewed in the port's chunky
 layout, must match the native blit's byte for byte, as must the raster state (the edge
 steppers), the map mask left in the sequencer and the RLE scratch buffer. Sprites are
 random, plain and RLE-packed, drawn at random places, scales (negative: flipped), modes,
-clip rectangles, pages and remap tables.
+clip rectangles, pages and remap tables. Quads have vertical sides (the others go to
+GOURAUD.ASM, not in C yet) and come in either direction.
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from harness.machine import Machine
 from harness.vga import PlanarVga
 
 RECORD_AT = 0xF000  # an ImageRecord in DGROUP's free space, above its data
+QUAD_AT = 0xF020  # a quad's xs[4] and ys[4]
 EDGE_AT = 0xF100
 CTX_CLIP, CTX_DST = 0x03, 0x18
 TABLES = 0xF00
@@ -102,6 +105,54 @@ class Blitter:
                                  f"(native {want[at]:#04x}, original {got[at]:#04x})")
 
 
+    def quad(self, pixels: bytes, width: int, height: int, xs: tuple, ys: tuple) -> None:
+        off = self.rng.choice((0, 0x10, 0x123))
+        self.m.write((self.sprite_seg, off), pixels)
+        self.n.call("polyrast.write", struct.pack("<I", self.n_sprite + off) + pixels)
+        corners = struct.pack("<8h", *xs, *ys)
+        self.m.write((self.dseg, RECORD_AT), struct.pack("<HHHhh", self.sprite_seg, off, 0, width, height))
+        self.m.write((self.dseg, QUAD_AT), corners)
+        self.m.call_far("_polyrast_gouraud_blit_clipped", RECORD_AT, QUAD_AT, QUAD_AT + 8)
+        record = struct.pack("<HHHhh", self.n_seg, (self.n_off + off) & 0xFFFF, 0, width, height)
+        reply = self.n.call("polyrast.quad", record + corners)
+        what = f"{width}x{height} onto xs {xs} ys {ys}"
+        assert reply[1:] == self.m.read((self.dseg, QUAD_AT), 16), what
+        assert self.n.peek("g_polyRasterState") == self.m.read("_g_polyRasterState", 26), what
+        assert reply[0] == self.vga.seq[2], what
+        got, want = self.vga.chunky(), self.n.peek("g_bakVram")
+        if got != want:
+            at = next(i for i in range(len(got)) if got[i] != want[i])
+            raise AssertionError(f"{what}: display memory differs at {at:#x} "
+                                 f"(native {want[at]:#04x}, original {got[at]:#04x})")
+
+
+def _new_clip(b: Blitter, rng: random.Random) -> None:
+    clip = bytes([rng.choice((0, 1, 0x10, 0x81))]) + struct.pack(
+        "<4h", rng.randrange(-20, 100), rng.randrange(150, 340), rng.randrange(-20, 60),
+        rng.randrange(100, 220))
+    b.set_ctx(CTX_CLIP, clip)
+    b.set_ctx(CTX_DST, struct.pack("<H", rng.choice(PAGES)))
+
+
+@pytest.mark.parametrize("seed", range(3))
+def test_textured_quad(krondor_image, fresh_native, seed):
+    rng = random.Random(100 + seed)
+    b = Blitter(krondor_image, fresh_native, rng)
+    for step in range(120):
+        width, height = rng.randrange(1, 60), rng.randrange(1, 60)
+        pixels = bytes(0 if rng.random() < 0.3 else rng.randrange(1, 256) for _ in range(width * height))
+        if step % 8 == 0:
+            _new_clip(b, rng)
+        remap = rng.choice((0, 0, 0x66 + 0x100 * rng.randrange(10), 0xA66 + 0x100 * rng.randrange(5)))
+        b.state(struct.pack("<h", remap) + rng.randbytes(24))
+        x0, x1 = rng.randrange(-60, 330), rng.randrange(-60, 380)
+        y0, y1 = rng.randrange(-40, 210), rng.randrange(-40, 210)
+        y3, y2 = y0 + rng.randrange(0, 160), y1 + rng.randrange(0, 160)
+        if rng.random() < 0.1:
+            x1 = x0  # no width: nothing
+        b.quad(pixels, width, height, (x0, x1, x1, x0), (y0, y1, y2, y3))
+
+
 @pytest.mark.parametrize("seed", range(4))
 def test_scaled_blit(krondor_image, fresh_native, seed):
     rng = random.Random(seed)
@@ -111,11 +162,7 @@ def test_scaled_blit(krondor_image, fresh_native, seed):
         pixels = bytes(0 if rng.random() < 0.3 else rng.randrange(1, 256) for _ in range(width * height))
         packed = rng.random() < 0.3
         if step % 10 == 0:
-            clip = bytes([rng.choice((0, 1, 0x10, 0x81))]) + struct.pack(
-                "<4h", rng.randrange(-20, 100), rng.randrange(150, 340), rng.randrange(-20, 60),
-                rng.randrange(100, 220))
-            b.set_ctx(CTX_CLIP, clip)
-            b.set_ctx(CTX_DST, struct.pack("<H", rng.choice(PAGES)))
+            _new_clip(b, rng)
         remap = rng.choice((0, 0, 0x66 + 0x100 * rng.randrange(10), 0xA66 + 0x100 * rng.randrange(5)))
         b.state(struct.pack("<h", remap) + rng.randbytes(24))
         scale = rng.choice((0.5, 1, 1, 1.5, 2, 3))

@@ -1,6 +1,6 @@
 /*
- * POLYRAST.ASM in C: the scaled sprite blit and the edge stepper it shares with the
- * Gouraud quad blit (not ported yet: it traps).
+ * POLYRAST.ASM in C: the scaled sprite blit, the textured quad blit ("Gouraud" in the
+ * names) and the edge stepper they share.
  *
  * An edge stepper is a pair of 16.16 values, PolyEdge { nAcc, nStep }: the start and the
  * end go into the high words, and polyrast_edge_init_step turns them into a start and
@@ -23,6 +23,7 @@
 #include "SRC/GAME/GMAIN.H"
 #include "SRC/GAME/MAINDATA.H"
 #include "SRC/GEN/GFXCTX.H"
+#include "SRC/GFX/RASTER/GOURAUD.H"
 #include "SRC/GFX/RASTER/POLYRAST.H"
 #include "bak_game_end.h"
 
@@ -57,13 +58,6 @@ void polyrast_edge_init_step(s32 *edge, u16 steps) {
     u32 neg = (u32)-quotient;
     edge[1] = quotient;
     edge[0] = (s32)(acc | ((neg & 0xffff8000u) != 0 ? (neg & 0xffffu) : 0x8000u));
-}
-
-void polyrast_gouraud_blit_clipped(u16 *page_ptr, s16 *xs, s16 *ys) {
-    (void)page_ptr;
-    (void)xs;
-    (void)ys;
-    BAK_UNIMPLEMENTED("POLYRAST.ASM: polyrast_gouraud_blit_clipped");
 }
 
 /* A column's walk down the sprite: LODSB, then the source moves on by the y step's
@@ -308,4 +302,141 @@ void polyrast_spr_scaled_blit_planar(void *sprite, s16 x, s16 y, u16 flags, s16 
         if (--w == 0)
             return;
     }
+}
+
+/*
+ * The "Gouraud" blit draws an image onto a quad whose left and right sides are vertical
+ * (xs[0] == xs[3], xs[1] == xs[2]) and whose ends come in order (ys[0] <= ys[3], ys[1] <=
+ * ys[2]); any other quad goes to GOURAUD.ASM's general rasterizer. page_ptr is an
+ * ImageRecord (segment, offset, flags, width, height) of column-major pixels. Each screen
+ * column runs from the top edge (ys[0] to ys[1]) to the bottom one (ys[3] to ys[2]) and
+ * shows one source column, stepped across the image's width; its rows step down the
+ * image's height in 8.8 fixed point. A quad given right to left is turned round in place
+ * and drawn mirrored. With clipping on, a quad with a corner above or below the clip
+ * rectangle has each column clipped; the others are only clipped left and right.
+ */
+static void quad_rows(const Target *t, Walk *w, u16 di, u16 n, u16 table) {
+    for (; n != 0; n--, di = (u16)(di + 0x50)) {
+        u8 al = next_pixel(w);
+        if (al != 0)
+            put(t, di, table != 0 ? remap(table, al) : al);
+    }
+}
+
+static void swap16(s16 *a, s16 *b) {
+    s16 v = *a;
+    *a = *b;
+    *b = v;
+}
+
+static void edges_advance(PolyEdge *e, s16 n, u16 by) {
+    for (s16 i = 0; i < n; i++)
+        e[i].nAcc = (s32)((u32)e[i].nAcc + (u32)e[i].nStep * by);
+}
+
+void polyrast_gouraud_blit_clipped(u16 *page_ptr, s16 *xs, s16 *ys) {
+    if (xs[0] != xs[3] || xs[1] != xs[2] || ys[0] > ys[3] || ys[1] > ys[2]) {
+        gfx_gouraud_blit_quad(page_ptr, xs, ys);
+        return;
+    }
+    int mirrored = 0;
+    u16 count = (u16)(xs[1] - xs[0]);
+    if (count == 0)
+        return;
+    if (!(xs[1] > xs[0])) {
+        swap16(&xs[0], &xs[1]);
+        swap16(&ys[0], &ys[1]);
+        swap16(&xs[2], &xs[3]);
+        swap16(&ys[2], &ys[3]);
+        count = (u16)-count;
+        mirrored = 1;
+    }
+    u16 x = (u16)xs[0];
+
+    const ClipRect *c = &g_graphics_context.clip;
+    int clipping = (g_graphics_context.bClip_enabled & 0x0f) != 0;
+    int clipRows = 0;
+    for (int i = 0; clipping && i < 4; i++)
+        if (c->ymin > ys[i] || c->ymax < ys[i])
+            clipRows = 1;
+
+    PolyEdge *e = g_polyRasterState.pEdge; /* top, bottom, source column */
+    set_hi16(&e[0].nAcc, (u16)ys[0]);
+    set_hi16(&e[0].nStep, (u16)ys[1]);
+    polyrast_edge_init_step(&e[0].nAcc, count);
+    set_hi16(&e[1].nAcc, (u16)ys[3]);
+    set_hi16(&e[1].nStep, (u16)ys[2]);
+    polyrast_edge_init_step(&e[1].nAcc, count);
+    u16 height = page_ptr[4];
+    u16 first = 0, last = (u16)(page_ptr[3] - 1);
+    if (mirrored) {
+        first = last;
+        last = 0;
+    }
+    set_hi16(&e[2].nAcc, first);
+    set_hi16(&e[2].nStep, last);
+    polyrast_edge_init_step(&e[2].nAcc, count);
+
+    const u8 *src = MK_FP(page_ptr[0], 0);
+    u32 extent = bak_seg_extent(page_ptr[0]);
+    u16 base = page_ptr[1];
+
+    if (clipping) {
+        if ((s16)x > c->xmax || (s16)(x + count) < c->xmin)
+            return;
+        if (c->xmin > (s16)x) {
+            u16 cut = (u16)(c->xmin - x);
+            x = (u16)c->xmin;
+            edges_advance(e, 3, cut);
+            count = (u16)(count - cut);
+        }
+        if ((s16)(x + count - 1) > c->xmax)
+            count = (u16)(count - (u16)(x + count - 1 - c->xmax));
+    }
+    if ((s16)count <= 0)
+        return;
+
+    Target t = {g_graphics_context.wGfxBlitDstPage, 0};
+    u16 table = (u16)g_polyRasterState.nRemapTableOff;
+    do {
+        u16 top = hi16(e[0].nAcc), bottom = hi16(e[1].nAcc);
+        u16 di = (u16)(top * 0x50 + (x >> 2));
+        t.plane = x & 3;
+        bak_port_out16(0x3c4, (u16)(0x100u << (x & 3) | 2));
+        s16 rows = (s16)(bottom - top);
+        u16 skip = 0, cut = 0;
+        if (clipRows) {
+            if (c->ymin > (s16)top)
+                skip = (u16)(c->ymin - top);
+            if ((s16)(bottom - 1) > c->ymax)
+                cut = (u16)(bottom - 1 - c->ymax);
+        }
+        if (rows > 1) {
+            /* IDIV: (height - 1, as a byte) * 256 over the rows, at most 7F80h */
+            u16 step = (u16)((u16)((u8)((u8)height - 1) << 8) / (u16)rows);
+            Walk w = {src,
+                      extent,
+                      (u16)(base + (u16)(hi16(e[2].nAcc) * height)),
+                      (u16)((step >> 8) - 1),
+                      0x80,
+                      (u8)step};
+            if (clipRows && (s16)rows <= (s16)cut) {
+                rows = 0;
+            } else if (clipRows) {
+                rows = (s16)(rows - cut);
+                if (skip != 0) {
+                    if ((s16)rows <= (s16)skip) {
+                        rows = 0;
+                    } else {
+                        rows = (s16)(rows - skip);
+                        for (u16 n = skip; n != 0; n--, di = (u16)(di + 0x50))
+                            next_pixel(&w);
+                    }
+                }
+            }
+            quad_rows(&t, &w, di, (u16)rows, table);
+        }
+        edges_advance(e, 3, 1);
+        x++;
+    } while (--count != 0);
 }
