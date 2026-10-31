@@ -40,8 +40,9 @@ and checks that an incomplete folder is turned down cleanly.
 
 1. **After the book**: the book pages through with keys or clicks and the chapter cutscene plays to its
    end (chapter one's map and title); the game then copies `STARTUP.GAM` to `TEMP.GAM` (`savegame_read`,
-   byte for byte), reads the party from it and stops setting up the 3D world: `ts_init` calls R3D.ASM's
-   `r3d_light_set_direction` (M3's R3D core).
+   byte for byte), reads the party from it and sets up the 3D world: `ts_init` sets the light (M3's R3D
+   core starts there), then the region's encounter shapes crash in `combat_actor_bnames_load_cached`
+   (CACTOR.C, a 16-bit offset used as a pointer).
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -134,7 +135,8 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/DRAWLINE.ASM` | `port/asm/drawline.c` | `test_drawline.py`: 1500 lines against random clip rectangles and 600 far-flung ones whose clipping overflows IDIV, with probes in the line and span slots: what reaches the driver |
 | `GFX/SPRITE/DRAWRECT.ASM` | `port/asm/drawrect.c` | `test_drawline.py`: 1000 rectangles, filled or not, clipped or not: the span table and the outline's lines |
 | `GFX/RASTER/VGABLIT.ASM` | `port/asm/vgablit.c` (`vga_planar_fill_rects`, which nothing calls, traps) | `test_vgablit.py`: 360 random span tables through the tiled and untiled copiers with random texture parameters and pages, 150 lines through the line-slot stand-in, on a planar VGA model: display memory, the map mask and the graphics mode left behind |
-| `R3D/CORE/R3DDATA.ASM` | `port/asm/r3ddata_data.c`, `r3ddata.h`: the state block, as `g_abR3dState` (the part C code reads) and `g_r3d` (R3D.ASM's own, in the original's order, with the words R3D.ASM keeps between its routines); the cosine table is R3DTRIG's | data only |
+| `R3D/CORE/R3DDATA.ASM` | `port/asm/r3ddata_data.c`, `r3ddata.h`: the state block, as `g_abR3dState` (the part C code reads) and `g_r3d` (R3D.ASM's own, in the original's order, with the words R3D.ASM keeps between its routines); the cosine table is R3DTRIG's | `test_r3d.py`: the lighting ramp |
+| `R3D/CORE/R3D.ASM` | `port/asm/r3d.c`, so far `r3d_light_set_direction`, `r3d_build_rotation_matrix` and `r3d_matrix3x3_transform_vec3` (with its far wrapper); the rest traps | `test_r3d.py`: the rotation matrix of every kind over angles at the cosine table's folds and 600 random ones, the vector transform over every type byte and 1500 random matrices and vectors, with inputs and outputs overlapping (the original reads its inputs again after each store); the light direction for `ts_init`'s angles and 500 pairs |
 | `R3D/CORE/R3DTRIG.ASM` | `port/asm/r3dtrig.c` (with R3DDATA.ASM's cosine table) | `test_r3dtrig.py`: every entry of the cosine, arcsine and arctangent tables through sin, cos, asin and the raw lookup; atan2 over 3000 vectors of three magnitudes, the axes, diagonals and -8000h |
 | `GFX/RASTER/POLYRAST.ASM` | `port/asm/polyrast.c` (quads with slanted sides go on to GOURAUD.ASM, not in C yet) | `test_polyrast.py`: the edge stepper over 3000 start/end/step cases; scaled sprites, plain and RLE, at random places, scales, flips, modes (copy, fill, outline, remap through the fog and cursor tables), clip rectangles and pages, on a planar VGA model: display memory, the steppers, the map mask and the RLE scratch after each. Reaches all 40 of the routine's checkpoints. The textured quad blit (the intro's page turn) over 360 quads with vertical sides, either way round, clipped or not: the same, and the corners it swaps |
 
@@ -272,6 +274,9 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   dividend decides where the end lands. Its minimum tests compare signed and its maximum tests unsigned, and
   it orders the ends with an unsigned compare: with clipping off, a line across x = 0 reaches the driver right
   end first.
+- **The renderer's vector transform tests a matrix's type with a signed compare.** A type byte from 80h
+  up takes the identity's path (the vector is copied), where the full rotation's would be expected.
+  The matrix builder writes 0-3 only.
 - **The VGA driver's sprite blit draws rows of width & ~3 pixels.** Slot 29 steps its source rows by the
   width rounded down to a multiple of 4, so a sprite's last width & 3 pixels in a row are never drawn (the
   game's sprites are multiples of 4 wide). The source position is kept as a quad-aligned offset plus a
