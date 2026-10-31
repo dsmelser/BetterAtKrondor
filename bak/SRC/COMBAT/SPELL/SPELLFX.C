@@ -386,7 +386,7 @@ void spellfx_draw_events_caption(void) {
     g_graphics_context.bClip_enabled = 0;
     g_graphics_context.bText_style_flags = 1;
 
-    blit_sprite_indirect((unsigned short)*g_pCastBmp, 0x80, 2, 0);
+    blit_sprite_indirect((NearPtr)*g_pCastBmp, 0x80, 2, 0);
 
     prev_slot = font_activate(0);
     font_activate(g_nSpellFontSlot);

@@ -1108,7 +1108,7 @@ void far combat_arena_draw_tgt_info_hud(Combatant *param_1, s16 param_2, s16 par
         param_1 = (Combatant *)0x0;
     }
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((NearPtr)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     {
         register s16 x;
@@ -1182,7 +1182,7 @@ void far combat_arena_draw_tgt_info_panel(void) {
         target = (Combatant *)0x0;
     }
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((NearPtr)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     pStr = (char *)"Choose a target";
     x = 0x82 - (font_text_width_ds(pStr) >> 1);
@@ -1250,7 +1250,7 @@ void far combat_arena_hud_melee_panel(void) {
     }
     g_graphics_context.bClip_enabled = 0;
     target = combat_actor_terr_under_cur();
-    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((NearPtr)*g_parch_bmx, 0x49, 0x81, 0);
     if ((combatgrid_actors_ortho_adj(g_current_actor, (Combatant *)target) != 0) &&
         ((s16)stat_actor_get(g_current_actor, 0x10, 0) > 1)) {
         hideSwing = 0;

@@ -111,7 +111,7 @@ void far fmap_screen_run(void) {
                 g_graphics_context.wVgaPage2Base;
             resblit_load_pal_or_stream("fullmap.scr");
             if (haveMarker != 0) {
-                blit_sprite_indirect((unsigned short)g_pFmapIconTable[iconBase], markerX - 3, markerY - 3,
+                blit_sprite_indirect((NearPtr)g_pFmapIconTable[iconBase], markerX - 3, markerY - 3,
                                      0);
             }
             menupage_draw(page);
@@ -146,7 +146,7 @@ void far fmap_screen_run(void) {
                     animFrame++;
                     animFrame = (short)animFrame % 4;
                 }
-                blit_sprite_indirect((unsigned short)g_pFmapIconTable[iconBase + animFrame], markerX - 3,
+                blit_sprite_indirect((NearPtr)g_pFmapIconTable[iconBase + animFrame], markerX - 3,
                                      markerY - 3, 0);
             }
             if ((pasteCounter == 0) && (needSaveRect != 0)) {

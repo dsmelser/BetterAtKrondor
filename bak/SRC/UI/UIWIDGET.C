@@ -48,7 +48,7 @@ static void uiwidget_tile_sprite_fill_rect(s16 x, s16 y, s16 w, s16 h, s16 sprit
             iy = 0;
             if (iy < g_graphics_context.clip.ymax) {
                 do {
-                    blit_sprite_indirect((unsigned short)g_tile_sprite[sprite_index], x + ix, y + iy, 0);
+                    blit_sprite_indirect((NearPtr)g_tile_sprite[sprite_index], x + ix, y + iy, 0);
                     iy += step_y;
                 } while (iy < g_graphics_context.clip.ymax);
             }

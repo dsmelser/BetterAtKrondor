@@ -1384,7 +1384,7 @@ void far mainmenu_save_show_ctrd_modal(void) {
     uiwidget_draw_text_shadowed_dflt(g_versionBanner, 0xaa, 0xae, 0xa0 - (textWidth >> 1),
                                      0x38);
     if (record != (ImageRecord **)0x0) {
-        blit_sprite_indirect((unsigned short)*record, 0xa0 - ((*record)->nWidth >> 1), 100, 0);
+        blit_sprite_indirect((NearPtr)*record, 0xa0 - ((*record)->nWidth >> 1), 100, 0);
     }
     screen_frame_present();
     while (combat_arena_wait_confirm_cancel() == 0)

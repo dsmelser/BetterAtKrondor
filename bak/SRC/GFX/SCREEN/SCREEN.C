@@ -283,7 +283,7 @@ void screen_cur_refr_during_long_op(void) {
     screen_cursor_draw(&g_cursor_prev_x[1], pBgBuffer);
 
     if (g_cursor_hidden != 0 && g_cursor_prev_x[1].shape != 2) {
-        blit_sprite_indirect((unsigned short)g_cursor_state[g_cursor_prev_x[1].shape],
+        blit_sprite_indirect((NearPtr)g_cursor_state[g_cursor_prev_x[1].shape],
                              g_cursor_prev_x[1].nX - g_cursor_prev_x[1].nHotX,
                              g_cursor_prev_x[1].nY - g_cursor_prev_x[1].nHotY, 0);
     }
@@ -308,7 +308,7 @@ void far screen_frame_present(void) {
     screen_cursor_get_position(&g_cursor_prev_x[1].nX, &g_cursor_prev_x[1].nY);
     screen_cursor_draw(&g_cursor_prev_x[1], g_pActiveCursorBuf);
     if (g_cursor_prev_x[0].nX != -999 && g_cursor_hidden != 0 && g_cursor_prev_x[1].shape != 2) {
-        blit_sprite_indirect((unsigned short)g_cursor_state[g_cursor_prev_x[1].shape],
+        blit_sprite_indirect((NearPtr)g_cursor_state[g_cursor_prev_x[1].shape],
                              g_cursor_prev_x[1].nX - g_cursor_prev_x[1].nHotX,
                              g_cursor_prev_x[1].nY - g_cursor_prev_x[1].nHotY, 0);
     }
@@ -461,7 +461,7 @@ void far screen_wipe_horizontal(s16 x, s16 y, s16 w, s16 h) {
     screen_cursor_draw(&g_cursor_prev_x[0], g_pActiveCursorBuf);
 
     if (g_cursor_hidden != 0 && g_cursor_prev_x[0].shape != 2) {
-        blit_sprite_indirect((unsigned short)g_cursor_state[g_cursor_prev_x[0].shape],
+        blit_sprite_indirect((NearPtr)g_cursor_state[g_cursor_prev_x[0].shape],
                              g_cursor_prev_x[0].nX - g_cursor_prev_x[0].nHotX,
                              g_cursor_prev_x[0].nY - g_cursor_prev_x[0].nHotY, 0);
     }

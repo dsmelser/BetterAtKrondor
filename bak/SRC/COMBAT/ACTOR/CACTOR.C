@@ -1576,7 +1576,7 @@ void far combat_actor_show_push_prompt(void) {
     s16 y;
 
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((NearPtr)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     y = 0x9a;
     font_draw_text_ds("Object will be pushed.", 0x50, y);
@@ -1586,7 +1586,7 @@ static void far combat_actor_path_blocked_msg(void) {
     s16 y;
 
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((NearPtr)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     y = 0x9a;
     font_draw_text_ds("Path is blocked!", 0x50, y);
@@ -1614,7 +1614,7 @@ void far combat_actor_draw_stats_panel(Combatant *actor) {
     if (actor != (Combatant *)0 && !!actor->charSlot) {
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
         resblit_sprite_frame(g_pHeadsBmxAssetTable[(s16)actor->charSlot - 1], 0xe, 0x8f, 0);
-        blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
+        blit_sprite_indirect((NearPtr)*g_parch_bmx, 0x49, 0x81, 0);
         g_graphics_context.bText_fg_color = 0;
         y = 0x84;
         x = 0x82 - (font_text_width_ds(actor->name) >> 1);

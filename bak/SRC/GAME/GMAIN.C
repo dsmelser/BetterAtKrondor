@@ -166,7 +166,7 @@ s16 far gmain_start_dispatch(s16 mode) {
             iconTable = resblit_load_asset_table("fmap_icn.bmp", 0);
             g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wGfxBlitDstPage =
                 g_graphics_context.wVgaPage2Base;
-            blit_sprite_indirect((unsigned short)iconTable[iconIndex], iconX - 3, iconY - 3, 0);
+            blit_sprite_indirect((NearPtr)iconTable[iconIndex], iconX - 3, iconY - 3, 0);
             free_image_record(iconTable);
         }
         vsync_hook(1);

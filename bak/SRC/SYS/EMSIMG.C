@@ -165,6 +165,6 @@ void emsimg_map_then_call_180c(u16 *p_id_or_ptr, s16 x, s16 y, u16 flip_flags) {
         mapped = ems_map_resource_pages(page_id);
         *p_id_or_ptr = FP_SEG(mapped);
     }
-    blit_sprite_indirect((s16)p_id_or_ptr, x, y, flip_flags);
+    blit_sprite_indirect((NearPtr)p_id_or_ptr, x, y, flip_flags);
     *p_id_or_ptr = page_id;
 }

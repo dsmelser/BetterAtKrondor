@@ -485,7 +485,7 @@ s16 booktext_render_page(PageDirectory far *page_directory, BookPage far *page, 
         pImg = (BookImage far *)pRes;
         while ((short)page->wImageCount > i) {
             if (null_terminated_count(g_pBookViewer->pImageRecord) > (short)pImg->wImage) {
-                blit_sprite_indirect((unsigned short)g_pBookViewer->pImageRecord[pImg->wImage], pImg->nX,
+                blit_sprite_indirect((NearPtr)g_pBookViewer->pImageRecord[pImg->wImage], pImg->nX,
                                      pImg->nY, pImg->wMirroring);
             }
             i++;
