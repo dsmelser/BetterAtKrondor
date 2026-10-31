@@ -163,7 +163,7 @@ def test_lines_divide_overflow(krondor, native):
         xmin, ymin = rng.randrange(-0x8000, 0x7000), rng.randrange(-0x8000, 0x7000)
         xmax = min(0x7FFF, xmin + rng.randrange(0x10000))
         ymax = min(0x7FFF, ymin + rng.randrange(0x10000))
-        clip = b"" + struct.pack("<4h", xmin, xmax, ymin, ymax)
+        clip = b"\x01" + struct.pack("<4h", xmin, xmax, ymin, ymax)
         s.set_ctx(CTX_CLIP, clip)
         x1, y1, x2, y2 = (rng.randrange(-0x8000, 0x8000) for _ in range(4))
         _compare_line(s, x1, y1, x2, y2, f"{i}: clip {clip.hex()}")
