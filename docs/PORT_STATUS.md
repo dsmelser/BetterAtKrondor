@@ -23,18 +23,17 @@ must be a resource index and the archive it names must be present, since the gam
 load. Then it parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs mouse, keyboard
 and timer, loads the game font, shows the "Loading Betrayal at Krondor... please wait." screen, finds no CD
 drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
-through the emulated MPU-401), and stops in `menupage_load`, which reads `REQ_*.DAT` records into structs
-with pointers (without AddressSanitizer the damage surfaces later, as a crash in `resblit_load_resource_set_1ec`).
-The MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), and stops where it composes the frame
+screens with the party's portraits for EMS (`resblit_load_resource_set_1ec`): the scaled sprite blit,
+POLYRAST.ASM's `polyrast_spr_scaled_blit_planar`, is not in C yet. The MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
 **Between here and the main menu** (found by skipping audio init in a local experiment):
 
-1. **Records read straight into structs with pointers.** `menupage_load` reads `REQ_*.DAT` menu pages
-   with `res_fread` into `MenuPage`/`MenuEntry`, whose pointer fields are 16-bit blob offsets on disk;
-   natively the layouts differ. These loaders need explicit deserialization (a `BAK_NATIVE` branch per
-   format), as the plan foresaw for saves.
+1. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
+   Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
+   for saves; `ASKABOUT.C` also clears `MenuEntry` records by their disk size (21h).
 2. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s: the ASan
    preset reports them at the first write.
 
@@ -49,6 +48,7 @@ Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or on
 | `SYS/DOSMEM.C` | `alloc_far` / `_freemem` on host memory; the free-memory query reports 640 KB |
 | `SYS/EMSDET.C`, `SYS/EMS.C` | INT 67h calls go to the emulated LIM EMS (8 MB, exact copy-in/copy-out paging) |
 | `SYS/CFGPARSE.C` | writable buffer for the drive prefix the parser overwrites |
+| `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |
 | `IO/RESOURCE.C` | prototype for the INT 24h handler (never raised natively) |

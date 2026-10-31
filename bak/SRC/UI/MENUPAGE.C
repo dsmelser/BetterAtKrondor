@@ -24,6 +24,83 @@ unsigned short g_wMenuDragState;
 short g_nJoyXVel = 0;
 short g_nJoyYVel = 0;
 
+#ifdef BAK_NATIVE
+/*
+ * The files hold the original's records: a page of 1Ch bytes, then the entry count and
+ * entries of 21h bytes, then a string blob. Their string pointers are 16-bit offsets into
+ * the blob (-1: none). Natively pointers take 4 bytes, so each field is read from its
+ * place in the record.
+ */
+static u16 menu_u16(const unsigned char *p) {
+    return (u16)(p[0] | p[1] << 8);
+}
+
+static char *menu_string(const unsigned char *field, char *blob) {
+    s16 off = (s16)menu_u16(field);
+    return off == -1 ? (char *)0 : blob + off;
+}
+
+static void menu_rect(Rect *rect, const unsigned char *p) {
+    rect->x = (s16)menu_u16(p);
+    rect->y = (s16)menu_u16(p + 2);
+    rect->width = (s16)menu_u16(p + 4);
+    rect->height = (s16)menu_u16(p + 6);
+}
+
+MenuPage *menupage_load(char *filename) {
+    ResFile *file;
+    MenuPage *page;
+    MenuEntry *entry;
+    s16 i;
+    char *stringBlob;
+    u16 blobSize;
+    unsigned char head[0x1c];
+    unsigned char *records, *r;
+
+    stringBlob = (char *)0;
+    file = res_fopen(filename, "rb");
+    page = galloc_safe_zcalloc(sizeof(MenuPage));
+    res_fread(head, 0x1c, 1, file);
+    res_fread(&page->wEntry_count, 2, 1, file);
+    records = galloc_safe_zcalloc(page->wEntry_count * 0x21);
+    res_fread(records, 0x21, page->wEntry_count, file);
+    res_fread(&blobSize, 2, 1, file);
+    if (blobSize != 0) {
+        stringBlob = galloc_safe_zcalloc(blobSize);
+        res_fread(stringBlob, 1, blobSize, file);
+    }
+    page->wWants_screen_save = menu_u16(head);
+    page->wVisible = menu_u16(head + 0x02);
+    page->wBg_color = menu_u16(head + 0x04);
+    menu_rect(&page->rect, head + 0x06);
+    page->pTitle = menu_string(head + 0x12, stringBlob);
+    page->nTitle_x = (s16)menu_u16(head + 0x14);
+    page->nTitle_y = (s16)menu_u16(head + 0x16);
+    memcpy(&page->pBackdrop_buffer, head + 0x18, 4);
+    page->pEntries = galloc_safe_zcalloc(page->wEntry_count * sizeof(MenuEntry));
+    for (i = 0; i < (s16)page->wEntry_count; i++) {
+        r = records + i * 0x21;
+        entry = &page->pEntries[i];
+        entry->wWidget_type = menu_u16(r);
+        entry->wAction_id = menu_u16(r + 0x02);
+        entry->bActive_flag = r[0x04];
+        entry->wBase_color = menu_u16(r + 0x05);
+        entry->wEnable_gate = menu_u16(r + 0x07);
+        entry->wSub_state = menu_u16(r + 0x09);
+        menu_rect(&entry->rect, r + 0x0b);
+        entry->pLabel = menu_string(r + 0x13, stringBlob);
+        entry->pPrimary_label = menu_string(r + 0x15, stringBlob);
+        entry->pAlt_label = menu_string(r + 0x17, stringBlob);
+        entry->wSprite_base = menu_u16(r + 0x19);
+        entry->wCursor_shape = menu_u16(r + 0x1b);
+        entry->wClick_flags = menu_u16(r + 0x1d);
+        entry->wClick_sfx_id = menu_u16(r + 0x1f);
+    }
+    galloc_zfree(records);
+    res_fclose(file);
+    return page;
+}
+#else
 MenuPage *menupage_load(char *filename) {
     ResFile *file;
     MenuPage *page;
@@ -68,6 +145,7 @@ MenuPage *menupage_load(char *filename) {
     res_fclose(file);
     return page;
 }
+#endif
 
 void menupage_free(MenuPage *page) {
     char *blobBase;
