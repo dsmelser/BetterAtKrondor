@@ -36,7 +36,7 @@ and checks that an incomplete folder is turned down cleanly.
 
 **Beyond the main menu** (M2):
 
-1. **The chapter books**: IMGLOAD.C's own loader (`BOOK.BMX`) and the HEG driver's sprite blit (slot 29).
+1. **The chapter books**: the HEG driver's sprite blit (slot 29) draws the pages' pictures.
 2. **The game state** (`TEMP.GAM`, saves): `boot_party_state_load_from_temp` reads 0xAD7 bytes straight into
    `GameState`, which natively holds pointers; the plan's save serialization.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
@@ -63,7 +63,7 @@ null) that expand to the original under Borland.
 | `SYS/CFGPARSE.C` | writable buffer for the drive prefix the parser overwrites |
 | `SCRIPT/ADSCRIPT.C`, `SCRIPT/ANIMSCR.C`, `INCLUDE/structs.h` | the animation scripts' object nodes, slots and operand lists sized with `RECORD_SIZE`/`NEAR_PTR_SIZE`; `Slot`'s node-chain head and operand-list fields are `NearPtr` |
 | `SCRIPT/TTM.C`, `SCRIPT/TTMDLG.C`, `DIALOG/DIALOG.C`, `GFX/SPRITE/SPRTHNKS.H`, `INCLUDE/structs.h` | a script object's image tables (`pAhPagedImage`, `NearPtr`) and the sprite pointers taken from them (`NearWord`, or a native local where the original reuses a 16-bit parameter); the EMS page's segment with `FP_SEG` |
-| `STREAM/RESLOAD/IMGLOAD.C` | `free_image_record` frees the image block through `MK_FP` (the original builds the far pointer as segment << 16) and reads the table's records pointer at native width. The file's own loader, which only the book viewer uses (M2), still keeps its pointers in 16-bit fields |
+| `STREAM/RESLOAD/IMGLOAD.C`, `IMGLOAD.H` | `free_image_record` frees the image block through `MK_FP` (the original builds the far pointer as segment << 16) and reads the table's records pointer at native width. The file's own loader (`BOOK.BMX`, and EMSIMG.C's combat images) builds its NULL-terminated table of record pointers at native width (`NearPtr`); the original holds them as 16-bit near pointers |
 | `DIALOG/ASKABOUT.C` | KEYWORD.DAT's 16-bit string offsets stay offsets and are resolved where a keyword is read (`KEYWORD`); the scratch menu's page and entries are cleared and sized at native size (`RECORD_SIZE`); a party member's name is read by its field, not by its offset in the game state; the dialog box comes back in a real four-word block (below) |
 | `SCREENS/CREDITS.C` | `credits_load` reads CRED.DAT's 16-bit string offsets aside and builds the pointer table from them |
 | `UI/NAMEDTBL.C` | label tables (`LBL_*.DAT`) are loaded into a handle with the string pool and the labels' pointers; the original rebases the records' 16-bit offsets in place and frees the pool as the lowest of them |

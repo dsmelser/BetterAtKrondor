@@ -15,6 +15,69 @@
 
 void unpack_2bpp_to_byte_per_pixel(unsigned char huge *src, unsigned char huge *dst, u16 count);
 
+#ifdef BAK_NATIVE
+/*
+ * The image table at native width. The original holds it as 16-bit near pointers: count + 1
+ * words (the last 0), each the address of a 10-byte record, the first one also the records
+ * block that free_container_pair frees. Natively the entries are pointers.
+ */
+s16 iff_chunk_loader_2f1c(ResFile *file, unsigned short *count, NearPtr *out_handle) {
+    unsigned short *width;
+    unsigned short *height;
+    s16 i;
+    unsigned short n;
+    ImageRecord **slot;
+    ImageRecord *rec;
+    unsigned short *buf;
+
+    buf = 0;
+    *out_handle = 0;
+    if (chunk_seek(file, "BMP:INF:", 0) == -1L)
+        goto L_fail;
+    if (res_fread(count, 2, 1, file) != 1)
+        goto L_fail;
+    if (!(*out_handle = (NearPtr)my_calloc((*count + 1) * NEAR_PTR_SIZE, 1)))
+        goto L_cleanup;
+    if (!(*(NearPtr *)*out_handle = (NearPtr)my_calloc(10, *count)))
+        goto L_cleanup;
+    if ((s32)(cached_file_chunk_size(file) + (-2L)) < (s32)(s16)(*count << 2))
+        n = 1;
+    else
+        n = *count;
+    if (!(buf = (unsigned short *)my_malloc(n << 2)))
+        goto L_cleanup;
+    if (res_fread(buf, n << 2, 1, file) != 1)
+        goto L_cleanup;
+    width = buf;
+    height = buf + n;
+    rec = *(ImageRecord **)*out_handle;
+    slot = (ImageRecord **)*out_handle;
+    for (i = 0; i < (s16)*count; i++) {
+        *slot = rec;
+        rec->nWidth = (short)*width;
+        rec->nHeight = (short)*height;
+        if (*count == n) {
+            width++;
+            height++;
+        }
+        rec++;
+        slot++;
+    }
+    *slot = 0;
+    my_free(buf);
+    return 1;
+L_cleanup:
+    if (buf != 0)
+        my_free(buf);
+    if (*out_handle != 0) {
+        if (*(NearPtr *)*out_handle != 0)
+            my_free((void *)*(NearPtr *)*out_handle);
+        my_free((void *)*out_handle);
+    }
+L_fail:
+    return 0;
+}
+#else
 s16 iff_chunk_loader_2f1c(ResFile *file, unsigned short *count, unsigned short *out_handle) {
 
     unsigned short *width;
@@ -72,8 +135,9 @@ L_cleanup:
 L_fail:
     return 0;
 }
+#endif
 
-unsigned short bak_load_image_record_chunked(FileRef *fname) {
+NearPtr bak_load_image_record_chunked(FileRef *fname) {
     unsigned short *image;
     s16 stream;
     unsigned char huge *buf;
@@ -99,7 +163,7 @@ unsigned short bak_load_image_record_chunked(FileRef *fname) {
         if ((u16)(fname = cached_file_open(fname)) < 0)
             goto cleanup;
     }
-    if (iff_chunk_loader_2f1c(fname, &record_count, (unsigned short *)&image)) {
+    if (iff_chunk_loader_2f1c(fname, &record_count, (NearPtr *)&image)) {
         size =
             (*(u32(far *)(unsigned short *, s16 *))g_renderer_vtable.pfn_image_install)(
                 image, &aux_size);
@@ -181,7 +245,7 @@ cleanup:
     }
     if (opened)
         cached_file_close(fname);
-    return (unsigned short)image;
+    return (NearPtr)image;
 }
 
 #ifdef BAK_NATIVE
