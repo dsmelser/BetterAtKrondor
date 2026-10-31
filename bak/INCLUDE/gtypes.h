@@ -54,6 +54,18 @@ typedef u16 NearWord;
 #endif
 
 /*
+ * FP_SEG_NORM(p): the segment of a far pointer the original holds normalized, its offset
+ * under 16, such as a shape record's: the near offsets inside the record count from it.
+ * Natively a pointer keeps no segment, and FP_SEG gives its block's; this gives the
+ * paragraph it is in.
+ */
+#ifdef BAK_NATIVE
+#define FP_SEG_NORM(p) bak_ptr_seg_norm(p)
+#else
+#define FP_SEG_NORM(p) FP_SEG(p)
+#endif
+
+/*
  * NEAR_STR(p): a near string pointer the original may hold as 0. It then reads DS:0000,
  * whose first bytes Borland's startup keeps zero (its null-pointer check area): an empty
  * string. Natively a NULL pointer reads as "".

@@ -111,7 +111,7 @@ s16 actorrender_mesh_parts_cull_sort(s16 part_off, s16 part_count, s16 *parts) {
             return 0;
 
         pPart =
-            (unsigned char far *)MK_FP(FP_SEG(g_abR3dState.pCurActorPagedRec), (u16)*parts);
+            (unsigned char far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec), (u16)*parts);
         if (!MESH_PART_VISIBLE(pPart))
             return 0;
         return 1;
@@ -126,7 +126,7 @@ s16 actorrender_mesh_parts_cull_sort(s16 part_off, s16 part_count, s16 *parts) {
         pWrite = parts;
         pKey = keys;
         for (i = 0; i < part_count; i++) {
-            pPart = (unsigned char far *)MK_FP(FP_SEG(g_abR3dState.pCurActorPagedRec),
+            pPart = (unsigned char far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec),
                                                (u16)*pRead);
             pRead++;
             if (MESH_PART_VISIBLE(pPart)) {
@@ -136,7 +136,7 @@ s16 actorrender_mesh_parts_cull_sort(s16 part_off, s16 part_count, s16 *parts) {
                     key = 0;
                 } else {
                     pPool = (Vec3Short
-                             far *)MK_FP(FP_SEG(g_abR3dState.pCurActorPagedRec),
+                             far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec),
                                          (u16)((MeshPartRecord far *)pPart)->wVertexPoolOff);
                     if (((MeshPartRecord far *)pPart)->bAnchorVtxIdx == 0xff) {
 
@@ -188,7 +188,7 @@ s16 actorrender_mesh_parts_cull_sort(s16 part_off, s16 part_count, s16 *parts) {
     pWrite = parts;
     for (i = 0; i < part_count; i++) {
         pPart =
-            (unsigned char far *)MK_FP(FP_SEG(g_abR3dState.pCurActorPagedRec), (u16)*pRead);
+            (unsigned char far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec), (u16)*pRead);
         pRead++;
         if (MESH_PART_VISIBLE(pPart)) {
             *pWrite = (s16)FP_OFF(pPart);
@@ -222,7 +222,7 @@ void actorrender_mesh_parts(s16 part_off, s16 part_count, s16 *part_ptr_array) {
     part_count = actorrender_mesh_parts_cull_sort(part_off, part_count, part_ptr_array);
     for (i = 0; i < part_count; i++) {
         pPart =
-            (unsigned char far *)MK_FP(FP_SEG(g_abR3dState.pCurActorPagedRec), part_ptr_array[i]);
+            (unsigned char far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec), part_ptr_array[i]);
         if (part_ptr_array[i] != part_off && (subCount = ((MeshPartRecord far *)pPart)->nSub) > 0) {
             s16 *pTail = part_ptr_array + part_count;
             subCount = actorrender_mesh_part_ptr_arr(
@@ -244,7 +244,7 @@ void actorrender_mesh_parts(s16 part_off, s16 part_count, s16 *part_ptr_array) {
             } else {
                 variantIdx = 0;
             }
-            pPoly = (unsigned char far *)MK_FP(FP_SEG(g_abR3dState.pCurActorPagedRec),
+            pPoly = (unsigned char far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec),
                                                ((MeshPartRecord far *)pPart)->wPolyListOff);
             *(u16 *)&pPoly += variantIdx * 8;
             if (pPoly[0] == 0) {
@@ -327,7 +327,7 @@ void actorrender_entity(WorldObject far *entry) {
     }
 
     nDesc = pRec->lodCount;
-    pDesc = (struct LodDescriptor far *)MK_FP(FP_SEG(pRec), (u16)pRec->lodArray);
+    pDesc = (struct LodDescriptor far *)MK_FP(FP_SEG_NORM(pRec), (u16)pRec->lodArray);
 
     nPage = 0;
     while (nPage < nDesc) {

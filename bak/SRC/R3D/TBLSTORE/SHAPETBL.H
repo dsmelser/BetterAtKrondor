@@ -56,6 +56,12 @@ struct Shape {
     /** 0x04, 2B: animation-group count (maxGroupId+1); 0 for non-animated models. */
     s16 animGroupCount;
 
+#ifdef BAK_NATIVE
+    /* The record is read from the file as it is: its near pointers stay 16-bit offsets. */
+    u16 animFrameCounts;
+    short lodCount;
+    u16 lodArray;
+#else
     /** 0x06, 2B near: per-group frame counts (animFrameCounts[gid]); precompute, unread — see brief. */
     unsigned char *animFrameCounts;
 
@@ -64,6 +70,7 @@ struct Shape {
 
     /** 0x0A, 2B near: LOD-descriptor array. */
     void *lodArray;
+#endif
 
     /** 0x0C, 2B: signed bounding half-extent; `radius << shift` = cull/LOD extent. */
     short radius;

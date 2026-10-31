@@ -145,6 +145,10 @@ uint16_t bak_ptr_seg(const void *p) {
     return off < 0x10000 ? b->seg : (uint16_t)(b->seg + (off >> 4));
 }
 
+uint16_t bak_ptr_seg_norm(const void *p) {
+    return (uint16_t)(bak_ptr_seg(p) + (bak_ptr_off(p) >> 4));
+}
+
 uint16_t bak_ptr_off(const void *p) {
     if ((uintptr_t)p < 0x10000)
         return (uint16_t)(uintptr_t)p;

@@ -114,7 +114,7 @@ s16 *worldrender_mesh_vertex_to_world(unsigned char idx, s16 *out_vec3) {
 
     if (idx != 0xff) {
         short neg_shift = -(short)g_abR3dState.wMeshScaleResidual;
-        L.vp = (Vec3Short far *)MK_FP(FP_SEG(g_abR3dState.pCurActorPagedRec),
+        L.vp = (Vec3Short far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec),
                                       g_abR3dState.wMeshVertexPoolOff);
         *(Vec3Short near *)&L.vx = L.vp[idx];
         L.vx >>= neg_shift;

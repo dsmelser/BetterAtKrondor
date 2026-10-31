@@ -41,14 +41,15 @@ and checks that an incomplete folder is turned down cleanly.
 1. **After the book**: the book pages through with keys or clicks and the chapter cutscene plays to its
    end (chapter one's map and title); the game then copies `STARTUP.GAM` to `TEMP.GAM` (`savegame_read`,
    byte for byte), reads the party from it and sets up the 3D world: `ts_init` sets the light (M3's R3D
-   core starts there), loads the region's encounter shapes, and crashes loading the zone's actors
-   (`czone_load_actors`, CZONE.C).
+   core starts there), loads the region's encounter shapes and the zone's actors, and stops scanning the
+   zone around the party: `proxscan_run` calls DISTDIR.ASM's `distdir_octagonal_distance`.
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
    for saves. A common case: a table
    of 16-bit string offsets read over a pointer table and rebased with `+= (s16)blob` (`CREDITS.C`,
-   `NAMEDTBL.C`, `ASKABOUT.C` and `CACTOR.C` are done; `DLGWIDG.C`, `CSPELL.C`, `CBENC.C` remain).
+   `NAMEDTBL.C`, `ASKABOUT.C` and `CACTOR.C` are done; `DLGWIDG.C`, `CSPELL.C`, `CBENC.C` remain). The
+   TBL shape records are done (`SHAPETBL.C`, below).
 4. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s (the dialog
    sprite cache in `ASKABOUT.C` still keeps them in 16 bits): the ASan preset reports them at the first
    write.
@@ -71,7 +72,8 @@ checks the native fields against the original's offsets and the round trip.
 Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or one of the idioms in
 `bak/INCLUDE/gtypes.h` (`NearPtr`/`NearWord`, `NEAR_PTR_SIZE`/`NEAR_PTR_SHIFT` for tables of near pointers,
 `RECORD_SIZE` for records holding them, `FP_OFF_ADD`, `RETURN_AX`, `NEAR_STR` for a string pointer that may be
-null) that expand to the original under Borland.
+null, `FP_SEG_NORM` for the segment of a pointer the original holds normalized) that expand to the original
+under Borland.
 
 | File | Native branch |
 |---|---|
@@ -93,6 +95,7 @@ null) that expand to the original under Borland.
 | `GFX/RASTER/CIRCLE.C` | `draw_circle_bresenham` builds the span table's far pointer with `MK_FP` (the original builds it as segment << 16) |
 | `COMBAT/ACTOR/CACTOR.C` | `combat_actor_bnames_load_cached` reads BNAMES.DAT's records at their 16-bit offsets into the blob (the original rebases the offsets in place), and its `nameChars` holds the whole 8-byte record with `nameMeta` pointing at the second half (below) |
 | `GFX/SPRITE/DECOMP.H`, `RESBLIT.C` | `decomp_rle`'s buffer is a `NearPtr` (the original passes it as a 16-bit int) |
+| `R3D/TBLSTORE/SHAPETBL.C`, `SHAPETBL.H`, `SHAPEBLD.C`, `R3D/ACTOR/ACTRENDR.C`, `R3D/SPRITE/WORLDRND.C` | a TBL's record table holds normalized far pointers from its DAT chunk's start (paragraphs in the high word, under 16 bytes in the low one: so in all 3065 records of the game's TBLs, whose chunks are under 64 KB), which the original adds to the chunk's seg:0000; natively each becomes the record's address. A `Shape` is file data, so its near pointers stay 16-bit offsets, and the offsets inside a record count from its own segment: `FP_SEG_NORM(record)`, the paragraph it is in |
 | `INCLUDE/r3d.h` | the names of the renderer's state words (labels on its state block in the original) are `g_abR3dState`'s fields, so both reach the same storage; `g_pColorRemapTable`, past the struct, is a global |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |

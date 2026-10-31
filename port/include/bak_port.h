@@ -24,6 +24,9 @@ extern "C" {
 void *bak_seg_ptr(uint16_t seg);
 uint16_t bak_ptr_seg(const void *p);
 uint16_t bak_ptr_off(const void *p);
+/* The segment of p as a normalized far pointer (offset under 16): the paragraph it is in,
+ * where FP_SEG gives its block's. */
+uint16_t bak_ptr_seg_norm(const void *p);
 uint16_t bak_seg_register(void *base, uint32_t size);
 /* The bytes from seg:0000 to the end of its block: 0 for an unmapped segment. */
 uint32_t bak_seg_extent(uint16_t seg);

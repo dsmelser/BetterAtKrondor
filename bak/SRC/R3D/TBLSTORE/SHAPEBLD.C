@@ -281,7 +281,11 @@ Shape far *ts_build_shape(s16 slot, Vec3Long *vtxData, u16 vtxSeg, s16 vtxCount,
 
         g_builder.builtShape = ts_bump_alloc(sizeof(Shape));
         g_builder.builtShape->lodCount = 1;
+#ifdef BAK_NATIVE
+        g_builder.builtShape->lodArray = FP_OFF(g_builder.bumpCursor);
+#else
         g_builder.builtShape->lodArray = (void *)FP_OFF(g_builder.bumpCursor);
+#endif
         g_builder.builtShape->priority = 0xff;
         g_builder.builtShape->shift = 0;
 
