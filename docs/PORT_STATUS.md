@@ -16,7 +16,7 @@ Where the native port stands. Update this file in the same commit as the work it
 | Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, `POLYRAST`, `DRAWLINE`, `DRAWRECT`, `R3DTRIG`, `VGABLIT` (span copiers), the vtable and sprite thunks |
 | Native sound driver bound to the loaded SX.OVL chunk | ✅ MT-32 (`port/drivers/m32.c`); the others stop with the driver's name |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
-| Boots the user's data to the main menu | ⬜ |
+| Boots the user's data to the main menu | ✅ locally (CI unconfirmed): intro, credits, main menu; Quit To DOS, Preferences and Contents work and the game quits cleanly; Start New Game goes on into chapter 1 (M2) |
 
 **Current behaviour.** `betterkrondor --data <dir>` first checks that the folder holds the game: `KRONDOR.RMF`
 must be a resource index and the archive it names must be present, since the game uses whatever it failed to
@@ -25,21 +25,27 @@ and timer, loads the game font, shows the "Loading Betrayal at Krondor... please
 drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
 through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
 party's portraits for EMS, plays the intro to its end and scrolls the credits, starting over until a key
-or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. Its
-Quit To DOS asks for confirmation (Yes quits cleanly, No returns) and Preferences opens its screen. The MIDI
-the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. Quit To
+DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
+come back, and Start New Game fades into chapter 1, whose opening book stops at BLITCHNK.ASM's
+`blit_chunky`. The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
+`BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
-**Between here and the main menu** (found by skipping audio init in a local experiment):
+**Beyond the main menu** (M2):
 
-1. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
+1. **The chapter books**: BLITCHNK.ASM and the 640x350 HEG driver.
+2. **The game state** (`TEMP.GAM`, saves): `boot_party_state_load_from_temp` reads 0xAD7 bytes straight into
+   `GameState`, which natively holds pointers; the plan's save serialization.
+3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
    for saves. A common case: a table
    of 16-bit string offsets read over a pointer table and rebased with `+= (s16)blob` (`CREDITS.C`,
    `NAMEDTBL.C` and `ASKABOUT.C` are done; `DLGWIDG.C`, `CSPELL.C`, `CBENC.C`, `CACTOR.C` remain).
-2. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s: the ASan
-   preset reports them at the first write.
+4. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s (the dialog
+   sprite cache in `ASKABOUT.C` still keeps them in 16 bits): the ASan preset reports them at the first
+   write.
 
 ## Native-only code in the game sources
 
