@@ -24,8 +24,8 @@ load. Then it parses `resource.cfg` and `drive.cfg`, binds the native VGA driver
 and timer, loads the game font, shows the "Loading Betrayal at Krondor... please wait." screen, finds no CD
 drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
 through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
-party's portraits for EMS, and starts the intro: loading its first animation script (`anim_script_open`), it
-overruns a record in `adscript_object_chain_append` (ADSCRIPT.C:149). The MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+party's portraits for EMS, and starts the intro: it loads and starts the animation scripts and crashes in the
+TTM interpreter (`ttmscript_opcode_dispatch_main`, TTM.C:243) on another 16-bit near pointer. The MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
@@ -40,7 +40,8 @@ and checks that an incomplete folder is turned down cleanly.
 ## Native-only code in the game sources
 
 Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or one of the idioms in
-`bak/INCLUDE/gtypes.h` (`NearPtr`, `FP_OFF_ADD`, `RETURN_AX`) that expand to the original under Borland.
+`bak/INCLUDE/gtypes.h` (`NearPtr`, `NEAR_PTR_SIZE`/`NEAR_PTR_SHIFT` for tables of near pointers,
+`RECORD_SIZE` for records holding them, `FP_OFF_ADD`, `RETURN_AX`) that expand to the original under Borland.
 
 | File | Native branch |
 |---|---|
@@ -48,6 +49,7 @@ Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or on
 | `SYS/DOSMEM.C` | `alloc_far` / `_freemem` on host memory; the free-memory query reports 640 KB |
 | `SYS/EMSDET.C`, `SYS/EMS.C` | INT 67h calls go to the emulated LIM EMS (8 MB, exact copy-in/copy-out paging) |
 | `SYS/CFGPARSE.C` | writable buffer for the drive prefix the parser overwrites |
+| `SCRIPT/ADSCRIPT.C`, `SCRIPT/ANIMSCR.C`, `INCLUDE/structs.h` | the animation scripts' object nodes, slots and operand lists sized with `RECORD_SIZE`/`NEAR_PTR_SIZE`; `Slot`'s node-chain head and operand-list fields are `NearPtr` |
 | `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |

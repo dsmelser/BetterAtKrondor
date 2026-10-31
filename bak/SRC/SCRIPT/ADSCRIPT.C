@@ -143,15 +143,15 @@ static void adscript_object_chain_append(unsigned short id_a, unsigned short tag
     ScriptAnimNode *pTail;
 
     if (g_pScriptObjectChainHead == (ScriptAnimNode *)0x0) {
-        g_pCurScriptAnimNode = g_pScriptObjectChainHead = my_malloc(0x3d);
+        g_pCurScriptAnimNode = g_pScriptObjectChainHead = my_malloc(RECORD_SIZE(ScriptAnimNode, 0x3d));
     } else {
         pTail = g_pScriptObjectChainHead;
         for (; pTail->pNext != (ScriptAnimNode *)0x0; pTail = pTail->pNext) {
         }
-        g_pCurScriptAnimNode = pTail->pNext = my_malloc(0x3d);
+        g_pCurScriptAnimNode = pTail->pNext = my_malloc(RECORD_SIZE(ScriptAnimNode, 0x3d));
     }
     if (g_pCurScriptAnimNode != (ScriptAnimNode *)0x0) {
-        memset(g_pCurScriptAnimNode, 0, 0x3d);
+        memset(g_pCurScriptAnimNode, 0, RECORD_SIZE(ScriptAnimNode, 0x3d));
         g_pCurScriptAnimNode->wPcSaved = id_a;
         g_pCurScriptAnimNode->wPc = id_a;
         g_pCurScriptAnimNode->wTag = tag;

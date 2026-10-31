@@ -56,8 +56,20 @@ typedef unsigned short NearPtr;
  */
 #ifdef BAK_NATIVE
 #define NEAR_PTR_SIZE ((s16)sizeof(void *))
+#define NEAR_PTR_SHIFT 2 /* log2 of NEAR_PTR_SIZE, where the original shifts by 1 */
 #else
 #define NEAR_PTR_SIZE 2
+#define NEAR_PTR_SHIFT 1
+#endif
+
+/*
+ * RECORD_SIZE(T, n): the size of a record type T holding near pointers, which the original
+ * writes as the literal n (its size with 2-byte pointers). sizeof(T) natively.
+ */
+#ifdef BAK_NATIVE
+#define RECORD_SIZE(type, n) ((s16)sizeof(type))
+#else
+#define RECORD_SIZE(type, n) (n)
 #endif
 
 /** @brief Boolean true value (1). */

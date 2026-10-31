@@ -1264,12 +1264,12 @@ struct Slot {
     unsigned short far *pScript_buf;
     unsigned short far *pScript_end;
     ScriptObject far *pObjects_head;
-    unsigned short wObjects_head_alt;
+    NearPtr wObjects_head_alt;
     unsigned short pChannel_state[80];
     unsigned short pChannel_b2[80];
     unsigned short far *pChannels[80];
     u32 pChannel_alt[80];
-    unsigned short pOp_lists[80];
+    NearPtr pOp_lists[80];
 };
 
 struct SpellDef {
