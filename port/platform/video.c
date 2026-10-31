@@ -73,6 +73,29 @@ void video_close(void) {
     s_window = NULL;
 }
 
+/* BAK_DUMP_FRAME=<file.bmp>: write every presented frame there too (headless checks). */
+static void dump_frame(const uint32_t *pal, uint32_t start) {
+    static const char *path;
+    static bool checked;
+    if (!checked) {
+        checked = true;
+        path = SDL_getenv("BAK_DUMP_FRAME");
+    }
+    if (path == NULL)
+        return;
+    SDL_Surface *s = SDL_CreateSurface(BAK_VGA_WIDTH, BAK_VGA_HEIGHT, SDL_PIXELFORMAT_XRGB8888);
+    if (s == NULL)
+        return;
+    for (int y = 0; y < BAK_VGA_HEIGHT; y++) {
+        uint32_t *row = (uint32_t *)((uint8_t *)s->pixels + y * s->pitch);
+        uint32_t src = start + (uint32_t)y * BAK_VGA_STRIDE;
+        for (int x = 0; x < BAK_VGA_WIDTH; x++)
+            row[x] = pal[g_bakVram[(src + (uint32_t)x) & (BAK_VRAM_SIZE - 1)]];
+    }
+    SDL_SaveBMP(s, path);
+    SDL_DestroySurface(s);
+}
+
 /* Show the window the CRTC is scanning out. */
 void video_present(void) {
     if (s_texture == NULL)
@@ -89,6 +112,7 @@ void video_present(void) {
         /* 6-bit DAC components to 8 bits. */
         pal[i] = (r << 2 | r >> 4) << 16 | (g << 2 | g >> 4) << 8 | (b << 2 | b >> 4);
     }
+    dump_frame(pal, start);
     for (int y = 0; y < BAK_VGA_HEIGHT; y++) {
         uint32_t *row = (uint32_t *)((uint8_t *)pixels + y * pitch);
         uint32_t src = start + (uint32_t)y * BAK_VGA_STRIDE;
