@@ -29,7 +29,8 @@ party's portraits for EMS, plays the intro to its end and scrolls the credits, s
 or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. Quit To
 DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
 come back, and Start New Game fades into chapter 1, whose opening book pages through with keys or
-clicks; the chapter cutscene after it plays to its end, and loading the new game's state stops (below).
+clicks; the chapter cutscene after it plays to its end, the new game's state is loaded, and setting up
+the 3D world stops (below).
 The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
 `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
@@ -38,9 +39,10 @@ and checks that an incomplete folder is turned down cleanly.
 **Beyond the main menu** (M2):
 
 1. **After the book**: the book pages through with keys or clicks and the chapter cutscene plays to its
-   end (chapter one's map and title); the game then loads the new game's state (`savegame_read`) and
-   stops at DOSRW.ASM's `dos_read`.
-2. **The game state**: done, see `TEMP.GAM` below; not yet exercised by the game, which stops before it.
+   end (chapter one's map and title); the game then copies `STARTUP.GAM` to `TEMP.GAM` (`savegame_read`,
+   byte for byte), reads the party from it and stops setting up the 3D world: `ts_init` calls R3D.ASM's
+   `r3d_light_set_direction` (M3's R3D core).
+2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
    for saves. A common case: a table
@@ -119,6 +121,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/POLYGON.ASM` | `port/asm/polygon.c`: `fill_spans_dispatch` (the polygon rasterizer, `draw_polygon` and its edge walkers, still traps; `blit_rect_buf_dispatch` has no caller and traps) | no logic: it forwards the span table to slot 27 |
 | `INPUT/MOUSE.ASM` | `port/asm/mouse.c`, `mouse_data.c` | `test_mouse.py`: INT 33h call sequences of install/clip/restore/set-position, queries, the event callback's register save/restore and latch parking on a planar VGA |
 | `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
+| `IO/DOSRW.ASM` | `port/asm/dosrw.c` (DOS's calls: the runtime's handle functions; a write of 0 bytes ends the file at the position) | `test_dosrw.py`: reads and writes on a DOS model (the same on both sides): counts around 7FFFh and 64 KB, files that end in each call, failing and short calls, 0 bytes, counts with bit 31 set, 300 random cases, with the original's pointer split in different ways: the result, every call, the file, its position and the buffer. On a real file: the runtime's calls do what the model does |
 | `INPUT/KEYBOARD.ASM` | `port/asm/keyboard.c`, `keyboard_data.c` | `test_keyboard.py`: the tables; 1500-byte random key sequences through the INT 9 handler (BIOS shift state and buffer, key states, channels) with and without the Tandy paths; `kbhit_read`; queries; the INT 1Ch axis tick; install/restore |
 | `INPUT/TIMER.ASM` | `port/asm/timer.c`, `timer_data.c` | `test_timer.py`: registry alloc/free; the order of callbacks over runs of IRQ 0 ticks and the BIOS chaining; install/restore |
 | `AUDIO/CDAUDIO.ASM` | `port/asm/cdaudio.c` | `test_cdaudio.py`: random detect/track/play/stop sequences with MSCDEX absent and with drives at D: and E:, against the same MSCDEX model |

@@ -58,6 +58,10 @@ int bakrtl_close(int fd);
 int bakrtl_read(int fd, void *buf, unsigned len);
 int bakrtl_write(int fd, const void *buf, unsigned len);
 
+/* Not called by the game; DOSRW's translation uses them for DOS's 0-byte write. */
+int32_t bakrtl_tell(int fd);
+int bakrtl_chsize(int fd, int32_t size);
+
 #define open(...) bakrtl_open(__VA_ARGS__)
 #define close(fd) bakrtl_close(fd)
 #define read(fd, buf, len) bakrtl_read((fd), (buf), (unsigned)(len))

@@ -195,6 +195,25 @@ int bakrtl_write(int fd, const void *buf, unsigned len) {
 #endif
 }
 
+int32_t bakrtl_tell(int fd) {
+#ifdef _WIN32
+    return _tell(fd);
+#else
+    return (int32_t)lseek(fd, 0, SEEK_CUR);
+#endif
+}
+
+/* The file cut, or extended with zeros, to size bytes: 0, or -1 for an error. */
+int bakrtl_chsize(int fd, int32_t size) {
+    if (size < 0)
+        return -1;
+#ifdef _WIN32
+    return _chsize(fd, size);
+#else
+    return ftruncate(fd, size);
+#endif
+}
+
 /* ---- dir.h -------------------------------------------------------------------------------- */
 
 #define FA_DIREC 0x10
