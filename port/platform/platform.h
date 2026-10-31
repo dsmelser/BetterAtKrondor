@@ -12,6 +12,10 @@ const char *platform_user_dir(void);
 
 bool platform_init(int argc, char **argv);
 
+/* Set by the test runner: no real-time waits and no presenting (vertical retrace is
+ * always under way). */
+extern bool g_platformFreeRunning;
+
 /* Print crashes (exception + symbolized call stack) to stderr (crash_win32.c). */
 void crash_reporter_install(void);
 void platform_shutdown(void);

@@ -11,15 +11,15 @@ Where the native port stands. Update this file in the same commit as the work it
 | Reference build in CI (`reference.yml`): objects, maps and binaries of `upstream-snapshot` | ✅ |
 | Native build skeleton: CMake presets, `bak_native.h`, Borland RTL shims, generated ASM stubs | ✅ all 188 C modules compile (clang-cl x86) and link |
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
-| Native VGA driver bound by `video_init` | ⬜ **next: boot stops here** |
-| SDL3 platform layer | 🚧 window + present, VGA register file, segment table, DOS paths; timer and input ⬜ |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND` |
+| Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
+| SDL3 platform layer | 🚧 window + present, VGA register file + 70 Hz retrace clock, chunky VRAM, segment table, DOS paths; timer and input ⬜ |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, the vtable thunks; **next: `MOUSE.ASM` (`mouse_install`)** |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
 
 **Current behaviour.** With the game files present, `betterkrondor --data <dir>` opens its window, enters the
-game, parses `resource.cfg` and `drive.cfg`, and stops at `video_init` with "Not implemented yet". Without
-them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
+game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver and stops at `mouse_install` with
+"Not implemented yet". Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
 against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash).
 
 ## Native-only code in the game sources
@@ -37,8 +37,10 @@ Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or on
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |
 | `IO/RESOURCE.C` | prototype for the INT 24h handler (never raised natively) |
 | `STREAM/RESLOAD/FONTLOAD.C`, `STREAM/BUFLOAD/CHUNKRD.C`, `DIALOG/DIALOG.C`, `SCRIPT/TTM.C` | small asm sequences in C |
-| `GFX/DRIVER/VIDINIT.C` `video_init` | ⬜ trap: bind the native driver |
-| `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C`, `GFX/FONT/FONT.C` fast path | ⬜ traps: driver slots called with register arguments |
+| `GFX/DRIVER/VIDINIT.C` `video_init`, `VIDDRV.C` `video_driver_bind` | the built-in driver replaces loading the VMCODE.OVL chunk; same mode remapping and context setup |
+| `GFX/FONT/FONT.C` fast path | slot 1 called with its registers as arguments |
+| `GEN/GFXCTX.H`, `GEN/RNDVTBL.H` | the original's labels inside the graphics-context block and the vtable name the same storage |
+| `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
 
 ## ASM modules
 
@@ -53,6 +55,28 @@ that runs the original routines from the reference build against the translation
 | Module | Translation | Verified by |
 |---|---|---|
 | `SYS/RAND.ASM` | `port/asm/rand.c` | `test_rand.py`: seed table, cold start, 2000 draws after reset, random states |
+| `GFX/DRIVER/VIDDET.ASM` | `port/asm/viddet.c` | `test_viddet.py`: every requested mode under every auto-detect state, on a modelled VGA machine; shutdown |
+| `GFX/RASTER/PIXEL.ASM` | `port/asm/pixel.c` | `test_pixel.py`: the clipping decision, against probes in the pixel slots |
+| `GEN/GFXCTX.ASM` | `port/asm/gfxctx_data.c` | `test_vga.py::test_context_initial_values`: the whole 2742-byte block |
+| `GEN/RNDVTBL.ASM` | `port/asm/rndvtbl_data.c` | data only: every slot starts at `gfx_retf_stub` |
+| `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c` | no logic: each routine forwards to a vtable slot |
+
+## Video drivers (VMCODE.OVL)
+
+The VGA chunk (`DRIVERS/VMCODE/VGA.ASM`) is `port/drivers/vga.c`. Display memory is the 256 KB chunky
+model of `bak_video.h`: planar byte (offset o, plane p) is element 4o + p, so pages, overruns and the CRTC
+start address behave as in Mode Y. `test_vga.py` runs the reference build's `VGA.EXE` on a planar VGA
+model (`harness/vga.py`) and compares display memory, the graphics-context block, the DAC, the CRTC start
+address and the palette cache after every call.
+
+| Slots | Status |
+|---|---|
+| init, 1 glyph, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 34/35 DAC blend/upload | ✅ verified |
+| 24 rect-buffer offset, 32 clear sprite cache | ported; verified with their consumers (23, 33) |
+| 2, 3, 10, 11, 17-19, 23, 27, 29-31, 33, 36-40 | ⬜ trap with the routine's name |
+| 9, 12, 16, 25, 26, 28, 41-48 | empty in the original: no-ops |
+
+The other adapters' chunks are not ported; the books' 640x350 HEG driver is the next one needed (M2).
 
 ## What the port has taught us about the original
 
@@ -73,5 +97,14 @@ that runs the original routines from the reference build against the translation
 
 ## Known divergences from the original
 
-None in behaviour yet. Placeholder values to revisit: the ASM data tables (zero), the emulated DOS free
-memory (640 KB) and EMS size (8 MB).
+- **ROM 8x8 font.** `video_init` installs the BIOS 8x8 font as font slot 1; natively its glyphs are
+  blank. The game switches to `game.fnt` before drawing text, so only the slot numbering matters.
+- **Mode 13h default palette.** The BIOS mode set loads a default DAC palette; natively the DAC keeps its
+  contents. The game sets its own palette before anything is visible.
+- **Degenerate driver calls.** Where a zero count makes the original's `LOOP` run 65536 times (a rectangle
+  0 pixels wide, a 0-colour palette upload or blend) or the original miscomputes an address (an image whose
+  packed size is a multiple of 64 KB), the native driver does nothing or stops with a message.
+- **Memory past the VGA window** (A000:0000 + 64 KB) reads as FFh and ignores writes, as on a VGA-only PC.
+
+Placeholder values to revisit: the remaining ASM data tables (zero), the emulated DOS free memory
+(640 KB) and EMS size (8 MB).

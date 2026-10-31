@@ -79,8 +79,8 @@ class Regs:
         return bool(self.flags & CARRY)
 
 
-PortIn = Callable[["Machine", int], int]
-PortOut = Callable[["Machine", int, int], None]
+PortIn = Callable[["Machine", int, int], int]  # (machine, port, size) -> value
+PortOut = Callable[["Machine", int, int, int], None]  # (machine, port, size, value)
 Interrupt = Callable[["Machine"], None]
 
 
@@ -251,14 +251,14 @@ class Machine:
         if handler is None:
             self._fail(f"unmodelled IN from port {port:03X}h")
             return 0
-        return handler(self, size)
+        return handler(self, port, size)
 
     def _on_out(self, uc, port, size, value, _user):
         handler = self.port_out.get(port)
         if handler is None:
             self._fail(f"unmodelled OUT {value:X}h to port {port:03X}h")
             return
-        handler(self, size, value)
+        handler(self, port, size, value)
 
     def _on_interrupt(self, uc, intno, _user):
         handler = self.interrupts.get(intno)

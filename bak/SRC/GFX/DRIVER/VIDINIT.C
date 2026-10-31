@@ -45,8 +45,56 @@ unsigned char g_bRequestedVideoMode = 0xff; /* DG+0x2ea9 */
 void far *g_pfnVideoDriverInit = 0;         /* DG+0x2eaa */
 
 #ifdef BAK_NATIVE
+/*
+ * The same sequence with the port's built-in driver: video_driver_bind stands for loading
+ * the chunk and calling its init entry, the slot table is copied as is (no segment halves
+ * to patch), and the ROM 8x8 font comes from the platform. Publishing DGROUP at 0000:04f0
+ * served the loaded drivers' callbacks and has no native counterpart.
+ */
 s16 video_init(s16 mode, s16 b, char *driver_name) {
-    BAK_UNIMPLEMENTED("video_init: bind the native VGA driver (port/drivers)");
+    const void *slots;
+    unsigned char far *span;
+    unsigned char far *rom_font;
+    s16 adapter;
+
+    (void)b;
+    (void)driver_name;
+    g_bRequestedVideoMode = (unsigned char)mode;
+    g_graphics_context.bYResDoubled = 0;
+    g_graphics_context.bGfxRenderStateFlag = 0;
+    g_wScreen_width = 0x140;
+    g_wScreen_height = 0xc8;
+    if (g_graphics_context.pPaletteScratchBuf != 0) {
+        _freemem(g_graphics_context.pPaletteScratchBuf);
+        g_graphics_context.pPaletteScratchBuf = 0;
+    }
+    g_bSavedBiosVideoMode = (unsigned char)bios_get_video_mode_bits();
+    adapter = video_detect_adapter();
+    g_graphics_context.bVideoAdapter = (unsigned char)adapter;
+    slots = adapter != 0 ? video_driver_bind(adapter) : 0;
+    if (slots != 0)
+        memcpy(g_renderer_vtable, slots, 0x32 * 4);
+    else
+        g_graphics_context.bVideoAdapter = 0;
+    g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaFrontPageBase;
+    g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
+    adapter = g_graphics_context.bVideoAdapter;
+    if (adapter == 0)
+        return 0;
+    if (g_graphics_context_render.wSpanTableBufSeg != 0)
+        _freemem(MK_FP(g_graphics_context_render.wSpanTableBufSeg - 1, 0));
+    span = alloc_far((u32)(u16)((g_wScreen_height << 2) + 0x20), 0L);
+    if (span == 0)
+        return adapter;
+    g_graphics_context_render.wSpanTableBufSeg = FP_SEG(span) + 1;
+    rom_font = bak_rom_font_8x8();
+    g_font_bitmap_data[0] = rom_font;
+    g_font_bitmap_data[1] = rom_font;
+    *(u16 *)g_graphics_context.pFont_height = 0x808;
+    *(u16 *)g_graphics_context.pFont_glyph_width_bits = 0x808;
+    *(u16 *)g_graphics_context.pFont_base_char = 0;
+    *(u16 *)g_graphics_context.pFont_glyph_count = 0xffff;
+    return adapter;
 }
 #else
 s16 video_init(s16 mode, s16 b, char *driver_name) {

@@ -10,6 +10,7 @@ typedef struct VgaRegs {
     uint8_t gc[16];      /* graphics controller (3CEh/3CFh): [4] read map, [8] bit mask */
     uint8_t attr[32];    /* attribute controller (3C0h): [13h] horizontal pel panning */
     uint8_t misc;        /* miscellaneous output (3C2h / 3CCh) */
+    uint8_t pelMask;     /* DAC pixel mask (3C6h) */
     uint8_t dac[256][3]; /* DAC palette, 6 bits per component */
     int dacDirty;
 } VgaRegs;

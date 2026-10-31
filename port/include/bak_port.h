@@ -51,6 +51,16 @@ uint16_t bak_ems_allocate(uint16_t pages);                 /* AH=43h, DX = handl
 void bak_ems_release(uint16_t handle);                     /* AH=45h */
 void bak_ems_map_multiple(uint16_t handle, const int16_t *pairs, int count); /* AX=5000h */
 
+/*
+ * The built-in video driver for a VMCODE.OVL chunk index (8 = "VGA:"), initialized as the
+ * chunk's init entry would be, returned as its 50-slot table (a RendererVtable); NULL
+ * when the port has no driver for that adapter. Replaces loading and calling the chunk.
+ */
+const void *bak_video_driver_init(int16_t chunk);
+
+/* INT 10h AX=1130h BH=3: the ROM's 8x8 font, 128 glyphs of 8 bytes. */
+unsigned char *bak_rom_font_8x8(void);
+
 /* I/O ports (VGA sequencer/CRTC/attribute registers, ...), emulated by the platform. */
 uint8_t bak_port_in8(uint16_t port);
 void bak_port_out8(uint16_t port, uint8_t value);

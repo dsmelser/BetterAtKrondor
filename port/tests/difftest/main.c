@@ -21,8 +21,7 @@
 #include "../../platform/platform.h"
 
 static const DtEntry *const s_modules[] = {
-    dt_rand_entries,
-    NULL,
+    dt_rand_entries, dt_vga_entries, dt_viddet_entries, dt_pixel_entries, NULL,
 };
 
 static jmp_buf s_failJump;
@@ -144,6 +143,7 @@ int main(void) {
     _setmode(_fileno(stdout), _O_BINARY);
 #endif
     crash_reporter_install();
+    g_platformFreeRunning = true;
 
     uint8_t *request = NULL;
     size_t requestCap = 0;

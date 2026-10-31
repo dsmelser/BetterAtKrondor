@@ -34,6 +34,38 @@ char g_szDrvSuffix_HVG[5] = "HVG:";
 char g_szDrvSuffix_HEG[5] = "HEG:";
 char g_szDrvSuffix_NEW[5] = "NEW:";
 
+#ifdef BAK_NATIVE
+/*
+ * video_driver_load's mode remapping (and its screen-size side effects), then the
+ * port's built-in driver for the resulting chunk, initialized. Natively this stands
+ * for loading the chunk and calling its init entry.
+ */
+const void *video_driver_bind(s16 mode) {
+    switch (mode) {
+    case 12:
+        mode = 0xb;
+        g_wScreen_height = 0x15e;
+        break;
+    case 13:
+        mode = 0xb;
+        g_wScreen_height = 0x1e0;
+        break;
+    case 14:
+        mode = 0xb;
+        goto set_height_400;
+    case 4:
+        mode = 1;
+        g_wScreen_width = 0x280;
+    case 15:
+        mode = 8;
+    set_height_400:
+        g_wScreen_height = 400;
+        break;
+    }
+    return bak_video_driver_init(mode);
+}
+#endif
+
 u32 far *video_driver_load(s16 mode, FileRef *file) {
     s32 size;
     s16 stream_id;

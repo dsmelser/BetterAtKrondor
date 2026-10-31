@@ -1,11 +1,9 @@
 /*
  * Emulated VGA display memory and presentation.
  *
- * The original keeps four Mode-Y pages in VRAM, named by the segment of their
- * planar base: A000, A400, A800 and the AC00 scratch page. Natively each is a
- * chunky 320x200 buffer of palette indices. The page the CRTC start address
- * selects is converted through the emulated DAC palette and shown in a window
- * scaled to a 4:3 picture, as on a VGA monitor.
+ * Display memory is the chunky 256 KB model of bak_video.h. Presenting converts the
+ * 320x200 window the CRTC start address selects through the emulated DAC palette and
+ * shows it scaled to a 4:3 picture, as on a VGA monitor.
  */
 #include <stdio.h>
 #include <string.h>
@@ -17,37 +15,19 @@
 #include "platform.h"
 #include "vgaregs.h"
 
-#define PAGE_COUNT 4
-#define PAGE_BYTES (BAK_VGA_WIDTH * BAK_VGA_HEIGHT)
+uint8_t g_bakVram[BAK_VRAM_SIZE];
 
-static uint8_t s_pages[PAGE_COUNT][PAGE_BYTES];
 static SDL_Window *s_window;
 static SDL_Renderer *s_renderer;
 static SDL_Texture *s_texture;
 
-static int page_index(uint16_t pageSeg) {
-    switch (pageSeg) {
-    case 0xA000:
-        return 0;
-    case 0xA400:
-        return 1;
-    case 0xA800:
-        return 2;
-    case 0xAC00:
-        return 3;
-    default:
-        return -1;
-    }
-}
-
 uint8_t *bak_video_page(uint16_t pageSeg) {
-    int i = page_index(pageSeg);
-    if (i < 0) {
+    if (pageSeg < 0xA000) {
         char what[48];
         snprintf(what, sizeof what, "video page at segment %04X", pageSeg);
         bak_unimplemented(what, __FILE__, __LINE__);
     }
-    return s_pages[i];
+    return &g_bakVram[(uint32_t)(pageSeg - 0xA000u) * 64u];
 }
 
 bool video_open(void) {
@@ -82,13 +62,12 @@ void video_close(void) {
     s_window = NULL;
 }
 
-/* Show the page the CRTC is scanning out. */
+/* Show the window the CRTC is scanning out. */
 void video_present(void) {
     if (s_texture == NULL)
         return;
-    /* In Mode Y the start address counts bytes per plane: page bases differ by 4000h. */
-    int index = (vga_crtc_start_address() / 0x4000) & 3;
-    const uint8_t *src = s_pages[index];
+    /* The start address counts planar bytes: four chunky pixels each. */
+    uint32_t start = (uint32_t)vga_crtc_start_address() * 4u;
     void *pixels;
     int pitch;
     if (!SDL_LockTexture(s_texture, NULL, &pixels, &pitch))
@@ -101,8 +80,9 @@ void video_present(void) {
     }
     for (int y = 0; y < BAK_VGA_HEIGHT; y++) {
         uint32_t *row = (uint32_t *)((uint8_t *)pixels + y * pitch);
+        uint32_t src = start + (uint32_t)y * BAK_VGA_STRIDE;
         for (int x = 0; x < BAK_VGA_WIDTH; x++)
-            row[x] = pal[src[y * BAK_VGA_WIDTH + x]];
+            row[x] = pal[g_bakVram[(src + (uint32_t)x) & (BAK_VRAM_SIZE - 1)]];
     }
     SDL_UnlockTexture(s_texture);
     SDL_RenderClear(s_renderer);

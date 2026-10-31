@@ -21,5 +21,8 @@ extern char g_szDrvSuffix_HEG[5];
 extern char g_szDrvSuffix_NEW[5];
 
 extern u32 far *video_driver_load(s16 mode, FileRef *file);
+#ifdef BAK_NATIVE
+extern const void *video_driver_bind(s16 mode);
+#endif
 
 #endif

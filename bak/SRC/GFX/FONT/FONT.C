@@ -272,7 +272,9 @@ s16 font_render_glyph_or_ctrl(char ch, s16 x, s16 y) {
             glyph_ptr = g_font_bitmap_data[0] + i * glyph_size;
         }
 #ifdef BAK_NATIVE
-        BAK_UNIMPLEMENTED("font fast glyph path: native VGA driver slot 1");
+        /* Slot 1 takes its registers as arguments: BP = y, DX = x, CX = rows, SI = glyph. */
+        (*(void (*)(s16, s16, s16, const unsigned char *))g_pfn_blit_glyph_row)(y, x, height,
+                                                                                glyph_ptr);
 #else
         asm {
             push bp
