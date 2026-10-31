@@ -460,18 +460,19 @@ void far dialog_cmbt_name_assign_kind(s16 slot, s16 kind, s16 aux, s16 name_toke
     case 5:
     case 6:
         g_speaker_kinds[slot] = (char)(kind - 1);
-        strcpy(g_speaker_names[slot], g_gameState.characters[kind - 1].name);
+        strcpy(g_speaker_names[slot], NEAR_STR(g_gameState.characters[kind - 1].name));
         break;
 
     case 7:
         g_speaker_kinds[slot] = (char)gstate_event_read(0x7535);
-        strcpy(g_speaker_names[slot], g_gameState.characters[g_speaker_kinds[slot]].name);
+        strcpy(g_speaker_names[slot], NEAR_STR(g_gameState.characters[g_speaker_kinds[slot]].name));
         break;
 
     case 10:
     case 30:
         g_speaker_kinds[slot] = (char)g_gameState.nEvtArgActor0;
-        strcpy(g_speaker_names[slot], g_gameState.characters[g_gameState.nEvtArgActor0].name);
+        strcpy(g_speaker_names[slot],
+               NEAR_STR(g_gameState.characters[g_gameState.nEvtArgActor0].name));
         break;
 
     case 32:
@@ -480,12 +481,14 @@ void far dialog_cmbt_name_assign_kind(s16 slot, s16 kind, s16 aux, s16 name_toke
 
     case 11:
         g_speaker_kinds[slot] = (char)g_gameState.nEvtArgActor1;
-        strcpy(g_speaker_names[slot], g_gameState.characters[g_gameState.nEvtArgActor1].name);
+        strcpy(g_speaker_names[slot],
+               NEAR_STR(g_gameState.characters[g_gameState.nEvtArgActor1].name));
         break;
 
     case 12:
         g_speaker_kinds[slot] = (char)g_gameState.nEvtArgStat;
-        strcpy(g_speaker_names[slot], g_gameState.characters[g_gameState.nEvtArgStat].name);
+        strcpy(g_speaker_names[slot],
+               NEAR_STR(g_gameState.characters[g_gameState.nEvtArgStat].name));
         break;
 
     case 13:

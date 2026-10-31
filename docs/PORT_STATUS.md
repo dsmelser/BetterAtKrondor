@@ -44,7 +44,8 @@ and checks that an incomplete folder is turned down cleanly.
 
 Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or one of the idioms in
 `bak/INCLUDE/gtypes.h` (`NearPtr`/`NearWord`, `NEAR_PTR_SIZE`/`NEAR_PTR_SHIFT` for tables of near pointers,
-`RECORD_SIZE` for records holding them, `FP_OFF_ADD`, `RETURN_AX`) that expand to the original under Borland.
+`RECORD_SIZE` for records holding them, `FP_OFF_ADD`, `RETURN_AX`, `NEAR_STR` for a string pointer that may be
+null) that expand to the original under Borland.
 
 | File | Native branch |
 |---|---|
@@ -156,6 +157,9 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   tell; the translation keeps it.
 - **The keyboard buffer holds one key.** The INT 9 handler treats the BIOS buffer as full when head + 2
   equals tail, which is when it already holds one key: there is no typeahead. The translation keeps it.
+- **A null near string is empty.** DGROUP starts with four zero bytes, Borland's null-pointer check area,
+  so a near pointer left 0 reads as an empty string. The dialogs rely on it: before a game is loaded the
+  party's name pointers are 0, and the main menu's dialogs copy them (`NEAR_STR` natively).
 - **File opens are unchecked.** A missing `drive.cfg` (1.02) or `resource.cfg` passes a NULL `FILE *` to
   `fscanf`; natively the C runtime's invalid-parameter handler reports it.
 - **The sequencer's priority change re-sorts with a MOV where a CMP was meant.** `midi_chord_propagate_setting`

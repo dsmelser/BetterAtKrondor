@@ -13,6 +13,7 @@
  * DOS build is unchanged.
  */
 #ifdef BAK_NATIVE
+#include <stddef.h>
 #include <stdint.h>
 typedef int16_t s16;
 typedef uint16_t u16;
@@ -50,6 +51,17 @@ typedef unsigned short NearPtr;
 typedef u16 NearWord;
 #define FP_OFF_ADD(p, n) (FP_OFF(p) += (n))
 #define RETURN_AX return
+#endif
+
+/*
+ * NEAR_STR(p): a near string pointer the original may hold as 0. It then reads DS:0000,
+ * whose first bytes Borland's startup keeps zero (its null-pointer check area): an empty
+ * string. Natively a NULL pointer reads as "".
+ */
+#ifdef BAK_NATIVE
+#define NEAR_STR(p) ((p) != NULL ? (p) : "")
+#else
+#define NEAR_STR(p) (p)
 #endif
 
 /*
