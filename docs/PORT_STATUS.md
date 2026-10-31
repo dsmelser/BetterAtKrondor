@@ -36,7 +36,7 @@ and checks that an incomplete folder is turned down cleanly.
 
 **Beyond the main menu** (M2):
 
-1. **The chapter books**: BLITCHNK.ASM and the 640x350 HEG driver.
+1. **The chapter books**: IMGLOAD.C's own loader (`BOOK.BMX`) and the HEG driver's sprite blit (slot 29).
 2. **The game state** (`TEMP.GAM`, saves): `boot_party_state_load_from_temp` reads 0xAD7 bytes straight into
    `GameState`, which natively holds pointers; the plan's save serialization.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
@@ -96,7 +96,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/PIXEL.ASM` | `port/asm/pixel.c` | `test_pixel.py`: the clipping decision, against probes in the pixel slots |
 | `GEN/GFXCTX.ASM` | `port/asm/gfxctx_data.c` | `test_vga.py::test_context_initial_values`: the whole 2742-byte block |
 | `GEN/RNDVTBL.ASM` | `port/asm/rndvtbl_data.c` | data only: every slot starts at `gfx_retf_stub` |
-| `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM`, `GFX/SPRITE/SPRTHNKS.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c`, `sprthnks.c` | no logic: each routine forwards to a vtable slot (SPRTHNKS's `blit_sprite` and `blit_stretched_dispatch` have no caller and trap) |
+| `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM`, `GFX/SPRITE/SPRTHNKS.ASM`, `GFX/SPRITE/BLITCHNK.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c`, `sprthnks.c`, `blitchnk.c` | no logic: each routine forwards to a vtable slot (SPRTHNKS's `blit_sprite` and `blit_stretched_dispatch` and BLITCHNK's `blit_chunky_planar_4bit` have no caller and trap) |
 | `INPUT/MOUSE.ASM` | `port/asm/mouse.c`, `mouse_data.c` | `test_mouse.py`: INT 33h call sequences of install/clip/restore/set-position, queries, the event callback's register save/restore and latch parking on a planar VGA |
 | `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
 | `INPUT/KEYBOARD.ASM` | `port/asm/keyboard.c`, `keyboard_data.c` | `test_keyboard.py`: the tables; 1500-byte random key sequences through the INT 9 handler (BIOS shift state and buffer, key states, channels) with and without the Tandy paths; `kbhit_read`; queries; the INT 1Ch axis tick; install/restore |
@@ -142,7 +142,22 @@ Slots the game calls with register arguments have native signatures in `port/dri
 `FillSpansFn`). The routines the game swaps into them take the same form: VGABLIT.ASM's texture copiers
 (dialog backgrounds and the sky), and slot 39 for textured polygons when it is ported.
 
-The other adapters' chunks are not ported; the books' 640x350 HEG driver is the next one needed (M2).
+The books' HEG chunk (`DRIVERS/VMCODE/HEG.ASM`) is `port/drivers/heg.c`: 640 pixels across in 16 colours,
+eight to a byte in each plane. It keeps every register write and display-memory access of the original
+and runs them through the platform's VGA, so it relies on the register state as the original does.
+`test_heg.py` runs the reference build's `HEG.EXE` on the planar model, from scrambled graphics-controller
+and sequencer registers and latches, and compares display memory, the graphics-context block, every VGA
+register (the index registers, the attribute flip-flop and the latches too), the DAC and the palette mirror
+after every call. Each of 13 deliberate breaks of the translation fails it.
+
+| Slots | Status |
+|---|---|
+| init (the 350-line mode 10h; the 400- and 480-line mode 12h and the 640x200 mode 0Eh stop in the platform), 1 glyph, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 13/14 image size/install, 17 packed rows, 20 palette, 21/22 pixels, 25 border, 34 blend | ✅ verified |
+| 32 reset the archive cursor | ported; observable only through 31 |
+| 2, 3/29 sprites, 10, 11, 16, 26, 27, 30, 31, 33, 36-38 | ⬜ trap with the routine's name |
+| 9, 12, 15, 18, 19, 23, 24, 28, 35 | empty in the original: no-ops |
+
+The other adapters' chunks are not ported.
 
 ## Sound drivers (SX.OVL)
 
@@ -230,6 +245,16 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   byte when its ends differ only above bit 11 (it masks with 0FFCh where the run slots use FFFCh), and an
   upward vertical line (slot 2) loses bit 15 of its height, which it doubles and halves around a table read.
   Only coordinates far off the screen reach either.
+- **The HEG driver's row table runs into the render tail.** Its init writes 480 row offsets from the context's
+  200-entry table on, through the 560 reserved bytes after it, up to the span-table segment.
+- **The HEG image install finds its mask's segment in a leftover CS.** It calls its helpers with PUSH CS and a
+  near CALL, but they return with a near RET, so each call leaves CS on the stack. The arguments it pops
+  afterwards are therefore off by one word, and the mask builder takes the image's segment from the slot
+  where the plane copier's argument was. The result is right.
+- **The HEG chunky-to-planar converter crosses 64 KB on its second word only.** It advances the source
+  segment when the step after a group's second word carries out of the offset; a source whose offset wraps
+  at the first word reads the segment's start again. Buffers from `alloc_far` start at offset 0 and never
+  wrap there.
 
 ## Black-box comparison with the original
 

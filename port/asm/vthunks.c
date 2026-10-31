@@ -15,7 +15,8 @@ void set_border_color(s16 color) {
     (*(SetBorderColorFn)g_renderer_vtable.pPfn_set_border_color)(color);
 }
 
-/* Slot 26 is empty in every driver; nothing calls this in the game. */
+/* Slot 26 is empty in every driver but HEG's (a palette-entry setter); nothing calls this in
+ * the game. */
 void renderer_vslot26_dispatch(void) {
     (*(UnimplementedSlotFn)g_renderer_vtable.slot_26_unimplemented)();
 }

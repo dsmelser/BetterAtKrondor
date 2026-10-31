@@ -4,12 +4,15 @@
 #include <string.h>
 
 #include "dude.h"
+#include "heg.h"
 #include "vga.h"
 
 const void *bak_video_driver_init(int16_t chunk) {
     switch (chunk) {
     case 8: /* "VGA:" */
         return vga_driver_init();
+    case 0xB: /* "HEG:" */
+        return heg_driver_init();
     default:
         return NULL;
     }

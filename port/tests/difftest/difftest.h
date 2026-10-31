@@ -81,5 +81,6 @@ extern const DtEntry dt_polyrast_entries[];
 extern const DtEntry dt_drawline_entries[];
 extern const DtEntry dt_r3dtrig_entries[];
 extern const DtEntry dt_vgablit_entries[];
+extern const DtEntry dt_heg_entries[];
 
 #endif
