@@ -64,15 +64,15 @@ s16 video_init(s16 mode, s16 b, char *driver_name) {
     g_graphics_context.bGfxRenderStateFlag = 0;
     g_wScreen_width = 0x140;
     g_wScreen_height = 0xc8;
-    if (g_graphics_context.pPaletteScratchBuf != 0) {
+    if (g_graphics_context.pPaletteScratchBuf != NULL) {
         _freemem(g_graphics_context.pPaletteScratchBuf);
-        g_graphics_context.pPaletteScratchBuf = 0;
+        g_graphics_context.pPaletteScratchBuf = NULL;
     }
     g_bSavedBiosVideoMode = (unsigned char)bios_get_video_mode_bits();
     adapter = video_detect_adapter();
     g_graphics_context.bVideoAdapter = (unsigned char)adapter;
-    slots = adapter != 0 ? video_driver_bind(adapter) : 0;
-    if (slots != 0)
+    slots = adapter != 0 ? video_driver_bind(adapter) : NULL;
+    if (slots != NULL)
         memcpy(g_renderer_vtable, slots, 0x32 * 4);
     else
         g_graphics_context.bVideoAdapter = 0;
@@ -84,7 +84,7 @@ s16 video_init(s16 mode, s16 b, char *driver_name) {
     if (g_graphics_context_render.wSpanTableBufSeg != 0)
         _freemem(MK_FP(g_graphics_context_render.wSpanTableBufSeg - 1, 0));
     span = alloc_far((u32)(u16)((g_wScreen_height << 2) + 0x20), 0L);
-    if (span == 0)
+    if (span == NULL)
         return adapter;
     g_graphics_context_render.wSpanTableBufSeg = FP_SEG(span) + 1;
     rom_font = bak_rom_font_8x8();
