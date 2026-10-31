@@ -21,8 +21,10 @@ Where the native port stands. Update this file in the same commit as the work it
 game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs mouse, keyboard and timer, loads the game font and shows the
 "Loading Betrayal at Krondor... please wait." screen, checks for a CD drive (none: MSCDEX is absent) and
 stops at the sound-driver install (`MIDI.ASM`) with "Not implemented yet". Every sound setting, "none"
-included, loads a driver from SX.OVL and runs the sequencer, so audio is next. Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
-against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash).
+included, loads a driver from SX.OVL and runs the sequencer, so audio is next. Without them it says where it looked. Development runs
+against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash). The platform first checks that
+`KRONDOR.RMF` is a resource index and that its archive is present, since the game uses whatever it failed to
+load; CI, which has no game data, checks that an incomplete folder is turned down cleanly.
 
 **Between here and the main menu** (found by skipping audio init in a local experiment):
 

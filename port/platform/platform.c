@@ -1,6 +1,7 @@
 /* Platform lifetime, event pumping, the idle hook and the unimplemented trap. */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <SDL3/SDL.h>
 
@@ -64,6 +65,33 @@ static void install_crt_handlers(void) {
 }
 #endif
 
+/* KRONDOR.RMF, the resource index, must be readable and every archive it names present:
+ * u16 archive count, u16 hash seed, u16 hash rotation, then per archive a 13-byte
+ * NUL-padded file name and the entries. Only the first archive's name is checked. */
+static bool game_data_complete(char *problem, size_t size) {
+    FILE *rmf = bakrtl_fopen("krondor.rmf", "rb");
+    if (rmf == NULL) {
+        snprintf(problem, size, "no KRONDOR.RMF");
+        return false;
+    }
+    unsigned char head[6];
+    char archive[14] = {0};
+    bool ok = fread(head, sizeof head, 1, rmf) == 1 && (head[0] | head[1] << 8) > 0 &&
+              fread(archive, 13, 1, rmf) == 1 && memchr(archive, 0, 13) != NULL;
+    fclose(rmf);
+    if (!ok) {
+        snprintf(problem, size, "KRONDOR.RMF is not a resource index");
+        return false;
+    }
+    FILE *payload = bakrtl_fopen(archive, "rb");
+    if (payload == NULL) {
+        snprintf(problem, size, "KRONDOR.RMF indexes %s, which is missing", archive);
+        return false;
+    }
+    fclose(payload);
+    return true;
+}
+
 bool platform_init(int argc, char **argv) {
     (void)argc;
     (void)argv;
@@ -75,19 +103,19 @@ bool platform_init(int argc, char **argv) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
-    /* The game assumes it runs from its install folder; check before it trips over that. */
-    FILE *rmf = bakrtl_fopen("krondor.rmf", "rb");
-    if (rmf == NULL) {
-        char msg[1200];
+    /* The game assumes it runs from its install folder and does not survive missing
+     * resources (it uses what it failed to load); check before it trips over that. */
+    char problem[256];
+    if (!game_data_complete(problem, sizeof problem)) {
+        char msg[1500];
         snprintf(msg, sizeof msg,
-                 "Betrayal at Krondor's game files were not found in:\n%s\n\n"
+                 "Betrayal at Krondor's game files were not found in:\n%s\n(%s)\n\n"
                  "Run with --data <folder>, pointing at the folder that contains KRONDOR.RMF.",
-                 platform_data_dir());
+                 platform_data_dir(), problem);
         report_error(msg);
         SDL_Quit();
         return false;
     }
-    fclose(rmf);
     return video_open();
 }
 

@@ -19,25 +19,26 @@ jobs:
         shell: cmd
         run: port\tools\win-build.cmd win-x86-clangcl
 
-      - name: Smoke test (boots until the first unported subsystem)
+      - name: Smoke test (starts, and rejects a folder without the game's resources)
         shell: pwsh
         env:
           BAK_HEADLESS: "1"
           SDL_VIDEO_DRIVER: dummy
         run: |
-          # Placeholder game files: enough for the platform's data check and the config
-          # parsers. Exit 3 is "not implemented yet" (expected during bring-up); a crash,
-          # a hang or any other exit code fails the job.
+          # The game cannot run without its resources, which CI does not have; the
+          # executable must start, bring up SDL and turn down a folder whose KRONDOR.RMF
+          # is not a resource index (exit 1). A crash or a hang fails the job.
           $data = New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\fakedata"
           Set-Content "$data\KRONDOR.RMF" "" -NoNewline
-          Set-Content "$data\resource.cfg" "sounddrv = std.drv`r`n" -NoNewline -Encoding ascii
-          Set-Content "$data\drive.cfg" "C:`r`nD:`r`n" -NoNewline -Encoding ascii
           $p = Start-Process build\win-x86-clangcl\betterkrondor.exe -ArgumentList '--data',$data `
                  -NoNewWindow -PassThru -RedirectStandardError smoke.err
           $null = $p.Handle
           if (-not $p.WaitForExit(30000)) { $p.Kill(); Get-Content smoke.err; throw "hung" }
           Get-Content smoke.err
-          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3) { throw ("exit code 0x{0:X8}" -f $p.ExitCode) }
+          if ($p.ExitCode -ne 1) { throw ("exit code 0x{0:X8}" -f $p.ExitCode) }
+          if (-not (Select-String -Quiet -Path smoke.err -Pattern "not a resource index")) {
+            throw "the incomplete game folder was not reported"
+          }
 
       - uses: astral-sh/setup-uv@v6
 
