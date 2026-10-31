@@ -1,0 +1,56 @@
+name: native build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x86:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (clang-cl, x86)
+        shell: cmd
+        run: port\tools\win-build.cmd win-x86-clangcl
+
+      - name: Smoke test (boots until the first unported subsystem)
+        shell: pwsh
+        env:
+          BAK_HEADLESS: "1"
+          SDL_VIDEO_DRIVER: dummy
+        run: |
+          # Placeholder game files: enough for the platform's data check and the config
+          # parsers. Exit 3 is "not implemented yet" (expected during bring-up); a crash,
+          # a hang or any other exit code fails the job.
+          $data = New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\fakedata"
+          Set-Content "$data\KRONDOR.RMF" "" -NoNewline
+          Set-Content "$data\resource.cfg" "sounddrv = std.drv`r`n" -NoNewline -Encoding ascii
+          Set-Content "$data\drive.cfg" "C:`r`nD:`r`n" -NoNewline -Encoding ascii
+          $p = Start-Process build\win-x86-clangcl\betterkrondor.exe -ArgumentList '--data',$data `
+                 -NoNewWindow -PassThru -RedirectStandardError smoke.err
+          $null = $p.Handle
+          if (-not $p.WaitForExit(30000)) { $p.Kill(); Get-Content smoke.err; throw "hung" }
+          Get-Content smoke.err
+          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3) { throw ("exit code 0x{0:X8}" -f $p.ExitCode) }
+
+  linux-x86-game:
+    # Compile-only portability check of the game sources (no SDL) on a 32-bit Linux target.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install 32-bit toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang ninja-build gcc-multilib
+
+      - name: Compile the game sources (clang -m32)
+        run: |
+          cmake --preset linux-x86 -DBAK_BUILD_PORT=OFF
+          cmake --build --preset linux-x86 --target bakgame

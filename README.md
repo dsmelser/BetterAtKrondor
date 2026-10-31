@@ -27,7 +27,17 @@ of *Betrayal at Krondor* (for example the GOG release) and point the port at its
 
 ## Building
 
-The native build is being set up; see [docs/PORT_STATUS.md](docs/PORT_STATUS.md).
+Windows, with Visual Studio 2022 or later and its *C++ Clang tools* component:
+
+```
+port\tools\win-build.cmd
+build\win-x86-clangcl\betterkrondor.exe --data "C:\path\to\Betrayal at Krondor"
+```
+
+The script finds Visual Studio, loads its x86 environment and runs the `win-x86-clangcl` CMake
+preset (SDL3 is downloaded and built automatically). The port is in early bring-up: it starts, reads
+the game's configuration and stops at the first subsystem not ported yet. See
+[docs/PORT_STATUS.md](docs/PORT_STATUS.md).
 
 The original DOS build (Borland C++ in FreeDOS under QEMU) is preserved at the
 `upstream-snapshot` tag and runs in CI (`.github/workflows/reference.yml`) to produce

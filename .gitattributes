@@ -4,3 +4,5 @@
 *.BIN binary
 *.bin binary
 *.png binary
+# cmd.exe can misparse batch files with LF-only line endings.
+*.cmd text eol=crlf

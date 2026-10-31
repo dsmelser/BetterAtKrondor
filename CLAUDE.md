@@ -15,6 +15,19 @@ behaviour is checked against the original instead (see Verification).
 | `cli/`, `viewer/` | Upstream's Python CLI and browser asset viewer. `uv run bak rmf` and the viewer decode game data. `bak build` (the Borland build) only works at the `upstream-snapshot` tag and in CI (`.github/workflows/reference.yml`). |
 | `docs/PORT_STATUS.md` | What is ported, stubbed, or known to diverge. Keep it current. |
 
+## Commands
+
+```
+port\tools\win-build.cmd [preset]                 # Windows: VS env + configure + build (default win-x86-clangcl)
+build\win-x86-clangcl\betterkrondor.exe --data <game dir> [--user <save dir>]
+python -I port/tools/gen_asm_stubs.py              # regenerate placeholders for unported ASM modules
+python -I port/tools/asm_publics.py                # inventory of the in-EXE ASM modules
+gh workflow run reference.yml -f ref=<ref>         # Borland build of <ref>: byte-identity check + reference objects
+```
+
+Environment: `BAK_HEADLESS=1` (no dialogs; errors to stderr), `BAK_TRACE=1` (platform milestones),
+`SDL_VIDEO_DRIVER=dummy` (no window). Crashes print a symbolized stack on Windows.
+
 ## Rules
 
 - **Faithful by default.** At default settings the port must behave like the original
