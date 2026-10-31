@@ -9,7 +9,9 @@
  * FP_SEG/FP_OFF of a pointer return the block's base segment and the offset
  * from the block start - the form a far pointer derived from an allocation has
  * in the original (far pointer arithmetic only moves the offset). Offsets past
- * 64 KB fall back to the normalized form, like a huge pointer.
+ * 64 KB fall back to the normalized form, like a huge pointer. Values below 64 KB
+ * are no host address: they are segment 0 (MK_FP(0, n) is n), which is what the
+ * game leaves when it stores a word into a null far pointer's offset.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,7 +138,7 @@ static uint32_t offset_in_block(const void *p, SegBlock **out) {
 }
 
 uint16_t bak_ptr_seg(const void *p) {
-    if (p == NULL)
+    if ((uintptr_t)p < 0x10000)
         return 0;
     SegBlock *b;
     uint32_t off = offset_in_block(p, &b);
@@ -144,8 +146,8 @@ uint16_t bak_ptr_seg(const void *p) {
 }
 
 uint16_t bak_ptr_off(const void *p) {
-    if (p == NULL)
-        return 0;
+    if ((uintptr_t)p < 0x10000)
+        return (uint16_t)(uintptr_t)p;
     SegBlock *b;
     uint32_t off = offset_in_block(p, &b);
     return off < 0x10000 ? (uint16_t)off : (uint16_t)(off & 15);
