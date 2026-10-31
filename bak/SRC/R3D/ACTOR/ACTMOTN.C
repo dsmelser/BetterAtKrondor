@@ -5,13 +5,13 @@
 #include "SRC/R3D/CORE/R3D.H"
 #include "SRC/SYS/PANICF.H"
 
-short g_nActorKnockbackColorIdx = 0;
-short g_nActorSpriteFlip = 0;
-unsigned short g_nActorShakeX = 0x0000;
-unsigned short g_nActorShakeY = 0x0000;
-unsigned short g_bForceOverlay = 0x0000;
+s16 g_nActorKnockbackColorIdx = 0;
+s16 g_nActorSpriteFlip = 0;
+u16 g_nActorShakeX = 0x0000;
+u16 g_nActorShakeY = 0x0000;
+u16 g_bForceOverlay = 0x0000;
 
-void *actormotion_xzmalloc(unsigned int size) {
+void *actormotion_xzmalloc(u16 size) {
     void *p;
 
     p = malloc(size);
@@ -26,7 +26,7 @@ void actormotion_xzfree(void *ptr) {
     free(ptr);
 }
 
-WorldEntity *actormotion_vec_alloc(unsigned short type_tag) {
+WorldEntity *actormotion_vec_alloc(u16 type_tag) {
     WorldEntity *entity;
 
     entity = actormotion_xzmalloc(0x24);
@@ -34,8 +34,8 @@ WorldEntity *actormotion_vec_alloc(unsigned short type_tag) {
     return entity;
 }
 
-unsigned int *actormotion_alloc_24b_bit800(unsigned int tag) {
-    unsigned int *rec;
+u16 *actormotion_alloc_24b_bit800(u16 tag) {
+    u16 *rec;
 
     rec = actormotion_xzmalloc(0x18);
     rec[1] = tag;
@@ -44,37 +44,37 @@ unsigned int *actormotion_alloc_24b_bit800(unsigned int tag) {
 }
 
 void actormotion_integrate(WorldEntity *actor) {
-    long t;
+    s32 t;
 
     actor->base.orientation.pitch += actor->angularVelocity.pitch;
     actor->base.orientation.roll += actor->angularVelocity.roll;
     actor->base.orientation.yaw += actor->angularVelocity.yaw;
     if ((actor->base.orientation.pitch | actor->base.orientation.roll) != 0) {
-        t = (long)actor->forwardVelocity * (long)-r3d_tbl_cos(actor->base.orientation.pitch);
-        t = (t >> 0xe) * (long)r3d_tbl_sin(actor->base.orientation.yaw);
+        t = (s32)actor->forwardVelocity * (s32)-r3d_tbl_cos(actor->base.orientation.pitch);
+        t = (t >> 0xe) * (s32)r3d_tbl_sin(actor->base.orientation.yaw);
         actor->base.pos.xy.nWorld_x += (t >> 0xe);
-        t = (long)actor->forwardVelocity * (long)r3d_tbl_cos(actor->base.orientation.pitch);
-        t = (t >> 0xe) * (long)r3d_tbl_cos(actor->base.orientation.yaw);
+        t = (s32)actor->forwardVelocity * (s32)r3d_tbl_cos(actor->base.orientation.pitch);
+        t = (t >> 0xe) * (s32)r3d_tbl_cos(actor->base.orientation.yaw);
         actor->base.pos.xy.nWorld_y += (t >> 0xe);
         actor->base.pos.nWorld_z +=
-            ((long)actor->forwardVelocity * (long)r3d_tbl_sin(actor->base.orientation.pitch) >>
+            ((s32)actor->forwardVelocity * (s32)r3d_tbl_sin(actor->base.orientation.pitch) >>
              0xe);
     } else if (actor->base.orientation.yaw != 0) {
         actor->base.pos.xy.nWorld_x +=
-            ((long)actor->forwardVelocity * (long)-r3d_tbl_sin(actor->base.orientation.yaw) >> 0xe);
+            ((s32)actor->forwardVelocity * (s32)-r3d_tbl_sin(actor->base.orientation.yaw) >> 0xe);
         actor->base.pos.xy.nWorld_y +=
-            ((long)actor->forwardVelocity * (long)r3d_tbl_cos(actor->base.orientation.yaw) >> 0xe);
+            ((s32)actor->forwardVelocity * (s32)r3d_tbl_cos(actor->base.orientation.yaw) >> 0xe);
     } else {
-        actor->base.pos.xy.nWorld_y += (long)actor->forwardVelocity;
+        actor->base.pos.xy.nWorld_y += (s32)actor->forwardVelocity;
     }
-    actor->base.pos.xy.nWorld_x += (long)actor->linearVelocity.nX;
-    actor->base.pos.xy.nWorld_y += (long)actor->linearVelocity.nY;
-    actor->base.pos.nWorld_z += (long)actor->linearVelocity.nZ;
+    actor->base.pos.xy.nWorld_x += (s32)actor->linearVelocity.nX;
+    actor->base.pos.xy.nWorld_y += (s32)actor->linearVelocity.nY;
+    actor->base.pos.nWorld_z += (s32)actor->linearVelocity.nZ;
     return;
 }
 
-int actormotion_atan2_long(long y, long x) {
-    int angle;
+s16 actormotion_atan2_long(s32 y, s32 x) {
+    s16 angle;
     unsigned char yNeg;
     unsigned char xNeg;
 
@@ -91,9 +91,9 @@ int actormotion_atan2_long(long y, long x) {
     } else if (y == x) {
         angle = 0x200;
     } else if (y < x) {
-        angle = 0x400 - r3d_tbl_atan_lookup_raw((int)((y << 9) / x));
+        angle = 0x400 - r3d_tbl_atan_lookup_raw((s16)((y << 9) / x));
     } else {
-        angle = r3d_tbl_atan_lookup_raw((int)((x << 9) / y));
+        angle = r3d_tbl_atan_lookup_raw((s16)((x << 9) / y));
     }
     if (yNeg) {
         angle = 0x800 - angle;
@@ -105,8 +105,8 @@ int actormotion_atan2_long(long y, long x) {
     return angle * 0x10;
 }
 
-int actormotion_clamp_signed_delta(int a, int b, int max_abs) {
-    int delta;
+s16 actormotion_clamp_signed_delta(s16 a, s16 b, s16 max_abs) {
+    s16 delta;
 
     delta = a - b;
     max_abs = (((delta < 0) ? ((delta == -0x8000) ? 0x7fff : -delta) : delta) > max_abs)

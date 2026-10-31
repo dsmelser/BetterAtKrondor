@@ -6,7 +6,7 @@
 #include "SRC/AUDIO/MUSIC/MUSSTOP.H"
 #include "SRC/AUDIO/SFX/SFXSTOP.H"
 
-int audio_driver_stop(int id) {
+s16 audio_driver_stop(s16 id) {
     AudioListNode far *p;
 
     switch (id) {

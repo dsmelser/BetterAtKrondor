@@ -18,18 +18,18 @@
 MenuEntry *g_pMenuHoverEntry;
 MenuEntry *g_pMenuPressAnchor;
 MenuEntry *g_pMenuClickedEntry;
-unsigned short g_wMenuDragSubMode;
-unsigned short g_wMenuDragState;
+u16 g_wMenuDragSubMode;
+u16 g_wMenuDragState;
 
-short g_nJoyXVel = 0;
-short g_nJoyYVel = 0;
+s16 g_nJoyXVel = 0;
+s16 g_nJoyYVel = 0;
 
 MenuPage *menupage_load(char *filename) {
     ResFile *file;
     MenuPage *page;
-    int i;
+    s16 i;
     void *stringBlob;
-    unsigned int blobSize;
+    u16 blobSize;
 
     stringBlob = (void *)0;
     file = res_fopen(filename, "rb");
@@ -43,26 +43,26 @@ MenuPage *menupage_load(char *filename) {
         stringBlob = galloc_safe_zcalloc(blobSize);
         res_fread(stringBlob, 1, blobSize, file);
     }
-    if ((int)page->pTitle == -1) {
+    if ((s16)page->pTitle == -1) {
         page->pTitle = (char *)0;
     } else {
-        page->pTitle += (int)stringBlob;
+        page->pTitle += (s16)stringBlob;
     }
-    for (i = 0; i < (int)page->wEntry_count; i++) {
-        if ((int)page->pEntries[i].pLabel == -1) {
+    for (i = 0; i < (s16)page->wEntry_count; i++) {
+        if ((s16)page->pEntries[i].pLabel == -1) {
             page->pEntries[i].pLabel = (char *)0;
         } else {
-            page->pEntries[i].pLabel += (int)stringBlob;
+            page->pEntries[i].pLabel += (s16)stringBlob;
         }
-        if ((int)page->pEntries[i].pPrimary_label == -1) {
+        if ((s16)page->pEntries[i].pPrimary_label == -1) {
             page->pEntries[i].pPrimary_label = (char *)0;
         } else {
-            page->pEntries[i].pPrimary_label += (int)stringBlob;
+            page->pEntries[i].pPrimary_label += (s16)stringBlob;
         }
-        if ((int)page->pEntries[i].pAlt_label == -1) {
+        if ((s16)page->pEntries[i].pAlt_label == -1) {
             page->pEntries[i].pAlt_label = (char *)0;
         } else {
-            page->pEntries[i].pAlt_label += (int)stringBlob;
+            page->pEntries[i].pAlt_label += (s16)stringBlob;
         }
     }
     res_fclose(file);
@@ -71,10 +71,10 @@ MenuPage *menupage_load(char *filename) {
 
 void menupage_free(MenuPage *page) {
     char *blobBase;
-    int i;
+    s16 i;
 
     blobBase = page->pTitle;
-    for (i = 0; i < (int)page->wEntry_count; i++) {
+    for (i = 0; i < (s16)page->wEntry_count; i++) {
         if ((page->pEntries[i].pLabel != (char *)0x0) &&
             ((blobBase == (char *)0x0 || (page->pEntries[i].pLabel < blobBase)))) {
             blobBase = page->pEntries[i].pLabel;
@@ -97,11 +97,11 @@ void menupage_free(MenuPage *page) {
 }
 
 void menupage_begin(MenuPage *page) {
-    int nSize;
+    s16 nSize;
 
     if (page->wWants_screen_save == 1) {
-        nSize = (int)rect_byte_size(page->rect.width, page->rect.height);
-        page->pBackdrop_buffer = alloc_far((long)nSize, 0);
+        nSize = (s16)rect_byte_size(page->rect.width, page->rect.height);
+        page->pBackdrop_buffer = alloc_far((s32)nSize, 0);
         g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaPage2Base;
         cga_save_rect_to_buffer(page->pBackdrop_buffer, page->rect.x, page->rect.y,
                                 page->rect.width, page->rect.height);
@@ -133,7 +133,7 @@ void menupage_end(MenuPage *page) {
 }
 
 void menupage_draw(MenuPage *page) {
-    unsigned short bgColor;
+    u16 bgColor;
 
     bgColor = page->wBg_color;
     g_graphics_context.bClip_enabled = 0;
@@ -162,8 +162,8 @@ void menupage_draw(MenuPage *page) {
     menupage_draw_entries(page->pEntries, page->wEntry_count, page->rect.x, page->rect.y);
 }
 
-void far menupage_draw_entries(MenuEntry *first, int count, int x, int y) {
-    int i;
+void far menupage_draw_entries(MenuEntry *first, s16 count, s16 x, s16 y) {
+    s16 i;
 
     for (i = 0; i < count; i++, first++) {
         widget_dispatch_by_type(first, x, y,
@@ -172,7 +172,7 @@ void far menupage_draw_entries(MenuEntry *first, int count, int x, int y) {
     return;
 }
 
-void menupage_cur_set_pos_clamped(int x, int y) {
+void menupage_cur_set_pos_clamped(s16 x, s16 y) {
     if (x < 0) {
         x = 0;
     }
@@ -191,7 +191,7 @@ void menupage_cur_set_pos_clamped(int x, int y) {
 }
 
 void menupage_cursor_joystick_step(void) {
-    unsigned int state;
+    u16 state;
 
     state = key_state_get_via_2cf8_table(0);
     if (state & 4) {
@@ -219,21 +219,21 @@ void menupage_cursor_joystick_step(void) {
     return;
 }
 
-void menupage_navigate(MenuPage *page, int dx_sign, int dy_sign, int tab_mode) {
-    int chosen;
-    int count;
-    short cur_x;
-    short cur_y;
-    int dist_x;
-    int sign_x;
-    int sign_y;
-    int best_x;
-    int best_y;
-    int enabled;
-    int idx;
-    int i;
-    int dist_y;
-    int neg;
+void menupage_navigate(MenuPage *page, s16 dx_sign, s16 dy_sign, s16 tab_mode) {
+    s16 chosen;
+    s16 count;
+    s16 cur_x;
+    s16 cur_y;
+    s16 dist_x;
+    s16 sign_x;
+    s16 sign_y;
+    s16 best_x;
+    s16 best_y;
+    s16 enabled;
+    s16 idx;
+    s16 i;
+    s16 dist_y;
+    s16 neg;
     MenuEntry *entry;
 
     chosen = -1;
@@ -317,9 +317,9 @@ void menupage_navigate(MenuPage *page, int dx_sign, int dy_sign, int tab_mode) {
     return;
 }
 
-int menupage_run(MenuPage *page, unsigned short *out_consumed) {
-    int i;
-    unsigned int key;
+s16 menupage_run(MenuPage *page, u16 *out_consumed) {
+    s16 i;
+    u16 key;
     MenuEntry *entry;
 
     i = 0;
@@ -332,7 +332,7 @@ int menupage_run(MenuPage *page, unsigned short *out_consumed) {
         if ((((g_pMenuPressAnchor != (MenuEntry *)0x0) && (g_wMenuDragState == 1)) &&
              (g_pMenuPressAnchor->wWidget_type == 2)) &&
             (g_wMenuDragSubMode == 3)) {
-            unsigned short sub_state;
+            u16 sub_state;
             sub_state = g_pMenuPressAnchor->wSub_state;
             widget_scrollbar_update(g_pMenuPressAnchor);
             if (g_pMenuPressAnchor->wSub_state != sub_state) {
@@ -344,13 +344,13 @@ int menupage_run(MenuPage *page, unsigned short *out_consumed) {
         if (menupage_input_poll_key() == 0) {
             return 0;
         }
-        key = (unsigned int)g_key_scancode;
+        key = (u16)g_key_scancode;
         /* ENTER (scancode 0x1c) is already mapped to a confirm-click by
          * menupage_input_poll when wWants_screen_save != 2; whatever special
          * ENTER handling once lived here was stubbed out. */
         if ((key == 0x1c) && (page->wWants_screen_save != 2)) {
         }
-        for (; i < (int)page->wEntry_count; i++, entry++) {
+        for (; i < (s16)page->wEntry_count; i++, entry++) {
             if (entry->wAction_id == key) {
                 if ((entry->wEnable_gate != 0) &&
                     ((((entry->wWidget_type == 6 || (entry->wWidget_type == 0)) ||
@@ -385,7 +385,7 @@ int menupage_run(MenuPage *page, unsigned short *out_consumed) {
             } else if (g_wMenuDragSubMode == 4) {
                 widget_list_scroll(g_pMenuClickedEntry, 0);
             } else if (g_wMenuDragSubMode == 3) {
-                unsigned short sub_state;
+                u16 sub_state;
                 sub_state = g_pMenuClickedEntry->wSub_state;
                 widget_scrollbar_update(g_pMenuClickedEntry);
                 if (g_pMenuPressAnchor->wSub_state != sub_state) {
@@ -408,21 +408,21 @@ int menupage_run(MenuPage *page, unsigned short *out_consumed) {
         if ((page->wWants_screen_save == 2) && (key_is_down(0x1d) == 0)) {
             return key;
         }
-        menupage_navigate(page, (unsigned int)(key == 0x4d) - (unsigned int)(key == 0x4b),
-                          (unsigned int)(key == 0x50) - (unsigned int)(key == 0x48), (unsigned int)(key == 0xf));
+        menupage_navigate(page, (u16)(key == 0x4d) - (u16)(key == 0x4b),
+                          (u16)(key == 0x50) - (u16)(key == 0x48), (u16)(key == 0xf));
     }
     g_key_scancode = key = 0;
     return key;
 }
 
-int far menupage_input_poll(MenuPage *page, unsigned short *out_consumed) {
-    register unsigned short *pConsumed;
-    int actionId;
-    int relX;
-    int relY;
-    int i;
-    unsigned short prevDragState;
-    int input;
+s16 far menupage_input_poll(MenuPage *page, u16 *out_consumed) {
+    register u16 *pConsumed;
+    s16 actionId;
+    s16 relX;
+    s16 relY;
+    s16 i;
+    u16 prevDragState;
+    s16 input;
     MenuEntry *prevAnchor;
     register MenuEntry *widget;
 
@@ -443,7 +443,7 @@ int far menupage_input_poll(MenuPage *page, unsigned short *out_consumed) {
     input = screen_input_poll_confirm_cancel();
     if (page->wWants_screen_save != 2 && key_is_down(0x1c))
         input = 1;
-    while ((int)page->wEntry_count > i) {
+    while ((s16)page->wEntry_count > i) {
         if (widget->wEnable_gate == 0) {
             if (widget->wWidget_type != 2)
                 goto do_hit_test;
@@ -451,7 +451,7 @@ int far menupage_input_poll(MenuPage *page, unsigned short *out_consumed) {
         if (widget->wWidget_type != 2)
             goto do_skip;
     do_hit_test:
-        if (widget_hit_test(widget, relX, relY, (int *)&g_wMenuDragSubMode)) {
+        if (widget_hit_test(widget, relX, relY, (s16 *)&g_wMenuDragSubMode)) {
             g_pMenuHoverEntry = widget;
             goto post_loop;
         }
@@ -468,7 +468,7 @@ post_loop:
         goto hover_null;
     if (input == 0)
         goto input_zero;
-    if (input == (int)prevDragState) {
+    if (input == (s16)prevDragState) {
         if (g_pMenuHoverEntry != prevAnchor)
             *pConsumed = 1;
         g_pMenuPressAnchor = g_pMenuHoverEntry;
@@ -535,16 +535,16 @@ MenuEntry *menupage_state_0e80(void) {
     return g_pMenuClickedEntry;
 }
 
-unsigned int menupage_highlight_color(void) {
+u16 menupage_highlight_color(void) {
     return g_wMenuDragSubMode;
 }
 
-unsigned int menupage_state_0e7c(void) {
+u16 menupage_state_0e7c(void) {
     return g_wMenuDragState;
 }
 
-unsigned int menupage_input_poll_key(void) {
-    int key;
+u16 menupage_input_poll_key(void) {
+    s16 key;
 
     key = kbhit_read();
     if (key != 0) {

@@ -25,20 +25,20 @@
 
 /* Music-engine state.  g_alloc_to_pool routes alloc_far into the resource
  * pool while a music chunk loads (POOL.C flips it too, during pool sizing). */
-short g_alloc_to_pool = 0;
-short g_current_music_track = -1;
-unsigned short g_nMusicVolume = 0x7f;
+s16 g_alloc_to_pool = 0;
+s16 g_current_music_track = -1;
+u16 g_nMusicVolume = 0x7f;
 
 #ifdef V102CD
-static void v102_cdaudio_play_track(int track_id) {
-    register int track;
+static void v102_cdaudio_play_track(s16 track_id) {
+    register s16 track;
     ResFile *fp;
-    long frame_offset;
+    s32 frame_offset;
 
     track = track_id;
     track -= 999;
     fp = res_fopen("cd.dat", "rb");
-    res_fseek(fp, (long)(unsigned)((track - 1) << 2), SEEK_SET);
+    res_fseek(fp, (s32)(u16)((track - 1) << 2), SEEK_SET);
     res_fread(&frame_offset, 4, 1, fp);
     res_fclose(fp);
     v102_cdaudio_stop();
@@ -48,7 +48,7 @@ static void v102_cdaudio_play_track(int track_id) {
 #endif
 
 void far audio_ambient_tick(void) {
-    int sfx_id;
+    s16 sfx_id;
 
     if (g_game_mode != 2) {
         if (g_gameState.nChapter == 8)
@@ -85,9 +85,9 @@ void far audio_ambient_tick(void) {
     audio_set_intensity(3, RNDR(10, 59));
 }
 
-int audio_music_play(int track_id) {
-    short prev;
-    int music_enabled;
+s16 audio_music_play(s16 track_id) {
+    s16 prev;
+    s16 music_enabled;
 
     if ((g_sound_driver == SNDDRV_NONE) || (track_id == g_current_music_track) || (track_id == -999)) {
         return g_current_music_track;
@@ -167,7 +167,7 @@ void audio_music_fade_out_and_stop(void) {
     audio_driver_stop(g_current_music_track);
 }
 
-int far audio_music_set_volume(int volume) {
+s16 far audio_music_set_volume(s16 volume) {
     if (volume >= 0 && volume <= 0x7f) {
         if (g_engine_prefs != (EnginePrefs *)0 && (g_engine_prefs->flags & 2) != 0 &&
             g_current_music_track != -1) {
@@ -380,7 +380,7 @@ void audio_sfx_stop_45(void) {
     return;
 }
 
-void audio_play(int sound_id) {
+void audio_play(s16 sound_id) {
     if (g_sound_driver == SNDDRV_NONE) {
         return;
     }
@@ -395,18 +395,18 @@ void audio_play(int sound_id) {
     audio_start_by_id(sound_id);
 }
 
-int audio_sfx_register(ResFile *file, int sfx_id) {
-    return ((g_sound_driver != SNDDRV_NONE) && (sfx_id < 1001)) ? (int)audio_resource_load_chunk(file, sfx_id)
+s16 audio_sfx_register(ResFile *file, s16 sfx_id) {
+    return ((g_sound_driver != SNDDRV_NONE) && (sfx_id < 1001)) ? (s16)audio_resource_load_chunk(file, sfx_id)
                                                       : 0;
 }
 
-int audio_sfx_stop(int sfx_id) {
+s16 audio_sfx_stop(s16 sfx_id) {
     if (g_sound_driver != SNDDRV_NONE && sfx_id < 1001)
         return audio_stop(sfx_id);
     return 0;
 }
 
-int far audio_sfx_play_n_times(int sfx_id, int extra_repeats, int blocking) {
+s16 far audio_sfx_play_n_times(s16 sfx_id, s16 extra_repeats, s16 blocking) {
     ResFile *pChunk;
 
     if (g_sound_driver == SNDDRV_NONE) {

@@ -5,7 +5,7 @@
 #include "SRC/GFX/DRIVER/VIDDET.H"
 #include "SRC/SYS/BOOT.H"
 
-int panic_fatal_error_exit(char far *module, int line, char *msg) {
+s16 panic_fatal_error_exit(char far *module, s16 line, char *msg) {
     video_shutdown();
     if (module != 0) {
         printf("A system error has occured.  Please write down the\n");
@@ -15,7 +15,7 @@ int panic_fatal_error_exit(char far *module, int line, char *msg) {
     boot_engine_exit(0);
 }
 
-void far panic_assert_fail_report(char far *file, int line) {
+void far panic_assert_fail_report(char far *file, s16 line) {
     video_shutdown();
     printf("Bad Midkemian!\n");
     printf("FILE = %Fs\n", file);

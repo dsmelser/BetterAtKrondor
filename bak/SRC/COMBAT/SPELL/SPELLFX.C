@@ -21,16 +21,16 @@
 #include "SRC/COMBAT/SPELL/CSPELL.H"
 #include "SRC/GAME/WORLD/MAP.H"
 
-unsigned short g_aPalEventBitMask[9] = {0x0001, 0x0002, 0x0004, 0x0008, 0x0010,
+u16 g_aPalEventBitMask[9] = {0x0001, 0x0002, 0x0004, 0x0008, 0x0010,
                                         0x0020, 0x0040, 0x0080, 0x0100};
 unsigned char g_event_caption_glyph_table[9] = {0x1d, 0x1e, 0x1f, 0x21, 0x20,
                                                 0x22, 0x23, 0x24, 0x25};
 ImageRecord **g_pCastBmp = {0};
 
 void far spellfx_cast_and_dispatch(void) {
-    int nSpellId;
-    short nEffectParam;
-    short nDamage;
+    s16 nSpellId;
+    s16 nEffectParam;
+    s16 nDamage;
 
     cspell_subsystem_load();
     nSpellId =
@@ -73,12 +73,12 @@ void far spellfx_cast_and_dispatch(void) {
     }
 }
 
-void far spellfx_palette_fade_slot0(short caster_slot, short damage, int effect_param) {
-    unsigned long duration;
+void far spellfx_palette_fade_slot0(s16 caster_slot, s16 damage, s16 effect_param) {
+    u32 duration;
 
     audio_play(0x3a);
     dialog_play_record(199, 0);
-    duration = (long)effect_param * (long)damage * 0x1e;
+    duration = (s32)effect_param * (s32)damage * 0x1e;
     if (duration != 0) {
         spellfx_pal_event_mask_upd(spellfx_pal_event_timer_upsert(0, duration));
         palette_fade_run_scheduled(palette_fade_schedule(1, duration));
@@ -88,13 +88,13 @@ void far spellfx_palette_fade_slot0(short caster_slot, short damage, int effect_
     return;
 }
 
-void far spellfx_combat_play_hit_effect(short caster_slot, short damage, int effect_param) {
-    unsigned long duration;
+void far spellfx_combat_play_hit_effect(s16 caster_slot, s16 damage, s16 effect_param) {
+    u32 duration;
 
     if (g_game_mode == 2) {
         audio_play(0x3a);
         dialog_play_record(200, 0);
-        duration = (long)effect_param * (long)damage * 0x1e;
+        duration = (s32)effect_param * (s32)damage * 0x1e;
         if (duration != 0) {
             spellfx_pal_event_mask_upd(spellfx_pal_event_timer_upsert(1, duration));
             palette_fade_run_scheduled(palette_fade_schedule(2, duration));
@@ -105,13 +105,13 @@ void far spellfx_combat_play_hit_effect(short caster_slot, short damage, int eff
     return;
 }
 
-void far spellfx_overworld_pal_fade_slot2(short caster_slot, short damage, int effect_param) {
-    unsigned long duration;
+void far spellfx_overworld_pal_fade_slot2(s16 caster_slot, s16 damage, s16 effect_param) {
+    u32 duration;
 
     if (g_game_mode != 2) {
         audio_play(0x3a);
         dialog_play_record(0xc9, 0);
-        duration = (long)effect_param * (long)damage * 0x1e;
+        duration = (s32)effect_param * (s32)damage * 0x1e;
         if (duration != 0) {
             spellfx_pal_event_mask_upd(spellfx_pal_event_timer_upsert(2, duration));
             palette_fade_run_scheduled(palette_fade_schedule(3, duration));
@@ -122,12 +122,12 @@ void far spellfx_overworld_pal_fade_slot2(short caster_slot, short damage, int e
     return;
 }
 
-void far spellfx_combat_damage_flash_sfx(short caster_slot, short damage, int effect_param) {
-    long duration;
+void far spellfx_combat_damage_flash_sfx(s16 caster_slot, s16 damage, s16 effect_param) {
+    s32 duration;
 
     audio_play(0x51);
     dialog_play_record(0xca, 0);
-    duration = (long)effect_param * 0x1e;
+    duration = (s32)effect_param * 0x1e;
     if (duration != 0) {
         spellfx_pal_event_mask_upd(spellfx_pal_event_timer_upsert(3, duration));
     }
@@ -135,12 +135,12 @@ void far spellfx_combat_damage_flash_sfx(short caster_slot, short damage, int ef
     return;
 }
 
-void far spellfx_palette_event_with_sound(short caster_slot, short damage, int effect_param) {
-    long duration;
+void far spellfx_palette_event_with_sound(s16 caster_slot, s16 damage, s16 effect_param) {
+    s32 duration;
 
     audio_play(0x51);
     dialog_play_record(0xcb, 0);
-    duration = (long)effect_param * 0x1e;
+    duration = (s32)effect_param * 0x1e;
     if (duration != 0) {
         spellfx_pal_event_mask_upd(spellfx_pal_event_timer_upsert(4, duration));
     }
@@ -148,12 +148,12 @@ void far spellfx_palette_event_with_sound(short caster_slot, short damage, int e
     return;
 }
 
-void far spellfx_show_msg_pal_fade(short caster_slot, short damage, int effect_param) {
-    unsigned long duration;
+void far spellfx_show_msg_pal_fade(s16 caster_slot, s16 damage, s16 effect_param) {
+    u32 duration;
 
     audio_play(0xc);
     dialog_play_record(0xcc, 0);
-    duration = (long)effect_param * 0x1e;
+    duration = (s32)effect_param * 0x1e;
     if (duration != 0) {
         spellfx_pal_event_mask_upd(spellfx_pal_event_timer_upsert(5, duration));
     }
@@ -161,9 +161,9 @@ void far spellfx_show_msg_pal_fade(short caster_slot, short damage, int effect_p
     return;
 }
 
-void far spellfx_save_then_cmap_recs(short target, short damage) {
+void far spellfx_save_then_cmap_recs(s16 target, s16 damage) {
     spellfx_party_member_take_damage(target, damage);
-    if (RND(100) <= (unsigned)(damage * 10)) {
+    if (RND(100) <= (u16)(damage * 10)) {
         audio_play(0xc);
         spellfx_run_request_cmap_dialog(0xb);
     } else {
@@ -171,9 +171,9 @@ void far spellfx_save_then_cmap_recs(short target, short damage) {
     }
 }
 
-void far spellfx_combat_roll_outcome(short casterSlot, short damage) {
+void far spellfx_combat_roll_outcome(s16 casterSlot, s16 damage) {
     spellfx_party_member_take_damage(casterSlot, damage);
-    if (RND(100) <= (unsigned)(damage * 10)) {
+    if (RND(100) <= (u16)(damage * 10)) {
         audio_play(0xd);
         spellfx_run_request_cmap_dialog(0x11);
     } else {
@@ -181,9 +181,9 @@ void far spellfx_combat_roll_outcome(short casterSlot, short damage) {
     }
 }
 
-void far spellfx_save_cmap_scene_events(short target, short damage) {
+void far spellfx_save_cmap_scene_events(s16 target, s16 damage) {
     spellfx_party_member_take_damage(target, damage);
-    if (RND(100) <= (unsigned)((damage - 4) * 10)) {
+    if (RND(100) <= (u16)((damage - 4) * 10)) {
         audio_play(0xd);
         spellfx_run_request_cmap_dialog(0x12);
     } else {
@@ -191,7 +191,7 @@ void far spellfx_save_cmap_scene_events(short target, short damage) {
     }
 }
 
-TimerEventEntry *far spellfx_pal_event_timer_upsert(unsigned short subId, long value) {
+TimerEventEntry *far spellfx_pal_event_timer_upsert(u16 subId, s32 value) {
     return timerpool_upsert(2, subId, 0x80, value);
 }
 
@@ -206,20 +206,20 @@ void spellfx_pal_event_mask_upd(TimerEventEntry *entry) {
     return;
 }
 
-int spellfx_event_mask_test_bit(int bitIndex) {
+s16 spellfx_event_mask_test_bit(s16 bitIndex) {
     return g_gameState.wPalEventMask & g_aPalEventBitMask[bitIndex];
 }
 
-short far spellfx_actor_has_ration(WorldObject far *entry) {
-    register short result;
+s16 far spellfx_actor_has_ration(WorldObject far *entry) {
+    register s16 result;
     Actor far *actor;
-    int i;
+    s16 i;
 
     result = 0;
-    actor = actorspawn_objfixed((unsigned int)g_gameState.nZoneId, entry->pos.xy.nWorld_x,
+    actor = actorspawn_objfixed((u16)g_gameState.nZoneId, entry->pos.xy.nWorld_x,
                                 entry->pos.xy.nWorld_y);
     if (actor != 0) {
-        for (i = 0; i < (int)(unsigned int)actor->itemCount; i++) {
+        for (i = 0; i < (s16)(u16)actor->itemCount; i++) {
             switch (ACTOR_ITEM(actor, i).item_id) {
             case 0x48:
             case 0x49:
@@ -232,17 +232,17 @@ short far spellfx_actor_has_ration(WorldObject far *entry) {
     return result;
 }
 
-short far spellfx_actor_has_special_item(WorldObject far *entry) {
-    short result;
+s16 far spellfx_actor_has_special_item(WorldObject far *entry) {
+    s16 result;
     Actor far *actor;
-    int i;
+    s16 i;
 
     result = 0;
-    actor = actorspawn_objfixed((unsigned int)g_gameState.nZoneId, entry->pos.xy.nWorld_x,
+    actor = actorspawn_objfixed((u16)g_gameState.nZoneId, entry->pos.xy.nWorld_x,
                                 entry->pos.xy.nWorld_y);
     if (actor != 0) {
         for (i = 0; i < actor->itemCount; i++) {
-            switch ((unsigned int)ACTOR_ITEM(actor, i).item_id) {
+            switch ((u16)ACTOR_ITEM(actor, i).item_id) {
             case 1:
             case 2:
             case 4:
@@ -273,18 +273,18 @@ short far spellfx_actor_has_special_item(WorldObject far *entry) {
     return result;
 }
 
-void far spellfx_run_request_cmap_dialog(int request_type) {
-    register int running;
+void far spellfx_run_request_cmap_dialog(s16 request_type) {
+    register s16 running;
     register MenuPage *page;
-    long saved_lInsetCameraPosZ;
-    long saved_z;
-    short saved_yaw;
-    short saved_viewport_x;
-    short saved_viewport_y;
-    short saved_viewport_w;
-    short saved_viewport_h;
-    unsigned short redrawMenu;
-    int renderScene;
+    s32 saved_lInsetCameraPosZ;
+    s32 saved_z;
+    s16 saved_yaw;
+    s16 saved_viewport_x;
+    s16 saved_viewport_y;
+    s16 saved_viewport_w;
+    s16 saved_viewport_h;
+    u16 redrawMenu;
+    s16 renderScene;
 
     running = 1;
     redrawMenu = 1;
@@ -377,16 +377,16 @@ void spellfx_cast_bmp_free(void) {
 }
 
 void spellfx_draw_events_caption(void) {
-    int prev_slot;
-    int x;
+    s16 prev_slot;
+    s16 x;
     char buf[10];
-    int i;
-    int n;
+    s16 i;
+    s16 n;
 
     g_graphics_context.bClip_enabled = 0;
     g_graphics_context.bText_style_flags = 1;
 
-    blit_sprite_indirect((unsigned short)*g_pCastBmp, 0x80, 2, 0);
+    blit_sprite_indirect((u16)*g_pCastBmp, 0x80, 2, 0);
 
     prev_slot = font_activate(0);
     font_activate(g_nSpellFontSlot);
@@ -405,12 +405,12 @@ void spellfx_draw_events_caption(void) {
     font_activate(prev_slot);
 }
 
-void far spellfx_party_member_take_damage(short roster_slot, short damage) {
+void far spellfx_party_member_take_damage(s16 roster_slot, s16 damage) {
     Combatant *member;
-    int i;
+    s16 i;
 
     member = &g_gameState.characters[g_gameState.activeParty[roster_slot]];
-    stat_combatant_modify(member, 0x10, (long)(short)(-damage << 8), 100);
+    stat_combatant_modify(member, 0x10, (s32)(s16)(-damage << 8), 100);
 
     if (g_gameState.nChapter == 8) {
         for (i = 0; i < member->actor_record->itemCount; i++) {

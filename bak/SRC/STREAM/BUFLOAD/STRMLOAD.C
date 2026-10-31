@@ -3,10 +3,10 @@
 #include "SRC/STREAM/RESLOAD/RELBUF.H"
 #include "SRC/STREAM/CODEC/STREAM.H"
 
-void far *stream_load_to_buffer(ResFile *file, unsigned long size, unsigned long *out_desc,
-                                unsigned short allocTag) {
-    register int stream_id;
-    unsigned long stream_size_full;
+void far *stream_load_to_buffer(ResFile *file, u32 size, u32 *out_desc,
+                                u16 allocTag) {
+    register s16 stream_id;
+    u32 stream_size_full;
     void far *block_far;
 
     block_far = (void far *)0;
@@ -16,7 +16,7 @@ void far *stream_load_to_buffer(ResFile *file, unsigned long size, unsigned long
 
         if ((block_far = pool_acquire_buffer(stream_size_full, allocTag)) != (void far *)0) {
 
-            if ((unsigned long)stream_read(stream_id, block_far, (unsigned short)stream_size_full) !=
+            if ((u32)stream_read(stream_id, block_far, (u16)stream_size_full) !=
                 stream_size_full) {
                 release_buffer(block_far, allocTag);
                 block_far = (void far *)0;
@@ -24,7 +24,7 @@ void far *stream_load_to_buffer(ResFile *file, unsigned long size, unsigned long
         }
         stream_close(stream_id);
     }
-    if ((out_desc != (unsigned long *)0) && (block_far != (void far *)0)) {
+    if ((out_desc != (u32 *)0) && (block_far != (void far *)0)) {
         *out_desc = stream_size_full;
     }
     return block_far;

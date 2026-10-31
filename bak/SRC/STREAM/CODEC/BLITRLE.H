@@ -5,6 +5,6 @@
 
 extern unsigned char *g_pRleScanlineDst;
 
-extern int near blit_rle_sprite(void);
+extern s16 near blit_rle_sprite(void);
 
 #endif

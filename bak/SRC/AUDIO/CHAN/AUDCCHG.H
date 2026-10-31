@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_chan_apply_ctrl_change(int channel, int param_2, int param_3, int param_4);
+extern s16 audio_chan_apply_ctrl_change(s16 channel, s16 param_2, s16 param_3, s16 param_4);
 
 #endif

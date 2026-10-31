@@ -7,13 +7,13 @@
 #include "SRC/GFX/FONT/FONT.H"
 
 struct textline {
-    int start;
-    int end;
+    s16 start;
+    s16 end;
 };
 
-static int far textwrap_is_break_point(long text, int line_start, int pos) {
+static s16 far textwrap_is_break_point(s32 text, s16 line_start, s16 pos) {
     char ch;
-    int i;
+    s16 i;
 
     ch = toupper(*((char far *)((char huge *)text + pos)));
     if (ch == ' ')
@@ -33,14 +33,14 @@ fail:
     return 0;
 }
 
-int far textwrap_compute_lines(long text, int max_width, int *out_lines, int max_lines) {
-    int pos;
-    int line_start;
+s16 far textwrap_compute_lines(s32 text, s16 max_width, s16 *out_lines, s16 max_lines) {
+    s16 pos;
+    s16 line_start;
     char no_break;
-    int line_width;
-    int count;
-    unsigned int width;
-    unsigned int height;
+    s16 line_width;
+    s16 count;
+    u16 width;
+    u16 height;
 
 #define CH(i) (*((char far *)((char huge *)text + (i))))
 
@@ -52,9 +52,9 @@ int far textwrap_compute_lines(long text, int max_width, int *out_lines, int max
         no_break = 1;
         while (CH(pos) != '\0' && CH(pos) != '\n') {
             font_glyph_metrics(CH(pos), &width, &height);
-            if (max_width < (int)(line_width + width))
+            if (max_width < (s16)(line_width + width))
                 break;
-            line_width += (int)width;
+            line_width += (s16)width;
             if (textwrap_is_break_point(text, line_start, pos))
                 no_break = 0;
             pos++;
@@ -92,29 +92,29 @@ int far textwrap_compute_lines(long text, int max_width, int *out_lines, int max
 
 #pragma option -Od
 
-void textwrap_draw_aligned(long text, int x, int y, int max_width, int max_height, int line_spacing,
-                           unsigned int flags, int first_line) {
+void textwrap_draw_aligned(s32 text, s16 x, s16 y, s16 max_width, s16 max_height, s16 line_spacing,
+                           u16 flags, s16 first_line) {
     struct textline lines[90];
-    int line_height;
-    int count;
-    int hoff;
-    int voff;
+    s16 line_height;
+    s16 count;
+    s16 hoff;
+    s16 voff;
     char saved;
-    register unsigned int f = flags;
-    register int fl = first_line;
+    register u16 f = flags;
+    register s16 fl = first_line;
 
     line_height = g_graphics_context.pFont_height[0];
     hoff = 0;
     voff = 0;
     if ((f & 0) != 0)
 
-        count = textwrap_compute_lines(text, 999, (int *)lines, 0x5a);
+        count = textwrap_compute_lines(text, 999, (s16 *)lines, 0x5a);
     else
-        count = textwrap_compute_lines(text, max_width, (int *)lines, 0x5a);
+        count = textwrap_compute_lines(text, max_width, (s16 *)lines, 0x5a);
 
     for (g_wTextWrapLinesRemaining = 0;
          max_height <
-         (int)((line_height + line_spacing) * ((count - fl) - g_wTextWrapLinesRemaining) -
+         (s16)((line_height + line_spacing) * ((count - fl) - g_wTextWrapLinesRemaining) -
                line_spacing);
          g_wTextWrapLinesRemaining++) {
     }
@@ -131,7 +131,7 @@ void textwrap_draw_aligned(long text, int x, int y, int max_width, int max_heigh
         }
     }
 
-    while (fl < (int)(count - g_wTextWrapLinesRemaining)) {
+    while (fl < (s16)(count - g_wTextWrapLinesRemaining)) {
         if ((voff + line_height) > max_height)
             break;
         saved = *((char huge *)text + lines[fl].end);

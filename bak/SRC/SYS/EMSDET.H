@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int ems_detect_driver(void);
+extern s16 ems_detect_driver(void);
 
 #endif

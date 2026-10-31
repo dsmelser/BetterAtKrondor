@@ -20,26 +20,26 @@
 #include "SRC/GAME/ENC/HOTSPOT.H"
 #include "SRC/GAME/ENC/RGNENC.H"
 
-unsigned short g_bWorldCrossing = 0x0000;
-unsigned short g_nWorldCrossingKind = 0x0000;
-unsigned long g_dwWorldCrossingCoord = 0x00000000UL;
+u16 g_bWorldCrossing = 0x0000;
+u16 g_nWorldCrossingKind = 0x0000;
+u32 g_dwWorldCrossingCoord = 0x00000000UL;
 
-short g_nWorldStepSpeed;
-short g_nWorldGridStride;
-long g_lWorldTimePerStep;
+s16 g_nWorldStepSpeed;
+s16 g_nWorldGridStride;
+s32 g_lWorldTimePerStep;
 
 void worldmove_dat_load(void) {
     ResFile *file;
-    long seek_off;
-    int time_raw;
+    s32 seek_off;
+    s16 time_raw;
 
     file = res_fopen("movement.dat", "rb");
     if (g_engine_prefs != (EnginePrefs *)0 && g_engine_prefs->step_speed != '\0') {
-        res_fseek(file, (unsigned long)(unsigned int)((int)g_engine_prefs->step_speed << 1), SEEK_CUR);
+        res_fseek(file, (u32)(u16)((s16)g_engine_prefs->step_speed << 1), SEEK_CUR);
     }
     res_fread(&g_nWorldStepSpeed, 2, 1, file);
     if (g_engine_prefs != (EnginePrefs *)0) {
-        seek_off = (long)(int)(unsigned int)g_engine_prefs->combat_step_speed;
+        seek_off = (s32)(s16)(u16)g_engine_prefs->combat_step_speed;
     } else {
         seek_off = 0;
     }
@@ -47,7 +47,7 @@ void worldmove_dat_load(void) {
     res_fseek(file, seek_off, SEEK_SET);
     res_fread(&g_nWorldGridStride, 2, 1, file);
     if (g_engine_prefs != (EnginePrefs *)0) {
-        seek_off = (long)(int)(unsigned int)g_engine_prefs->step_speed;
+        seek_off = (s32)(s16)(u16)g_engine_prefs->step_speed;
     } else {
         seek_off = 0;
     }
@@ -55,7 +55,7 @@ void worldmove_dat_load(void) {
     res_fseek(file, seek_off, SEEK_SET);
     res_fread(&time_raw, 2, 1, file);
     res_fclose(file);
-    g_lWorldTimePerStep = (long)time_raw * 30;
+    g_lWorldTimePerStep = (s32)time_raw * 30;
 }
 
 void worldmove_combat_zone_snap_pos(void) {
@@ -84,14 +84,14 @@ void worldmove_rgn_chap_trans_apply(void) {
     }
 }
 
-int far worldmove_party_attempt_move(int mode) {
-    int out_target;
-    unsigned short saved_crossing_kind;
-    unsigned long saved_crossing_coord;
-    int out_dir;
+s16 far worldmove_party_attempt_move(s16 mode) {
+    s16 out_target;
+    u16 saved_crossing_kind;
+    u32 saved_crossing_coord;
+    s16 out_dir;
     WorldPos pos_save;
-    short step;
-    int result;
+    s16 step;
+    s16 result;
 
     step = g_nWorldStepSpeed;
     saved_crossing_kind = g_nWorldCrossingKind;
@@ -105,11 +105,11 @@ int far worldmove_party_attempt_move(int mode) {
 
     if (g_gameState.nWorldStepPending != 0) {
         result = worldmove_crossing_check_8dir(&g_world_camera->base.pos,
-                                               g_world_camera->base.orientation.yaw, (long)step,
+                                               g_world_camera->base.orientation.yaw, (s32)step,
                                                mode, &out_dir, &out_target);
     } else {
         result = worldmove_step_free_move(&g_world_camera->base.pos,
-                                          g_world_camera->base.orientation.yaw, (long)step, mode);
+                                          g_world_camera->base.orientation.yaw, (s32)step, mode);
         out_dir = 0;
     }
     g_bWorldCrossing = 0;
@@ -142,7 +142,7 @@ L_fail:
     hotspotevt_flags_clear();
     if (mode == 1) {
         if (worldmove_sweep_alt_headings(&g_world_camera->base.pos,
-                                         g_world_camera->base.orientation.yaw, (long)step, mode,
+                                         g_world_camera->base.orientation.yaw, (s32)step, mode,
                                          &out_dir, &out_target) != 0) {
             worldmove_apply_turn_step(out_dir);
             worldmove_animate_hdg_tgt(out_dir, out_target);
@@ -153,12 +153,12 @@ L_fail:
     return 0;
 }
 
-void worldmove_apply_turn_step(short direction) {
+void worldmove_apply_turn_step(s16 direction) {
     worldmove_heading_step(&g_world_camera->base.orientation.yaw, g_nWorldGridStride, direction);
     g_nWorldRenderJitter = RND2(0x10);
 }
 
-void worldmove_animate_hdg_tgt(int hdg_step, int hdg_target) {
+void worldmove_animate_hdg_tgt(s16 hdg_step, s16 hdg_target) {
     while (g_world_camera->base.orientation.yaw != hdg_target) {
         g_nWorldRenderJitter = RND2(0x10);
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
@@ -171,7 +171,7 @@ void worldmove_animate_hdg_tgt(int hdg_step, int hdg_target) {
 }
 
 void worldmove_plr_hdg_align_grid(void) {
-    worldmove_align_to_grid_stride((unsigned int *)&g_world_camera->base.orientation.yaw);
+    worldmove_align_to_grid_stride((u16 *)&g_world_camera->base.orientation.yaw);
 }
 
 void worldmove_camera_crossing_apply(void) {
@@ -189,10 +189,10 @@ void worldmove_camera_crossing_apply(void) {
     return;
 }
 
-int far worldmove_aabb_outcode_rotated(unsigned char *tile_rect) {
+s16 far worldmove_aabb_outcode_rotated(unsigned char *tile_rect) {
     unsigned char tile_x;
     unsigned char tile_y;
-    long unused;
+    s32 unused;
     WorldPos2 cornerPos;
 
     (void)unused;
@@ -212,36 +212,36 @@ int far worldmove_aabb_outcode_rotated(unsigned char *tile_rect) {
     }
 }
 
-int far worldmove_sweep_alt_headings(WorldPos *pos, int heading, long step, int mode, int *out_dir,
-                                     int *out_heading) {
-    int iter;
-    int max_iters;
-    int cw_heading;
-    int ccw_heading;
-    int cw_hit;
-    int ccw_hit;
-    unsigned int hit_kind;
-    unsigned long hit_coord;
-    int pos_x_mod;
-    int pos_y_mod;
+s16 far worldmove_sweep_alt_headings(WorldPos *pos, s16 heading, s32 step, s16 mode, s16 *out_dir,
+                                     s16 *out_heading) {
+    s16 iter;
+    s16 max_iters;
+    s16 cw_heading;
+    s16 ccw_heading;
+    s16 cw_hit;
+    s16 ccw_hit;
+    u16 hit_kind;
+    u32 hit_coord;
+    s16 pos_x_mod;
+    s16 pos_y_mod;
     unsigned char tile_x;
     unsigned char tile_y;
     unsigned char sub_x;
     unsigned char sub_y;
     WorldPos work_pos;
-    int blocked_angles[8];
-    int n_blocked;
-    int i;
+    s16 blocked_angles[8];
+    s16 n_blocked;
+    s16 i;
 
-    max_iters = 0x4000 / (int)g_nWorldGridStride;
+    max_iters = 0x4000 / (s16)g_nWorldGridStride;
     cw_heading = heading + g_nWorldGridStride;
     ccw_heading = heading - g_nWorldGridStride;
     n_blocked = 0;
     if (mode == 1) {
         if (g_gameState.nWorldStepPending != 0) {
 
-            pos_x_mod = (int)(pos->xy.nWorld_x % 0x640);
-            pos_y_mod = (int)(pos->xy.nWorld_y % 0x640);
+            pos_x_mod = (s16)(pos->xy.nWorld_x % 0x640);
+            pos_y_mod = (s16)(pos->xy.nWorld_y % 0x640);
             if (pos_x_mod == 800) {
                 blocked_angles[n_blocked] = 0;
                 n_blocked++;
@@ -285,7 +285,7 @@ int far worldmove_sweep_alt_headings(WorldPos *pos, int heading, long step, int 
                     work_pos = *pos;
                     if ((pos_x_mod != 800) || (pos_y_mod != 800)) {
                         worldmove_crossing_apply_offset(
-                            &work_pos, (int)((unsigned)cw_heading + R3D_DEG(180)), 0x320);
+                            &work_pos, (s16)((u16)cw_heading + R3D_DEG(180)), 0x320);
                         tile_x = (unsigned char)(work_pos.xy.nWorld_x / 64000);
                         tile_y = (unsigned char)(work_pos.xy.nWorld_y / 64000);
                         sub_x = (unsigned char)((work_pos.xy.nWorld_x / 0x640) % 0x28);
@@ -293,13 +293,13 @@ int far worldmove_sweep_alt_headings(WorldPos *pos, int heading, long step, int 
                         czone_world_pos_tile_sub_ctr(tile_x, tile_y, sub_x, sub_y, &work_pos.xy);
                     }
                     cw_hit = worldmove_probe_adjacent_cell(&work_pos, cw_heading, &hit_kind,
-                                                           (long *)&hit_coord);
+                                                           (s32 *)&hit_coord);
                 }
                 if (ccw_hit != 0) {
                     work_pos = *pos;
                     if ((pos_x_mod != 800) || (pos_y_mod != 800)) {
                         worldmove_crossing_apply_offset(
-                            &work_pos, (int)((unsigned)ccw_heading + R3D_DEG(180)), 0x320);
+                            &work_pos, (s16)((u16)ccw_heading + R3D_DEG(180)), 0x320);
                         tile_x = (unsigned char)(work_pos.xy.nWorld_x / 64000);
                         tile_y = (unsigned char)(work_pos.xy.nWorld_y / 64000);
                         sub_x = (unsigned char)((work_pos.xy.nWorld_x / 0x640) % 0x28);
@@ -307,13 +307,13 @@ int far worldmove_sweep_alt_headings(WorldPos *pos, int heading, long step, int 
                         czone_world_pos_tile_sub_ctr(tile_x, tile_y, sub_x, sub_y, &work_pos.xy);
                     }
                     ccw_hit = worldmove_probe_adjacent_cell(&work_pos, ccw_heading, &hit_kind,
-                                                            (long *)&hit_coord);
+                                                            (s32 *)&hit_coord);
                 }
             } else {
                 cw_hit = worldmove_probe_walkable_at(pos, cw_heading, step, &hit_kind,
-                                                     (long *)&hit_coord);
+                                                     (s32 *)&hit_coord);
                 ccw_hit = worldmove_probe_walkable_at(pos, ccw_heading, step, &hit_kind,
-                                                      (long *)&hit_coord);
+                                                      (s32 *)&hit_coord);
             }
             if (cw_hit != 0) {
                 if (ccw_hit != 0) {
@@ -335,9 +335,9 @@ int far worldmove_sweep_alt_headings(WorldPos *pos, int heading, long step, int 
     return 0;
 }
 
-int far worldmove_step_free_move(WorldPos *pos, int heading, long step, int mode) {
-    unsigned int kind;
-    long coord;
+s16 far worldmove_step_free_move(WorldPos *pos, s16 heading, s32 step, s16 mode) {
+    u16 kind;
+    s32 coord;
 
     if (mode == 4) {
         heading = heading + R3D_DEG(-180);
@@ -354,22 +354,22 @@ int far worldmove_step_free_move(WorldPos *pos, int heading, long step, int mode
     return 0;
 }
 
-int far worldmove_crossing_check_8dir(WorldPos *pos, int heading, long step, int mode, int *out_dir,
-                                      int *out_target) {
-    int x_in_tile;
-    int y_in_tile;
-    int probe_heading;
-    unsigned int hit_kind;
+s16 far worldmove_crossing_check_8dir(WorldPos *pos, s16 heading, s32 step, s16 mode, s16 *out_dir,
+                                      s16 *out_target) {
+    s16 x_in_tile;
+    s16 y_in_tile;
+    s16 probe_heading;
+    u16 hit_kind;
     unsigned char tile_x;
     unsigned char tile_y;
     unsigned char sub_x;
     unsigned char sub_y;
-    unsigned long hit_coord;
+    u32 hit_coord;
     WorldPos work_pos;
 
     probe_heading = heading;
-    x_in_tile = (int)(pos->xy.nWorld_x % 0x640);
-    y_in_tile = (int)(pos->xy.nWorld_y % 0x640);
+    x_in_tile = (s16)(pos->xy.nWorld_x % 0x640);
+    y_in_tile = (s16)(pos->xy.nWorld_y % 0x640);
     switch (heading) {
     case R3D_DEG(0):
     case R3D_DEG(180):
@@ -410,9 +410,9 @@ int far worldmove_crossing_check_8dir(WorldPos *pos, int heading, long step, int
         sub_y = (unsigned char)((work_pos.xy.nWorld_y / 0x640) % 0x28);
         czone_world_pos_tile_sub_ctr(tile_x, tile_y, sub_x, sub_y, &work_pos.xy);
     }
-    if (worldmove_probe_adjacent_cell(&work_pos, probe_heading, &hit_kind, (long *)&hit_coord) == 0)
+    if (worldmove_probe_adjacent_cell(&work_pos, probe_heading, &hit_kind, (s32 *)&hit_coord) == 0)
         goto bail;
-    worldmove_crossing_apply_offset(pos, probe_heading, (int)step);
+    worldmove_crossing_apply_offset(pos, probe_heading, (s16)step);
     pos->nWorld_z = hit_coord;
     if ((pos->xy.nWorld_x % 0x640 == 0x320) && (pos->xy.nWorld_y % 0x640 == 0x320)) {
         *out_dir = worldmove_sweep_adjacent_cells(pos, heading, mode, out_target);
@@ -428,58 +428,58 @@ bail:
     return 0;
 }
 
-void worldmove_heading_step(short *heading, short step, short direction) {
+void worldmove_heading_step(s16 *heading, s16 step, s16 direction) {
     if (direction == 3) {
         step = -step;
     }
     *heading += step;
 }
 
-int far worldmove_align_to_grid_stride(unsigned int *value) {
-    unsigned long target;
-    unsigned long candidate;
-    int steps;
-    int i;
+s16 far worldmove_align_to_grid_stride(u16 *value) {
+    u32 target;
+    u32 candidate;
+    s16 steps;
+    s16 i;
 
-    target = (unsigned long)*value;
+    target = (u32)*value;
     candidate = 0;
-    steps = (int)(0x10000L / (long)g_nWorldGridStride) + 1;
+    steps = (s16)(0x10000L / (s32)g_nWorldGridStride) + 1;
     for (i = 0; i < steps; i++) {
         if (candidate == target) {
             return 0;
         }
-        if ((long)target < (long)candidate) {
-            *value = (unsigned int)candidate;
-            if ((long)target < (long)(candidate - (unsigned int)(g_nWorldGridStride >> 1))) {
+        if ((s32)target < (s32)candidate) {
+            *value = (u16)candidate;
+            if ((s32)target < (s32)(candidate - (u16)(g_nWorldGridStride >> 1))) {
                 *value -= g_nWorldGridStride;
             }
             return 1;
         }
-        candidate += (unsigned int)g_nWorldGridStride;
+        candidate += (u16)g_nWorldGridStride;
     }
     return 0;
 }
 
-void far worldmove_vec2_rotate_add_q14(long *out, int angle, long scale) {
-    int a;
+void far worldmove_vec2_rotate_add_q14(s32 *out, s16 angle, s32 scale) {
+    s16 a;
 
     a = angle + R3D_DEG(90);
     *out += scale * r3d_tbl_cos(a) >> 0xe;
     out[1] += scale * r3d_tbl_sin(a) >> 0xe;
 }
 
-void far worldmove_crossing_apply_offset(WorldPos *pPos, int wDir, int delta) {
+void far worldmove_crossing_apply_offset(WorldPos *pPos, s16 wDir, s16 delta) {
 
     switch (wDir) {
     case R3D_DEG(315):
     case R3D_DEG(0):
     case R3D_DEG(45):
-        pPos->xy.nWorld_y += (long)delta;
+        pPos->xy.nWorld_y += (s32)delta;
         break;
     case R3D_DEG(180):
     case R3D_DEG(225):
     case R3D_DEG(135):
-        pPos->xy.nWorld_y -= (long)delta;
+        pPos->xy.nWorld_y -= (s32)delta;
         break;
     }
 
@@ -487,18 +487,18 @@ void far worldmove_crossing_apply_offset(WorldPos *pPos, int wDir, int delta) {
     case R3D_DEG(225):
     case R3D_DEG(270):
     case R3D_DEG(315):
-        pPos->xy.nWorld_x += (long)delta;
+        pPos->xy.nWorld_x += (s32)delta;
         break;
     case R3D_DEG(45):
     case R3D_DEG(90):
     case R3D_DEG(135):
-        pPos->xy.nWorld_x -= (long)delta;
+        pPos->xy.nWorld_x -= (s32)delta;
         break;
     }
 }
 
-int far worldmove_probe_walkable_at(WorldPos *pos, int angle, long scale, unsigned int *out_kind,
-                                    long *out_coord) {
+s16 far worldmove_probe_walkable_at(WorldPos *pos, s16 angle, s32 scale, u16 *out_kind,
+                                    s32 *out_coord) {
     WorldPos probe_pos;
     ProximityScanHit hit;
 
@@ -521,7 +521,7 @@ int far worldmove_probe_walkable_at(WorldPos *pos, int angle, long scale, unsign
     return 0;
 }
 
-int worldmove_prox_query_at_cell(WorldPos *pos, unsigned int *out_type, long *out_coord) {
+s16 worldmove_prox_query_at_cell(WorldPos *pos, u16 *out_type, s32 *out_coord) {
     ProximityScanHit hit;
 
     if ((char)proximity_scan_list(&hit, &pos->xy, g_wVisibleEntrySegment, g_pwVisibleEntryOffsets,
@@ -535,7 +535,7 @@ int worldmove_prox_query_at_cell(WorldPos *pos, unsigned int *out_type, long *ou
     return 0;
 }
 
-int far worldmove_probe_adjacent_cell(WorldPos *pos, int dir, unsigned int *out_type, long *out_coord) {
+s16 far worldmove_probe_adjacent_cell(WorldPos *pos, s16 dir, u16 *out_type, s32 *out_coord) {
     WorldPos local_pos;
 
     local_pos = *pos;
@@ -586,14 +586,14 @@ int far worldmove_probe_adjacent_cell(WorldPos *pos, int dir, unsigned int *out_
     return 0;
 }
 
-int far worldmove_sweep_adjacent_cells(WorldPos *pos, unsigned int dir, int mode, int *out_result) {
-    unsigned int sweep_end;
-    int heading_offset;
-    unsigned int hit_kind;
-    unsigned long hit_coord;
-    int hit_code;
-    unsigned int dir_00;
-    unsigned int dir_01;
+s16 far worldmove_sweep_adjacent_cells(WorldPos *pos, u16 dir, s16 mode, s16 *out_result) {
+    u16 sweep_end;
+    s16 heading_offset;
+    u16 hit_kind;
+    u32 hit_coord;
+    s16 hit_code;
+    u16 dir_00;
+    u16 dir_01;
 
     sweep_end = dir + R3D_DEG(180);
     dir_00 = dir;
@@ -608,7 +608,7 @@ int far worldmove_sweep_adjacent_cells(WorldPos *pos, unsigned int dir, int mode
     }
     if ((dir >> 0xd) << 0xd == dir) {
         for (; dir_00 != sweep_end; dir_00 = dir_00 + R3D_DEG(45), dir_01 = dir_01 - R3D_DEG(45)) {
-            if (worldmove_probe_adjacent_cell(pos, dir_00, &hit_kind, (long *)&hit_coord) != 0) {
+            if (worldmove_probe_adjacent_cell(pos, dir_00, &hit_kind, (s32 *)&hit_coord) != 0) {
                 if (hit_code != 0) {
                     return 0;
                 }
@@ -619,7 +619,7 @@ int far worldmove_sweep_adjacent_cells(WorldPos *pos, unsigned int dir, int mode
                 }
                 hit_code = 2;
             }
-            if (worldmove_probe_adjacent_cell(pos, dir_01, &hit_kind, (long *)&hit_coord) != 0) {
+            if (worldmove_probe_adjacent_cell(pos, dir_01, &hit_kind, (s32 *)&hit_coord) != 0) {
                 if (hit_code != 0) {
                     return 0;
                 }
@@ -631,16 +631,16 @@ int far worldmove_sweep_adjacent_cells(WorldPos *pos, unsigned int dir, int mode
     return hit_code;
 }
 
-int worldmove_prox_find_near_pos(WorldPos *pos) {
-    long x_off;
-    long y_off;
-    long out_coord;
+s16 worldmove_prox_find_near_pos(WorldPos *pos) {
+    s32 x_off;
+    s32 y_off;
+    s32 out_coord;
     unsigned char mask;
     unsigned char tile_x;
     unsigned char tile_y;
     char sub_x;
     char sub_y;
-    unsigned int out_type;
+    u16 out_type;
     WorldPos save_buf;
 
     save_buf = *pos;
@@ -725,16 +725,16 @@ int worldmove_prox_find_near_pos(WorldPos *pos) {
     return 0;
 }
 
-void worldmove_cross_get_probe_result(unsigned short *out_kind, unsigned long *out_coord) {
-    if (out_kind != (unsigned short *)0x0) {
+void worldmove_cross_get_probe_result(u16 *out_kind, u32 *out_coord) {
+    if (out_kind != (u16 *)0x0) {
         *out_kind = g_nWorldCrossingKind;
     }
-    if (out_coord != (unsigned long *)0x0) {
+    if (out_coord != (u32 *)0x0) {
         *out_coord = g_dwWorldCrossingCoord;
     }
 }
 
-int worldmove_cross_walkable_kind(void) {
+s16 worldmove_cross_walkable_kind(void) {
     return (g_nWorldCrossingKind == 1 || g_nWorldCrossingKind == 2) ? 1 : 0;
 }
 
@@ -742,7 +742,7 @@ void worldmove_step_pending_clear(void) {
     g_gameState.nWorldStepPending = 0;
 }
 
-int worldmove_step_once_along_axis(void) {
+s16 worldmove_step_once_along_axis(void) {
     if (g_gameState.nWorldStepPending == 0) {
         if (worldmove_try_step_along_axis() == 0) {
             return 0;
@@ -752,12 +752,12 @@ int worldmove_step_once_along_axis(void) {
     return 1;
 }
 
-short worldmove_step_pending_get(void) {
+s16 worldmove_step_pending_get(void) {
     return g_gameState.nWorldStepPending;
 }
 
-int worldmove_try_step_along_axis(void) {
-    long lSavedZ;
+s16 worldmove_try_step_along_axis(void) {
+    s32 lSavedZ;
 
     lSavedZ = g_world_camera->base.pos.nWorld_z;
     if (worldmove_prox_find_near_pos(&g_world_camera->base.pos) != 0) {
@@ -777,19 +777,19 @@ void worldmove_step_tick_reset(void) {
     g_gameState.world_step_tick = 1;
 }
 
-unsigned short worldmove_step_tick_get(void) {
+u16 worldmove_step_tick_get(void) {
     return g_gameState.world_step_tick;
 }
 
 void worldmove_step_tick_advance(void) {
     g_gameState.nWorldStepTickCount = g_gameState.nWorldStepTickCount + 1;
-    if ((unsigned int)g_gameState.nWorldStepTickCount == (unsigned int)(0x640 / g_nWorldStepSpeed)) {
+    if ((u16)g_gameState.nWorldStepTickCount == (u16)(0x640 / g_nWorldStepSpeed)) {
         worldmove_step_tick_reset();
     } else {
         g_gameState.world_step_tick = 0;
     }
 }
 
-unsigned short worldmove_step_ticks_per_step(void) {
-    return (unsigned short)(0x640 / g_nWorldStepSpeed);
+u16 worldmove_step_ticks_per_step(void) {
+    return (u16)(0x640 / g_nWorldStepSpeed);
 }

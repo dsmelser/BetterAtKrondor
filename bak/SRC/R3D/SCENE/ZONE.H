@@ -3,15 +3,15 @@
 
 #include "structs.h"
 
-extern unsigned short g_wZoneFlags;
+extern u16 g_wZoneFlags;
 extern char g_szZoneRefFilenameTmpl[11];
-extern short g_game_mode;
+extern s16 g_game_mode;
 extern WorldEntity *g_world_camera;
 extern ViewContext *g_world_widget;
 extern unsigned char g_bZoneSkyColor;
 extern unsigned char g_bZoneGroundColor;
 extern void *g_pZoneGridData;
-extern short g_nZoneRenderTableCount;
+extern s16 g_nZoneRenderTableCount;
 extern char g_szZoneMapFilename[13];
 
 extern void zone_subsystem_init(void);
@@ -23,12 +23,12 @@ extern void zone_load_shape_sprite(void);
 extern void zone_release_object_states(void);
 extern void zone_load_audio_proximity(void);
 extern void zone_scene_runtime_teardown(void);
-extern void zone_teardown(int free_resources);
-extern void zone_refresh_visible(int reload_shapes);
+extern void zone_teardown(s16 free_resources);
+extern void zone_refresh_visible(s16 reload_shapes);
 extern void zone_alloc_400byte_buffer(void);
 extern void zone_free_400byte_buffer(void);
 extern void zone_map_data_load(unsigned char zone_id);
-extern int zone_grid_bit_get(unsigned char x, unsigned char y);
+extern s16 zone_grid_bit_get(unsigned char x, unsigned char y);
 extern unsigned char zone_ref_find_pair_index(unsigned char zone, unsigned char key1, unsigned char key2);
 extern void zone_set_plr_pos_rec(PlayerSpawnRecord *pRecord);
 extern void zone_savegame_snap_world_state(void);

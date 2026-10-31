@@ -37,15 +37,15 @@
 #include "defines.h"
 
 
-unsigned short g_dialog_anim_channel;
+u16 g_dialog_anim_channel;
 
 TownScene *g_pCurrentTownScene = {0};
 MenuPage *g_pTownMenuPage = {0};
-short g_nTownSceneAnimHandle = -1;
-unsigned short g_dialog_in_scene = 0x0000;
+s16 g_nTownSceneAnimHandle = -1;
+u16 g_dialog_in_scene = 0x0000;
 
 static void far townscene_story_actors_destr(void) {
-    int actor;
+    s16 actor;
 
     if (g_pCurrentTownScene != (TownScene *)0x0) {
         if (g_pCurrentTownScene->pActor != (void far *)0) {
@@ -71,13 +71,13 @@ static void far townscene_story_actors_destr(void) {
     return;
 }
 
-static int far townscene_load(int chapter, int sub, int preserve) {
+static s16 far townscene_load(s16 chapter, s16 sub, s16 preserve) {
 
     static char s_szGdsPrefix[4] = "GDS";
     static char g_szTownSceneFilenameSuffix[6] = "?.DAT";
     char fname[16];
-    int i;
-    unsigned int size;
+    s16 i;
+    u16 size;
     MenuEntry *pEntry;
     ResFile *file;
     TownSceneActor *pActor;
@@ -121,8 +121,8 @@ static int far townscene_load(int chapter, int sub, int preserve) {
                             : (void far *)0;
         if ((preserve != 0) || ((pActor->wChapterMask & (1 << (g_gameState.nChapter - 1))) == 0)) {
             if ((pActor->nGateEventId == 0) ||
-                (((unsigned int)pActor->nGateMin <= gstate_event_read(pActor->nGateEventId)) &&
-                 (gstate_event_read(pActor->nGateEventId) <= (unsigned int)pActor->nGateMax))) {
+                (((u16)pActor->nGateMin <= gstate_event_read(pActor->nGateEventId)) &&
+                 (gstate_event_read(pActor->nGateEventId) <= (u16)pActor->nGateMax))) {
                 pEntry->rect.x = pActor->rect.x - g_pTownMenuPage->rect.x;
                 pEntry->rect.y = pActor->rect.y - g_pTownMenuPage->rect.y;
                 pEntry->rect.width = pActor->rect.width;
@@ -146,14 +146,14 @@ static int far townscene_load(int chapter, int sub, int preserve) {
             (pSub->event_state.bRest_last_chapter_done < g_gameState.nChapter)) {
             ((Actor far *)g_pCurrentTownScene->pActor)->needsFlush = TRUE;
             {
-                int q;
+                s16 q;
 #ifdef V102CD
-                q = (int)((long)((unsigned long)pSub->event_state.bRest_gold_unit *
-                                 ((unsigned long)g_gameState.nChapter + 0x13)) /
+                q = (s16)((s32)((u32)pSub->event_state.bRest_gold_unit *
+                                 ((u32)g_gameState.nChapter + 0x13)) /
                           0x14);
 #else
-                q = (int)((long)((unsigned long)pSub->event_state.bRest_gold_unit *
-                                 ((unsigned long)g_gameState.nChapter + 9)) /
+                q = (s16)((s32)((u32)pSub->event_state.bRest_gold_unit *
+                                 ((u32)g_gameState.nChapter + 9)) /
                           10);
 #endif
                 pSub->event_state.bPopup_retry_counter = (q > 0xfa) ? 0xfa : (unsigned char)q;
@@ -169,7 +169,7 @@ static int far townscene_load(int chapter, int sub, int preserve) {
     return 1;
 }
 
-void townscene_anim_channel_play_sync(int channel_id) {
+void townscene_anim_channel_play_sync(s16 channel_id) {
     if ((0 < g_nTownSceneAnimHandle) && (0 < channel_id)) {
         g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaPage1Base;
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
@@ -200,8 +200,8 @@ static void far townscene_dlg_play_rec_bubble(DDXRecord far *record) {
     unsigned char far *start_text;
 
     if (record != (DDXRecord far *)0) {
-        p = (unsigned char far *)record + (unsigned int)record->bCnt1 * 10 +
-            (unsigned int)record->bCnt2 * 10 + 9;
+        p = (unsigned char far *)record + (u16)record->bCnt1 * 10 +
+            (u16)record->bCnt2 * 10 + 9;
         townscene_anim_channel_play_sync(g_dialog_anim_channel);
         if (*p == '#') {
             p++;
@@ -219,11 +219,11 @@ static void far townscene_dlg_play_rec_bubble(DDXRecord far *record) {
 }
 
 static void far townscene_cursor_wait_for_drag(void) {
-    short saved_x;
-    short saved_y;
-    short cur_x;
-    short cur_y;
-    int abs_sum;
+    s16 saved_x;
+    s16 saved_y;
+    s16 cur_x;
+    s16 cur_y;
+    s16 abs_sum;
 
     saved_x = screen_cursor_get_x();
     saved_y = screen_cursor_get_y();
@@ -237,42 +237,42 @@ static void far townscene_cursor_wait_for_drag(void) {
         screen_cursor_get_position(&cur_x, &cur_y);
         cur_x -= saved_x;
         cur_y -= saved_y;
-        abs_sum = (cur_x < 0 ? (cur_x == (short)-0x8000 ? 0x7fff : -cur_x) : cur_x) +
-                  (cur_y < 0 ? (cur_y == (short)-0x8000 ? 0x7fff : -cur_y) : cur_y);
+        abs_sum = (cur_x < 0 ? (cur_x == (s16)-0x8000 ? 0x7fff : -cur_x) : cur_x) +
+                  (cur_y < 0 ? (cur_y == (s16)-0x8000 ? 0x7fff : -cur_y) : cur_y);
     } while (abs_sum <= 0xa);
     dialog_input_wait_release(1, 0);
     return;
 }
 
-static int far townscene_resolv_enc_outcome(Actor far *actor) {
+static s16 far townscene_resolv_enc_outcome(Actor far *actor) {
     ActorSubrecord far *pSub;
-    unsigned int statValue;
-    unsigned int gold;
-    int musicTrack;
-    int outcome;
-    int dlgRecord;
-    int savedMusic;
+    u16 statValue;
+    u16 gold;
+    s16 musicTrack;
+    s16 outcome;
+    s16 dlgRecord;
+    s16 savedMusic;
 
     gold = 0;
     outcome = 1;
     pSub = actorrec_get_subrecord(actor, SUBREC_EVENT_STATE);
     screen_cursor_set_shape(0);
     if (pSub->event_state.bPopup_retry_counter != 0) {
-        statValue = stat_party_find_extreme(0xb, 0, (short *)0x0);
+        statValue = stat_party_find_extreme(0xb, 0, (s16 *)0x0);
         g_gameState.nEvtArgActor0 = g_gameState.nEvtArgStat;
 
-        if ((int)statValue < 0x2d) {
+        if ((s16)statValue < 0x2d) {
             musicTrack = 0x3f0;
-        } else if ((int)statValue < 0x41) {
+        } else if ((s16)statValue < 0x41) {
             musicTrack = 0x410;
-        } else if ((int)statValue < 0x55) {
+        } else if ((s16)statValue < 0x55) {
             musicTrack = 0x40f;
         } else {
             musicTrack = 0x3ef;
         }
-        if (pSub->event_state.b_pad06 < (int)statValue) {
+        if (pSub->event_state.b_pad06 < (s16)statValue) {
             stat_party_broadcast_status_op(0xb, 2, 3);
-            if ((int)statValue >= (int)((pSub->event_state.b_pad06 + 100) / 2)) {
+            if ((s16)statValue >= (s16)((pSub->event_state.b_pad06 + 100) / 2)) {
                 dlgRecord = 0x5a;
                 gold = pSub->event_state.bPopup_retry_counter * 10;
             } else {
@@ -281,7 +281,7 @@ static int far townscene_resolv_enc_outcome(Actor far *actor) {
             }
         } else {
             stat_party_broadcast_status_op(0xb, 1, 3);
-            if ((int)statValue < (int)((pSub->event_state.b_pad06 * 3) / 4)) {
+            if ((s16)statValue < (s16)((pSub->event_state.b_pad06 * 3) / 4)) {
                 dlgRecord = 0x49;
                 outcome = 0;
             } else {
@@ -292,11 +292,11 @@ static int far townscene_resolv_enc_outcome(Actor far *actor) {
         if (gold != 0) {
             pSub->event_state.bPopup_retry_counter = 0;
             actor->needsFlush = TRUE;
-            g_gameState.nParty_gold += (long)(int)gold;
-            g_gameState.lEvtArgGoldCost = (long)(int)gold;
+            g_gameState.nParty_gold += (s32)(s16)gold;
+            g_gameState.lEvtArgGoldCost = (s32)(s16)gold;
         }
         savedMusic = audio_music_play(musicTrack);
-        dialog_play_record((long)dlgRecord, 0);
+        dialog_play_record((s32)dlgRecord, 0);
         audio_music_play(savedMusic);
         if (0 < savedMusic) {
             audio_set_intensity(savedMusic, g_pCurrentTownScene->nMusicIntensity);
@@ -307,20 +307,20 @@ static int far townscene_resolv_enc_outcome(Actor far *actor) {
     return outcome;
 }
 
-void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
-    int idx;
-    int action;
-    int fadeFlag;
-    int dialogLoaded;
-    int exitFlag;
-    int sceneIdx;
-    int savedMusic;
-    int musicTrack;
-    unsigned short savedBlendMode;
+void far townscene_main_loop(u16 scene_kind, s16 scene_index) {
+    s16 idx;
+    s16 action;
+    s16 fadeFlag;
+    s16 dialogLoaded;
+    s16 exitFlag;
+    s16 sceneIdx;
+    s16 savedMusic;
+    s16 musicTrack;
+    u16 savedBlendMode;
     unsigned char far *pPalSaved;
-    int needRefresh;
+    s16 needRefresh;
     TownSceneActor *pA;
-    int di;
+    s16 di;
 
     fadeFlag = 1;
     dialogLoaded = 0;
@@ -332,7 +332,7 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
     pPalSaved = palette_set((unsigned char far *)0);
 
     if ((scene_kind & 0xff00) != 0) {
-        sceneIdx = (int)scene_kind >> 8;
+        sceneIdx = (s16)scene_kind >> 8;
         scene_kind &= 0xff;
     }
     zone_teardown(0);
@@ -340,7 +340,7 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
     g_dialog_anim_channel = 0;
     g_nPalBlendMode = 0;
     g_nChapterSnapshotDeadStore = g_gameState.nChapter;
-    *((unsigned short *)&g_anim_slots[1] + 1) = g_gameState.nChapter;
+    *((u16 *)&g_anim_slots[1] + 1) = g_gameState.nChapter;
     screen_cursor_state_push_pop(1);
     screen_cursor_load_pack(1);
     palette_cycle_eb_toggle(0);
@@ -351,7 +351,7 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
         if (sceneIdx > 0) {
             screen_cursor_hide();
             screen_cursor_show_busy();
-            townscene_load((int)scene_kind, sceneIdx, 0);
+            townscene_load((s16)scene_kind, sceneIdx, 0);
             palette_cycle_eb_toggle(0);
             townscene_anim_channel_play_sync(g_pCurrentTownScene->nEntryAnim);
             dialog_input_wait_with_cooldown(2);
@@ -413,7 +413,7 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
 
         /* Menu-run loop: block on the menu until the user picks an action. */
         while (action == 0) {
-            action = menupage_run(g_pTownMenuPage, (unsigned short *)&idx);
+            action = menupage_run(g_pTownMenuPage, (u16 *)&idx);
             if (screen_input_poll_confirm_cancel() == 2) {
                 screen_cursor_set_shape(3);
             }
@@ -434,7 +434,7 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
                                                       SUBREC_EVENT_STATE);
                         if (pSub != 0) {
                             g_gameState.lEvtArgAuxValue =
-                                (long)(int)(unsigned int)pSub->event_state.bInvreq_arg_x;
+                                (s32)(s16)(u16)pSub->event_state.bInvreq_arg_x;
                         }
                     }
                     if (pA->pDdxRecord == 0) {
@@ -454,16 +454,16 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
                 }
             } else {
 
-                di = (int)pA->cKind;
+                di = (s16)pA->cKind;
                 g_gameState.lEvtArgGoldCost = 0;
                 if (pA->dwAltDialogKey != 0 && di != 0xd) {
-                    int teleport0 = (int)g_gameState.abTeleportRecord[0];
+                    s16 teleport0 = (s16)g_gameState.abTeleportRecord[0];
                     ActorSubrecord far *pSub;
                     townscene_anim_channel_play_sync(pA->nAnimChannel != 0 ? pA->nAnimChannel
                                                                            : g_dialog_anim_channel);
                     g_pPendingPalette = 0;
                     screen_cursor_set_shape(0);
-                    g_gameState.nEvtArgCount = (short)pA->cClickCount;
+                    g_gameState.nEvtArgCount = (s16)pA->cClickCount;
                     g_gameState.dwPopup_retry_state = 0;
                     if (g_pCurrentTownScene->pActor != 0) {
                         pSub = actorrec_get_subrecord((Actor far *)g_pCurrentTownScene->pActor,
@@ -472,7 +472,7 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
                             g_gameState.dwPopup_retry_state =
                                 pSub->event_state.bPopup_retry_counter;
                             g_gameState.lEvtArgAuxValue =
-                                (long)(int)(unsigned int)pSub->event_state.bInvreq_arg_x;
+                                (s32)(s16)(u16)pSub->event_state.bInvreq_arg_x;
                         }
                     }
                     switch (dialog_play_record(pA->dwAltDialogKey, 0)) {
@@ -507,7 +507,7 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
                         }
                     }
                     g_gameState.dwPopup_retry_state = 0;
-                    if ((int)g_gameState.abTeleportRecord[0] != teleport0 &&
+                    if ((s16)g_gameState.abTeleportRecord[0] != teleport0 &&
                         g_gameState.abTeleportRecord[0] != 0xff) {
                         exitFlag = 1;
                     } else {
@@ -562,8 +562,8 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
                     if (di == 0x10) {
                         pSub = actorrec_get_subrecord((Actor far *)g_pCurrentTownScene->pActor,
                                                       SUBREC_EVENT_STATE);
-                        modalscreen_inventory_request((unsigned int)pSub->event_state.bInvreq_arg_x,
-                                                      (int)(unsigned int)pSub->event_state.bInvreq_arg_y);
+                        modalscreen_inventory_request((u16)pSub->event_state.bInvreq_arg_x,
+                                                      (s16)(u16)pSub->event_state.bInvreq_arg_y);
                         needRefresh = 1;
                     }
                     if (di == 0xf) {
@@ -574,20 +574,20 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
                         pSub = actorrec_get_subrecord((Actor far *)g_pCurrentTownScene->pActor,
                                                       SUBREC_EVENT_STATE);
                         modalscreen_teleport_spell_run(
-                            (int)pSub->event_state.bArg0,
-                            (long)pSub->event_state.wShop_disposition_flags,
-                            (int)pSub->event_state.bTeleport_cost_msb);
-                        if (*(unsigned short *)&g_gameState.abTeleportRecord[7] != 0) {
-                            scene_kind = *(unsigned short *)&g_gameState.abTeleportRecord[7];
-                            sceneIdx = *(unsigned short *)&g_gameState.abTeleportRecord[9];
-                            *(unsigned short *)&g_gameState.abTeleportRecord[7] =
-                                *(unsigned short *)&g_gameState.abTeleportRecord[9] = 0;
+                            (s16)pSub->event_state.bArg0,
+                            (s32)pSub->event_state.wShop_disposition_flags,
+                            (s16)pSub->event_state.bTeleport_cost_msb);
+                        if (*(u16 *)&g_gameState.abTeleportRecord[7] != 0) {
+                            scene_kind = *(u16 *)&g_gameState.abTeleportRecord[7];
+                            sceneIdx = *(u16 *)&g_gameState.abTeleportRecord[9];
+                            *(u16 *)&g_gameState.abTeleportRecord[7] =
+                                *(u16 *)&g_gameState.abTeleportRecord[9] = 0;
                         } else {
                             needRefresh = 1;
                         }
                     }
                     if (di == 0xd) {
-                        int dx;
+                        s16 dx;
                         pSub = actorrec_get_subrecord((Actor far *)g_pCurrentTownScene->pActor,
                                                       SUBREC_EVENT_STATE);
                         needRefresh = 1;
@@ -596,12 +596,12 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
                         g_gameState.nEvtArgCount = pSub->event_state.bArg0;
                         while ((dx = dialog_play_record(pA->dwAltDialogKey, 0)) != 3) {
                             if (dx == 1) {
-                                charscreen_temple_heal_menu((int)pSub->event_state.bTemple_filter,
-                                                            (int)pSub->event_state.bArg0);
+                                charscreen_temple_heal_menu((s16)pSub->event_state.bTemple_filter,
+                                                            (s16)pSub->event_state.bArg0);
                             } else if (dx == 2) {
                                 modalscreen_req_inv_run(
-                                    (int)pSub->event_state.bArg0, (int)pSub->event_state.bArg1,
-                                    (int)pSub->event_state.bArg2, (int)pSub->event_state.bArg3);
+                                    (s16)pSub->event_state.bArg0, (s16)pSub->event_state.bArg1,
+                                    (s16)pSub->event_state.bArg2, (s16)pSub->event_state.bArg3);
                             }
                         }
                     }
@@ -682,11 +682,11 @@ void far townscene_main_loop(unsigned int scene_kind, int scene_index) {
 }
 
 void far townscene_cheat_menu_screen(void) {
-    unsigned int sel;
-    unsigned short redraw;
+    u16 sel;
+    u16 redraw;
     Actor far *actor;
-    unsigned short saved_chapter;
-    int i;
+    u16 saved_chapter;
+    s16 i;
     MenuPage *page;
 
     redraw = 1;
@@ -750,20 +750,20 @@ void far townscene_cheat_menu_screen(void) {
 }
 
 void far townscene_chest_open_with_cipher(void) {
-    unsigned short redraw;
+    u16 redraw;
     Actor far *actor;
     ActorSubrec01_Cipher far *pSub;
     MenuPage *page;
-    unsigned int sel;
+    u16 sel;
 
     redraw = 1;
-    actor = actorspawn_objfixed(0, 0x3cL, (long)g_gameState.nChapter);
+    actor = actorspawn_objfixed(0, 0x3cL, (s32)g_gameState.nChapter);
     pSub = (ActorSubrec01_Cipher far *)actorrec_get_subrecord(actor, SUBREC_PARAMS);
     if (actor != (Actor far *)0 && pSub != (ActorSubrec01_Cipher far *)0 &&
         pSub->bCipher_puzzle_id != 0) {
         dialog_input_wait_release(0, 0);
         dialog_play_record(0x249f1cL, 0);
-        if (cipher_dial_puzzle_run((unsigned int)pSub->bCipher_puzzle_id) != 0) {
+        if (cipher_dial_puzzle_run((u16)pSub->bCipher_puzzle_id) != 0) {
             /* Cipher solved: run the chest menu. The failure path is the
              * else arm below. */
             dialog_play_record(0x249f1dL, 0);

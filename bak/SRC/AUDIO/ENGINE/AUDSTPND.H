@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_start_pending(int filter);
+extern s16 audio_start_pending(s16 filter);
 
 #endif

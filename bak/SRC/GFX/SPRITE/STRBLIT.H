@@ -3,9 +3,9 @@
 
 #include "structs.h"
 
-extern int stretch_step_init(int *step, int dest_steps);
-extern void blit_image_stretched(ImageRecord *image, int dst_x, int dst_y, unsigned int flags, int dst_w,
-                                 int dst_h);
-extern void blit_image_scaled_centered(ImageRecord *image, int cx, int cy, unsigned long scale_q16);
+extern s16 stretch_step_init(s16 *step, s16 dest_steps);
+extern void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s16 dst_w,
+                                 s16 dst_h);
+extern void blit_image_scaled_centered(ImageRecord *image, s16 cx, s16 cy, u32 scale_q16);
 
 #endif

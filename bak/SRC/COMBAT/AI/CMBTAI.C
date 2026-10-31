@@ -17,7 +17,7 @@ CombatAiActionFn far *g_combat_ai_action_table[8] = {
     &combataipath_low_health_action, &combataipath_action_6,     &combataipath_action_100_1,
     &combataipath_action_100_2,      &combataipath_action_60064, &combataipath_action_50064,
     &combataipath_action_30064,      &combataipath_action_40064};
-unsigned short g_bActorAdjacentToTarget = 0x0000;
+u16 g_bActorAdjacentToTarget = 0x0000;
 unsigned char __dat_1492[138] = {
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x08, 0x00, 0x04, 0x00,
     0x06, 0x00, 0x03, 0x00, 0x02, 0x00, 0x07, 0x00, 0x05, 0x00, 0x02, 0x00, 0x04, 0x00, 0x08, 0x00,
@@ -33,16 +33,16 @@ typedef struct {
     unsigned char b[10];
 } AnimBuf10;
 
-static void far combataipath_rng_atk_tmp_tile(Combatant *actor, int x, int y) {
-    int hit;
+static void far combataipath_rng_atk_tmp_tile(Combatant *actor, s16 x, s16 y) {
+    s16 hit;
     AnimBuf10 animBuf;
     Combatant savedActor;
     CombatantState savedInner;
-    unsigned short action_id;
-    int direction;
+    u16 action_id;
+    s16 direction;
 
     hit = 1;
-    animBuf = *(AnimBuf10 far *)MK_FP(FP_SEG(__dat_1492), (unsigned)__dat_1492);
+    animBuf = *(AnimBuf10 far *)MK_FP(FP_SEG(__dat_1492), (u16)__dat_1492);
     savedActor.inner = &savedInner;
     savedInner.gridX = actor->inner->gridX;
     savedInner.gridY = actor->inner->gridY;
@@ -61,11 +61,11 @@ static void far combataipath_rng_atk_tmp_tile(Combatant *actor, int x, int y) {
     world_rndr_ranged_attack_anim(actor, &savedActor, &hit, action_id, 100, animBuf.b[0]);
     actor->inner->gridX = savedInner.gridX;
     actor->inner->gridY = savedInner.gridY;
-    combatgrid_tile_set_word(savedInner.gridX, savedInner.gridY, (unsigned int)actor);
+    combatgrid_tile_set_word(savedInner.gridX, savedInner.gridY, (u16)actor);
     return;
 }
 
-static void combataipath_resolv_blockd_diag(int x, int y, int *dx, int *dy) {
+static void combataipath_resolv_blockd_diag(s16 x, s16 y, s16 *dx, s16 *dy) {
     if ((*dx != 0) && (*dy != 0)) {
         if (combatgrid_tile_walkable_kind(x + *dx, y, -1) != 0) {
             if (combatgrid_tile_walkable_kind(x, y + *dy, -1) != 0) {
@@ -79,17 +79,17 @@ static void combataipath_resolv_blockd_diag(int x, int y, int *dx, int *dy) {
     }
 }
 
-static int far combataipath_step_to_target(Combatant *actor, int ranged) {
-    int dx;
-    int dy;
-    int orig_x;
-    int orig_y;
-    int new_x;
-    int new_y;
+static s16 far combataipath_step_to_target(Combatant *actor, s16 ranged) {
+    s16 dx;
+    s16 dy;
+    s16 orig_x;
+    s16 orig_y;
+    s16 new_x;
+    s16 new_y;
     Combatant prevActor;
     CombatantState prevInner;
-    int target_x;
-    int target_y;
+    s16 target_x;
+    s16 target_y;
     unsigned char scratch;
 
     prevActor.inner = &prevInner;
@@ -183,12 +183,12 @@ LAB_0408:
     return 1;
 }
 
-int far combataipath_actor_walk_path(Combatant *actor, int ranged) {
-    int iSpeedRem;
-    int result;
-    int savedX;
-    int savedY;
-    unsigned int uTerrain;
+s16 far combataipath_actor_walk_path(Combatant *actor, s16 ranged) {
+    s16 iSpeedRem;
+    s16 result;
+    s16 savedX;
+    s16 savedY;
+    u16 uTerrain;
 
     result = 1;
     if (ranged != 0) {
@@ -196,8 +196,8 @@ int far combataipath_actor_walk_path(Combatant *actor, int ranged) {
         savedY = actor->inner->gridY;
     }
     {
-        int iDist;
-        int iSteps;
+        s16 iDist;
+        s16 iSteps;
         iDist = combatgrid_chebyshev_distance(actor->inner->gridX, actor->inner->gridY,
                                               actor->inner->destX, actor->inner->destY);
         iSteps = g_acting_actor_speed;
@@ -245,21 +245,21 @@ int far combataipath_actor_walk_path(Combatant *actor, int ranged) {
     return result;
 }
 
-void combataipath_select_target(Combatant *actor, int max_dist, int target_mode) {
-    int attackers;
-    int iDist;
-    int bMatch;
-    int iStat;
-    int approachX;
-    int tile_y;
-    int tile_x;
-    int approachY;
-    int maxAttackersPerTarget;
-    int nOther;
-    int nActive;
-    int jj;
-    int flags;
-    int di;
+void combataipath_select_target(Combatant *actor, s16 max_dist, s16 target_mode) {
+    s16 attackers;
+    s16 iDist;
+    s16 bMatch;
+    s16 iStat;
+    s16 approachX;
+    s16 tile_y;
+    s16 tile_x;
+    s16 approachY;
+    s16 maxAttackersPerTarget;
+    s16 nOther;
+    s16 nActive;
+    s16 jj;
+    s16 flags;
+    s16 di;
 
     nActive = 0;
     nOther = 0;
@@ -379,7 +379,7 @@ void combataipath_select_target(Combatant *actor, int max_dist, int target_mode)
 }
 
 void far combataipath_followup_action(Combatant *actor) {
-    int r;
+    s16 r;
     r = RND(100);
     if (r > 0x19) {
         combatenc_ai_attempt_melee(actor);
@@ -388,12 +388,12 @@ void far combataipath_followup_action(Combatant *actor) {
     combatenc_set_flag8_clear_flag1(actor);
 }
 
-int combataipath_follow_tgt_check(Combatant *actor, int max_dist, int target_mode) {
-    int savedX;
-    int savedY;
-    int bFlag;
-    int dist;
-    int f;
+s16 combataipath_follow_tgt_check(Combatant *actor, s16 max_dist, s16 target_mode) {
+    s16 savedX;
+    s16 savedY;
+    s16 bFlag;
+    s16 dist;
+    s16 f;
 
     bFlag = 0;
     if (actor->inner->target != (Combatant *)0x0) {
@@ -433,10 +433,10 @@ int combataipath_follow_tgt_check(Combatant *actor, int max_dist, int target_mod
     return 1;
 }
 
-int far combataipath_low_health_action(Combatant *actor) {
-    int stat_pct;
-    int dist;
-    int r;
+s16 far combataipath_low_health_action(Combatant *actor) {
+    s16 stat_pct;
+    s16 dist;
+    s16 r;
     stat_pct = combat_actor_stat_percent(actor, 1);
     combatenc_find_nearest_actor(actor, &dist);
     r = RND(100);
@@ -447,59 +447,59 @@ int far combataipath_low_health_action(Combatant *actor) {
     return 0;
 }
 
-int far combataipath_action_6(Combatant *actor) {
-    int r;
+s16 far combataipath_action_6(Combatant *actor) {
+    s16 r;
     r = combataipath_follow_tgt_check(actor, 6, 0);
     return r;
 }
 
-int far combataipath_action_100_1(Combatant *actor) {
-    int r;
+s16 far combataipath_action_100_1(Combatant *actor) {
+    s16 r;
     r = combataipath_follow_tgt_check(actor, 100, 1);
     return r;
 }
 
-int far combataipath_action_100_2(Combatant *actor) {
-    int r;
+s16 far combataipath_action_100_2(Combatant *actor) {
+    s16 r;
     r = combataipath_follow_tgt_check(actor, 100, 2);
     return r;
 }
 
-int far combataipath_action_60064(Combatant *actor) {
-    int r;
+s16 far combataipath_action_60064(Combatant *actor) {
+    s16 r;
     r = combataipath_follow_tgt_check(actor, 100, 6);
     return r;
 }
 
-int far combataipath_action_50064(Combatant *actor) {
-    int r;
+s16 far combataipath_action_50064(Combatant *actor) {
+    s16 r;
     r = combataipath_follow_tgt_check(actor, 100, 5);
     return r;
 }
 
-int far combataipath_action_30064(Combatant *actor) {
-    int r;
+s16 far combataipath_action_30064(Combatant *actor) {
+    s16 r;
     r = combataipath_follow_tgt_check(actor, 100, 3);
     return r;
 }
 
-int far combataipath_action_40064(Combatant *actor) {
-    int r;
+s16 far combataipath_action_40064(Combatant *actor) {
+    s16 r;
     r = combataipath_follow_tgt_check(actor, 100, 4);
     return r;
 }
 
 #define AI_ACTION_FN ((CombatAiActionFn far *)(g_combat_ai_action_table - 1))
 
-#define AI_ACTION_INDEX ((short (*)[8])(g_combat_ai_action_table + 7))
+#define AI_ACTION_INDEX ((s16 (*)[8])(g_combat_ai_action_table + 7))
 
 void far combataipath_select_action(Combatant *actor) {
-    int(far * fn)(Combatant *);
+    s16(far * fn)(Combatant *);
 
-    int i = 0;
-    int ret = 0;
+    s16 i = 0;
+    s16 ret = 0;
     while (ret == 0 && i < 8 && actor->inner->aiPathProfile != 0) {
-        fn = (int(far *)(
+        fn = (s16(far *)(
             Combatant *))AI_ACTION_FN[AI_ACTION_INDEX[(signed char)actor->inner->aiPathProfile][i]];
         ret = fn(actor);
         i++;

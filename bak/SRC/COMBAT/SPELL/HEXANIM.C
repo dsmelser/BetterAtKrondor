@@ -7,8 +7,8 @@
 #include "SRC/GFX/DRIVER/VIDINIT.H"
 #include "SRC/GFX/SCREEN/SCREEN.H"
 
-static void far hexanim_draw_hexagon_outline(int *xs, int *ys, int color) {
-    int i;
+static void far hexanim_draw_hexagon_outline(s16 *xs, s16 *ys, s16 color) {
+    s16 i;
 
     g_graphics_context.bGfx_outline_color = color;
     i = 0;
@@ -19,21 +19,21 @@ static void far hexanim_draw_hexagon_outline(int *xs, int *ys, int color) {
     draw_line(*xs, *ys, xs[5], ys[5]);
 }
 
-void far hexanim_move_tiles(int srcSchool, int dstSchool) {
-    int divisor;
-    int outer;
-    int *ptr_ax;
-    int *ptr_ay;
-    int *ptr_bx;
-    int *ptr_by;
-    int curX[6];
-    int curY[6];
-    int stepX[6];
-    int stepY[6];
-    int x_anim[7][6];
-    int y_anim[7][6];
-    register int j;
-    int k;
+void far hexanim_move_tiles(s16 srcSchool, s16 dstSchool) {
+    s16 divisor;
+    s16 outer;
+    s16 *ptr_ax;
+    s16 *ptr_ay;
+    s16 *ptr_bx;
+    s16 *ptr_by;
+    s16 curX[6];
+    s16 curY[6];
+    s16 stepX[6];
+    s16 stepY[6];
+    s16 x_anim[7][6];
+    s16 y_anim[7][6];
+    register s16 j;
+    s16 k;
 
     ptr_ax = g_apHexVertexX[srcSchool];
     ptr_ay = g_apHexVertexY[srcSchool];

@@ -21,10 +21,10 @@
 #include "SRC/COMBAT/ARENA/COMBAT.H"
 #include "gfx169d.h"
 
-unsigned short g_nVfxParticleColor;
+u16 g_nVfxParticleColor;
 VfxRec *g_pVfxVelocityPool;
-unsigned short g_wVfxActiveParticleCount;
-unsigned short g_nVfxParticleBurstOriginY;
+u16 g_wVfxActiveParticleCount;
+u16 g_nVfxParticleBurstOriginY;
 SavedClipRect g_savedClip;
 
 VfxRec *g_pVfxSparkleScratch = {0};
@@ -33,11 +33,11 @@ VfxRec *g_pVfxParticlePool = {0};
 #define VFX_PARTICLE_COUNT 25
 #define VFX_SPARKLE_COUNT 6
 
-void worldfx_sparkle_burst(Combatant *actor, int color) {
-    int scr[3];
-    int base_x;
-    int base_y;
-    int i;
+void worldfx_sparkle_burst(Combatant *actor, s16 color) {
+    s16 scr[3];
+    s16 base_x;
+    s16 base_y;
+    s16 i;
 
     g_graphics_context.bClip_enabled = 1;
 
@@ -70,7 +70,7 @@ void worldfx_sparkle_burst(Combatant *actor, int color) {
     g_pVfxSparkleScratch = 0;
 }
 
-void far worldfx_flux_vortex_step_particle(int slot, int base_ang_step) {
+void far worldfx_flux_vortex_step_particle(s16 slot, s16 base_ang_step) {
     if (g_pVfxParticlePool == 0)
         return;
     if (g_pVfxParticlePool[slot].nW0 <= 0x4b)
@@ -89,10 +89,10 @@ void far worldfx_flux_vortex_step_particle(int slot, int base_ang_step) {
     g_wVfxActiveParticleCount++;
 }
 
-void far worldfx_render_particle_blast(Combatant *actor, int color) {
-    int radius;
-    short saved_status;
-    int i;
+void far worldfx_render_particle_blast(Combatant *actor, s16 color) {
+    s16 radius;
+    s16 saved_status;
+    s16 i;
 
     radius = 1;
     saved_status = actor->inner->statusHead;
@@ -134,8 +134,8 @@ void far worldfx_render_particle_blast(Combatant *actor, int color) {
     g_pVfxParticlePool = 0;
 }
 
-void worldfx_flux_vortex_play(int color) {
-    int i;
+void worldfx_flux_vortex_play(s16 color) {
+    s16 i;
 
     g_nSnowParticleSeedX = 0;
     g_pVfxParticlePool = galloc_safe_zcalloc(VFX_PARTICLE_COUNT * sizeof(VfxRec));
@@ -171,13 +171,13 @@ void worldfx_flux_vortex_play(int color) {
 }
 
 void far worldfx_ptcl_overlay_step_back(Combatant *pActor) {
-    int scr[3];
-    int scr2[3];
-    int base_x;
-    int base_y;
-    int dx;
-    int dy;
-    int index;
+    s16 scr[3];
+    s16 scr2[3];
+    s16 base_x;
+    s16 base_y;
+    s16 dx;
+    s16 dy;
+    s16 index;
 
     if (g_pVfxParticlePool != 0) {
         world_rndr_apply_window_vport();
@@ -186,10 +186,10 @@ void far worldfx_ptcl_overlay_step_back(Combatant *pActor) {
         index = 0;
         do {
             if ((g_pVfxParticlePool[index].nW0 > 0x4b) && (g_pVfxParticlePool[index].nW1 > 0)) {
-                dx = (int)(r3d_imul_full32(g_pVfxParticlePool[index].nW0,
+                dx = (s16)(r3d_imul_full32(g_pVfxParticlePool[index].nW0,
                                            r3d_tbl_cos(g_pVfxParticlePool[index].nW1)) >>
                            14);
-                dy = (int)(r3d_imul_full32(g_pVfxParticlePool[index].nW0,
+                dy = (s16)(r3d_imul_full32(g_pVfxParticlePool[index].nW0,
                                            r3d_tbl_sin(g_pVfxParticlePool[index].nW1)) >>
                            14);
                 project_world_to_screen(base_x + dx, base_y + dy, g_pVfxParticlePool[index].nW2,
@@ -213,11 +213,11 @@ void far worldfx_ptcl_overlay_step_back(Combatant *pActor) {
 }
 
 void worldfx_ptcl_overlay_render_front(Combatant *pActor) {
-    int scr[3];
-    int scr2[3];
-    int x_base;
-    int y_base;
-    int i;
+    s16 scr[3];
+    s16 scr2[3];
+    s16 x_base;
+    s16 y_base;
+    s16 i;
 
     if (g_pVfxParticlePool != 0) {
         world_rndr_apply_window_vport();
@@ -228,10 +228,10 @@ void worldfx_ptcl_overlay_render_front(Combatant *pActor) {
 
         for (i = 0; i < VFX_PARTICLE_COUNT; i++) {
             if (g_pVfxParticlePool[i].nW0 > 0x4b && g_pVfxParticlePool[i].nW1 < 0) {
-                int cos_shift = (int)(r3d_imul_full32(g_pVfxParticlePool[i].nW0,
+                s16 cos_shift = (s16)(r3d_imul_full32(g_pVfxParticlePool[i].nW0,
                                                       r3d_tbl_cos(g_pVfxParticlePool[i].nW1)) >>
                                       14);
-                int sin_shift = (int)(r3d_imul_full32(g_pVfxParticlePool[i].nW0,
+                s16 sin_shift = (s16)(r3d_imul_full32(g_pVfxParticlePool[i].nW0,
                                                       r3d_tbl_sin(g_pVfxParticlePool[i].nW1)) >>
                                       14);
 
@@ -254,15 +254,15 @@ void worldfx_ptcl_overlay_render_front(Combatant *pActor) {
 }
 
 void far worldfx_rndr_rand_flash_at_actor(Combatant *actor) {
-    short scr_buf[7];
+    s16 scr_buf[7];
     WorldObject entry;
     (void)scr_buf;
     entry.shapeId = 4;
     entry.state.stateBits = 0;
     entry.pos.xy.nWorld_x =
-        (long)(actor->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
+        (s32)(actor->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
     entry.pos.xy.nWorld_y =
-        (long)(actor->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
+        (s32)(actor->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     entry.pos.nWorld_z = 0;
     entry.orientation.pitch = entry.orientation.roll = entry.orientation.yaw = 0;
     g_nActorSpriteFlip = RND2(2) << 1;
@@ -270,7 +270,7 @@ void far worldfx_rndr_rand_flash_at_actor(Combatant *actor) {
 }
 
 void far worldfx_render_world_100_frames(void) {
-    int i;
+    s16 i;
 
     for (i = 0; i < 100; i++) {
         world_render_with_overlay(MK_FP(0, 0xffff));
@@ -278,9 +278,9 @@ void far worldfx_render_world_100_frames(void) {
     }
 }
 
-void far worldfx_combat_damage_ptcl_burst(Combatant *actor, int spread) {
-    int x;
-    int i;
+void far worldfx_combat_damage_ptcl_burst(Combatant *actor, s16 spread) {
+    s16 x;
+    s16 i;
 
     g_pVfxParticlePool = galloc_safe_zcalloc(VFX_PARTICLE_COUNT * sizeof(VfxRec));
     g_pVfxVelocityPool = galloc_safe_zcalloc(VFX_PARTICLE_COUNT * sizeof(VfxRec));
@@ -308,9 +308,9 @@ void far worldfx_combat_damage_ptcl_burst(Combatant *actor, int spread) {
     g_pVfxParticlePool = 0;
 }
 
-void worldfx_render_star(int index) {
-    int out[3];
-    int color;
+void worldfx_render_star(s16 index) {
+    s16 out[3];
+    s16 color;
 
     if (g_pVfxParticlePool != 0) {
         project_world_to_screen(g_pVfxParticlePool[index].nW0, g_pVfxParticlePool[index].nW1, 0,
@@ -327,8 +327,8 @@ void worldfx_render_star(int index) {
     }
 }
 
-void far worldfx_sparkle_update_particles(int y_max, int y_min) {
-    int index;
+void far worldfx_sparkle_update_particles(s16 y_max, s16 y_min) {
+    s16 index;
 
     if (g_pVfxParticlePool != 0) {
         world_rndr_apply_window_vport();
@@ -374,12 +374,12 @@ void far worldfx_sparkle_render(void) {
 }
 
 void worldfx_render_flame_at_actor(Combatant *actor) {
-    int scr[3];
-    int z;
-    int c1, c2;
-    int x_off1, x_off2;
-    register int scr_x;
-    int scr_y;
+    s16 scr[3];
+    s16 z;
+    s16 c1, c2;
+    s16 x_off1, x_off2;
+    register s16 scr_x;
+    s16 scr_y;
 
     world_rndr_apply_window_vport();
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
@@ -414,21 +414,21 @@ void worldfx_render_flame_at_actor(Combatant *actor) {
     }
 }
 
-static int actor_box_verts[8][3] = {
+static s16 actor_box_verts[8][3] = {
     {-140, 140, 0},    {140, 140, 0},   {140, 140, 400}, {-140, 140, 400},
     {-140, -140, 400}, {-140, -140, 0}, {140, -140, 0},  {140, -140, 400},
 };
-short g_nVfxTickCountdown = 0;
+s16 g_nVfxTickCountdown = 0;
 
 void worldfx_actor_box_scr_verts(Vec3Short *vertex_buf, Combatant *actor) {
-    int out[3];
-    int x_base;
-    int tx;
-    int y_base;
-    int ty;
-    int z_base;
-    int tz;
-    int i;
+    s16 out[3];
+    s16 x_base;
+    s16 tx;
+    s16 y_base;
+    s16 ty;
+    s16 z_base;
+    s16 tz;
+    s16 i;
 
     world_rndr_apply_window_vport();
     x_base = actor->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) - 0x4b0;
@@ -446,7 +446,7 @@ void worldfx_actor_box_scr_verts(Vec3Short *vertex_buf, Combatant *actor) {
     } while (i < 8);
 }
 
-void worldfx_draw_actor_box_wireframe(Combatant *actor, int color_idx) {
+void worldfx_draw_actor_box_wireframe(Combatant *actor, s16 color_idx) {
     Vec3Short v[8];
 
     worldfx_actor_box_scr_verts(v, actor);
@@ -464,7 +464,7 @@ void worldfx_draw_actor_box_wireframe(Combatant *actor, int color_idx) {
     draw_line(v[2].nX, v[2].nY, v[1].nX, v[1].nY);
 }
 
-void worldfx_draw_actor_box_wireframe_front(Combatant *entity, int color_mod) {
+void worldfx_draw_actor_box_wireframe_front(Combatant *entity, s16 color_mod) {
     Vec3Short v[8];
 
     worldfx_actor_box_scr_verts(v, entity);
@@ -488,8 +488,8 @@ void worldfx_state_arm_minus2(void) {
 }
 
 void worldfx_depth_clip_actor_scr_y(Combatant *actor) {
-    int out[3];
-    int wx, wy;
+    s16 out[3];
+    s16 wx, wy;
 
     g_savedClip.ymin = g_graphics_context.clip.ymin;
     g_savedClip.ymax = g_graphics_context.clip.ymax;
@@ -516,8 +516,8 @@ void worldfx_clip_rect_restore(void) {
     return;
 }
 
-void far worldfx_rndr_spr_shadow(short shadow_palette_idx) {
-    int x, y, w, h;
+void far worldfx_rndr_spr_shadow(s16 shadow_palette_idx) {
+    s16 x, y, w, h;
 
     world_rndr_apply_window_vport();
     x = g_nBillboardScrX - 2;
@@ -536,20 +536,20 @@ void far worldfx_rndr_spr_shadow(short shadow_palette_idx) {
                                     g_nActorSpriteFlip, g_nBillboardW, g_nBillboardH);
 }
 
-void far worldfx_draw_path_segment(int gridX, int gridY) {
-    int scr[3];
-    int p2y;
-    int p1y;
-    int p0y;
-    int p2x;
-    int p1x;
-    int p0x;
-    int jitter;
-    int dx;
-    int dy;
-    int shape;
-    int wx;
-    int wy;
+void far worldfx_draw_path_segment(s16 gridX, s16 gridY) {
+    s16 scr[3];
+    s16 p2y;
+    s16 p1y;
+    s16 p0y;
+    s16 p2x;
+    s16 p1x;
+    s16 p0x;
+    s16 jitter;
+    s16 dx;
+    s16 dy;
+    s16 shape;
+    s16 wx;
+    s16 wy;
 
     g_graphics_context.bClip_enabled = 1;
     combatgrid_find_adj_pass_tile(gridX, gridY, 4, &dx, &dy);
@@ -595,10 +595,10 @@ void far worldfx_draw_path_segment(int gridX, int gridY) {
     return;
 }
 
-void worldfx_draw_world_line(int x1, int y1, int x2, int y2) {
-    int out[3];
-    int sx2, sx1, sy2, sy1;
-    int wx, wy;
+void worldfx_draw_world_line(s16 x1, s16 y1, s16 x2, s16 y2) {
+    s16 out[3];
+    s16 sx2, sx1, sy2, sy1;
+    s16 wx, wy;
 
     g_graphics_context.bClip_enabled = 1;
     wx = x1 * g_grid_tile_size + (g_grid_tile_size >> 1) + -0x4b0;
@@ -615,10 +615,10 @@ void worldfx_draw_world_line(int x1, int y1, int x2, int y2) {
     draw_line(sx1, sy1, sx2, sy2);
 }
 
-void worldfx_draw_world_line_color(int x1, int y1, int x2, int y2, int color) {
-    int out[3];
-    int sx2, sx1, sy2, sy1;
-    int wx, wy;
+void worldfx_draw_world_line_color(s16 x1, s16 y1, s16 x2, s16 y2, s16 color) {
+    s16 out[3];
+    s16 sx2, sx1, sy2, sy1;
+    s16 wx, wy;
 
     g_graphics_context.bClip_enabled = 1;
     wx = x1 * g_grid_tile_size + (g_grid_tile_size >> 1) + -0x4b0 - (g_grid_tile_size >> 1);

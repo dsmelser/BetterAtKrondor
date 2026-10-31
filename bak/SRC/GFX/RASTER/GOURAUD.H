@@ -3,10 +3,10 @@
 
 #include "structs.h"
 
-extern void gfx_gouraud_blit_quad(unsigned short *quad, int *vy_array, int *vx_array);
-extern void near gfx_gouraud_span_dispatch(int v0, int v1, unsigned short *quad, int *out_a, int *out_b,
-                                           int *out_c, int *out_d);
-extern int near compare_edge_slopes(int x1, int x2, int y_base, int y1, int x3, int x4);
-extern void edge_step_init(long *step, int count);
+extern void gfx_gouraud_blit_quad(u16 *quad, s16 *vy_array, s16 *vx_array);
+extern void near gfx_gouraud_span_dispatch(s16 v0, s16 v1, u16 *quad, s16 *out_a, s16 *out_b,
+                                           s16 *out_c, s16 *out_d);
+extern s16 near compare_edge_slopes(s16 x1, s16 x2, s16 y_base, s16 y1, s16 x3, s16 x4);
+extern void edge_step_init(s32 *step, s16 count);
 
 #endif

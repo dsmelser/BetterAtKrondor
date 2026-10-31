@@ -46,12 +46,12 @@
 #include "SRC/COMBAT/STATS/CBSTAT.H"
 #include "defines.h"
 
-unsigned short g_nSpellSymbolAnimFrame = 0x0000;
+u16 g_nSpellSymbolAnimFrame = 0x0000;
 unsigned char __dat_165e[12] = {0x0f, 0x00, 0x8e, 0x00, 0x48, 0x00,
                                 0x8e, 0x00, 0x82, 0x00, 0x8e, 0x00};
 
 unsigned char g_bssgap_5154[6];
-short g_nSpellCount;
+s16 g_nSpellCount;
 unsigned char g_bssgap_5150[2];
 SpellDef *g_pSpellDefs;
 char *g_szSpellNameBlob;
@@ -60,22 +60,22 @@ unsigned char far *g_pSpellDocBlob;
 StatusEffectSlot *g_pStatusEffectPool;
 unsigned char far *g_pSpellScreenBuffer;
 ImageRecord **g_pCastfaceSpriteTable;
-unsigned short *g_pSpellCastableScratch;
-short g_nSnowParticleSeedX;
-short g_nSpellFontSlot;
-short g_nCombatTileEffectPending;
-short g_nCombatTileX;
-short g_nCombatTileY;
-short g_nSpellSymbolCount;
+u16 *g_pSpellCastableScratch;
+s16 g_nSnowParticleSeedX;
+s16 g_nSpellFontSlot;
+s16 g_nCombatTileEffectPending;
+s16 g_nCombatTileX;
+s16 g_nCombatTileY;
+s16 g_nSpellSymbolCount;
 SpellSymbolRecord *g_pSpellSymbolRecords;
-short *g_pSpellSymbolX;
-short *g_pSpellSymbolY;
+s16 *g_pSpellSymbolX;
+s16 *g_pSpellSymbolY;
 
 void cspell_subsystem_load(void) {
     ResFile *f;
-    int i;
-    unsigned int blobLen;
-    int docCount;
+    s16 i;
+    u16 blobLen;
+    s16 docCount;
 
     if (g_wInCombatMode == 0) {
         audio_sfx_stop_scene_sounds();
@@ -93,7 +93,7 @@ void cspell_subsystem_load(void) {
     i = 0;
     if (i < g_nSpellCount) {
         do {
-            g_pSpellDefs[i].pName += (int)g_szSpellNameBlob;
+            g_pSpellDefs[i].pName += (s16)g_szSpellNameBlob;
             i = i + 1;
         } while (i < g_nSpellCount);
     }
@@ -103,13 +103,13 @@ void cspell_subsystem_load(void) {
     g_pSpellDocRows = galloc_safe_zcalloc(docCount << 2);
     res_fread(g_pSpellDocRows, 4, docCount, f);
     res_fread(&blobLen, 2, 1, f);
-    g_pSpellDocBlob = alloc_far((long)(int)blobLen, 0);
-    res_fread_far(g_pSpellDocBlob, 1, (long)(int)blobLen, f);
+    g_pSpellDocBlob = alloc_far((s32)(s16)blobLen, 0);
+    res_fread_far(g_pSpellDocBlob, 1, (s32)(s16)blobLen, f);
     res_fclose(f);
     i = 0;
     if (i < docCount) {
         do {
-            ((long *)g_pSpellDocRows)[i] += (long)g_pSpellDocBlob;
+            ((s32 *)g_pSpellDocRows)[i] += (s32)g_pSpellDocBlob;
             i = i + 1;
         } while (i < docCount);
     }
@@ -117,7 +117,7 @@ void cspell_subsystem_load(void) {
 }
 
 void far cspell_status_effect_pool_init(void) {
-    int i;
+    s16 i;
 
     g_pStatusEffectPool = galloc_safe_zcalloc(0xdc);
     for (i = 0; i < 0x14; i++) {
@@ -145,8 +145,8 @@ void cspell_subsystem_unload(void) {
     return;
 }
 
-int cspell_status_effect_alloc_slot(void) {
-    int i;
+s16 cspell_status_effect_alloc_slot(void) {
+    s16 i;
 
     for (i = 0; i < 0x14; i++) {
         if (g_pStatusEffectPool[i].nType == -1) {
@@ -156,8 +156,8 @@ int cspell_status_effect_alloc_slot(void) {
     return -1;
 }
 
-int cspell_status_effect_add(Combatant *actor, int type, int source, int duration, unsigned char flag) {
-    short slot;
+s16 cspell_status_effect_add(Combatant *actor, s16 type, s16 source, s16 duration, unsigned char flag) {
+    s16 slot;
 
     slot = actor->inner->statusHead;
     if (slot == -1) {
@@ -181,8 +181,8 @@ int cspell_status_effect_add(Combatant *actor, int type, int source, int duratio
     return slot;
 }
 
-void cspell_status_effect_remove(Combatant *actor, int slot) {
-    short cur;
+void cspell_status_effect_remove(Combatant *actor, s16 slot) {
+    s16 cur;
 
     if ((slot >= 0) && (slot <= 0x14)) {
         if (actor->inner->statusHead == slot) {
@@ -202,7 +202,7 @@ void cspell_status_effect_remove(Combatant *actor, int slot) {
 }
 
 void cspell_status_effect_clear_actor(Combatant *actor) {
-    int slot;
+    s16 slot;
 
     for (slot = actor->inner->statusHead; slot != -1; slot = g_pStatusEffectPool[slot].nNext) {
         g_pStatusEffectPool[slot].nType = -1;
@@ -211,8 +211,8 @@ void cspell_status_effect_clear_actor(Combatant *actor) {
     return;
 }
 
-int far cspell_stat_effect_find_type(Combatant *actor, int type) {
-    int slot;
+s16 far cspell_stat_effect_find_type(Combatant *actor, s16 type) {
+    s16 slot;
 
     slot = actor->inner->statusHead;
     if ((slot <= -2) || (slot >= 0x14)) {
@@ -226,7 +226,7 @@ int far cspell_stat_effect_find_type(Combatant *actor, int type) {
     return slot;
 }
 
-void far cspell_apply_damage_armor_wear(Combatant *actor, int damage) {
+void far cspell_apply_damage_armor_wear(Combatant *actor, s16 damage) {
     Actor far *inv;
     ItemSlot far *armor;
 
@@ -235,7 +235,7 @@ void far cspell_apply_damage_armor_wear(Combatant *actor, int damage) {
 
     if (g_gameState.nChapter == 8) {
         if (itemtbl_inv_count_by_kind(inv, 1) != 0) {
-            int i;
+            s16 i;
             for (i = 0; inv->itemCount > i; i++) {
                 if (ACTOR_ITEM(inv, i).item_id == 1 && (ACTOR_ITEM(inv, i).flags & 0x40) != 0) {
                     armor = &ACTOR_ITEM(inv, i);
@@ -257,25 +257,25 @@ void far cspell_apply_damage_armor_wear(Combatant *actor, int damage) {
     return;
 }
 
-int far cspell_actor_stat_get_comb_dflt(Combatant *actor, int spell_id) {
+s16 far cspell_actor_stat_get_comb_dflt(Combatant *actor, s16 spell_id) {
     register SpellDef *pSpell;
-    int power;
-    short cost;
+    s16 power;
+    s16 cost;
 
     pSpell = &g_pSpellDefs[spell_id];
     power = stat_actor_get(actor, 0x10, 0);
-    cost = (pSpell->nCost_max < power) ? pSpell->nCost_max : (short)(power - 1);
+    cost = (pSpell->nCost_max < power) ? pSpell->nCost_max : (s16)(power - 1);
     return cost;
 }
 
-int cspell_record_field8(int idx) {
+s16 cspell_record_field8(s16 idx) {
     register SpellDef *p = &g_pSpellDefs[idx];
     return p->nSpell_kind;
 }
 
-int far cspell_ai_pick_castable_spell(Combatant *caster, Combatant *target, int school,
-                                      int kind) {
-    int spell_id;
+s16 far cspell_ai_pick_castable_spell(Combatant *caster, Combatant *target, s16 school,
+                                      s16 kind) {
+    s16 spell_id;
 
     if (cspell_stat_effect_find_type(caster, 0x1f) != -1) {
         return -1;
@@ -300,8 +300,8 @@ int far cspell_ai_pick_castable_spell(Combatant *caster, Combatant *target, int 
     return spell_id;
 }
 
-static int far cspell_actor_class_is_humanoid(Combatant *actor) {
-    int result;
+static s16 far cspell_actor_class_is_humanoid(Combatant *actor) {
+    s16 result;
 
     switch (actor->inner->creatureType) {
     case 0x1c:
@@ -324,8 +324,8 @@ static int far cspell_actor_class_is_humanoid(Combatant *actor) {
     return result;
 }
 
-void cspell_palette_fade_to(int target_color, int target_intensity) {
-    int intensity;
+void cspell_palette_fade_to(s16 target_color, s16 target_intensity) {
+    s16 intensity;
 
     for (intensity = 0x3f; intensity > target_intensity; intensity--) {
         palette_set_scaled(0x70, 0x8f, target_color, intensity);
@@ -333,8 +333,8 @@ void cspell_palette_fade_to(int target_color, int target_intensity) {
     return;
 }
 
-static void far cspell_play_palette_flash(Combatant *actor, int color_level) {
-    int intensity;
+static void far cspell_play_palette_flash(Combatant *actor, s16 color_level) {
+    s16 intensity;
 
     combat_arena_actor_set_anim_pose(actor, '\x01');
     world_render_with_overlay(MK_FP(0, 0xffff));
@@ -354,13 +354,13 @@ static void far cspell_play_palette_flash(Combatant *actor, int color_level) {
     return;
 }
 
-static void cspell_actor_walk_steps(Combatant *caster, Combatant *target, int steps) {
-    int x_delta;
-    int y_delta;
-    int slot;
-    int direction;
-    int heading;
-    int flags;
+static void cspell_actor_walk_steps(Combatant *caster, Combatant *target, s16 steps) {
+    s16 x_delta;
+    s16 y_delta;
+    s16 slot;
+    s16 direction;
+    s16 heading;
+    s16 flags;
 
     direction = combat_actor_lookup_param_rec(target);
 
@@ -399,11 +399,11 @@ static void cspell_actor_walk_steps(Combatant *caster, Combatant *target, int st
     return;
 }
 
-void cspell_apply_hit_at(Combatant *caster, Combatant **target_ptr, int src_id, int *dst_ptr,
-                         int magnitude, int spell_kind, int knockback) {
-    unsigned short animKind;
-    unsigned short knockbackVal;
-    int burstSpread;
+void cspell_apply_hit_at(Combatant *caster, Combatant **target_ptr, s16 src_id, s16 *dst_ptr,
+                         s16 magnitude, s16 spell_kind, s16 knockback) {
+    u16 animKind;
+    u16 knockbackVal;
+    s16 burstSpread;
 
     g_nVfxParticleColor = src_id;
     switch (spell_kind) {
@@ -439,7 +439,7 @@ void cspell_apply_hit_at(Combatant *caster, Combatant **target_ptr, int src_id, 
 }
 
 static void cspell_play_rebound_animation(Combatant *attacker, Combatant *target) {
-    int hit;
+    s16 hit;
 
     hit = 1;
     target = world_rndr_ranged_attack_anim(attacker, target, &hit, 0x26, 100, -1);
@@ -454,9 +454,9 @@ static void cspell_play_rebound_animation(Combatant *attacker, Combatant *target
 }
 
 static void far cspell_play_burst_animation(Combatant *caster, Combatant *target) {
-    int hit;
-    int speed;
-    int i;
+    s16 hit;
+    s16 speed;
+    s16 i;
 
     hit = 1;
     audio_play(1);
@@ -484,11 +484,11 @@ static void far cspell_play_burst_animation(Combatant *caster, Combatant *target
 }
 
 static Combatant *cspell_find_alive_actor_not_list(Combatant **exclude_list,
-                                                     int exclude_count) {
-    int i;
-    int j;
+                                                     s16 exclude_count) {
+    s16 i;
+    s16 j;
     Combatant *cand;
-    int flags;
+    s16 flags;
 
     for (i = 0; i < g_nCombatOtherCount; i++) {
         cand = &g_pCombatOtherActors[i];
@@ -506,12 +506,12 @@ static Combatant *cspell_find_alive_actor_not_list(Combatant **exclude_list,
     return 0;
 }
 
-static void cspell_chain_damage_targets(Combatant *caster, Combatant *target, int magnitude) {
+static void cspell_chain_damage_targets(Combatant *caster, Combatant *target, s16 magnitude) {
     Combatant *chainTgt;
-    int slot;
-    int hit;
-    int did_swap;
-    int i;
+    s16 slot;
+    s16 hit;
+    s16 did_swap;
+    s16 i;
 
     hit = 1;
     if (combatenc_is_encounter_actor(target) == 0) {
@@ -562,12 +562,12 @@ static void cspell_chain_damage_targets(Combatant *caster, Combatant *target, in
     return;
 }
 
-static void far cspell_chain_damage(Combatant *param_1, Combatant *param_2, int param_3) {
-    int decay;
-    int did_swap;
-    int damage;
+static void far cspell_chain_damage(Combatant *param_1, Combatant *param_2, s16 param_3) {
+    s16 decay;
+    s16 did_swap;
+    s16 damage;
     Combatant *hitList[7];
-    int i;
+    s16 i;
 
     decay = 100;
     damage = param_3 << 1;
@@ -607,7 +607,7 @@ static void far cspell_chain_damage(Combatant *param_1, Combatant *param_2, int 
 }
 
 static void far cspell_storm_flash_sequence(Combatant *actor) {
-    int i;
+    s16 i;
 
     combat_arena_actor_set_anim_pose(actor, '\x03');
     audio_play(0x11);
@@ -634,8 +634,8 @@ void far cspell_vfx_run_and_wait(void) {
     return;
 }
 
-void far cspell_actor_charge_to_target(Combatant *param_1, Combatant *param_2, int param_3) {
-    int dist;
+void far cspell_actor_charge_to_target(Combatant *param_1, Combatant *param_2, s16 param_3) {
+    s16 dist;
 
     audio_play(0x51);
     dist = combatgrid_chebyshev_distance(param_1->inner->gridX, param_1->inner->gridY,
@@ -650,8 +650,8 @@ void far cspell_actor_charge_to_target(Combatant *param_1, Combatant *param_2, i
     return;
 }
 
-void far cspell_perform_ranged_hit(Combatant *param_1, Combatant *param_2, int param_3) {
-    int hit;
+void far cspell_perform_ranged_hit(Combatant *param_1, Combatant *param_2, s16 param_3) {
+    s16 hit;
 
     hit = 1;
 #ifdef V102CD
@@ -669,11 +669,11 @@ void far cspell_perform_ranged_hit(Combatant *param_1, Combatant *param_2, int p
 }
 
 void far cspell_select_target_tile(void) {
-    int tile_chosen;
-    int tile_in_range;
-    unsigned short consumed;
+    s16 tile_chosen;
+    s16 tile_in_range;
+    u16 consumed;
 #ifdef V102CD
-    int valid;
+    s16 valid;
 #endif
 
     tile_chosen = 0;
@@ -710,7 +710,7 @@ void far cspell_select_target_tile(void) {
     }
 }
 
-void far cspell_summon_monster(int monster_type, int prompt_for_tile) {
+void far cspell_summon_monster(s16 monster_type, s16 prompt_for_tile) {
     Combatant *actor;
     CombatantState *in;
 
@@ -735,17 +735,17 @@ void far cspell_summon_monster(int monster_type, int prompt_for_tile) {
         actor->spellsKnown[1] = 0;
         actor->spellsKnown[2] = 0;
         monstat_roll_stats_from_file(actor);
-        combatgrid_tile_set_word(in->gridX, in->gridY, (unsigned int)actor);
+        combatgrid_tile_set_word(in->gridX, in->gridY, (u16)actor);
         combat_actor_anim0_if_not_dead(actor, 0);
     }
 }
 
-static void far cspell_summon_actor(Combatant *param_1, int param_2) {
+static void far cspell_summon_actor(Combatant *param_1, s16 param_2) {
     Combatant *actor;
     Combatant tmpActor;
     CombatantState tmpInner;
-    int hit;
-    short slot;
+    s16 hit;
+    s16 slot;
 
     hit = 1;
     tmpActor.inner = &tmpInner;
@@ -770,7 +770,7 @@ static void far cspell_summon_actor(Combatant *param_1, int param_2) {
     actor->stats[0].base = '\x01';
     actor->stats[1].base = '\x01';
     combat_actor_anim0_if_not_dead(actor, 0);
-    combatgrid_tile_set_word(tmpInner.gridX, tmpInner.gridY, (unsigned int)actor);
+    combatgrid_tile_set_word(tmpInner.gridX, tmpInner.gridY, (u16)actor);
 }
 
 void cspell_actor_walk_with_sound(Combatant *actor, Combatant *target) {
@@ -783,9 +783,9 @@ void cspell_actor_walk_with_sound(Combatant *actor, Combatant *target) {
     }
 }
 
-void far cspell_invoke_effect(Combatant *actor, Combatant **target_slot, int spell_id,
-                              int *out_chain_flag, int extra) {
-    int slot;
+void far cspell_invoke_effect(Combatant *actor, Combatant **target_slot, s16 spell_id,
+                              s16 *out_chain_flag, s16 extra) {
+    s16 slot;
     Combatant *tgt;
     Actor far *inv;
     SpellDef *pSpell;
@@ -864,9 +864,9 @@ void far cspell_invoke_effect(Combatant *actor, Combatant **target_slot, int spe
     }
 }
 
-static void far cspell_chance_pushback_actor(int chance_pct) {
-    int threshold;
-    int roll;
+static void far cspell_chance_pushback_actor(s16 chance_pct) {
+    s16 threshold;
+    s16 roll;
 
     threshold = chance_pct;
     audio_play(1);
@@ -877,12 +877,12 @@ static void far cspell_chance_pushback_actor(int chance_pct) {
 }
 
 static void far cspell_aoe_storm_damage_all(Combatant *caster, Combatant *target) {
-    int stableFlag;
-    int frames;
-    int didSwap;
-    int damage;
-    int baseDmg;
-    int si, di;
+    s16 stableFlag;
+    s16 frames;
+    s16 didSwap;
+    s16 damage;
+    s16 baseDmg;
+    s16 si, di;
 
     stableFlag = 0;
     didSwap = 0;
@@ -1019,8 +1019,8 @@ static void far cspell_aoe_storm_damage_all(Combatant *caster, Combatant *target
 }
 
 void far cspell_tile_trap_trigger(Combatant *actor) {
-    unsigned int damage;
-    int slot;
+    u16 damage;
+    s16 slot;
 
     audio_play(0x1d);
     damage = combatgrid_tile_field4(actor->inner->gridX, actor->inner->gridY);
@@ -1036,9 +1036,9 @@ void far cspell_tile_trap_trigger(Combatant *actor) {
     return;
 }
 
-void far cspell_flash_actor_status_effect(Combatant *actor, int effect_type) {
-    int slot;
-    int i;
+void far cspell_flash_actor_status_effect(Combatant *actor, s16 effect_type) {
+    s16 slot;
+    s16 i;
 
     slot = cspell_status_effect_add(actor, effect_type, 0, 0, '\0');
     i = 0;
@@ -1050,13 +1050,13 @@ void far cspell_flash_actor_status_effect(Combatant *actor, int effect_type) {
     cspell_status_effect_remove(actor, slot);
 }
 
-void cspell_try_add_status_effect(Combatant *actor, int stat_idx, int value) {
-    int slotIdx;
-    int applyOut;
-    int i;
-    int isNew;
+void cspell_try_add_status_effect(Combatant *actor, s16 stat_idx, s16 value) {
+    s16 slotIdx;
+    s16 applyOut;
+    s16 i;
+    s16 isNew;
     ActorStatModifier newMod;
-    unsigned short *mod;
+    u16 *mod;
 
     slotIdx = actor->charSlot - 1;
 
@@ -1067,7 +1067,7 @@ void cspell_try_add_status_effect(Combatant *actor, int stat_idx, int value) {
     newMod.payload.dwTExpiry = g_gameState.game_time << 1;
     i = 0;
     isNew = 1;
-    mod = (unsigned short *)&g_gameState.aActorStatModifiers[slotIdx];
+    mod = (u16 *)&g_gameState.aActorStatModifiers[slotIdx];
     for (; i < 8;) {
         stat_apply_modifier(mod, &applyOut);
         if (*mod != 0 && mod[1] == newMod.payload.wStatMask && *mod != 0x100) {
@@ -1082,11 +1082,11 @@ void cspell_try_add_status_effect(Combatant *actor, int stat_idx, int value) {
 }
 
 static void cspell_steal_item_from_target(Combatant *attacker, Combatant *target) {
-    int i;
+    s16 i;
     ItemSlot far *stolen;
-    int hit;
-    unsigned int prevCount;
-    int scratch;
+    s16 hit;
+    u16 prevCount;
+    s16 scratch;
 
     stolen = (ItemSlot far *)0;
     hit = 1;
@@ -1099,7 +1099,7 @@ static void cspell_steal_item_from_target(Combatant *attacker, Combatant *target
         }
     }
     cmbinv_actor_inv_remove_item(attacker->actor_record, stolen);
-    prevCount = (unsigned int)target->actor_record->itemCount;
+    prevCount = (u16)target->actor_record->itemCount;
     combat_arena_suspend_char_screen(target, &scratch, &scratch);
     if (target->actor_record->itemCount != prevCount) {
         world_rndr_ranged_attack_anim(target, attacker, &hit, 5, 0x78, -1);
@@ -1112,11 +1112,11 @@ static void cspell_steal_item_from_target(Combatant *attacker, Combatant *target
 static void cspell_actor_mark_consum_used(Combatant *actor) {
     Actor far *rec;
     ItemRecord far *item;
-    int i;
+    s16 i;
 
     rec = actor->actor_record;
     audio_play(0x3a);
-    for (i = 0; i < (int)(unsigned)rec->itemCount; i++) {
+    for (i = 0; i < (s16)(u16)rec->itemCount; i++) {
         if (SLOT(rec, i)->flags & 0x40) {
             item = itemtbl_record_ptr(SLOT(rec, i));
             if (item->wCategory == 1) {
@@ -1127,8 +1127,8 @@ static void cspell_actor_mark_consum_used(Combatant *actor) {
     }
 }
 
-void far cspell_apply_step_tile_spell(Combatant *mover, int spell_id, int intensity,
-                                      int caster_class) {
+void far cspell_apply_step_tile_spell(Combatant *mover, s16 spell_id, s16 intensity,
+                                      s16 caster_class) {
     Combatant castStub;
     CombatantState castInner;
 
@@ -1148,13 +1148,13 @@ void far cspell_apply_step_tile_spell(Combatant *mover, int spell_id, int intens
     return;
 }
 
-int cspell_compute_effect_magnitude(Combatant *actor, int level, int spell_id) {
+s16 cspell_compute_effect_magnitude(Combatant *actor, s16 level, s16 spell_id) {
     SpellDef *pSpell;
-    int result;
+    s16 result;
 
     result = 0;
     pSpell = &g_pSpellDefs[spell_id];
-    switch ((unsigned)(pSpell->nEffect_subkind - 1)) {
+    switch ((u16)(pSpell->nEffect_subkind - 1)) {
     case 0:
         if (spell_id != 5 ||
             (actor != (Combatant *)0 && combatenc_actor_has_spell_1or4(actor) != 0)) {
@@ -1194,10 +1194,10 @@ int cspell_compute_effect_magnitude(Combatant *actor, int level, int spell_id) {
 }
 
 #ifdef V102CD
-void far combat_ai_resolve_hit(Combatant *attacker, Combatant *target, int damage, int dir) {
-    int hpBefore;
-    int staminaBefore;
-    int b;
+void far combat_ai_resolve_hit(Combatant *attacker, Combatant *target, s16 damage, s16 dir) {
+    s16 hpBefore;
+    s16 staminaBefore;
+    s16 b;
 
     if ((attacker == (Combatant *)0x0) || (cspell_stat_effect_find_type(attacker, 0x1f) == -1)) {
         hpBefore = target->stats[0].base;
@@ -1212,7 +1212,7 @@ void far combat_ai_resolve_hit(Combatant *attacker, Combatant *target, int damag
                (b = (char)g_gameState.abActorStatusRanks[target->charSlot - 1][3]) == '\0' &&
                (b = (char)g_gameState.abActorStatusRanks[target->charSlot - 1][5]) == '\0' &&
                (b = (char)g_gameState.abActorStatusRanks[target->charSlot - 1][6]) == '\0')))) {
-            stat_combatant_modify(target, 0x10, (long)(dir << 8), 0x50);
+            stat_combatant_modify(target, 0x10, (s32)(dir << 8), 0x50);
         }
         target->inner->dmgFloatValue =
             -(((target->stats[0].base - hpBefore) + target->stats[1].base) - staminaBefore);
@@ -1228,26 +1228,26 @@ void far combat_ai_resolve_hit(Combatant *attacker, Combatant *target, int damag
 }
 #endif
 
-void cspell_apply_damage_with_recoil(Combatant *attacker, Combatant *target, int spell_id,
-                                     int damage) {
+void cspell_apply_damage_with_recoil(Combatant *attacker, Combatant *target, s16 spell_id,
+                                     s16 damage) {
     if (cbstat_char_bitmap_3w_test(target->inner->creatureType, spell_id) == 0) {
         audio_play(0x3f);
-        if ((target->inner->creatureType == 0x36) && ((int)(unsigned int)target->stats[3].base <= damage)) {
+        if ((target->inner->creatureType == 0x36) && ((s16)(u16)target->stats[3].base <= damage)) {
             combat_arena_actor_die(target, 1);
         } else {
-            if ((int)stat_actor_get(target, 3, 0) < damage) {
+            if ((s16)stat_actor_get(target, 3, 0) < damage) {
                 damage = stat_actor_get(target, 3, 0);
             }
             if (target->charSlot != '\0') {
                 cspell_try_add_status_effect(target, 3, -damage);
             } else {
-                stat_combatant_modify(target, 3, (long)(damage * -0x100), 0);
+                stat_combatant_modify(target, 3, (s32)(damage * -0x100), 0);
                 stat_actor_get(target, 3, 0);
             }
             if (attacker->charSlot != '\0') {
                 cspell_try_add_status_effect(attacker, 3, damage >> 1);
             } else {
-                stat_combatant_modify(attacker, 3, (long)((damage >> 1) << 7), 0);
+                stat_combatant_modify(attacker, 3, (s32)((damage >> 1) << 7), 0);
                 stat_actor_get(attacker, 3, 0);
             }
             combat_arena_actor_set_anim_pose(target, '\x01');
@@ -1255,16 +1255,16 @@ void cspell_apply_damage_with_recoil(Combatant *attacker, Combatant *target, int
     }
 }
 
-void cspell_resolve_cast(Combatant *caster, Combatant *target, int spell_id, int intensity) {
+void cspell_resolve_cast(Combatant *caster, Combatant *target, s16 spell_id, s16 intensity) {
     SpellDef *pSpell;
-    int magnitude;
-    int hit;
-    int skillBonus;
-    int isNeg;
-    int damage;
-    int fromTileStep;
-    int duration;
-    int flags;
+    s16 magnitude;
+    s16 hit;
+    s16 skillBonus;
+    s16 isNeg;
+    s16 damage;
+    s16 fromTileStep;
+    s16 duration;
+    s16 flags;
 
     if (caster->inner->creatureType == -2) {
         caster->inner->creatureType = -1;
@@ -1333,7 +1333,7 @@ void cspell_resolve_cast(Combatant *caster, Combatant *target, int spell_id, int
 
     magnitude = cspell_compute_effect_magnitude(target, intensity, spell_id);
 
-    switch ((unsigned int)(pSpell->nEffect_subkind - 1)) {
+    switch ((u16)(pSpell->nEffect_subkind - 1)) {
     case 0:
         if (spell_id == 5 && combatenc_actor_has_spell_1or4(target) == 0) {
             pSpell = 0;
@@ -1543,10 +1543,10 @@ void cspell_resolve_cast(Combatant *caster, Combatant *target, int spell_id, int
     g_bStormAmplify = 0;
 }
 
-int cspell_count_terrain7_tiles(void) {
-    int count;
-    int outer;
-    int inner;
+s16 cspell_count_terrain7_tiles(void) {
+    s16 count;
+    s16 outer;
+    s16 inner;
 
     count = 0;
     outer = 0;
@@ -1565,22 +1565,22 @@ int cspell_count_terrain7_tiles(void) {
 
 #define SLOT(rec, i) (&ACTOR_ITEM((rec), (i)))
 
-int cspell_check_castable(int spell_id, Combatant *actor, int param_3) {
-    int power;
-    int thr;
-    int i;
-    int band;
-    int bFound;
-    int castable;
-    int q;
-    int mask;
+s16 cspell_check_castable(s16 spell_id, Combatant *actor, s16 param_3) {
+    s16 power;
+    s16 thr;
+    s16 i;
+    s16 band;
+    s16 bFound;
+    s16 castable;
+    s16 q;
+    s16 mask;
 
     castable = 1;
     if (param_3 != -1) {
         power = stat_actor_get(actor, 0x10, 0);
         if (g_gameState.nChapter == 8) {
             bFound = 0;
-            for (i = 0; i < (int)(unsigned)actor->actor_record->itemCount; i++) {
+            for (i = 0; i < (s16)(u16)actor->actor_record->itemCount; i++) {
                 if (SLOT(actor->actor_record, i)->item_id == 1 &&
                     (SLOT(actor->actor_record, i)->flags & 0x40)) {
                     thr = (unsigned char)SLOT(actor->actor_record, i)->condition;
@@ -1614,7 +1614,7 @@ int cspell_check_castable(int spell_id, Combatant *actor, int param_3) {
                 return 0;
             }
             if (spell_id == 0x1a) {
-                band = (int)((g_gameState.game_time % 0xa8c0) / 0x708);
+                band = (s16)((g_gameState.game_time % 0xa8c0) / 0x708);
                 if (band >= 8 && band < 0x11) {
                     return 0;
                 }
@@ -1634,16 +1634,16 @@ int cspell_check_castable(int spell_id, Combatant *actor, int param_3) {
     return castable;
 }
 
-int far cspell_collect_castable(Combatant *caster, int category) {
-    int spell_id;
-    int count;
+s16 far cspell_collect_castable(Combatant *caster, s16 category) {
+    s16 spell_id;
+    s16 count;
 
     count = 0;
     spell_id = 0;
     while (spell_id < g_nSpellCount) {
         if ((g_pSpellDefs[spell_id].nSchool == category) || (category == -1)) {
             if (cspell_check_castable(spell_id, caster, category) != 0) {
-                g_pSpellCastableScratch[count] = (unsigned short)g_pSpellDefs[spell_id].pName;
+                g_pSpellCastableScratch[count] = (u16)g_pSpellDefs[spell_id].pName;
                 count = count + 1;
             }
         }
@@ -1652,15 +1652,15 @@ int far cspell_collect_castable(Combatant *caster, int category) {
     return count;
 }
 
-void cspell_draw_panel_text_list(MenuPage *panel, char **strings, int count, int first_visible,
-                                 int row_count) {
-    int x;
-    int y;
-    int sum;
-    int h10;
-    int height;
-    int width;
-    int i;
+void cspell_draw_panel_text_list(MenuPage *panel, char **strings, s16 count, s16 first_visible,
+                                 s16 row_count) {
+    s16 x;
+    s16 y;
+    s16 sum;
+    s16 h10;
+    s16 height;
+    s16 width;
+    s16 i;
 
     width = (panel->rect.width > 0xb4) ? 0xa0 : panel->rect.width + (-0x19);
     height = panel->pEntries->rect.height;
@@ -1685,10 +1685,10 @@ void cspell_draw_panel_text_list(MenuPage *panel, char **strings, int count, int
     g_graphics_context.bClip_enabled = 0;
 }
 
-static void far cspell_menu_toggle_word7_by_id(int id, MenuPage *menu) {
-    int i;
+static void far cspell_menu_toggle_word7_by_id(s16 id, MenuPage *menu) {
+    s16 i;
 
-    for (i = 0; i < (int)menu->wEntry_count; i++) {
+    for (i = 0; i < (s16)menu->wEntry_count; i++) {
         if (menu->pEntries[i].wAction_id == id) {
             menu->pEntries[i].wEnable_gate = ~menu->pEntries[i].wEnable_gate;
             return;
@@ -1696,8 +1696,8 @@ static void far cspell_menu_toggle_word7_by_id(int id, MenuPage *menu) {
     }
 }
 
-int cspell_paged_record_lookup_by_id(int slot) {
-    int i;
+s16 cspell_paged_record_lookup_by_id(s16 slot) {
+    s16 i;
 
     for (i = g_nSpellCount; i > -1; i--) {
         if ((char *)g_pSpellCastableScratch[slot] == g_pSpellDefs[i].pName) {
@@ -1707,9 +1707,9 @@ int cspell_paged_record_lookup_by_id(int slot) {
     return i;
 }
 
-void cspell_scroll_clamp_cursor(int *cursor, int *scroll, int visible_rows, int total_rows) {
-    int cur;
-    int scr;
+void cspell_scroll_clamp_cursor(s16 *cursor, s16 *scroll, s16 visible_rows, s16 total_rows) {
+    s16 cur;
+    s16 scr;
 
     cur = *cursor;
     scr = *scroll;
@@ -1737,10 +1737,10 @@ void cspell_scroll_clamp_cursor(int *cursor, int *scroll, int visible_rows, int 
     return;
 }
 
-void far cspell_symbol_resources_load(int chapter) {
+void far cspell_symbol_resources_load(s16 chapter) {
     ResFile *f;
     char *szFile = "symbolx.dat";
-    int i;
+    s16 i;
 
     szFile[6] = chapter + '1';
     f = res_fopen(szFile, "rb");
@@ -1772,27 +1772,27 @@ static void cspell_symbol_resources_free(void) {
     return;
 }
 
-static void far cspell_draw_spr_path_5th_off(int sprite_idx, int start, int end, int mark_5th) {
+static void far cspell_draw_spr_path_5th_off(s16 sprite_idx, s16 start, s16 end, s16 mark_5th) {
     for (; start < end; start++) {
         if (mark_5th && (start + 1) % 5 == 0) {
-            emsimg_map_then_call_180c((unsigned int *)g_pCastfaceSpriteTable[sprite_idx + 2],
+            emsimg_map_then_call_180c((u16 *)g_pCastfaceSpriteTable[sprite_idx + 2],
                                       g_pSpellSymbolX[start] - 1, g_pSpellSymbolY[start] - 1, 0);
         } else {
-            emsimg_map_then_call_180c((unsigned int *)g_pCastfaceSpriteTable[sprite_idx],
+            emsimg_map_then_call_180c((u16 *)g_pCastfaceSpriteTable[sprite_idx],
                                       g_pSpellSymbolX[start] - 1, g_pSpellSymbolY[start] - 1, 0);
         }
     }
 }
 
-static int far cspell_hotspot_hittest_at_cursor(Combatant *actor) {
-    short cx;
-    short cy;
-    int xbox;
-    int ybox;
-    int result;
-    int i;
-    int lo_x;
-    int lo_y;
+static s16 far cspell_hotspot_hittest_at_cursor(Combatant *actor) {
+    s16 cx;
+    s16 cy;
+    s16 xbox;
+    s16 ybox;
+    s16 result;
+    s16 i;
+    s16 lo_x;
+    s16 lo_y;
 
     xbox = 10;
     ybox = 10;
@@ -1816,12 +1816,12 @@ static int far cspell_hotspot_hittest_at_cursor(Combatant *actor) {
     return result;
 }
 
-static void far cspell_menu_animate_hilite(int base_color, int step, int selected,
+static void far cspell_menu_animate_hilite(s16 base_color, s16 step, s16 selected,
                                            Combatant *actor) {
-    int textW;
-    int j;
-    int i;
-    int iHeight;
+    s16 textW;
+    s16 j;
+    s16 i;
+    s16 iHeight;
     char *pBuf;
 
     iHeight = 10;
@@ -1861,7 +1861,7 @@ static void far cspell_menu_animate_hilite(int base_color, int step, int selecte
                         g_pSpellDefs[g_pSpellSymbolRecords[j].wSpellId].nSchool) != 0) {
                     if (j == selected) {
                         g_graphics_context.bText_fg_color =
-                            (char)(((int)g_nSpellSymbolAnimFrame >> 2) % 8) + 0xd0;
+                            (char)(((s16)g_nSpellSymbolAnimFrame >> 2) % 8) + 0xd0;
                         g_nSpellSymbolAnimFrame++;
                     } else {
                         g_graphics_context.bText_fg_color = base_color + step * '\f';
@@ -1886,11 +1886,11 @@ static void cspell_menu_present_panel(void) {
 }
 
 static void far cspell_list_draw_castable(Combatant *caster) {
-    int x;
-    int textW;
+    s16 x;
+    s16 textW;
     char *text;
-    int i;
-    int y;
+    s16 i;
+    s16 y;
 
     cspell_menu_present_panel();
     y = 0x1a;
@@ -1911,7 +1911,7 @@ static void far cspell_list_draw_castable(Combatant *caster) {
 }
 
 static void cspell_strcpy_far_src(char *dst, char far *src) {
-    int i;
+    s16 i;
 
     for (i = 0; src[i] != '\0'; i++) {
         dst[i] = src[i];
@@ -1919,15 +1919,15 @@ static void cspell_strcpy_far_src(char *dst, char far *src) {
     dst[i] = '\0';
 }
 
-static void cspell_info_panel_show(int spell_index, int has_cost, Combatant *actor) {
+static void cspell_info_panel_show(s16 spell_index, s16 has_cost, Combatant *actor) {
     char line_buf[60];
-    int spell_row;
-    int line;
-    int damage;
-    int x;
-    int y;
-    unsigned hp_cur;
-    unsigned hp_max;
+    s16 spell_row;
+    s16 line;
+    s16 damage;
+    s16 x;
+    s16 y;
+    u16 hp_cur;
+    u16 hp_max;
 
     line = 1;
     damage = cspell_compute_effect_magnitude((Combatant *)0, has_cost, spell_index);
@@ -1981,15 +1981,15 @@ static void cspell_info_panel_show(int spell_index, int has_cost, Combatant *act
     }
 }
 
-static int far cspell_hotspot_cursor_in_range(int min_index, int max_index) {
-    int x_lo;
-    short cursor_x;
-    short cursor_y;
-    int hit;
-    register int box_w;
-    register int box_h;
-    int i;
-    int y_lo;
+static s16 far cspell_hotspot_cursor_in_range(s16 min_index, s16 max_index) {
+    s16 x_lo;
+    s16 cursor_x;
+    s16 cursor_y;
+    s16 hit;
+    register s16 box_w;
+    register s16 box_h;
+    s16 i;
+    s16 y_lo;
 
     box_w = 10;
     box_h = 10;
@@ -2007,30 +2007,30 @@ static int far cspell_hotspot_cursor_in_range(int min_index, int max_index) {
     return hit;
 }
 
-static void far cspell_select_power(int *out_result, int spell_index, int hotspot,
+static void far cspell_select_power(s16 *out_result, s16 spell_index, s16 hotspot,
                                     Combatant *actor) {
-    int maxPower;
-    int baseCost;
-    int done;
-    int idx;
-    unsigned int power;
+    s16 maxPower;
+    s16 baseCost;
+    s16 done;
+    s16 idx;
+    u16 power;
 
     done = 0;
     maxPower = g_pSpellDefs[spell_index].nCost_max;
     baseCost = g_pSpellDefs[spell_index].nCost;
     power = stat_actor_get(actor, 0x10, 0);
     if (itemtbl_inv_count_by_kind(actor->actor_record, 1) != 0 && g_gameState.nChapter == 8) {
-        for (idx = 0; idx < (int)(unsigned int)actor->actor_record->itemCount; idx = idx + 1) {
+        for (idx = 0; idx < (s16)(u16)actor->actor_record->itemCount; idx = idx + 1) {
             if (ACTOR_ITEM(actor->actor_record, idx).item_id == 1) {
-                unsigned int cond = (unsigned int)ACTOR_ITEM(actor->actor_record, idx).condition;
-                if ((int)power > (int)cond) {
+                u16 cond = (u16)ACTOR_ITEM(actor->actor_record, idx).condition;
+                if ((s16)power > (s16)cond) {
                     power = cond;
                 }
                 break;
             }
         }
     }
-    if (maxPower >= (int)power) {
+    if (maxPower >= (s16)power) {
         maxPower = power - 1;
     }
     if (maxPower == baseCost) {
@@ -2078,10 +2078,10 @@ static void far cspell_select_power(int *out_result, int spell_index, int hotspo
     return;
 }
 
-void far cspell_gfx_wipe_horizontal_split(int x, int y, int w, int h) {
-    int center;
-    int left;
-    int step;
+void far cspell_gfx_wipe_horizontal_split(s16 x, s16 y, s16 w, s16 h) {
+    s16 center;
+    s16 left;
+    s16 step;
 
     g_graphics_context.clip.xmax = x + w;
     g_graphics_context.clip.ymax = y + h;
@@ -2106,7 +2106,7 @@ void far cspell_gfx_wipe_horizontal_split(int x, int y, int w, int h) {
 }
 
 static void far cspell_cast_menu_open_transition(void) {
-    int nSize;
+    s16 nSize;
 
     screen_cursor_hide();
     vsync_hook(1);
@@ -2121,37 +2121,37 @@ static void far cspell_cast_menu_open_transition(void) {
     gfx_present_dispatch(0xd, 0xb, 0x125, 0x65);
     g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaPage2Base;
     rect_byte_size(0xa7, 0x59);
-    nSize = (int)rect_byte_size(0x6f, 0x5d);
-    g_pSpellScreenBuffer = alloc_far((long)nSize, 0);
+    nSize = (s16)rect_byte_size(0x6f, 0x5d);
+    g_pSpellScreenBuffer = alloc_far((s32)nSize, 0);
     cga_save_rect_to_buffer(g_pSpellScreenBuffer, 0x12, 0xf, 0x6f, 0x5d);
     return;
 }
 
 #define CASTFACE_FRAME(slot)                                                                       \
-    (*(unsigned short *)((char *)&g_nSpellSymbolAnimFrame + 4 + (slot) * 4))
-#define CASTFACE_SPRITE(slot) (*(unsigned short *)((char *)__dat_15dc + 0x82 + (slot) * 4))
+    (*(u16 *)((char *)&g_nSpellSymbolAnimFrame + 4 + (slot) * 4))
+#define CASTFACE_SPRITE(slot) (*(u16 *)((char *)__dat_15dc + 0x82 + (slot) * 4))
 
-int cspell_cast_menu_loop(Combatant *caster, int *out_result, int *preferred_caster_slot,
-                          int *preselect_spell) {
+s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_caster_slot,
+                          s16 *preselect_spell) {
     Combatant *pCaster;
     MenuPage *page;
-    unsigned school;
-    int prevSchool;
-    unsigned action;
-    unsigned short done_flag;
-    int redrawCount;
-    int done;
-    int spell_index;
-    int hotspot;
-    int prevHotspot;
-    int state;
-    int saved_palblend;
-    unsigned short can_cast[MAX_ACTIVE_PARTY];
-    int casterSlot;
-    int save_flag;
+    u16 school;
+    s16 prevSchool;
+    u16 action;
+    u16 done_flag;
+    s16 redrawCount;
+    s16 done;
+    s16 spell_index;
+    s16 hotspot;
+    s16 prevHotspot;
+    s16 state;
+    s16 saved_palblend;
+    u16 can_cast[MAX_ACTIVE_PARTY];
+    s16 casterSlot;
+    s16 save_flag;
     unsigned char far *pDest;
-    int party_slot;
-    int i;
+    s16 party_slot;
+    s16 i;
 
     pCaster = caster;
     prevSchool = -1;
@@ -2172,10 +2172,10 @@ int cspell_cast_menu_loop(Combatant *caster, int *out_result, int *preferred_cas
 
     if (pCaster->inner != (CombatantState *)0) {
         page = menupage_load("spell.dat");
-        school = (int)(char)pCaster->inner->spellSchool;
+        school = (s16)(char)pCaster->inner->spellSchool;
     } else {
         page = menupage_load("req_cast.dat");
-        if (preselect_spell != (int *)0 && *preselect_spell != -1) {
+        if (preselect_spell != (s16 *)0 && *preselect_spell != -1) {
             school = *preselect_spell;
         } else {
             school = 5;
@@ -2192,12 +2192,12 @@ int cspell_cast_menu_loop(Combatant *caster, int *out_result, int *preferred_cas
                 can_cast[i] = 0;
             }
         }
-        if (preferred_caster_slot != (int *)0 && *preferred_caster_slot != -1 &&
+        if (preferred_caster_slot != (s16 *)0 && *preferred_caster_slot != -1 &&
             can_cast[*preferred_caster_slot] != 0) {
             casterSlot = *preferred_caster_slot;
         }
         pCaster = &g_gameState.characters[(char)g_gameState.activeParty[casterSlot]];
-        pDest = alloc_far((unsigned long)(unsigned)rect_byte_size(0xa8, 0x2d), 0);
+        pDest = alloc_far((u32)(u16)rect_byte_size(0xa8, 0x2d), 0);
         cga_save_rect_to_buffer(pDest, 0xf, 0x8e, 0xa8, 0x2d);
         save_flag = 1;
     }
@@ -2288,7 +2288,7 @@ int cspell_cast_menu_loop(Combatant *caster, int *out_result, int *preferred_cas
         case 0x80:
         case 0x81:
         case 0x82:
-            party_slot = (int)action - 0x80;
+            party_slot = (s16)action - 0x80;
             if (can_cast[party_slot] != 0) {
                 if (casterSlot != party_slot) {
                     casterSlot = party_slot;
@@ -2413,10 +2413,10 @@ close:
     if (pCaster->inner != (CombatantState *)0) {
         pCaster->inner->spellSchool = (unsigned char)school;
     } else {
-        if (preferred_caster_slot != (int *)0) {
+        if (preferred_caster_slot != (s16 *)0) {
             *preferred_caster_slot = casterSlot;
         }
-        if (preselect_spell != (int *)0) {
+        if (preselect_spell != (s16 *)0) {
             *preselect_spell = school;
         }
     }
@@ -2425,9 +2425,9 @@ close:
 
 #pragma option -O-l
 void cspell_tick_damage_terrain(void) {
-    int x, y;
-    register unsigned int field;
-    register unsigned int actor;
+    s16 x, y;
+    register u16 field;
+    register u16 actor;
 
     for (x = 0; x < 8; x++) {
         for (y = 0; y < 13; y++) {
@@ -2441,7 +2441,7 @@ void cspell_tick_damage_terrain(void) {
                 case 1:
                     if (cbstat_char_bitmap_3w_test(((Combatant *)actor)->inner->creatureType, 0x13) ==
                         0) {
-                        combat_arena_apply_damage((Combatant *)actor, (int)RNDR(10, 19), 0, 1,
+                        combat_arena_apply_damage((Combatant *)actor, (s16)RNDR(10, 19), 0, 1,
                                                   0x200, 0);
                     }
                 }
@@ -2452,10 +2452,10 @@ void cspell_tick_damage_terrain(void) {
 #pragma option -Ol
 
 static void far cspell_actor_tick_status_effects(Combatant *actor) {
-    int chainFlag;
-    int type;
-    int next;
-    int slot;
+    s16 chainFlag;
+    s16 type;
+    s16 next;
+    s16 slot;
 
     chainFlag = 1;
     slot = actor->inner->statusHead;
@@ -2482,7 +2482,7 @@ static void far cspell_actor_tick_status_effects(Combatant *actor) {
 }
 
 void far cspell_tick_actor_stat_fx(void) {
-    int i;
+    s16 i;
 
     i = 0;
     if (i < g_nCombatActiveCount) {

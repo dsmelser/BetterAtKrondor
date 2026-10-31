@@ -6,20 +6,20 @@
 #include "SRC/SYS/EMSDET.H"
 #include "SRC/SYS/BOOT.H"
 
-unsigned short g_free_memory_kb;
-unsigned short g_wEmsFreeListHead;
-int *g_pEmsPageNextTbl;
-int g_anEmsPageMap[8];
+u16 g_free_memory_kb;
+u16 g_wEmsFreeListHead;
+s16 *g_pEmsPageNextTbl;
+s16 g_anEmsPageMap[8];
 
-int g_ems_present = 0;
-unsigned short g_ems_total_pages = 0x0000;
-unsigned short g_ems_free_pages = 0x0000;
-unsigned short g_ems_frame_segment = 0x0000;
+s16 g_ems_present = 0;
+u16 g_ems_total_pages = 0x0000;
+u16 g_ems_free_pages = 0x0000;
+u16 g_ems_frame_segment = 0x0000;
 char s_ems_driver_signature[8] = "EMMXXXX0";
 
-int ems_init(void) {
-    int *p;
-    int i;
+s16 ems_init(void) {
+    s16 *p;
+    s16 i;
 
     if (ems_detect_driver() != 0) {
         g_pEmsPageNextTbl = my_malloc(g_ems_total_pages << 1);
@@ -38,7 +38,7 @@ int ems_init(void) {
     return 0;
 }
 
-unsigned short ems_get_free_memory(void) {
+u16 ems_get_free_memory(void) {
     return g_free_memory_kb;
 }
 
@@ -61,18 +61,18 @@ void ems_shutdown(void) {
     }
 }
 
-int ems_alloc_pages(unsigned long size_bytes) {
-    int pages;
-    int idx;
-    int first;
+s16 ems_alloc_pages(u32 size_bytes) {
+    s16 pages;
+    s16 idx;
+    s16 first;
 
     if (g_ems_present == 0 || size_bytes == 0)
         return 0;
 
-    pages = (int)((long)size_bytes >> 14);
+    pages = (s16)((s32)size_bytes >> 14);
     if (size_bytes & 0x3fff)
         pages++;
-    if (pages <= 0 || pages > (int)g_free_memory_kb)
+    if (pages <= 0 || pages > (s16)g_free_memory_kb)
         return 0;
 
     first = g_wEmsFreeListHead + 1;
@@ -87,9 +87,9 @@ int ems_alloc_pages(unsigned long size_bytes) {
     return first;
 }
 
-void ems_free_pages(int page_chain_1based) {
-    int count;
-    int cur;
+void ems_free_pages(s16 page_chain_1based) {
+    s16 count;
+    s16 cur;
 
     if (g_ems_present == 0 || page_chain_1based == 0)
         return;
@@ -106,15 +106,15 @@ void ems_free_pages(int page_chain_1based) {
     g_free_memory_kb += count;
 }
 
-unsigned char far *ems_map_at_offset(int page_chain_1based, long offset) {
-    int page_idx;
-    unsigned int within;
-    int chain_node;
-    int phys_slot;
-    int *mapEntry;
+unsigned char far *ems_map_at_offset(s16 page_chain_1based, s32 offset) {
+    s16 page_idx;
+    u16 within;
+    s16 chain_node;
+    s16 phys_slot;
+    s16 *mapEntry;
 
-    page_idx = (int)(offset >> 14);
-    within = (unsigned int)offset & 0x3fff;
+    page_idx = (s16)(offset >> 14);
+    within = (u16)offset & 0x3fff;
 
     if (g_ems_present == 0 || page_chain_1based == 0)
         return (unsigned char far *)MK_FP(0, 0);
@@ -145,10 +145,10 @@ unsigned char far *ems_map_at_offset(int page_chain_1based, long offset) {
     return (unsigned char far *)MK_FP(g_ems_free_pages, within);
 }
 
-unsigned char far *ems_map_resource_pages(int page_id) {
-    int cur;
-    int count;
-    int *mapEntry;
+unsigned char far *ems_map_resource_pages(s16 page_id) {
+    s16 cur;
+    s16 count;
+    s16 *mapEntry;
 
     if (g_ems_present == 0 || page_id == 0)
         return (unsigned char far *)MK_FP(0, 0);

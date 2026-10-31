@@ -3,10 +3,10 @@
 
 #include "structs.h"
 
-extern unsigned short g_wScriptEnhancedAuxFlag;
-extern unsigned short g_nScriptEnhancedOpcodeDispatchEnabled;
-extern unsigned short g_aTtmFadeStepTable[7];
+extern u16 g_wScriptEnhancedAuxFlag;
+extern u16 g_nScriptEnhancedOpcodeDispatchEnabled;
+extern u16 g_aTtmFadeStepTable[7];
 
-extern int ttmscript_show_dialog_action(int param_1, unsigned int param_2);
+extern s16 ttmscript_show_dialog_action(s16 param_1, u16 param_2);
 
 #endif

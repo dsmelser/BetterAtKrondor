@@ -39,33 +39,33 @@ char g_szMusicTag_APS[5] = "APS:";
 char g_szMusicTag_ATD[5] = "ATD:";
 char g_szMusicTag_APA[5] = "APA:";
 char g_szMusicTag_ADS[5] = "ADS:";
-unsigned short g_nSfxResourceId = 0x0000;
+u16 g_nSfxResourceId = 0x0000;
 unsigned char far *g_pSsmChunkBuf = {0};
 AudioListNode far *g_pActiveAudioListHead = {0};
-unsigned short g_bAudioTimerInstalled = 0x0000;
-unsigned short g_nSfxSampleSlot = 0x0000;
-unsigned short g_nSfxWorkSlot = 0x0000;
+u16 g_bAudioTimerInstalled = 0x0000;
+u16 g_nSfxSampleSlot = 0x0000;
+u16 g_nSfxWorkSlot = 0x0000;
 SfxLoopPri *g_pSfxLoopPriorityTable = {0};
 void far *g_pSfxDriver = {0};
 void far *g_pMusicDriver = {0};
-unsigned short g_nAudioBufLastError = 0x0000;
+u16 g_nAudioBufLastError = 0x0000;
 unsigned char g_bAudioLooseTag = 0x00;
 
 unsigned char _dgroup_pad_35e7[1] = {0x00};
-short g_nAudioFilterMode = -4;
+s16 g_nAudioFilterMode = -4;
 MusicChunkHeader far *g_pMusicChunkBuf = {0};
 ResFile *g_music_archive = {0};
-int g_music_archive_owned = 0;
-unsigned short g_bMusicDriverInstalled = 0x0000;
-unsigned short g_nAudioStreamCodec = 0x0001;
-short g_nSfxDriverMode = -2;
+s16 g_music_archive_owned = 0;
+u16 g_bMusicDriverInstalled = 0x0000;
+u16 g_nAudioStreamCodec = 0x0001;
+s16 g_nSfxDriverMode = -2;
 
-short g_nAudioDefaultSfxMode = -2;
-unsigned short g_nAudioDefaultSampleRate = 11025;
+s16 g_nAudioDefaultSfxMode = -2;
+u16 g_nAudioDefaultSampleRate = 11025;
 
-int audio_resource_install_by_id(char *file, int *p_resource_id, int load_mode) {
+s16 audio_resource_install_by_id(char *file, s16 *p_resource_id, s16 load_mode) {
     char *id;
-    int result;
+    s16 result;
 
     result = 1;
     if (*p_resource_id != 0xff) {

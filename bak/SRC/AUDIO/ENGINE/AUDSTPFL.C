@@ -5,9 +5,9 @@
 #include "SRC/AUDIO/CHAN/SFXCHAN.H"
 #include "SRC/AUDIO/ENGINE/AUDDRVST.H"
 
-int audio_stop_filter(int filter_mode) {
+s16 audio_stop_filter(s16 filter_mode) {
     AudioListNode far *node;
-    short prev_mode;
+    s16 prev_mode;
 
     prev_mode = g_nAudioFilterMode;
     if (filter_mode > 0)

@@ -19,7 +19,7 @@ DDXRecord g_invInspectPanelDdx = {0x05, 0x0000, 0x0000, 0x00, 0x01, 0x0001};
 unsigned char g_abInvInspectPanelDdxStyle[10] = {0x06, 0x00, 0x67, 0x00, 0x0b,
                                                  0x00, 0xcc, 0x00, 0x79, 0x00};
 
-static void far invinspect_dialog_panel_render(MenuPage *panel, int present_now) {
+static void far invinspect_dialog_panel_render(MenuPage *panel, s16 present_now) {
     g_graphics_context.bGfx_fill_enabled = 1;
     g_graphics_context.bGfx_fill_color = (g_graphics_context.bGfx_outline_color = 0);
 
@@ -27,7 +27,7 @@ static void far invinspect_dialog_panel_render(MenuPage *panel, int present_now)
         draw_rect_filled(0xd, 0xb, 0x126, 0x79);
     }
 
-    dialog_frame_draw(&g_invInspectPanelDdx, (int far *)&panel->rect.x);
+    dialog_frame_draw(&g_invInspectPanelDdx, (s16 far *)&panel->rect.x);
 
     g_graphics_context.bGfx_outline_color = 0x95;
     draw_rect_filled(panel->rect.x - 1, panel->rect.y - 1, panel->rect.width + 2,
@@ -57,13 +57,13 @@ static void far invinspect_dialog_panel_render(MenuPage *panel, int present_now)
     }
 }
 
-int far invinspect_quantity_picker_dlg(ItemSlot far *item, int param_2, int param_3) {
-    register int value;
+s16 far invinspect_quantity_picker_dlg(ItemSlot far *item, s16 param_2, s16 param_3) {
+    register s16 value;
     register MenuPage *page;
-    int maxValue;
-    unsigned short dirty;
+    s16 maxValue;
+    u16 dirty;
     char *label;
-    unsigned int action;
+    u16 action;
 
     value = item->condition;
     maxValue = value;
@@ -76,7 +76,7 @@ int far invinspect_quantity_picker_dlg(ItemSlot far *item, int param_2, int para
             page->rect.height -= 0xe;
         }
         if (param_3 != 0) {
-            int i;
+            s16 i;
             for (i = 1; i < 5; i = i + 1) {
                 page->pEntries[i].wEnable_gate = 1;
             }
@@ -176,10 +176,10 @@ int far invinspect_quantity_picker_dlg(ItemSlot far *item, int param_2, int para
     return value;
 }
 
-static void far invinspect_animate_item_move(ImageRecord *sprite, int x, int y, int dst_x,
-                                             int dst_y, unsigned int flags) {
-    int dx;
-    int dy;
+static void far invinspect_animate_item_move(ImageRecord *sprite, s16 x, s16 y, s16 dst_x,
+                                             s16 dst_y, u16 flags) {
+    s16 dx;
+    s16 dy;
 
     g_graphics_context.bGfx_fill_enabled = '\x01';
     g_graphics_context.bGfx_fill_color = (g_graphics_context.bGfx_outline_color = '\0');
@@ -215,13 +215,13 @@ static void far invinspect_animate_item_move(ImageRecord *sprite, int x, int y, 
     return;
 }
 
-static void far invinspect_render_details(ItemSlot far *item, int affecting) {
+static void far invinspect_render_details(ItemSlot far *item, s16 affecting) {
     ItemRecord far *irec;
     DDXRecord far *dlg;
-    int frameRect[4];
+    s16 frameRect[4];
     char buf[80];
-    register int x;
-    register int y;
+    register s16 x;
+    register s16 y;
 
     x = 0x8c;
     y = 0x1e;
@@ -234,7 +234,7 @@ static void far invinspect_render_details(ItemSlot far *item, int affecting) {
     draw_rect_filled(0x16, 0x72, 0x4a, 0xd);
 
     dialog_apply_style_state(dlg, (void far *)frameRect);
-    dialog_frame_draw(dlg, (int far *)frameRect);
+    dialog_frame_draw(dlg, (s16 far *)frameRect);
     dialog_freemem_if_not_null((unsigned char far *)dlg);
 
     if ((irec->wCategory == 1) || (irec->wCategory == 3)) {
@@ -331,15 +331,15 @@ LAB_5a82_079b:
     return;
 }
 
-void far invinspect_item_flow(ItemSlot far *item, int affecting, MenuPage *page) {
+void far invinspect_item_flow(ItemSlot far *item, s16 affecting, MenuPage *page) {
     ImageRecord *sprite;
-    unsigned int action;
-    int dstX;
-    int dstY;
+    u16 action;
+    s16 dstX;
+    s16 dstY;
     ItemRecord far *irec;
     MenuEntry *savedEntries;
-    unsigned short savedCount;
-    unsigned short dirty;
+    u16 savedCount;
+    u16 dirty;
     char buf[80];
 
     irec = itemtbl_record_ptr(item);
@@ -360,16 +360,16 @@ void far invinspect_item_flow(ItemSlot far *item, int affecting, MenuPage *page)
     }
 
     if (((irec->wFlags & 0x8000) != 0) || (irec->wCategory == 7)) {
-        sprintf(buf, "Amount: %d", (unsigned int)item->condition);
+        sprintf(buf, "Amount: %d", (u16)item->condition);
         invui_draw_text_aligned_shadow((char far *)buf, 0x3a, 0x23, 1, -1, -1);
     } else if (((irec->wFlags & 0x2000) != 0) && (irec->wCategory != 0x11)) {
-        sprintf(buf, "Uses left: %d", (unsigned int)item->condition);
+        sprintf(buf, "Uses left: %d", (u16)item->condition);
         invui_draw_text_aligned_shadow((char far *)buf, 0x3a, 0x23, 1, -1, -1);
     } else if (((irec->wFlags & 0x1000) != 0) && ((irec->wSub_flags & 4) != 0)) {
-        sprintf(buf, "Value Rating: %d%", (unsigned int)item->condition);
+        sprintf(buf, "Value Rating: %d%", (u16)item->condition);
         invui_draw_text_aligned_shadow((char far *)buf, 0x3a, 0x23, 1, -1, -1);
     } else if ((irec->wFlags & 0x1000) != 0) {
-        sprintf(buf, "Condition: %d%%", (unsigned int)item->condition);
+        sprintf(buf, "Condition: %d%%", (u16)item->condition);
         invui_draw_text_aligned_shadow((char far *)buf, 0x3a, 0x23, 1, -1, -1);
     }
 
@@ -394,14 +394,14 @@ void far invinspect_item_flow(ItemSlot far *item, int affecting, MenuPage *page)
     screen_frame_sync_buffers_rect(0xb, 0x79);
 
     if (item->item_id == 0x85) {
-        g_gameState.nEvtArgCount = (short)item->condition;
+        g_gameState.nEvtArgCount = (s16)item->condition;
         dialog_play_record(0x1b7761UL, 0);
     } else {
-        g_gameState.nEvtArgCount = (short)item->item_id;
+        g_gameState.nEvtArgCount = (s16)item->item_id;
         dialog_play_record(0x1b7741UL, 0);
         dialog_input_wait_release(1, 1);
         if (page != (MenuPage *)0) {
-            if ((((irec->wCategory != 0) && ((int)irec->wCategory <= 4)) ||
+            if ((((irec->wCategory != 0) && ((s16)irec->wCategory <= 4)) ||
                  ((item->item_id >= 0x24) && (item->item_id <= 0x2b))) ||
                 (irec->wPlayer_stat_mask != 0)) {
                 savedEntries = page->pEntries;

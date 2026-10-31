@@ -6,9 +6,9 @@
 
 #define CHUNK_SIZE 128
 
-long res_fread_far(void huge *dest, long size, long count, ResFile *file) {
-    long remaining;
-    int n;
+s32 res_fread_far(void huge *dest, s32 size, s32 count, ResFile *file) {
+    s32 remaining;
+    s16 n;
     char buf[CHUNK_SIZE];
 
     remaining = size * count;
@@ -22,10 +22,10 @@ long res_fread_far(void huge *dest, long size, long count, ResFile *file) {
     return count;
 }
 
-long res_fwrite_far(void huge *src, long size, long count, ResFile *file) {
-    long remaining;
+s32 res_fwrite_far(void huge *src, s32 size, s32 count, ResFile *file) {
+    s32 remaining;
     char buf[CHUNK_SIZE];
-    int n;
+    s16 n;
 
     remaining = size * count;
     while (remaining > 0) {

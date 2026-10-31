@@ -4,7 +4,7 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-extern void far *stream_load_to_buffer(ResFile *file, unsigned long size, unsigned long *out_desc,
-                                       unsigned short allocTag);
+extern void far *stream_load_to_buffer(ResFile *file, u32 size, u32 *out_desc,
+                                       u16 allocTag);
 
 #endif

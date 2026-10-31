@@ -4,8 +4,8 @@
 #include "structs.h"
 
 extern unsigned char g_lightDirNotInit;
-extern int g_shapeTableCount;
-extern int g_shapeOverrideLen;
+extern s16 g_shapeTableCount;
+extern s16 g_shapeOverrideLen;
 
 /**
  * @file  SHAPETBL.H
@@ -54,19 +54,19 @@ struct Shape {
     unsigned char shift;
 
     /** 0x04, 2B: animation-group count (maxGroupId+1); 0 for non-animated models. */
-    int animGroupCount;
+    s16 animGroupCount;
 
     /** 0x06, 2B near: per-group frame counts (animFrameCounts[gid]); precompute, unread — see brief. */
     unsigned char *animFrameCounts;
 
     /** 0x08, 2B: LOD-descriptor count. */
-    short lodCount;
+    s16 lodCount;
 
     /** 0x0A, 2B near: LOD-descriptor array. */
     void *lodArray;
 
     /** 0x0C, 2B: signed bounding half-extent; `radius << shift` = cull/LOD extent. */
-    short radius;
+    s16 radius;
 
     /** 0x0E, 6B: bbox min; runtime-built meshes only, unread by render/collision. */
     Vec3Short aabbMin;
@@ -79,9 +79,9 @@ struct Shape {
 /** 6B LOD descriptor — @ref Shape::lodArray points to @ref Shape::lodCount of these; the renderer
  *  picks the first whose @ref LodDescriptor::nThreshold >= the projected actor scale (last entry = fallback). */
 struct LodDescriptor {
-    short nThreshold;            /**< +0x0 selected when projScale <= threshold (last = fallback) */
-    short nPartCount;            /**< +0x2 number of @ref MeshPartRecord */
-    unsigned short wPartBaseOff; /**< +0x4 near offset to the @ref MeshPartRecord array */
+    s16 nThreshold;            /**< +0x0 selected when projScale <= threshold (last = fallback) */
+    s16 nPartCount;            /**< +0x2 number of @ref MeshPartRecord */
+    u16 wPartBaseOff; /**< +0x4 near offset to the @ref MeshPartRecord array */
 };
 
 
@@ -101,10 +101,10 @@ typedef struct ShapeTable ShapeTable;
 struct ShapeTable {
     Shape far *far
     *records;  /**< 0-terminated table of far pointers to this slot's @ref Shape records. */
-    int count; /**< Number of records in @ref records. */
-    int scale; /**< Q8 actor projection-scale multiplier (0x100 = x1.0); -1 forces @ref scaleClamp. */
-    int scaleClamp; /**< Upper clamp on the projected actor scale (also the exact value used when @ref scale is -1). */
-    int spriteBank; /**< Index into @c g_spriteBanks (TBD-ref: GLOBALS.H lacks a file block) for billboard images; -1 = fetch them from the global paged image array (@c worldrender_paged_array_get (TBD-ref: WORLDRND.H lacks a file block)) instead. */
+    s16 count; /**< Number of records in @ref records. */
+    s16 scale; /**< Q8 actor projection-scale multiplier (0x100 = x1.0); -1 forces @ref scaleClamp. */
+    s16 scaleClamp; /**< Upper clamp on the projected actor scale (also the exact value used when @ref scale is -1). */
+    s16 spriteBank; /**< Index into @c g_spriteBanks (TBD-ref: GLOBALS.H lacks a file block) for billboard images; -1 = fetch them from the global paged image array (@c worldrender_paged_array_get (TBD-ref: WORLDRND.H lacks a file block)) instead. */
 };
 
 
@@ -148,7 +148,7 @@ extern Shape far *far *g_shapeOverride;
  * @warning   Panics if either slot array cannot be allocated.
  * @see       @ref ts_shutdown, which frees both arrays.
  */
-extern void ts_init(int shapeTableCapacity, int spriteBankCapacity);
+extern void ts_init(s16 shapeTableCapacity, s16 spriteBankCapacity);
 
 
 /**
@@ -170,7 +170,7 @@ extern void ts_shutdown(void);
  * @param[in] tblIdx Slot to fill, 0..capacity-1 from @ref ts_init; not bounds-checked.
  * @param[in] fname  Resource filename of the .TBL to read (e.g. "combat.tbl").
  */
-extern Shape far *far *ts_load_shape_tbl(int tblIdx, char *fname);
+extern Shape far *far *ts_load_shape_tbl(s16 tblIdx, char *fname);
 
 
 /**
@@ -181,7 +181,7 @@ extern Shape far *far *ts_load_shape_tbl(int tblIdx, char *fname);
  *
  * @param[in] tblIdx Slot to unload, 0..capacity-1 from @ref ts_init; not bounds-checked.
  */
-extern void ts_free_shape_tbl(int tblIdx);
+extern void ts_free_shape_tbl(s16 tblIdx);
 
 
 /**
@@ -191,7 +191,7 @@ extern void ts_free_shape_tbl(int tblIdx);
  *                     spans slot 0, then slot 1, and so on.
  * @return    Far pointer to the @ref Shape, or 0 if @p shapeIdx is out of range.
  */
-extern Shape far *ts_get_shape(int shapeIdx);
+extern Shape far *ts_get_shape(s16 shapeIdx);
 
 
 /**
@@ -202,7 +202,7 @@ extern Shape far *ts_get_shape(int shapeIdx);
  * @param[in] shape    Far pointer to store; kept as-is, never dereferenced.
  * @return    @p shape on success, or 0 if @p shapeIdx is out of range.
  */
-extern Shape far *ts_set_shape(int shapeIdx, Shape far *shape);
+extern Shape far *ts_set_shape(s16 shapeIdx, Shape far *shape);
 
 
 /**
@@ -240,7 +240,7 @@ extern void ts_my_free(void *ptr);
  * @param[in] shapeIdx Global shape index (same space as @ref ts_get_shape); out of range yields 0.
  * @return    Animation-group count, or 0 if @p shapeIdx is invalid or the model is not animated.
  */
-extern int ts_get_anim_group_count(int shapeIdx);
+extern s16 ts_get_anim_group_count(s16 shapeIdx);
 
 
 /**
@@ -253,7 +253,7 @@ extern int ts_get_anim_group_count(int shapeIdx);
  * @param[in] groupId  Animation-group id, 0..animGroupCount-1; out of range yields 0.
  * @return    Frame count for the group, or 0 if @p shapeIdx or @p groupId is out of range.
  */
-extern int ts_get_anim_frame_count(int shapeIdx, int groupId);
+extern s16 ts_get_anim_frame_count(s16 shapeIdx, s16 groupId);
 
 
 /**
@@ -262,7 +262,7 @@ extern int ts_get_anim_frame_count(int shapeIdx, int groupId);
  * @param[in] shapeIdx Global shape index (same space as @ref ts_get_shape); out of range yields 0.
  * @return    Scaled half-extent (0 if @p shapeIdx is invalid).
  */
-extern long ts_get_scaled_radius(int shapeIdx);
+extern s32 ts_get_scaled_radius(s16 shapeIdx);
 
 
 /**
@@ -271,6 +271,6 @@ extern long ts_get_scaled_radius(int shapeIdx);
  * @param[in] shapeIdx Global shape index (same space as @ref ts_get_shape); out of range yields 0.
  * @return    The shift exponent, or 0 if @p shapeIdx is invalid.
  */
-extern int ts_get_shift(int shapeIdx);
+extern s16 ts_get_shift(s16 shapeIdx);
 
 #endif

@@ -21,8 +21,8 @@ unsigned char g_codecRawTransitBuf[50];
 char huge *g_pCurStreamSrcCursor;
 unsigned char g_bCurStreamDescFlags;
 unsigned char g_bCurStreamOpMode;
-unsigned short g_wCodecBytesRemaining;
-int g_nStreamBytesWritten;
+u16 g_wCodecBytesRemaining;
+s16 g_nStreamBytesWritten;
 StreamDesc *g_apStreamSlots[100];
 unsigned char huge *g_pCurCodecScratch;
 unsigned char huge *g_pStreamReadDst;
@@ -43,18 +43,18 @@ unsigned char g_abLowBitMaskByWidth[9] = {0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x
 #undef fmemcpy_far
 extern void fmemcpy_far();
 
-int near codec_passthrough_bytes(void) {
-    register int result = 1;
-    register int byte_val;
+s16 near codec_passthrough_bytes(void) {
+    register s16 result = 1;
+    register s16 byte_val;
 
     while (result && (byte_val = stream_getc()) != -1)
         result = codec_emit_byte(byte_val);
     return 0;
 }
 
-int near codec_rle_read(void) {
-    register int token;
-    register int done = 1;
+s16 near codec_rle_read(void) {
+    register s16 token;
+    register s16 done = 1;
 
     if (!(g_bCurStreamOpMode & 0x20))
         return blit_rle_sprite();
@@ -64,11 +64,11 @@ int near codec_rle_read(void) {
     return 0;
 }
 
-int near codec_flush_ring(void) {
+s16 near codec_flush_ring(void) {
     register unsigned char *ringBuf;
-    unsigned int tail;
+    u16 tail;
 
-    tail = (unsigned int)g_pCurStreamDesc->bRingTail;
+    tail = (u16)g_pCurStreamDesc->bRingTail;
     ringBuf = g_pCurStreamRingBuf;
     while (g_pCurStreamDesc->bRingHead != tail) {
         stream_putc(ringBuf[tail++]);
@@ -78,9 +78,9 @@ int near codec_flush_ring(void) {
     return 0;
 }
 
-int near codec_raw_read(unsigned char huge *dst, unsigned int count) {
-    int chunk;
-    int nread;
+s16 near codec_raw_read(unsigned char huge *dst, u16 count) {
+    s16 chunk;
+    s16 nread;
 
     nread = 1;
     while (count > 0 && nread > 0) {
@@ -92,7 +92,7 @@ int near codec_raw_read(unsigned char huge *dst, unsigned int count) {
     return 0;
 }
 
-int near stream_getc(void) {
+s16 near stream_getc(void) {
     if (g_pCurStreamDesc->dwInPos == g_pCurStreamDesc->dwInSize)
         return -1;
     g_pCurStreamDesc->dwInPos += 1;
@@ -101,27 +101,27 @@ int near stream_getc(void) {
     return *g_pCurStreamSrcCursor++ & 0xff;
 }
 
-int near codec_raw_block_read(register void *dest, register unsigned int count) {
-    long remaining;
+s16 near codec_raw_block_read(register void *dest, register u16 count) {
+    s32 remaining;
 
     if ((remaining = g_pCurStreamDesc->dwInSize - g_pCurStreamDesc->dwInPos) == 0)
         return 0;
     remaining = count > remaining ? remaining : count;
     g_pCurStreamDesc->dwInPos += remaining;
     if (g_bCurStreamDescFlags & 0x20)
-        return res_fread(dest, 1, (unsigned int)remaining, g_pCurStreamFp);
-    fmemcpy_far((unsigned char far *)dest, (unsigned char far *)g_pCurStreamSrcCursor, (unsigned int)remaining);
+        return res_fread(dest, 1, (u16)remaining, g_pCurStreamFp);
+    fmemcpy_far((unsigned char far *)dest, (unsigned char far *)g_pCurStreamSrcCursor, (u16)remaining);
     g_pCurStreamSrcCursor += remaining;
-    return (int)remaining;
+    return (s16)remaining;
 }
 
-int near codec_rle_literal_run(unsigned int count) {
+s16 near codec_rle_literal_run(u16 count) {
     g_pCurStreamDesc->dwInPos += count;
     if (g_wCodecBytesRemaining >= count) {
         if (g_bCurStreamOpMode & 0x40)
             codec_raw_read(g_pStreamReadDst, count);
         else
-            res_fseek(g_pCurStreamFp, (long)count, SEEK_CUR);
+            res_fseek(g_pCurStreamFp, (s32)count, SEEK_CUR);
         g_wCodecBytesRemaining -= count;
         g_pStreamReadDst += count;
         return 1;
@@ -132,7 +132,7 @@ int near codec_rle_literal_run(unsigned int count) {
     }
 }
 
-int near codec_rle_repeat_byte(register int value, int count) {
+s16 near codec_rle_repeat_byte(register s16 value, s16 count) {
     if (g_wCodecBytesRemaining >= count) {
         if (g_bCurStreamOpMode & 0x40)
             memset_far(g_pStreamReadDst, value, count);
@@ -146,7 +146,7 @@ int near codec_rle_repeat_byte(register int value, int count) {
     }
 }
 
-int near codec_emit_byte(int byte_val) {
+s16 near codec_emit_byte(s16 byte_val) {
     if (g_wCodecBytesRemaining >= 1) {
         if (g_bCurStreamOpMode & 0x40)
             *g_pStreamReadDst = (unsigned char)byte_val;
@@ -159,7 +159,7 @@ int near codec_emit_byte(int byte_val) {
     }
 }
 
-int near stream_putc(int c) {
+s16 near stream_putc(s16 c) {
     g_nStreamBytesWritten++;
     if (g_bCurStreamDescFlags & 0x20)
         return res_putc(c, g_pCurStreamFp);
@@ -167,7 +167,7 @@ int near stream_putc(int c) {
         return (char)(g_pCurStreamDesc->src.pBufBase[g_pCurStreamDesc->dwInPos++] = (char)c);
 }
 
-int near stream_select(int stream_id) {
+s16 near stream_select(s16 stream_id) {
     if (stream_id < 0 || stream_id >= 100 || (g_pCurStreamDesc = g_apStreamSlots[stream_id]) == 0)
         return 0;
     g_pCurCodecScratch = g_pCurStreamDesc->pScratch;
@@ -184,7 +184,7 @@ int near stream_select(int stream_id) {
     return 1;
 }
 
-int near mode_has_read(char *mode) {
+s16 near mode_has_read(char *mode) {
     while (*mode != '\0') {
         if (*mode++ == 'r') {
             return 1;
@@ -198,10 +198,10 @@ void near free_if_not_null(void *ptr) {
         my_free(ptr);
 }
 
-int near stream_release_slot(int slot) {
+s16 near stream_release_slot(s16 slot) {
     if ((g_pCurStreamDesc = g_apStreamSlots[slot]) != 0) {
         free_if_not_null(g_pCurStreamDesc->pBuf);
-        if (g_pCurStreamDesc->pScratch != 0 && *(long *)&g_pCodecScratchFp == 0)
+        if (g_pCurStreamDesc->pScratch != 0 && *(s32 *)&g_pCodecScratchFp == 0)
             _freemem(g_pCurStreamDesc->pScratch);
     }
     free_if_not_null(g_pCurStreamDesc);
@@ -209,8 +209,8 @@ int near stream_release_slot(int slot) {
     return -1;
 }
 
-int near stream_alloc_slot(char *mode) {
-    int slot;
+s16 near stream_alloc_slot(char *mode) {
+    s16 slot;
     for (slot = 0; slot < 100; slot++) {
         if (g_apStreamSlots[slot] == 0)
             break;
@@ -223,10 +223,10 @@ int near stream_alloc_slot(char *mode) {
     return slot;
 }
 
-int near codec_init(int codec_id, char *mode) {
-    int buf_size;
+s16 near codec_init(s16 codec_id, char *mode) {
+    s16 buf_size;
     CodecVtable *pv;
-    unsigned int scratch_size;
+    u16 scratch_size;
 
     if (codec_id > 3)
         return -1;
@@ -255,11 +255,11 @@ int near codec_init(int codec_id, char *mode) {
 }
 
 void near stream_drain_chunk_window(void) {
-    unsigned int count;
-    unsigned int tail;
+    u16 count;
+    u16 tail;
 
     tail = g_pCurStreamDesc->bRingTail;
-    count = (unsigned int)g_pCurStreamDesc->bRingHead - tail;
+    count = (u16)g_pCurStreamDesc->bRingHead - tail;
     if (count > g_wCodecBytesRemaining) {
         g_pCurStreamDesc->bRingTail += (count = g_wCodecBytesRemaining);
     } else {
@@ -275,8 +275,8 @@ void near stream_drain_chunk_window(void) {
     }
 }
 
-unsigned int near stream_consume(int stream_id, unsigned int count) {
-    unsigned int delivered;
+u16 near stream_consume(s16 stream_id, u16 count) {
+    u16 delivered;
     delivered = count;
     g_wCodecBytesRemaining = delivered;
     stream_drain_chunk_window();

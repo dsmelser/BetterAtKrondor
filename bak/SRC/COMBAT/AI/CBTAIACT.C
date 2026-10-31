@@ -22,13 +22,13 @@
 
 void far combataiact_pick_melee_or_missl(Combatant *actor) {
     Combatant *target;
-    int distance;
+    s16 distance;
 
     target = combatenc_find_nearest_actor(actor, &distance);
     if (distance <= 1) {
         combat_arena_melee_attack(actor, target, RNDR(0x19, 0x31));
     } else {
-        if (RND(10) >= (unsigned int)distance) {
+        if (RND(10) >= (u16)distance) {
             combat_ai_actor_cast_spell(actor, target, 4);
         } else {
             combataiturn_ranged_attack(actor, target, 8);
@@ -38,9 +38,9 @@ void far combataiact_pick_melee_or_missl(Combatant *actor) {
 
 void far combataiact_random_move_attack(Combatant *actor) {
     Combatant *target;
-    unsigned int roll;
-    int distance;
-    int halfStat;
+    u16 roll;
+    s16 distance;
+    s16 halfStat;
 
     g_cursor_tile_x = RND2(8);
     g_cursor_tile_y = RND(0xd);
@@ -56,19 +56,19 @@ void far combataiact_random_move_attack(Combatant *actor) {
     if ((actor->inner->flags & 2) == 0) {
 #endif
         roll = RND(100);
-        halfStat = (int)stat_actor_get(actor, 0, 0) >> 1;
+        halfStat = (s16)stat_actor_get(actor, 0, 0) >> 1;
         target = combatenc_find_nearest_actor(actor, &distance);
         if (distance <= 1) {
             combat_arena_melee_attack(actor, target, RNDR(0x19, 0x31));
         } else {
-            if (!((halfStat != 1) && (distance >= 2) && ((int)roll < 0x50) &&
+            if (!((halfStat != 1) && (distance >= 2) && ((s16)roll < 0x50) &&
                   (combat_actor_trace_proj_path(actor, target, 1) != 0))) {
                 combatenc_actor_enter_defense(actor);
-                if (0x32 < (int)roll) {
+                if (0x32 < (s16)roll) {
                     combatenc_set_flag8_clear_flag1(actor);
                 }
             } else {
-                if ((int)roll < 0x32) {
+                if ((s16)roll < 0x32) {
                     cspell_resolve_cast(actor, target, 5, halfStat);
                 } else {
                     cspell_resolve_cast(actor, target, 4, halfStat);
@@ -84,11 +84,11 @@ void far combataiact_random_move_attack(Combatant *actor) {
 
 void far combataiact_ranged_attack_turn(Combatant *actor) {
     Combatant *target;
-    int distance;
-    int hit;
-    unsigned short actionId;
-    int knockback;
-    int cspell_slot;
+    s16 distance;
+    s16 hit;
+    u16 actionId;
+    s16 knockback;
+    s16 cspell_slot;
 
     hit = 1;
     target = combatenc_find_nearest_actor(actor, &distance);
@@ -141,9 +141,9 @@ void far combataiact_ranged_attack_turn(Combatant *actor) {
 
 void far combataiact_actor_melee_attack(Combatant *actor) {
     Combatant *target;
-    int distance;
-    int hit;
-    int i;
+    s16 distance;
+    s16 hit;
+    s16 i;
 
     hit = 1;
     target = combatenc_find_nearest_actor(actor, &distance);
@@ -155,7 +155,7 @@ void far combataiact_actor_melee_attack(Combatant *actor) {
         combat_actor_play_anim_sprite4(actor, combat_actor_heading_from_to(actor, target));
         audio_play(0x51);
         target = world_rndr_ranged_attack_anim(actor, target, &hit, 0x3b, 0x15e, (char)-1);
-        combat_actor_anim0_if_not_dead(actor, (int)(char)-1);
+        combat_actor_anim0_if_not_dead(actor, (s16)(char)-1);
         i = 0;
         do {
             target->inner->flags |= CAF_KNOCKBACK;
@@ -175,7 +175,7 @@ void far combataiact_actor_melee_attack(Combatant *actor) {
 }
 
 void far combataiact_action_charge_near(Combatant *actor) {
-    int distance;
+    s16 distance;
     Combatant *target;
 
     target = combatenc_find_nearest_actor(actor, &distance);
@@ -192,16 +192,16 @@ clear:
 }
 
 void far combataiact_melee_random_attack(Combatant *actor) {
-    int distance;
-    int hit;
-    int knockback;
+    s16 distance;
+    s16 hit;
+    s16 knockback;
     Combatant *target;
-    int damage;
+    s16 damage;
 
     hit = 1;
     target = combatenc_find_nearest_actor(actor, &distance);
     if (combat_actor_trace_proj_path(actor, target, 1) != 0 && distance > 2) {
-        knockback = (int)RND(3);
+        knockback = (s16)RND(3);
         switch (knockback) {
         case 0:
             combat_actor_play_anim_sprite4(actor, combat_actor_heading_from_to(actor, target));
@@ -234,9 +234,9 @@ void far combataiact_melee_random_attack(Combatant *actor) {
 
 void far combataiact_ranged_attack(Combatant *actor) {
     Combatant *target;
-    int distance;
-    int hit;
-    int cspellSlot;
+    s16 distance;
+    s16 hit;
+    s16 cspellSlot;
 
     hit = 1;
     actor->stats[3].base = actor->stats[3].max;
@@ -258,9 +258,9 @@ void far combataiact_ranged_attack(Combatant *actor) {
 }
 
 void far combataiact_bhood_revive_cycle(Combatant *actor) {
-    int slot;
-    int done;
-    int i;
+    s16 slot;
+    s16 done;
+    s16 i;
 
     done = 0;
     if (combatgrid_tile_is_blocked(actor->inner->gridX, actor->inner->gridY) == 0) {
@@ -319,9 +319,9 @@ void far combataiact_bhood_revive_cycle(Combatant *actor) {
     return;
 }
 
-int combataiact_cnt_pty_stat_22(void) {
-    int count;
-    int i;
+s16 combataiact_cnt_pty_stat_22(void) {
+    s16 count;
+    s16 i;
 
     count = 0;
     i = 0;
@@ -337,9 +337,9 @@ int combataiact_cnt_pty_stat_22(void) {
 }
 
 void far combataiact_party_tick_status(void) {
-    int i;
-    int flags;
-    int dmgFramesLeft;
+    s16 i;
+    s16 flags;
+    s16 dmgFramesLeft;
 
     if (combataiact_cnt_pty_stat_22() != 0) {
         i = 0;

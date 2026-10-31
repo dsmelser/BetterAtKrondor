@@ -5,7 +5,7 @@
 #include "SRC/GFX/RASTER/POLYFILL.H"
 #include "SRC/GFX/RASTER/POLYGON.H"
 
-void draw_polygon_textured(int vertex_count, int *verts_x, int *verts_y, int texture) {
+void draw_polygon_textured(s16 vertex_count, s16 *verts_x, s16 *verts_y, s16 texture) {
     Slot27Fn far *saved;
     Slot27Fn far *src;
 

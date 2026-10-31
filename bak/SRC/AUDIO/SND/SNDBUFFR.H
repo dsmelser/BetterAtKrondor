@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_buffers_release_all(void);
+extern s16 audio_buffers_release_all(void);
 
 #endif

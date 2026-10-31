@@ -52,7 +52,7 @@ void far map_req_map_screen_free(void) {
 }
 
 void map_color_remap_load(char *filename) {
-    int i;
+    s16 i;
     unsigned char idx;
     unsigned char val;
     ResFile *file;
@@ -91,18 +91,18 @@ void map_color_remap_free(void) {
 #include "structs.h"
 
 void far map_main_loop(void) {
-    int keep_running;
-    int moved;
-    unsigned short redraw_menu;
-    int redraw_caption;
-    unsigned short pending_events;
-    int key_repeat_armed;
+    s16 keep_running;
+    s16 moved;
+    u16 redraw_menu;
+    s16 redraw_caption;
+    u16 pending_events;
+    s16 key_repeat_armed;
     MenuEntry *focused_entry;
     MenuEntry *prev_focused_entry;
-    unsigned int action_id;
+    u16 action_id;
     unsigned char far *saved_pal;
-    int render_dirty;
-    unsigned int refusal_mode;
+    s16 render_dirty;
+    u16 refusal_mode;
 
     keep_running = 1;
     moved = 0;
@@ -113,7 +113,7 @@ void far map_main_loop(void) {
     key_repeat_armed = 0;
     focused_entry = (MenuEntry *)0;
     g_nHotspotActivateRequest = 0;
-    map_camera_snap_face_south(&g_lExploreCameraZSaved, (short *)&g_wExploreCameraYawSaved);
+    map_camera_snap_face_south(&g_lExploreCameraZSaved, (s16 *)&g_wExploreCameraYawSaved);
     g_full_redraw_needed = 1;
     menupage_begin(g_pReqMapPage);
     g_nMapReloadPending = 1;
@@ -277,7 +277,7 @@ void far map_main_loop(void) {
             }
 
             if (action_id != 0) {
-                refusal_mode = (unsigned int)(menupage_state_0e7c() == 2);
+                refusal_mode = (u16)(menupage_state_0e7c() == 2);
             }
 
             switch (action_id) {
@@ -405,7 +405,7 @@ void far map_main_loop(void) {
             case 2:
             case 3:
             case 4: {
-                int member_idx = action_id - 2;
+                s16 member_idx = action_id - 2;
                 if (member_idx < g_gameState.partySize) {
                     if ((menupage_state_0e7c() == 2) || (key_is_down(0x2a) != 0) ||
                         (key_is_down(0x36) != 0)) {
@@ -423,7 +423,7 @@ void far map_main_loop(void) {
             case 0x29:
                 if ((key_is_down(0x2a) == 0) && (key_is_down(0x36) != 0) &&
                     (key_is_down(0x1d) == 0) && (key_is_down(0x38) != 0)) {
-                    long spin = 500000;
+                    s32 spin = 500000;
                     do {
                         if (key_is_down(0x29) == 0) {
                             break;
@@ -464,7 +464,7 @@ void far map_main_loop(void) {
 
 #include "structs.h"
 
-void far map_camera_snap_face_south(long *pSavedZ, short *pSavedYaw) {
+void far map_camera_snap_face_south(s32 *pSavedZ, s16 *pSavedYaw) {
     if (g_full_redraw_needed == 0) {
         if (g_pColorRemap != (unsigned char *)0x0) {
             g_world_widget->colorRemap = g_pColorRemap;
@@ -477,7 +477,7 @@ void far map_camera_snap_face_south(long *pSavedZ, short *pSavedYaw) {
     return;
 }
 
-void map_camera_restore_z_yaw(long new_pos_z, short new_yaw) {
+void map_camera_restore_z_yaw(s32 new_pos_z, s16 new_yaw) {
     if (g_full_redraw_needed == 0) {
         g_gameState.lInsetCameraPosZ = g_world_camera->base.pos.nWorld_z;
         g_world_camera->base.pos.nWorld_z = new_pos_z;
@@ -489,27 +489,27 @@ void map_camera_restore_z_yaw(long new_pos_z, short new_yaw) {
 
 #include "structs.h"
 
-unsigned short g_full_redraw_needed = 0x0000;
-short g_nMapReloadPending = 1;
+u16 g_full_redraw_needed = 0x0000;
+s16 g_nMapReloadPending = 1;
 unsigned char *g_pColorRemap = {0};
 
-unsigned short g_wExploreCameraYawSaved;
-long g_lWorldZMin;
-long g_lWorldZMax;
-long g_lWorldZStep;
-long g_lExploreCameraZSaved;
+u16 g_wExploreCameraYawSaved;
+s32 g_lWorldZMin;
+s32 g_lWorldZMax;
+s32 g_lWorldZStep;
+s32 g_lExploreCameraZSaved;
 MenuPage *g_pReqMapPage;
 
 void far map_animate_camera_to_tile(TileMoveRecord *ptr) {
-    long savedCameraZ;
-    long saved_z;
-    short savedCameraYaw;
-    short step_speed;
-    int saved_redraw;
-    int out_target;
+    s32 savedCameraZ;
+    s32 saved_z;
+    s16 savedCameraYaw;
+    s16 step_speed;
+    s16 saved_redraw;
+    s16 out_target;
     unsigned char tile_x;
     unsigned char tile_y;
-    int out_dir;
+    s16 out_dir;
     WorldPos saved_pos;
 
     saved_z = g_world_camera->base.pos.nWorld_z;
@@ -535,7 +535,7 @@ void far map_animate_camera_to_tile(TileMoveRecord *ptr) {
     uiwidget_compass_draw();
     screen_frame_present();
     while (worldmove_crossing_check_8dir(&g_world_camera->base.pos,
-                                         g_world_camera->base.orientation.yaw, (long)step_speed, 1,
+                                         g_world_camera->base.orientation.yaw, (s32)step_speed, 1,
                                          &out_dir, &out_target)) {
         g_world_camera->base.pos.nWorld_z = saved_z;
         if (out_dir == 2 || out_dir == 3) {

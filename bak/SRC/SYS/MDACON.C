@@ -3,21 +3,21 @@
 #include "structs.h"
 #include "SRC/SYS/MDACON.H"
 
-unsigned short g_bMdaEnabled = 0x0000;
+u16 g_bMdaEnabled = 0x0000;
 
 void mdacon_clear_screen(void) {
-    unsigned short far *p;
-    int i;
+    u16 far *p;
+    s16 i;
 
-    p = (unsigned short far *)0xb0000000L;
+    p = (u16 far *)0xb0000000L;
 
     for (i = 0; i < 0x780; i++) {
         *p++ = 7;
     }
 }
 
-void far mdacon_write_string(int col, int row, char *str) {
-    int off;
+void far mdacon_write_string(s16 col, s16 row, char *str) {
+    s16 off;
     char far *p;
     char *s;
 
@@ -33,7 +33,7 @@ void far mdacon_write_string(int col, int row, char *str) {
     return;
 }
 
-void far mdacon_printf(int col, int row, char *fmt, ...) {
+void far mdacon_printf(s16 col, s16 row, char *fmt, ...) {
     char buf[100];
     char *args;
 
@@ -43,9 +43,9 @@ void far mdacon_printf(int col, int row, char *fmt, ...) {
     return;
 }
 
-void far mdacon_draw_window_frame(int x, int y, int w, int h, int fill_interior) {
-    int i;
-    int row;
+void far mdacon_draw_window_frame(s16 x, s16 y, s16 w, s16 h, s16 fill_interior) {
+    s16 i;
+    s16 row;
 
     mdacon_printf(x, y, "\xda");
     i = x + 1;

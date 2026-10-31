@@ -37,7 +37,7 @@ char g_restRegenPerChar[CHARACTER_POOL_SIZE] = {
     1  // Patrus
 };
 
-unsigned short far gstate_event_read(unsigned short id) {
+u16 far gstate_event_read(u16 id) {
 
     if (id < 0x2134) {
         return (g_gameState.event_bitmap_lo[id >> 3] & (1 << (id & 7))) ? 1 : 0;
@@ -46,17 +46,17 @@ unsigned short far gstate_event_read(unsigned short id) {
         return itemtbl_partySize_by_kind(id + 0x3cb0);
     }
     if (id >= 0xcb20 && id < 0xcb27) {
-        unsigned int w = id + 0x34df;
+        u16 w = id + 0x34df;
         return spellfx_event_mask_test_bit(w);
     }
     if (id >= 0xcf08 && id <= 0xcf6c) {
-        unsigned int w = id + 0x30f8;
+        u16 w = id + 0x30f8;
         return RND(w);
     }
     if (id >= 0xdac0) {
-        unsigned int cx = id + 0x2540;
-        unsigned int row = cx / 10;
-        unsigned int w = cx % 10 - 1;
+        u16 cx = id + 0x2540;
+        u16 row = cx / 10;
+        u16 w = cx % 10 - 1;
         return (g_gameState.event_bitmap_hi[row] & (1 << w)) ? 1 : 0;
     }
 
@@ -64,11 +64,11 @@ unsigned short far gstate_event_read(unsigned short id) {
     case 0:
         return g_gameState.nEvtArgCount;
     case 1: {
-        long g = g_gameState.nParty_gold / 10;
-        return (g > 0xffffL) ? 0xffff : (unsigned short)g;
+        s32 g = g_gameState.nParty_gold / 10;
+        return (g > 0xffffL) ? 0xffff : (u16)g;
     }
     case 2:
-        return (g_gameState.nParty_gold > 0xffff) ? 0xffff : (unsigned short)g_gameState.nParty_gold;
+        return (g_gameState.nParty_gold > 0xffff) ? 0xffff : (u16)g_gameState.nParty_gold;
     case 7:
         return g_gameState.nChapter;
     case 19:
@@ -81,21 +81,21 @@ unsigned short far gstate_event_read(unsigned short id) {
         return gstate_is_party_member(CHR_PUG) ? CHR_PUG
                                                : g_chapterDefaultSpeaker[g_gameState.nChapter - 1];
     case 10: {
-        short h = (short)(g_gameState.game_time % 0xa8c0 / 0x708);
+        s16 h = (s16)(g_gameState.game_time % 0xa8c0 / 0x708);
         return (h >= 4 && h < 0x14) ? 1 : 0;
     }
     case 9: {
-        short h = (short)(g_gameState.game_time % 0xa8c0 / 0x708);
+        s16 h = (s16)(g_gameState.game_time % 0xa8c0 / 0x708);
         return (h < 4 || h >= 0x14) ? 1 : 0;
     }
     case 12:
-        return (unsigned short)(g_gameState.game_time % 0xa8c0 / 0x708);
+        return (u16)(g_gameState.game_time % 0xa8c0 / 0x708);
     case 14:
-        return (unsigned short)g_gameState.lEvtArgGoldCost;
+        return (u16)g_gameState.lEvtArgGoldCost;
     case 15:
-        return (unsigned short)g_gameState.lEvtArgValue;
+        return (u16)g_gameState.lEvtArgValue;
     case 18:
-        return (unsigned short)g_gameState.lEvtArgAuxValue;
+        return (u16)g_gameState.lEvtArgAuxValue;
     case 20:
     case 21:
     case 22:
@@ -113,10 +113,10 @@ unsigned short far gstate_event_read(unsigned short id) {
     }
 }
 
-int far gstate_event_write(unsigned int event_id, unsigned int value) {
-    unsigned int idx;
-    unsigned int q;
-    unsigned int bit;
+s16 far gstate_event_write(u16 event_id, u16 value) {
+    u16 idx;
+    u16 q;
+    u16 bit;
 
     if (event_id < 0x2134) {
         if (value != 0) {
@@ -139,13 +139,13 @@ int far gstate_event_write(unsigned int event_id, unsigned int value) {
             g_gameState.nEvtArgCount = value;
             break;
         case 14:
-            g_gameState.lEvtArgGoldCost = (long)value;
+            g_gameState.lEvtArgGoldCost = (s32)value;
             break;
         case 15:
-            g_gameState.lEvtArgValue = (long)value;
+            g_gameState.lEvtArgValue = (s32)value;
             break;
         case 18:
-            g_gameState.lEvtArgAuxValue = (long)value;
+            g_gameState.lEvtArgAuxValue = (s32)value;
             break;
         case 16:
             g_gameState.bCombatExitRequest = value;
@@ -166,7 +166,7 @@ int far gstate_event_write(unsigned int event_id, unsigned int value) {
     }
 }
 
-int gstate_temp_file_open(void) {
+s16 gstate_temp_file_open(void) {
     char buf[50];
 
     if (g_cfgTempDrive != 0) {
@@ -187,22 +187,22 @@ void gstate_temp_file_close(void) {
     return;
 }
 
-int gstate_temp_file_read_at(void far *dst_far, long offset, unsigned int bytes) {
+s16 gstate_temp_file_read_at(void far *dst_far, s32 offset, u16 bytes) {
     if (res_fseek(g_tempGamFP, offset, SEEK_SET) != 0) {
         res_fseek(g_tempGamFP, 0, SEEK_SET);
         if (res_fseek(g_tempGamFP, offset, SEEK_SET) != 0) {
         }
     }
-    if ((unsigned long)res_ftell(g_tempGamFP) == offset) {
+    if ((u32)res_ftell(g_tempGamFP) == offset) {
     }
-    res_fread_far(dst_far, 1, (long)bytes, g_tempGamFP);
+    res_fread_far(dst_far, 1, (s32)bytes, g_tempGamFP);
     return 1;
 }
 
-int gstate_temp_file_write_at(unsigned char far *src_far, unsigned long offset, unsigned int bytes) {
+s16 gstate_temp_file_write_at(unsigned char far *src_far, u32 offset, u16 bytes) {
 #ifdef V102CD
-    unsigned long lo;
-    unsigned long hi;
+    u32 lo;
+    u32 hi;
     if (g_tempGamFP == (ResFile *)0 || offset > 0x51aa9)
         return 0;
     switch (g_pendingTempWriteRegion) {
@@ -244,16 +244,16 @@ int gstate_temp_file_write_at(unsigned char far *src_far, unsigned long offset, 
         if (res_fseek(g_tempGamFP, offset, SEEK_SET) != 0)
             ;
     }
-    if (res_ftell(g_tempGamFP) == (long)offset)
+    if (res_ftell(g_tempGamFP) == (s32)offset)
         ;
-    res_fwrite_far(src_far, 1, (long)bytes, g_tempGamFP);
+    res_fwrite_far(src_far, 1, (s32)bytes, g_tempGamFP);
     return 1;
 }
 
-static int far gstate_consume_rations_tick(int ctx) {
-    int table_loaded;
-    int i;
-    int event_total;
+static s16 far gstate_consume_rations_tick(s16 ctx) {
+    s16 table_loaded;
+    s16 i;
+    s16 event_total;
 
     table_loaded = itemtbl_load();
     i = event_total = 0;
@@ -266,8 +266,8 @@ static int far gstate_consume_rations_tick(int ctx) {
     return event_total;
 }
 
-int far gstate_member_consume_rations(int member_slot, int a) {
-    int ret;
+s16 far gstate_member_consume_rations(s16 member_slot, s16 a) {
+    s16 ret;
     Combatant *actor;
 
     actor = &g_gameState.characters[member_slot];
@@ -289,15 +289,15 @@ int far gstate_member_consume_rations(int member_slot, int a) {
 
 extern ConditionInfo far g_aConditionInfo[7];
 
-static int gstate_hourly_tick(int arg0, int arg1, int arg2) {
-    int cond;
-    int regen;
-    int eventFired;
-    int allConscious;
-    unsigned long elapsed;
-    int val;
-    register int actor;
-    register int slot;
+static s16 gstate_hourly_tick(s16 arg0, s16 arg1, s16 arg2) {
+    s16 cond;
+    s16 regen;
+    s16 eventFired;
+    s16 allConscious;
+    u32 elapsed;
+    s16 val;
+    register s16 actor;
+    register s16 slot;
 
     eventFired = 0;
     allConscious = 1;
@@ -308,7 +308,7 @@ static int gstate_hourly_tick(int arg0, int arg1, int arg2) {
         for (slot = 0; slot < g_gameState.partySize; slot = slot + 1) {
             actor = g_gameState.activeParty[slot];
             if (stat_combatant_modify(&g_gameState.characters[actor], 0x10,
-                                      (long)((int)g_fatigueDrainPerChar[actor] << 8), 100) == 0) {
+                                      (s32)((s16)g_fatigueDrainPerChar[actor] << 8), 100) == 0) {
                 allConscious = 0;
             }
         }
@@ -331,7 +331,7 @@ static int gstate_hourly_tick(int arg0, int arg1, int arg2) {
         cond = 0;
         do {
             if (g_gameState.abActorStatusRanks[actor][cond] != '\0') {
-                int amount;
+                s16 amount;
                 amount = g_aConditionInfo[cond].nStatDelta;
                 if ((cond < 4) && (g_gameState.abActorStatusRanks[actor][4] != '\0')) {
                     amount -= (cond == 0) + 2;
@@ -345,7 +345,7 @@ static int gstate_hourly_tick(int arg0, int arg1, int arg2) {
             cond++;
         } while (cond < 7);
         if (regen != 0) {
-            stat_combatant_modify(&g_gameState.characters[actor], 0x10, (long)(regen << 8), val);
+            stat_combatant_modify(&g_gameState.characters[actor], 0x10, (s32)(regen << 8), val);
         }
     }
     if ((arg0 != 0) && ((g_gameState.bPartyDirtyFlags & 2) != 0)) {
@@ -358,21 +358,21 @@ static int gstate_hourly_tick(int arg0, int arg1, int arg2) {
     return eventFired;
 }
 
-int far gstate_advance_time(long seconds, int flags, int recompute_party, int a, int b) {
-    int actor;
-    int rank;
-    int n;
-    int i;
-    int old_hd;
-    int eventTotal;
-    int old_tick;
+s16 far gstate_advance_time(s32 seconds, s16 flags, s16 recompute_party, s16 a, s16 b) {
+    s16 actor;
+    s16 rank;
+    s16 n;
+    s16 i;
+    s16 old_hd;
+    s16 eventTotal;
+    s16 old_tick;
     Combatant *member;
 
     eventTotal = 0;
-    old_tick = (int)(g_gameState.game_time % 0xa8c0 / 0x708);
-    old_hd = (int)(g_gameState.game_time / 0xa8c0);
+    old_tick = (s16)(g_gameState.game_time % 0xa8c0 / 0x708);
+    old_hd = (s16)(g_gameState.game_time / 0xa8c0);
     g_gameState.game_time += seconds;
-    if (g_gameState.game_time / 0xa8c0 != (long)old_hd) {
+    if (g_gameState.game_time / 0xa8c0 != (s32)old_hd) {
         if (old_hd % 0x1e == 0) {
             for (i = 0; i < g_gameState.partySize; i = i + 1) {
                 member = &g_gameState.characters[g_gameState.activeParty[i]];
@@ -399,25 +399,25 @@ int far gstate_advance_time(long seconds, int flags, int recompute_party, int a,
             }
         }
     }
-    if ((g_gameState.game_time % 0xa8c0) / 0x708 != (long)old_tick) {
+    if ((g_gameState.game_time % 0xa8c0) / 0x708 != (s32)old_tick) {
         eventTotal += gstate_hourly_tick(flags, a, b);
     }
-    timerpool_tick((int)seconds);
+    timerpool_tick((s16)seconds);
     palette_daylight_tick();
     return eventTotal;
 }
 
-int far gstate_advance_hours(int hours, int pad, int flags) {
-    int eventTotal;
+s16 far gstate_advance_hours(s16 hours, s16 pad, s16 flags) {
+    s16 eventTotal;
 
     g_gameState.dwLastActionTimeSnapshot = g_gameState.game_time;
-    eventTotal = gstate_advance_time((long)hours * 0x708, 1, 1, 0, flags);
+    eventTotal = gstate_advance_time((s32)hours * 0x708, 1, 1, 0, flags);
     g_gameState.dwLastActionTimeSnapshot = g_gameState.game_time;
     return eventTotal;
 }
 
-int gstate_is_party_member(int actor_id) {
-    int i;
+s16 gstate_is_party_member(s16 actor_id) {
+    s16 i;
 
     for (i = 0; g_gameState.partySize > i; i++) {
         if (g_gameState.activeParty[i] == actor_id) {
@@ -427,20 +427,20 @@ int gstate_is_party_member(int actor_id) {
     return 0;
 }
 
-int gstate_actor_is_caster(Combatant *actor) {
+s16 gstate_actor_is_caster(Combatant *actor) {
     return actor->stats[SKILL_CASTING].max != 0;
 }
 
-Combatant *gstate_party_member_record(int slot) {
+Combatant *gstate_party_member_record(s16 slot) {
     if (slot >= 0 && slot < g_gameState.partySize) {
         return &g_gameState.characters[g_gameState.activeParty[slot]];
     }
     return 0;
 }
 
-int gstate_find_party_slot(Combatant *actor) {
-    int result_slot;
-    int i;
+s16 gstate_find_party_slot(Combatant *actor) {
+    s16 result_slot;
+    s16 i;
 
     i = 0;
     result_slot = -1;
@@ -453,9 +453,9 @@ int gstate_find_party_slot(Combatant *actor) {
     return result_slot;
 }
 
-void gstate_format_money(char *buf, long gold, int mode) {
-    long g = gold / 10;
-    long s = gold % 10;
+void gstate_format_money(char *buf, s32 gold, s16 mode) {
+    s32 g = gold / 10;
+    s32 s = gold % 10;
 
     if (mode == 0) {
         sprintf(buf, "%ld.%ld gold", g, s);

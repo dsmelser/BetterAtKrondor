@@ -18,10 +18,10 @@
 #include "defines.h"
 
 
-void evtcond_pty_inv_repair_cnt(int *count_out, int *repair_out, int do_repair) {
-    int member;
-    int i;
-    int loaded;
+void evtcond_pty_inv_repair_cnt(s16 *count_out, s16 *repair_out, s16 do_repair) {
+    s16 member;
+    s16 i;
+    s16 loaded;
     Actor far *actor;
     ItemSlot far *slot;
 
@@ -46,17 +46,17 @@ void evtcond_pty_inv_repair_cnt(int *count_out, int *repair_out, int do_repair) 
             }
         }
     }
-    g_gameState.lEvtArgValue = (long)*repair_out;
+    g_gameState.lEvtArgValue = (s32)*repair_out;
     g_gameState.lEvtArgGoldCost = g_gameState.lEvtArgGoldCost * g_gameState.lEvtArgValue;
     if (loaded != 0) {
         itemtbl_free();
     }
 }
 
-int evtcond_range_d_read_handler(unsigned int cond) {
-    int i;
-    int j;
-    int c4res;
+s16 evtcond_range_d_read_handler(u16 cond) {
+    s16 i;
+    s16 j;
+    s16 c4res;
 
     if (cond >= 0xc738 && cond < 0xc79c) {
         Actor far *actor;
@@ -64,12 +64,12 @@ int evtcond_range_d_read_handler(unsigned int cond) {
         /* 0x38c8 arithmetic bias mapping the event-condition id
            into the item-condition value space (cond compared to slot->condition) */
         cond += 0x38c8;
-        for (i = 0; i < (int)g_gameState.partySize; i++) {
+        for (i = 0; i < (s16)g_gameState.partySize; i++) {
             actor = g_gameState.characters[g_gameState.activeParty[i]].actor_record;
             j = 0;
             slot = ACTOR_ITEMS(actor);
-            for (; j < (int)actor->itemCount; j++, slot++) {
-                if (slot->item_id == 'x' && (unsigned int)slot->condition == cond) {
+            for (; j < (s16)actor->itemCount; j++, slot++) {
+                if (slot->item_id == 'x' && (u16)slot->condition == cond) {
                 L_match:
                     return 1;
                 }
@@ -79,13 +79,13 @@ int evtcond_range_d_read_handler(unsigned int cond) {
     }
     switch (cond) {
     case 0x9c42: /* idx1 */
-        for (i = 0; i < (int)g_gameState.partySize; i++) {
+        for (i = 0; i < (s16)g_gameState.partySize; i++) {
             if (g_gameState.abActorStatusRanks[g_gameState.activeParty[i]][1] != 0)
                 return 1;
         }
         goto L_def0;
     case 0x9c41: /* idx0 */
-        for (i = 0; i < (int)g_gameState.partySize; i++) {
+        for (i = 0; i < (s16)g_gameState.partySize; i++) {
             if (!(char)g_gameState.abActorStatusRanks[g_gameState.activeParty[i]][5])
                 goto L_def0;
         }
@@ -114,7 +114,7 @@ int evtcond_range_d_read_handler(unsigned int cond) {
         return c4res;
     }
     case 0x9c46: { /* idx5 */
-        int loaded;
+        s16 loaded;
         loaded = itemtbl_load();
         i = cmbinv_find_equipped_in_category(g_gameState.characters[CHR_OWYN].actor_record, 3) !=
             0;
@@ -125,7 +125,7 @@ int evtcond_range_d_read_handler(unsigned int cond) {
         return i != 0 && j != 0;
     }
     case 0x9c49: /* idx8 */
-        for (i = 0; i < (int)g_gameState.partySize; i++) {
+        for (i = 0; i < (s16)g_gameState.partySize; i++) {
             j = 0;
             do {
                 if (j != 4 && g_gameState.abActorStatusRanks[g_gameState.activeParty[i]][j] != 0)
@@ -137,21 +137,21 @@ int evtcond_range_d_read_handler(unsigned int cond) {
     case 0x9c4a: /* idx9 */
         if (evtcond_range_d_read_handler(0x9c49) != 0)
             goto L_match;
-        for (i = 0; i < (int)g_gameState.partySize; i++) {
+        for (i = 0; i < (s16)g_gameState.partySize; i++) {
             if (stat_actor_get(gstate_party_member_record(i), 0x10, 0) !=
                 stat_actor_get(gstate_party_member_record(i), 0x10, 1))
                 goto L_match;
         }
         goto L_def0;
     case 0x9c4b: /* idx10 */
-        for (i = 0; i < (int)g_gameState.partySize; i++) {
+        for (i = 0; i < (s16)g_gameState.partySize; i++) {
             if (itemtbl_inv_count_by_kind(gstate_party_member_record(i)->actor_record, 0x59) == 0)
                 goto L_def0;
         }
         goto L_match;
     case 0x9c4c: { /* idx11 */
         Actor far *actor;
-        int res;
+        s16 res;
         actor = actorspawn_objfixed(3, 0x13f560L, 0xf4ba0L);
         res = itemtbl_inv_count_by_kind(actor, 0x48);
         actorspawn_destroy_and_persist(actor);
@@ -159,7 +159,7 @@ int evtcond_range_d_read_handler(unsigned int cond) {
     }
     case 0x9c4d: { /* idx12 */
         Actor far *actor;
-        int res;
+        s16 res;
         actor = actorspawn_objfixed(3, 0x13f560L, 0xf4ba0L);
         res = (itemtbl_inv_count_by_kind(actor, 0x49) != 0 ||
                itemtbl_inv_count_by_kind(actor, 0x4a) != 0);
@@ -171,16 +171,16 @@ L_def0:
     return 0;
 }
 
-void evtcond_range_d_write_stub(unsigned int event_id, unsigned int value) {
+void evtcond_range_d_write_stub(u16 event_id, u16 value) {
     (void)event_id;
     (void)value;
     return;
 }
 
 void evtcond_dialog_action_dispatch(DdxOp far *action_record) {
-    int temp;
+    s16 temp;
 
-    switch ((unsigned int)action_record->nA1) {
+    switch ((u16)action_record->nA1) {
     case 0:
         g_gameState.nParty_gold = g_gameState.nParty_gold >= g_gameState.lEvtArgGoldCost
                                       ? g_gameState.nParty_gold - g_gameState.lEvtArgGoldCost
@@ -193,10 +193,10 @@ void evtcond_dialog_action_dispatch(DdxOp far *action_record) {
         evtcond_pty_inv_repair_cnt(&temp, &temp, 1);
         break;
     case 3:
-        rgnenc_complete_consume((unsigned long)(unsigned int)action_record->nA2);
+        rgnenc_complete_consume((u32)(u16)action_record->nA2);
         break;
     case 4:
-        rgnenc_mark_defended((unsigned long)(unsigned int)action_record->nA2);
+        rgnenc_mark_defended((u32)(u16)action_record->nA2);
         break;
     case 5: {
         Actor far *actor = actorspawn_objfixed(0, 0x14L, 0L);
@@ -211,18 +211,18 @@ void evtcond_dialog_action_dispatch(DdxOp far *action_record) {
         break;
     }
     case 7:
-        g_gameState.lEvtArgValue += (long)(unsigned int)action_record->nA2;
+        g_gameState.lEvtArgValue += (s32)(u16)action_record->nA2;
         break;
     case 8: {
-        g_gameState.lEvtArgValue = RND((unsigned int)action_record->nA2);
-        g_gameState.lEvtArgAuxValue = RND((unsigned int)action_record->nA3);
+        g_gameState.lEvtArgValue = RND((u16)action_record->nA2);
+        g_gameState.lEvtArgAuxValue = RND((u16)action_record->nA3);
         if (g_gameState.lEvtArgValue > g_gameState.lEvtArgAuxValue) {
 
             temp =
-                (int)(g_gameState.lEvtArgGoldCost * (long)(unsigned int)action_record->nA4 / 100);
+                (s16)(g_gameState.lEvtArgGoldCost * (s32)(u16)action_record->nA4 / 100);
             g_gameState.nEvtArgCount = 0;
             g_gameState.nParty_gold += temp;
-            if (g_gameState.dwPopup_retry_state < (unsigned)temp) {
+            if (g_gameState.dwPopup_retry_state < (u16)temp) {
                 g_gameState.dwPopup_retry_state = 0;
             } else {
                 g_gameState.dwPopup_retry_state -= temp;
@@ -233,7 +233,7 @@ void evtcond_dialog_action_dispatch(DdxOp far *action_record) {
             g_gameState.nParty_gold -= g_gameState.lEvtArgGoldCost;
             g_gameState.dwPopup_retry_state =
                 g_gameState.dwPopup_retry_state + (g_gameState.dwPopup_retry_state < 0xea60
-                                                       ? (unsigned)g_gameState.lEvtArgGoldCost
+                                                       ? (u16)g_gameState.lEvtArgGoldCost
                                                        : 0);
         } else if (g_gameState.lEvtArgValue < g_gameState.lEvtArgAuxValue) {
 
@@ -242,13 +242,13 @@ void evtcond_dialog_action_dispatch(DdxOp far *action_record) {
         break;
     }
     case 9: {
-        int loaded = itemtbl_load();
-        int slot;
+        s16 loaded = itemtbl_load();
+        s16 slot;
         for (slot = 0; slot < g_gameState.partySize; slot++) {
             Actor far *actor = gstate_party_member_record(slot)->actor_record;
-            int i = 0;
+            s16 i = 0;
             ItemSlot far *islot = ACTOR_ITEMS(actor);
-            for (; i < (int)actor->itemCount; i++, islot++) {
+            for (; i < (s16)actor->itemCount; i++, islot++) {
                 if ((islot->flags & 0x40) != 0 && itemtbl_record_ptr(islot)->wCategory == 1) {
                     islot->condition = 100;
                     islot->flags &= 0x1fff;
@@ -271,15 +271,15 @@ void evtcond_dialog_action_dispatch(DdxOp far *action_record) {
         break;
     }
     case 11:
-        if ((unsigned int)action_record->nA2 > g_gameState.dwPopup_retry_state) {
-            g_gameState.dwPopup_retry_state = (unsigned int)action_record->nA2;
+        if ((u16)action_record->nA2 > g_gameState.dwPopup_retry_state) {
+            g_gameState.dwPopup_retry_state = (u16)action_record->nA2;
         }
         break;
     case 12:
         g_nHotspotActivateRequest = 1;
         break;
     case 13: {
-        int i;
+        s16 i;
         for (i = 0; i < g_gameState.nTimerEventPoolCount; i++) {
             if (g_gameState.aTimerEventPool[i].bKind == 1 &&
                 g_gameState.aTimerEventPool[i].wSub_id == 0) {
@@ -301,10 +301,10 @@ void evtcond_dialog_action_dispatch(DdxOp far *action_record) {
     }
     case 15:
         stat_combatant_modify(&g_gameState.characters[g_gameState.nEvtArgActor0],
-                              (int)g_gameState.lEvtArgValue, 0x200L, 0);
+                              (s16)g_gameState.lEvtArgValue, 0x200L, 0);
         break;
     case 16: {
-        int i;
+        s16 i;
         for (i = 0; i < 3; i++) {
             temp = g_gameState.characters[CHR_OWYN].spellsKnown[i] |
                    g_gameState.characters[CHR_PUG].spellsKnown[i];
@@ -317,13 +317,13 @@ void evtcond_dialog_action_dispatch(DdxOp far *action_record) {
 }
 
 void evtcond_pty_dirty_flags_process(void) {
-    int member_idx;
-    int slot_idx;
-    unsigned int affected_members_mask;
-    unsigned int affected_slots_mask;
-    int affected_members_count;
-    register int affected_slots_count;
-    register unsigned int event_addr;
+    s16 member_idx;
+    s16 slot_idx;
+    u16 affected_members_mask;
+    u16 affected_slots_mask;
+    s16 affected_members_count;
+    register s16 affected_slots_count;
+    register u16 event_addr;
 
     affected_members_mask = 0;
     affected_slots_mask = 0;
@@ -333,7 +333,7 @@ void evtcond_pty_dirty_flags_process(void) {
         return;
     }
     if ((g_gameState.bPartyDirtyFlags & 1) != 0) {
-        for (member_idx = 0; member_idx < (int)g_gameState.partySize; member_idx++) {
+        for (member_idx = 0; member_idx < (s16)g_gameState.partySize; member_idx++) {
             for (slot_idx = 2; slot_idx < 0x11; slot_idx++) {
                 event_addr = g_gameState.activeParty[member_idx] * 0x11 + slot_idx;
                 if (gstate_event_read(SKILL_IMPROVED(event_addr)) != 0) {
@@ -345,7 +345,7 @@ void evtcond_pty_dirty_flags_process(void) {
                     if ((affected_slots_mask & (1 << slot_idx)) == 0) {
                         affected_slots_mask |= (1 << slot_idx);
                         affected_slots_count++;
-                        g_gameState.lEvtArgAuxValue = (long)slot_idx;
+                        g_gameState.lEvtArgAuxValue = (s32)slot_idx;
                     }
                 }
             }
@@ -403,7 +403,7 @@ void evtcond_pty_dirty_flags_process(void) {
     g_gameState.bPartyDirtyFlags = 0;
 }
 
-void evtcond_dispatch_key_to_handler(unsigned int event_id) {
+void evtcond_dispatch_key_to_handler(u16 event_id) {
     switch (event_id) {
     case 0x4a:
         dialog_play_record(0x1cfdf1, 0);
@@ -436,7 +436,7 @@ void evtcond_dispatch_key_to_handler(unsigned int event_id) {
     case 0x19a:
     case 0x1ad:
     case 0x1ae:
-        rgnenc_complete_consume((unsigned long)event_id);
+        rgnenc_complete_consume((u32)event_id);
         return;
     case 0x262:
     case 0x265:

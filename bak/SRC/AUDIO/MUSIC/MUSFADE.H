@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int music_fade(int track_id, int target_volume, int steps);
+extern s16 music_fade(s16 track_id, s16 target_volume, s16 steps);
 
 #endif

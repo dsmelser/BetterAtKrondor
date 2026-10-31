@@ -34,25 +34,25 @@
 #include "defines.h"
 
 
-unsigned short g_inventory_screen_mode = 0x0000;
+u16 g_inventory_screen_mode = 0x0000;
 unsigned char g_bIsRestEncounter = 0x00;
 Actor far *g_other_inventory_actor = {0};
 Actor far *g_pDroppedItemActor = {0};
 MenuPage *g_pInventoryMenuPage = {0};
 ItemSlot far *g_pStackHeadroomSlot = {0};
 
-void cmbinv_combat_encounter_begin(MenuPage *page, Actor far *actor, int pageBase) {
-    int i;
-    int col;
-    int row;
-    int span;
-    int maxX;
-    int maxY;
+void cmbinv_combat_encounter_begin(MenuPage *page, Actor far *actor, s16 pageBase) {
+    s16 i;
+    s16 col;
+    s16 row;
+    s16 span;
+    s16 maxX;
+    s16 maxY;
     ActorSubrecord far *subrec;
     char grid[28];
     MenuEntry *entry;
-    unsigned short category;
-    int found;
+    u16 category;
+    s16 found;
 
     maxX = 0;
     maxY = 0;
@@ -65,7 +65,7 @@ void cmbinv_combat_encounter_begin(MenuPage *page, Actor far *actor, int pageBas
     if (subrec != (ActorSubrecord far *)0) {
 
         g_bIsRestEncounter = subrec->event_state.bRest_gold_cost != 0;
-        for (i = 0; i < 6 && i + pageBase < (int)(unsigned)actor->itemCount; i++) {
+        for (i = 0; i < 6 && i + pageBase < (s16)(u16)actor->itemCount; i++) {
             if (itemtbl_record_ptr(&ACTOR_ITEM(actor, i + pageBase))->wDamage_class_threshold <=
                 g_gameState.nChapter) {
                 entry = &page->pEntries[page->wEntry_count];
@@ -82,7 +82,7 @@ void cmbinv_combat_encounter_begin(MenuPage *page, Actor far *actor, int pageBas
 
         if (actor->bResidence == RES_PARTY_SLOT || g_bInventoryShopMode != 0) {
 
-            for (i = 0; i < (int)(unsigned)actor->itemCount && !g_bInventoryShopMode; i++) {
+            for (i = 0; i < (s16)(u16)actor->itemCount && !g_bInventoryShopMode; i++) {
                 span = 0;
                 if ((ACTOR_ITEM(actor, i).flags & 0x40) != 0) {
                     category = itemtbl_record_ptr(&ACTOR_ITEM(actor, i))->wCategory;
@@ -124,7 +124,7 @@ void cmbinv_combat_encounter_begin(MenuPage *page, Actor far *actor, int pageBas
             }
         }
 
-        for (i = 0; i < (int)(unsigned)actor->itemCount; i++) {
+        for (i = 0; i < (s16)(u16)actor->itemCount; i++) {
             if (actor->bResidence != RES_PARTY_SLOT || (ACTOR_ITEM(actor, i).flags & 0x40) == 0) {
                 col = found = 0;
                 for (; !found && col < 7; col++) {
@@ -167,7 +167,7 @@ void cmbinv_combat_encounter_begin(MenuPage *page, Actor far *actor, int pageBas
 
             maxX = (0x133 - maxX) / 2;
             maxY = (0x84 - maxY) / 2;
-            for (i = 7; i < (int)page->wEntry_count; i++) {
+            for (i = 7; i < (s16)page->wEntry_count; i++) {
                 page->pEntries[i].rect.x += maxX;
                 page->pEntries[i].rect.y += maxY;
             }
@@ -187,21 +187,21 @@ void cmbinv_combat_encounter_begin(MenuPage *page, Actor far *actor, int pageBas
     }
 }
 
-int cmbinv_inventory_screen_run(Actor far *actor, int idx, int flag) {
+s16 cmbinv_inventory_screen_run(Actor far *actor, s16 idx, s16 flag) {
 
-    unsigned short needRedraw;
-    int fadeIn;
-    int selSlot;
-    int page;
-    int result;
-    unsigned short savedEntryCount;
-    unsigned short savedBlendMode;
+    u16 needRedraw;
+    s16 fadeIn;
+    s16 selSlot;
+    s16 page;
+    s16 result;
+    u16 savedEntryCount;
+    u16 savedBlendMode;
     unsigned char far *savedInstalledPal;
     unsigned char far *palBuf;
 
-    int memberIdx;
-    unsigned int action;
-    int drag;
+    s16 memberIdx;
+    u16 action;
+    s16 drag;
 
     memberIdx = idx;
     needRedraw = 1;
@@ -214,7 +214,7 @@ int cmbinv_inventory_screen_run(Actor far *actor, int idx, int flag) {
     g_pPalQueuedForFlip = (unsigned char far *)0;
     g_nPalBlendMode = 0;
     screen_cursor_show_busy();
-    invui_inspect_images_load_once((unsigned int)g_bInventoryShopMode);
+    invui_inspect_images_load_once((u16)g_bInventoryShopMode);
     if (g_wInCombatMode == 0) {
         itemtbl_load();
     }
@@ -262,13 +262,13 @@ int cmbinv_inventory_screen_run(Actor far *actor, int idx, int flag) {
         if (needRedraw != 0) {
             if (memberIdx != 0) {
                 g_gameState.nEvtArgActor0 =
-                    (short)(signed char)((char *)&g_gameState.partySize)[memberIdx];
+                    (s16)(signed char)((char *)&g_gameState.partySize)[memberIdx];
                 stat_actor_recalc_equip_bonuses(
                     &g_gameState.characters[g_gameState.nEvtArgActor0]);
             } else {
 
                 g_gameState.nEvtArgActor0 =
-                    (short)(signed char)g_gameState.activeParty[RND(g_gameState.partySize)];
+                    (s16)(signed char)g_gameState.activeParty[RND(g_gameState.partySize)];
             }
             cmbinv_combat_encounter_begin(g_pInventoryMenuPage, actor, page * 6);
             invui_render_present_sync(g_pInventoryMenuPage, actor, memberIdx, selSlot);
@@ -313,7 +313,7 @@ int cmbinv_inventory_screen_run(Actor far *actor, int idx, int flag) {
                 if (((action < 2) || (4 < action)) && (action != 0x7f)) {
                     if (action == 0x20) {
 
-                        if ((short)(g_gameState.nEvtArgCount = g_inventory_actor_kind) >= 0) {
+                        if ((s16)(g_gameState.nEvtArgCount = g_inventory_actor_kind) >= 0) {
                             dialog_play_record(0x1b7751L, 0);
                         }
                         action = 0;
@@ -329,7 +329,7 @@ int cmbinv_inventory_screen_run(Actor far *actor, int idx, int flag) {
 
         if (action != 0) {
             if (((action == 2) || (action == 3) || (action == 4)) && !g_bInventoryShopMode) {
-                int target = (int)(action - 2) + 1;
+                s16 target = (s16)(action - 2) + 1;
                 selSlot = -1;
                 if (target <= g_gameState.partySize) {
                     if ((menupage_state_0e7c() == 2) || (key_is_down(0x2a) != 0) ||
@@ -407,7 +407,7 @@ int cmbinv_inventory_screen_run(Actor far *actor, int idx, int flag) {
                 } else if (action == 0x7f) {
                     picklock_inv_info_query_disp();
                 } else if ((action == 2) || (action == 3) || (action == 4)) {
-                    int target = (int)(action - 2) + 1;
+                    s16 target = (s16)(action - 2) + 1;
                     selSlot = -1;
                     needRedraw = 1;
                     if (target <= g_gameState.partySize) {
@@ -435,7 +435,7 @@ int cmbinv_inventory_screen_run(Actor far *actor, int idx, int flag) {
                 } else {
                     page++;
                 }
-                if (((int)(unsigned int)actor->itemCount <= page * 6) ||
+                if (((s16)(u16)actor->itemCount <= page * 6) ||
                     (g_gameState.nChapter <
                      itemtbl_record_ptr(ACTOR_ITEMS(actor) + page * 6)->wDamage_class_threshold)) {
                     page = 0;
@@ -474,25 +474,25 @@ int cmbinv_inventory_screen_run(Actor far *actor, int idx, int flag) {
     }
 }
 
-int cmbinv_item_field_32_or_1(ItemSlot far *slot) {
+s16 cmbinv_item_field_32_or_1(ItemSlot far *slot) {
     ItemRecord far *rec;
 
     rec = itemtbl_record_ptr(slot);
     return rec->wDefault_qty_or_1 != 0 ? rec->wDefault_qty_or_1 : 1;
 }
 
-static int cmbinv_item_compare(ItemSlot far *a, ItemSlot far *b, int sort_mode,
-                               int use_equipped_order) {
+static s16 cmbinv_item_compare(ItemSlot far *a, ItemSlot far *b, s16 sort_mode,
+                               s16 use_equipped_order) {
     ItemRecord far *ra;
     ItemRecord far *rb;
-    int cat_a;
-    int cat_b;
-    int qty_a;
-    int qty_b;
-    int avail_a;
-    int avail_b;
-    int bit_a;
-    int bit_b;
+    s16 cat_a;
+    s16 cat_b;
+    s16 qty_a;
+    s16 qty_b;
+    s16 avail_a;
+    s16 avail_b;
+    s16 bit_a;
+    s16 bit_b;
 
     ra = itemtbl_record_ptr(a);
     rb = itemtbl_record_ptr(b);
@@ -543,18 +543,18 @@ static int cmbinv_item_compare(ItemSlot far *a, ItemSlot far *b, int sort_mode,
 }
 
 void cmbinv_combat_sort_initiative(Actor far *actor) {
-    int sort_mode;
+    s16 sort_mode;
     ItemSlot far *a;
     ItemSlot far *b;
     ItemSlot tmp;
-    int did_swap;
-    int i;
+    s16 did_swap;
+    s16 i;
 
     sort_mode = actorrec_get_subrecord(actor, SUBREC_EVENT_STATE) != 0;
 
     do {
         i = did_swap = 0;
-        for (; i < (int)(actor->itemCount - 1); i++) {
+        for (; i < (s16)(actor->itemCount - 1); i++) {
             a = ACTOR_ITEMS(actor) + i;
             b = a + 1;
             if (cmbinv_item_compare(a, b, sort_mode, actor->bResidence == RES_PARTY_SLOT) != 0) {
@@ -571,16 +571,16 @@ void cmbinv_consolidate_stacks(Actor far *actor) {
     ItemSlot far *slotA;
     ItemSlot far *slotB;
     ItemRecord far *rec;
-    int done;
-    int i;
-    unsigned int sum;
-    unsigned int bMax;
+    s16 done;
+    s16 i;
+    u16 sum;
+    u16 bMax;
 
     do {
         done = 1;
         cmbinv_combat_sort_initiative(actor);
         actor->needsFlush = TRUE;
-        for (i = 1; (int)(unsigned int)actor->itemCount > i; i++) {
+        for (i = 1; (s16)(u16)actor->itemCount > i; i++) {
             slotA = ACTOR_ITEMS(actor) + (i - 1);
             slotB = slotA + 1;
             rec = itemtbl_record_ptr(slotA);
@@ -591,13 +591,13 @@ void cmbinv_consolidate_stacks(Actor far *actor) {
             if (slotB->condition >= rec->bMax_stack)
                 continue;
             if (slotA->condition < rec->bMax_stack) {
-                sum = (unsigned int)slotA->condition + (unsigned int)slotB->condition;
-                bMax = (unsigned int)rec->bMax_stack;
+                sum = (u16)slotA->condition + (u16)slotB->condition;
+                bMax = (u16)rec->bMax_stack;
                 done = 0;
-                if ((int)sum <= (int)bMax) {
+                if ((s16)sum <= (s16)bMax) {
                     slotA->condition = (unsigned char)sum;
                     *slotB = *(ACTOR_ITEMS(actor) +
-                               (unsigned int)(actor->itemCount = actor->itemCount + 0xff));
+                               (u16)(actor->itemCount = actor->itemCount + 0xff));
                     continue;
                 }
                 slotA->condition = (unsigned char)sum - (unsigned char)bMax;
@@ -607,13 +607,13 @@ void cmbinv_consolidate_stacks(Actor far *actor) {
     } while (!done);
 }
 
-ItemSlot far *cmbinv_find_equipped_in_category(Actor far *actor, int item_category) {
-    int i;
+ItemSlot far *cmbinv_find_equipped_in_category(Actor far *actor, s16 item_category) {
+    s16 i;
     ItemSlot far *slot;
 
     i = 0;
     slot = ACTOR_ITEMS(actor);
-    for (; i < (int)(unsigned char)actor->itemCount; i++, slot++) {
+    for (; i < (s16)(unsigned char)actor->itemCount; i++, slot++) {
         if ((slot->flags & 0x40) != 0 && itemtbl_record_ptr(slot)->wCategory == item_category) {
             return slot;
         }
@@ -621,12 +621,12 @@ ItemSlot far *cmbinv_find_equipped_in_category(Actor far *actor, int item_catego
     return (ItemSlot far *)0;
 }
 
-static int cmbinv_has_space_for_item(Actor far *actor, ItemSlot far *item) {
-    int itemSize;
-    int budget;
-    int total;
-    int r;
-    int i;
+static s16 cmbinv_has_space_for_item(Actor far *actor, ItemSlot far *item) {
+    s16 itemSize;
+    s16 budget;
+    s16 total;
+    s16 r;
+    s16 i;
 
     itemSize = cmbinv_item_field_32_or_1(item);
 
@@ -637,7 +637,7 @@ static int cmbinv_has_space_for_item(Actor far *actor, ItemSlot far *item) {
     }
 
     total = (itemSize > 1) ? itemSize : 0;
-    for (i = 0; i < (int)actor->itemCount; i++) {
+    for (i = 0; i < (s16)actor->itemCount; i++) {
         if (((actor->bResidence != RES_PARTY_SLOT) || ((ACTOR_ITEM(actor, i).flags & 0x40) == 0)) &&
             ((r = cmbinv_item_field_32_or_1(ACTOR_ITEMS(actor) + i)) != 1)) {
             total += r;
@@ -649,7 +649,7 @@ static int cmbinv_has_space_for_item(Actor far *actor, ItemSlot far *item) {
     }
 
     total += (itemSize == 1);
-    for (i = 0; i < (int)actor->itemCount; i++) {
+    for (i = 0; i < (s16)actor->itemCount; i++) {
         if (((actor->bResidence != RES_PARTY_SLOT) || ((ACTOR_ITEM(actor, i).flags & 0x40) == 0)) &&
             ((r = cmbinv_item_field_32_or_1(ACTOR_ITEMS(actor) + i)) <= 1)) {
             total += r;
@@ -659,10 +659,10 @@ static int cmbinv_has_space_for_item(Actor far *actor, ItemSlot far *item) {
     return total <= budget;
 }
 
-static int cmbinv_actor_can_stack_item(Actor far *actor, ItemSlot far *item) {
+static s16 cmbinv_actor_can_stack_item(Actor far *actor, ItemSlot far *item) {
     ItemSlot far *slot;
     ItemRecord far *rec;
-    int i;
+    s16 i;
 
     rec = itemtbl_record_ptr(item);
     if (rec->wFlags & 0x800) {
@@ -680,10 +680,10 @@ static int cmbinv_actor_can_stack_item(Actor far *actor, ItemSlot far *item) {
     return 0;
 }
 
-static int cmbinv_actor_find_stack_headroom(Actor far *actor, ItemSlot far *item) {
+static s16 cmbinv_actor_find_stack_headroom(Actor far *actor, ItemSlot far *item) {
     ItemSlot far *slot;
     ItemRecord far *rec;
-    int i;
+    s16 i;
 
     rec = itemtbl_record_ptr(item);
     g_pStackHeadroomSlot = 0;
@@ -701,8 +701,8 @@ static int cmbinv_actor_find_stack_headroom(Actor far *actor, ItemSlot far *item
     return 0;
 }
 
-static int cmbinv_actor_can_auto_equip(Actor far *actor, ItemSlot far *item) {
-    int slot;
+static s16 cmbinv_actor_can_auto_equip(Actor far *actor, ItemSlot far *item) {
+    s16 slot;
     ItemRecord far *rec;
 
     rec = itemtbl_record_ptr(item);
@@ -716,7 +716,7 @@ static int cmbinv_actor_can_auto_equip(Actor far *actor, ItemSlot far *item) {
            cmbinv_find_equipped_in_category(actor, rec->wCategory) == 0;
 }
 
-int cmbinv_actor_classify_pickup(Actor far *actor, ItemSlot far *item) {
+s16 cmbinv_actor_classify_pickup(Actor far *actor, ItemSlot far *item) {
     if (cmbinv_actor_can_auto_equip(actor, item))
         return 3;
     if (cmbinv_has_space_for_item(actor, item))
@@ -730,7 +730,7 @@ int cmbinv_actor_classify_pickup(Actor far *actor, ItemSlot far *item) {
 }
 
 void cmbinv_actor_inv_remove_item(Actor far *actor, ItemSlot far *item_slot) {
-    int i;
+    s16 i;
 
     for (i = 0; i < actor->itemCount; i++) {
         if (_fmemcmp(ACTOR_ITEMS(actor) + i, item_slot, 4) == 0) {
@@ -746,12 +746,12 @@ static void cmbinv_combat_op_noop(Actor far *src, ItemSlot far *item) {
     (void)item;
 }
 
-int cmbinv_actor_transfer_item(Actor far *src, Actor far *dst, ItemSlot far *item) {
+s16 cmbinv_actor_transfer_item(Actor far *src, Actor far *dst, ItemSlot far *item) {
     ItemRecord far *rec;
     ItemSlot savedItem;
     ItemSlot equipTmp;
     ItemSlot far *equippedSlot;
-    int pickupResult;
+    s16 pickupResult;
 
     rec = itemtbl_record_ptr(item);
     savedItem = *item;
@@ -772,9 +772,9 @@ int cmbinv_actor_transfer_item(Actor far *src, Actor far *dst, ItemSlot far *ite
     }
     if (item->item_id == '5' || item->item_id == '6') {
         if (item->item_id == '5') {
-            g_gameState.nParty_gold += (long)(int)(unsigned int)item->condition * 10;
+            g_gameState.nParty_gold += (s32)(s16)(u16)item->condition * 10;
         } else {
-            g_gameState.nParty_gold += (long)(unsigned char)item->condition;
+            g_gameState.nParty_gold += (s32)(unsigned char)item->condition;
         }
         if (dst == (Actor far *)0L)
             return 1;
@@ -797,7 +797,7 @@ int cmbinv_actor_transfer_item(Actor far *src, Actor far *dst, ItemSlot far *ite
     }
     if (src->bResidence == RES_PARTY_SLOT) {
         if (itemtbl_record_ptr((ItemSlot far *)&savedItem)->wCategory == 0x17) {
-            int slot;
+            s16 slot;
             slot = src->loc.party_slot.wSlot_id - 1;
             if (g_gameState.abActorStatusRanks[slot][5] != 0) {
                 gstate_member_consume_rations(slot, 1);
@@ -809,7 +809,7 @@ int cmbinv_actor_transfer_item(Actor far *src, Actor far *dst, ItemSlot far *ite
 
 static void cmbinv_recompute_has_weapon_flag(Actor far *actor) {
     ItemSlot far *slot;
-    int i;
+    s16 i;
 
     actor->flags &= 0xbf;
     actor->needsFlush = TRUE;
@@ -822,15 +822,15 @@ static void cmbinv_recompute_has_weapon_flag(Actor far *actor) {
     }
 }
 
-int far cmbinv_pty_distribute_item_stack(Actor far *src, ItemSlot far *item) {
-    int assigned;
-    unsigned int remaining;
+s16 far cmbinv_pty_distribute_item_stack(Actor far *src, ItemSlot far *item) {
+    s16 assigned;
+    u16 remaining;
     Actor far *recipient;
     ItemSlot itemCopy;
-    int recipientCount;
-    int i;
+    s16 recipientCount;
+    s16 i;
 
-    remaining = (unsigned int)item->condition;
+    remaining = (u16)item->condition;
     itemCopy = *item;
     i = recipientCount = 0;
     for (; i < g_gameState.partySize; i++) {
@@ -847,9 +847,9 @@ int far cmbinv_pty_distribute_item_stack(Actor far *src, ItemSlot far *item) {
     for (; i < g_gameState.partySize; i++) {
         recipient = gstate_party_member_record(i)->actor_record;
         if (cmbinv_has_space_for_item(recipient, (ItemSlot far *)&itemCopy)) {
-            int portion;
+            s16 portion;
             assigned++;
-            portion = (int)(remaining * assigned) / recipientCount;
+            portion = (s16)(remaining * assigned) / recipientCount;
             if (portion != 0) {
                 remaining -= portion;
                 itemCopy.condition = (unsigned char)portion;
@@ -865,9 +865,9 @@ int far cmbinv_pty_distribute_item_stack(Actor far *src, ItemSlot far *item) {
     return 1;
 }
 
-int cmbinv_actor_pickup_item(Actor far *dst_actor, Actor far *src_actor, ItemSlot far *item) {
-    int classify;
-    int i;
+s16 cmbinv_actor_pickup_item(Actor far *dst_actor, Actor far *src_actor, ItemSlot far *item) {
+    s16 classify;
+    s16 i;
 
     if (item->item_id == 'T' && (item->flags & 1)) {
         dialog_play_record(0x1b775dUL, 0);
@@ -883,7 +883,7 @@ int cmbinv_actor_pickup_item(Actor far *dst_actor, Actor far *src_actor, ItemSlo
         rec = itemtbl_record_ptr(item);
         if (rec->wCategory == 7) {
             dst_actor = g_gameState.shared_inventory;
-            if (itemtbl_inv_count_by_kind(dst_actor, (unsigned int)item->item_id) != 0) {
+            if (itemtbl_inv_count_by_kind(dst_actor, (u16)item->item_id) != 0) {
 
                 for (i = 0; i < dst_actor->itemCount; i++) {
                     if (ACTOR_ITEM(dst_actor, i).item_id == item->item_id)
@@ -912,8 +912,8 @@ int cmbinv_actor_pickup_item(Actor far *dst_actor, Actor far *src_actor, ItemSlo
         if ((rec->wFlags & 0x8000) ||
             (dst_actor != 0 && src_actor != 0 && dst_actor->bResidence == RES_PARTY_SLOT &&
              src_actor->bResidence == RES_PARTY_SLOT && (rec->wFlags & 0x800))) {
-            int has_sub;
-            int qty;
+            s16 has_sub;
+            s16 qty;
             has_sub =
                 (src_actor != 0 && actorrec_get_subrecord(src_actor, SUBREC_EVENT_STATE) != 0);
 
@@ -930,7 +930,7 @@ int cmbinv_actor_pickup_item(Actor far *dst_actor, Actor far *src_actor, ItemSlo
                     if (src_actor != 0)
                         cmbinv_actor_inv_remove_item(src_actor, item);
                 } else {
-                    int saved_cond;
+                    s16 saved_cond;
                     saved_cond = item->condition;
                     item->condition = (unsigned char)qty;
                     ACTOR_ITEM(dst_actor, dst_actor->itemCount++) = *item;
@@ -967,7 +967,7 @@ int cmbinv_actor_pickup_item(Actor far *dst_actor, Actor far *src_actor, ItemSlo
         if (src_actor == 0 || (sub = actorrec_get_subrecord(src_actor, SUBREC_EVENT_STATE)) == 0) {
             ItemSlot local_item;
             ItemRecord far *rec;
-            int qty;
+            s16 qty;
             rec = itemtbl_record_ptr(item);
             local_item = *item;
             qty = cmbinv_actor_find_stack_headroom(dst_actor, item);
@@ -978,7 +978,7 @@ int cmbinv_actor_pickup_item(Actor far *dst_actor, Actor far *src_actor, ItemSlo
                     return -1;
 
                 if (g_pStackHeadroomSlot != 0) {
-                    if ((int)item->condition < qty)
+                    if ((s16)item->condition < qty)
                         item->condition = (unsigned char)qty;
                     g_pStackHeadroomSlot->condition =
                         g_pStackHeadroomSlot->condition + (unsigned char)qty;
@@ -999,10 +999,10 @@ int cmbinv_actor_pickup_item(Actor far *dst_actor, Actor far *src_actor, ItemSlo
     return 0;
 }
 
-int far cmbinv_actor_acquire_item(Actor far *actor, ItemSlot far *item) {
+s16 far cmbinv_actor_acquire_item(Actor far *actor, ItemSlot far *item) {
     ItemRecord far *rec;
-    int partySlot;
-    int i;
+    s16 partySlot;
+    s16 i;
 
     rec = itemtbl_record_ptr(item);
     if (rec->wCategory == 7) {
@@ -1044,11 +1044,11 @@ int far cmbinv_actor_acquire_item(Actor far *actor, ItemSlot far *item) {
     return 0;
 }
 
-int cmbinv_actor_drop_item_at_pos(Actor far *src_actor, ItemSlot far *item) {
+s16 cmbinv_actor_drop_item_at_pos(Actor far *src_actor, ItemSlot far *item) {
     ItemRecord far *item_rec;
 
     item_rec = itemtbl_record_ptr(item);
-    g_gameState.nEvtArgItemId = (short)item->item_id;
+    g_gameState.nEvtArgItemId = (s16)item->item_id;
     if ((item->flags & 0x40) && (item_rec->wCategory == 1 || item_rec->wCategory == 3)) {
     dialog_774e:
         dialog_play_record(0x1b774eL, 0);
@@ -1062,15 +1062,15 @@ int cmbinv_actor_drop_item_at_pos(Actor far *src_actor, ItemSlot far *item) {
         goto dialog_774e;
     }
     if ((g_other_inventory_actor =
-             actorspawn_objfixed((unsigned int)g_gameState.nZoneId, g_world_camera->base.pos.xy.nWorld_x,
+             actorspawn_objfixed((u16)g_gameState.nZoneId, g_world_camera->base.pos.xy.nWorld_x,
                                  g_world_camera->base.pos.xy.nWorld_y)) == (Actor far *)0L) {
         dialog_play_record(0x1b7749L, 0);
         g_other_inventory_actor =
-            actorspawn_enc_location((unsigned int)g_gameState.nZoneId, g_world_camera->base.pos.xy.nWorld_x,
+            actorspawn_enc_location((u16)g_gameState.nZoneId, g_world_camera->base.pos.xy.nWorld_x,
                                     g_world_camera->base.pos.xy.nWorld_y);
     }
     g_pDroppedItemActor = g_other_inventory_actor;
-    g_gameState.nEvtArgCount = (short)g_other_inventory_actor->bResidence;
+    g_gameState.nEvtArgCount = (s16)g_other_inventory_actor->bResidence;
     if (cmbinv_actor_pickup_item(g_other_inventory_actor, src_actor, item) == 0) {
         dialog_play_record(0x1b7748L, 0);
         goto return_neg1;
@@ -1081,8 +1081,8 @@ return_neg1:
     return -1;
 }
 
-int cmbinv_member_can_equip_cat(int party_slot_plus_1, ItemSlot far *item) {
-    int category;
+s16 cmbinv_member_can_equip_cat(s16 party_slot_plus_1, ItemSlot far *item) {
+    s16 category;
 
     category = itemtbl_record_ptr(item)->wCategory;
     if (party_slot_plus_1 == 0) {

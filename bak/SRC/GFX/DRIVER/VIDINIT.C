@@ -44,22 +44,22 @@ unsigned char g_bSavedBiosVideoMode = 0xff; /* DG+0x2ea8 */
 unsigned char g_bRequestedVideoMode = 0xff; /* DG+0x2ea9 */
 void far *g_pfnVideoDriverInit = 0;         /* DG+0x2eaa */
 
-int video_init(int mode, int b, char *driver_name) {
+s16 video_init(s16 mode, s16 b, char *driver_name) {
     g_bRequestedVideoMode = (unsigned char)mode;
     _AX ^= _AX;
     g_graphics_context.bYResDoubled = _AL;
     g_graphics_context.bGfxRenderStateFlag = _AL;
     g_wScreen_width = 0x140;
     g_wScreen_height = 0xc8;
-    _AX = ((unsigned *)&g_graphics_context.pPaletteScratchBuf)[0];
-    _DX = ((unsigned *)&g_graphics_context.pPaletteScratchBuf)[1];
+    _AX = ((u16 *)&g_graphics_context.pPaletteScratchBuf)[0];
+    _DX = ((u16 *)&g_graphics_context.pPaletteScratchBuf)[1];
     _BX = _AX;
     _BX |= _DX;
     asm jz no_free;
     _freemem(_AX, _DX);
     _AX ^= _AX;
-    ((unsigned *)&g_graphics_context.pPaletteScratchBuf)[0] = _AX;
-    ((unsigned *)&g_graphics_context.pPaletteScratchBuf)[1] = _AX;
+    ((u16 *)&g_graphics_context.pPaletteScratchBuf)[0] = _AX;
+    ((u16 *)&g_graphics_context.pPaletteScratchBuf)[1] = _AX;
 no_free:
     g_bSavedBiosVideoMode = (unsigned char)bios_get_video_mode_bits();
     g_graphics_context.bVideoAdapter = (unsigned char)video_detect_adapter();
@@ -68,8 +68,8 @@ no_free:
     video_driver_load(_AX, (FileRef *)driver_name);
     if (_DX == 0)
         goto no_adapter;
-    ((unsigned *)&g_pfnVideoDriverInit)[0] = _AX;
-    ((unsigned *)&g_pfnVideoDriverInit)[1] = _DX;
+    ((u16 *)&g_pfnVideoDriverInit)[0] = _AX;
+    ((u16 *)&g_pfnVideoDriverInit)[1] = _DX;
     (*(VideoDriverInitFn far *)g_pfnVideoDriverInit)(&g_graphics_context, &g_video_driver_imports);
     _SI; /* naming SI here is what makes bcc save/restore it around this function;
             the driver init leaves the vtable template at template_seg:SI (SI is
@@ -135,12 +135,12 @@ vtable_done:
     asm mov word ptr[bx + 4], bp;
     asm mov word ptr[bx + 6], es;
     _AX = 0x808;
-    *(unsigned *)g_graphics_context.pFont_height = _AX;
-    *(unsigned *)g_graphics_context.pFont_glyph_width_bits = _AX;
+    *(u16 *)g_graphics_context.pFont_height = _AX;
+    *(u16 *)g_graphics_context.pFont_glyph_width_bits = _AX;
     asm mov ax, 0;
-    *(unsigned *)g_graphics_context.pFont_base_char = _AX;
+    *(u16 *)g_graphics_context.pFont_base_char = _AX;
     _AX = 0xffff;
-    *(unsigned *)g_graphics_context.pFont_glyph_count = _AX;
+    *(u16 *)g_graphics_context.pFont_glyph_count = _AX;
 done:
     asm pop ax;
     return _AX;

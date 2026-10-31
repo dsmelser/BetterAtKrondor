@@ -28,29 +28,29 @@
 unsigned char far *g_pCipherTextEnd;
 char far *g_pCipherTextBase;
 char far *g_apCipherDialRows[10];
-int *g_pCipherLetterSlots;
-int g_nCipherRowCount;
-int g_nCipherRowWidth;
+s16 *g_pCipherLetterSlots;
+s16 g_nCipherRowCount;
+s16 g_nCipherRowWidth;
 
-int far cipher_dial_puzzle_run(int nPuzzleId) {
+s16 far cipher_dial_puzzle_run(s16 nPuzzleId) {
     DDXRecord far *pRecord;
     char styleBuf[8];
-    int nTrack;
-    int nFontSaved;
-    int nFontAlien;
-    int nFontPuzzle;
-    int nFontTmp;
-    int nResult;
-    int bLoopActive;
-    int bNeedRedraw;
-    int bWantRun;
-    unsigned int nAction;
+    s16 nTrack;
+    s16 nFontSaved;
+    s16 nFontAlien;
+    s16 nFontPuzzle;
+    s16 nFontTmp;
+    s16 nResult;
+    s16 bLoopActive;
+    s16 bNeedRedraw;
+    s16 bWantRun;
+    u16 nAction;
     unsigned char far *pPalSaved;
     unsigned char far *pPuzzlePalChunk;
-    int nBlendSaved;
+    s16 nBlendSaved;
     ImageRecord **pImgTable;
     MenuPage *pPage;
-    int i;
+    s16 i;
 
     nResult = 0;
     bLoopActive = 1;
@@ -65,7 +65,7 @@ int far cipher_dial_puzzle_run(int nPuzzleId) {
     screen_cursor_hide();
     audio_sfx_register_pair_4_18();
     pImgTable = resblit_load_asset_table("puzzle.bmx", 0);
-    pRecord = dialog_load_record_by_key((long)(nPuzzleId - 1) + 0x19f0a1L, 0);
+    pRecord = dialog_load_record_by_key((s32)(nPuzzleId - 1) + 0x19f0a1L, 0);
     cipher_puzzle_parse_table((unsigned char far *)pRecord + pRecord->bCnt1 * sizeof(DdxChoice) +
                               pRecord->bCnt2 * sizeof(DdxOp) + sizeof(DDXRecord));
     g_pCipherLetterSlots = galloc_safe_zcalloc(g_nCipherRowWidth << 1);
@@ -186,18 +186,18 @@ int far cipher_dial_puzzle_run(int nPuzzleId) {
             screen_frame_present();
         }
         audio_play(4);
-        blit_sprite_indirect((unsigned short)pImgTable[0], 0x1e, 0x17, 0);
+        blit_sprite_indirect((u16)pImgTable[0], 0x1e, 0x17, 0);
         screen_frame_present();
-        blit_sprite_indirect((unsigned short)pImgTable[0], 0x1e, 0x17, 0);
+        blit_sprite_indirect((u16)pImgTable[0], 0x1e, 0x17, 0);
         g_nFrameTickCountdown = 0x3c;
         while (g_nFrameTickCountdown != 0) {
             screen_frame_present();
         }
         audio_play(4);
 
-        blit_sprite_indirect((unsigned short)pImgTable[1], 0x100, 0x14, 0);
+        blit_sprite_indirect((u16)pImgTable[1], 0x100, 0x14, 0);
         screen_frame_present();
-        blit_sprite_indirect((unsigned short)pImgTable[1], 0x100, 0x14, 0);
+        blit_sprite_indirect((u16)pImgTable[1], 0x100, 0x14, 0);
         g_nFrameTickCountdown = 0xc8;
         while (g_nFrameTickCountdown != 0) {
             screen_frame_present();
@@ -248,11 +248,11 @@ void far cipher_puzzle_parse_table(unsigned char far *pTableData) {
 }
 
 void cipher_puzzle_layout_letters(MenuPage *page) {
-    int nCellW;
-    int nCellH;
-    int nRowSpan;
-    int i;
-    int x;
+    s16 nCellW;
+    s16 nCellH;
+    s16 nRowSpan;
+    s16 i;
+    s16 x;
     MenuEntry *pEntry;
 
     i = 0;
@@ -260,7 +260,7 @@ void cipher_puzzle_layout_letters(MenuPage *page) {
     nCellW = g_graphics_context.pFont_glyph_width_bits[0] + 6;
     nCellH = g_graphics_context.pFont_height[0] + 6;
     nRowSpan = g_nCipherRowWidth * (nCellW + 2) - 2;
-    x = ((int)g_wScreen_width >> 1) - (nRowSpan >> 1);
+    x = ((s16)g_wScreen_width >> 1) - (nRowSpan >> 1);
     pEntry++;
     if (i < g_nCipherRowWidth) {
         do {
@@ -278,15 +278,15 @@ void cipher_puzzle_layout_letters(MenuPage *page) {
         } while (i < g_nCipherRowWidth);
     }
     i++;
-    while (i < (int)page->wEntry_count) {
+    while (i < (s16)page->wEntry_count) {
         pEntry->wEnable_gate = 1;
         pEntry++;
         i++;
     }
 }
 
-int far cipher_puzzle_is_solved(void) {
-    int i;
+s16 far cipher_puzzle_is_solved(void) {
+    s16 i;
 
     for (i = 0; i < g_nCipherRowWidth; i++) {
         if (g_pCipherTextBase[i] != ' ' &&
@@ -296,14 +296,14 @@ int far cipher_puzzle_is_solved(void) {
     return 1;
 }
 
-void far cipher_anim_bevel_text_dropin(MenuEntry *pEntry, int nCol) {
+void far cipher_anim_bevel_text_dropin(MenuEntry *pEntry, s16 nCol) {
     char szOut[2];
     char szIn[2];
-    unsigned int xOut;
-    unsigned int xIn;
-    unsigned int y;
-    int x0, y0, x1, y1;
-    int i;
+    u16 xOut;
+    u16 xIn;
+    u16 y;
+    s16 x0, y0, x1, y1;
+    s16 i;
 
     szOut[0] = g_apCipherDialRows[g_pCipherLetterSlots[nCol]][nCol];
     szOut[1] = 0;
@@ -315,17 +315,17 @@ void far cipher_anim_bevel_text_dropin(MenuEntry *pEntry, int nCol) {
     szIn[1] = 0;
 
     font_glyph_metrics(szOut[0], &xOut, &y);
-    xOut = ((pEntry->rect.x + (pEntry->rect.width >> 1)) - ((int)xOut >> 1)) + 1;
+    xOut = ((pEntry->rect.x + (pEntry->rect.width >> 1)) - ((s16)xOut >> 1)) + 1;
     font_glyph_metrics(szIn[0], &xIn, &y);
-    xIn = ((pEntry->rect.x + (pEntry->rect.width >> 1)) - ((int)xIn >> 1)) + 1;
-    y = (pEntry->rect.y + (pEntry->rect.height >> 1)) - ((int)y >> 1);
+    xIn = ((pEntry->rect.x + (pEntry->rect.width >> 1)) - ((s16)xIn >> 1)) + 1;
+    y = (pEntry->rect.y + (pEntry->rect.height >> 1)) - ((s16)y >> 1);
 
     g_graphics_context.bText_style_flags = 1;
     x0 = pEntry->rect.x + 1;
     y0 = pEntry->rect.y + 1;
     x1 = pEntry->rect.x + pEntry->rect.width - 2;
     y1 = pEntry->rect.y + pEntry->rect.height - 2;
-    for (i = 0; i < (int)(g_graphics_context.pFont_height[0] + 3); i++) {
+    for (i = 0; i < (s16)(g_graphics_context.pFont_height[0] + 3); i++) {
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
             g_graphics_context.wVgaPage2Base;
         g_graphics_context.bClip_enabled = 0;
@@ -373,10 +373,10 @@ void far cipher_anim_bevel_text_dropin(MenuEntry *pEntry, int nCol) {
 
 void far cipher_menu_draw_hotkey_labels(MenuPage *page) {
     MenuEntry *pEntry;
-    int i;
+    s16 i;
     char szGlyph[2];
-    unsigned int x;
-    unsigned int y;
+    u16 x;
+    u16 y;
 
     i = 0;
     pEntry = page->pEntries;
@@ -391,8 +391,8 @@ void far cipher_menu_draw_hotkey_labels(MenuPage *page) {
                                          pEntry->rect.height);
                 szGlyph[0] = g_apCipherDialRows[g_pCipherLetterSlots[i]][i];
                 font_glyph_metrics(szGlyph[0], &x, &y);
-                x = ((pEntry->rect.x + (pEntry->rect.width >> 1)) - ((int)x >> 1)) + 1;
-                y = (pEntry->rect.y + (pEntry->rect.height >> 1)) - ((int)y >> 1);
+                x = ((pEntry->rect.x + (pEntry->rect.width >> 1)) - ((s16)x >> 1)) + 1;
+                y = (pEntry->rect.y + (pEntry->rect.height >> 1)) - ((s16)y >> 1);
                 g_graphics_context.bText_fg_color = 'A';
                 font_draw_text_ds(szGlyph, x, y - 1);
                 g_graphics_context.bText_fg_color = 0x95;
@@ -407,7 +407,7 @@ void far cipher_menu_draw_hotkey_labels(MenuPage *page) {
     return;
 }
 
-void far cipher_draw_bevelled_box(int x, int y, int w, int h) {
+void far cipher_draw_bevelled_box(s16 x, s16 y, s16 w, s16 h) {
     g_graphics_context.bGfx_fill_enabled = 1;
     g_graphics_context.bGfx_fill_color = 'w';
     g_graphics_context.bGfx_outline_color = 0x16;

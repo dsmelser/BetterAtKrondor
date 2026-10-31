@@ -4,11 +4,11 @@
 #include "structs.h"
 
 extern unsigned char g_int00_installed;
-extern unsigned short g_wInt00SaveSeg;
-extern unsigned short g_wInt00SaveOff;
+extern u16 g_wInt00SaveSeg;
+extern u16 g_wInt00SaveOff;
 
 extern void install_int00_handler(void);
-extern unsigned int near int00_divide_recovery(unsigned short ret_cs);
+extern u16 near int00_divide_recovery(u16 ret_cs);
 extern void restore_int00_handler(void);
 
 #endif

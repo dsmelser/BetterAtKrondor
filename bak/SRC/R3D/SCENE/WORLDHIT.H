@@ -3,30 +3,30 @@
 
 #include "structs.h"
 
-extern unsigned short g_wSkyColorR;
-extern unsigned short g_wSkyColorG;
-extern unsigned short g_wSkyColorB;
+extern u16 g_wSkyColorR;
+extern u16 g_wSkyColorG;
+extern u16 g_wSkyColorB;
 extern ImageRecord **g_pMapIconsTable;
 extern unsigned char g_abActorAnimTemplateDefault[10];
 extern unsigned char g_abActorAnimTemplateRanged[10];
 
-extern void world_render_scene_dispatch(int animate);
-extern void world_render_frame(int animate);
+extern void world_render_scene_dispatch(s16 animate);
+extern void world_render_frame(s16 animate);
 extern void world_render_sky_texture_load(void);
 extern void world_render_sky_texture_free(void);
 extern void world_render_frame_full(void);
 extern void world_render_tick_objects(void);
 extern void world_render_frame_with_hittest(void);
 extern void world_rndr_apply_window_vport(void);
-extern void world_render_actor_at_position(int actor_kind, int gridX, int gridY);
-extern void world_render_actor_at_tile(int actor_id, int tile_x, int tile_y, int z, unsigned int yaw,
+extern void world_render_actor_at_position(s16 actor_kind, s16 gridX, s16 gridY);
+extern void world_render_actor_at_tile(s16 actor_id, s16 tile_x, s16 tile_y, s16 z, u16 yaw,
                                        Combatant *override_actor);
-extern void world_render_actor_swap_textures(int actor_id, int nGrid_x, int nGrid_y);
+extern void world_render_actor_swap_textures(s16 actor_id, s16 nGrid_x, s16 nGrid_y);
 extern void world_render_with_overlay(void far *overlay_target);
-extern void world_render_view(int force_overlay, int chapter_split);
-extern int world_rndr_actor_angle_actor(Combatant *from, Combatant *to);
+extern void world_render_view(s16 force_overlay, s16 chapter_split);
+extern s16 world_rndr_actor_angle_actor(Combatant *from, Combatant *to);
 extern Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
-                                                  int *p_hit_out, unsigned short action_id, int speed,
+                                                  s16 *p_hit_out, u16 action_id, s16 speed,
                                                   char anim_override);
 extern void world_render_combat_grid_sprite(WorldObject *actor);
 extern void world_render_record_marker_dot(WorldObject far *entry);

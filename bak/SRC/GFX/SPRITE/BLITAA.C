@@ -9,15 +9,15 @@
 #include "SRC/GFX/SPRITE/PALBLEND.H"
 #include "SRC/GFX/RASTER/PIXEL.H"
 
-unsigned long g_pAaPaletteBuf;
+u32 g_pAaPaletteBuf;
 
-void blit_sprite_aa_edges(ImageRecord *sprite, int dst_x, int dst_y, unsigned char far *palette) {
+void blit_sprite_aa_edges(ImageRecord *sprite, s16 dst_x, s16 dst_y, unsigned char far *palette) {
     unsigned char far *src;
-    int y;
-    int cur;
-    int color;
-    int x;
-    int prev;
+    s16 y;
+    s16 cur;
+    s16 color;
+    s16 x;
+    s16 prev;
 
     g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wGfxBlitDstPage;
     *(unsigned char far **)&g_pAaPaletteBuf = palette;

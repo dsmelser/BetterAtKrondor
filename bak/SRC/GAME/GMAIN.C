@@ -39,16 +39,16 @@
 
 unsigned char g_bssgap_4863[3];
 GameState g_gameState;
-unsigned short g_bPaletteCycleEbActive;
-unsigned short g_wVgaScratchPageBase;
-unsigned short g_wGameFontSlot;
-unsigned short *g_pSkyPanoAssetTable;
+u16 g_bPaletteCycleEbActive;
+u16 g_wVgaScratchPageBase;
+u16 g_wGameFontSlot;
+u16 *g_pSkyPanoAssetTable;
 #ifdef V102CD
-int g_cd_present;
+s16 g_cd_present;
 #endif
 WorldEntity *g_render_camera_scratch;
 ViewContext *g_active_window;
-unsigned short g_nChapterAtLoopExit;
+u16 g_nChapterAtLoopExit;
 
 #ifdef V102CD
 unsigned char g_cdaudio_state[70] = {
@@ -58,20 +58,20 @@ unsigned char g_cdaudio_state[70] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 #endif
-unsigned long g_nVec3DistResult = 0x00000000UL;
+u32 g_nVec3DistResult = 0x00000000UL;
 
 PolyRasterState g_polyRasterState = {0};
 unsigned char g_bCutsceneEscPressed = 0x00;
 
-int far gmain_start_dispatch(int mode) {
-    register int iMode;
+s16 far gmain_start_dispatch(s16 mode) {
+    register s16 iMode;
     register char *path;
     unsigned char far *pal;
-    int chapter;
-    int iconX;
-    int iconY;
-    int iconIndex;
-    int doFullmap;
+    s16 chapter;
+    s16 iconX;
+    s16 iconY;
+    s16 iconIndex;
+    s16 doFullmap;
     ImageRecord **iconTable;
     char pathBuf[50];
     char sig_block[90];
@@ -110,7 +110,7 @@ int far gmain_start_dispatch(int mode) {
 
     } else if (iMode == 5) {
         chapter = g_nChapterAtLoopExit + 1;
-        switch ((unsigned)chapter - 2) {
+        switch ((u16)chapter - 2) {
         case 0:
             iconX = 0xa8;
             iconY = 0x93;
@@ -166,7 +166,7 @@ int far gmain_start_dispatch(int mode) {
             iconTable = resblit_load_asset_table("fmap_icn.bmp", 0);
             g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wGfxBlitDstPage =
                 g_graphics_context.wVgaPage2Base;
-            blit_sprite_indirect((unsigned short)iconTable[iconIndex], iconX - 3, iconY - 3, 0);
+            blit_sprite_indirect((u16)iconTable[iconIndex], iconX - 3, iconY - 3, 0);
             free_image_record(iconTable);
         }
         vsync_hook(1);
@@ -175,7 +175,7 @@ int far gmain_start_dispatch(int mode) {
         gfx_present_dispatch(0, 0, 0x140, 200);
         if (chapter >= 1 && chapter <= 9) {
 
-            dialog_play_record((long)(chapter + 0x125), 0);
+            dialog_play_record((s32)(chapter + 0x125), 0);
         }
         cache_release(pal);
     }
@@ -229,11 +229,11 @@ int far gmain_start_dispatch(int mode) {
 }
 
 void far gmain_play_intro_animation(void) {
-    int scriptHandle;
+    s16 scriptHandle;
     unsigned char far *pal;
-    unsigned long deadline;
-    register int done;
-    register int channel;
+    u32 deadline;
+    register s16 done;
+    register s16 channel;
 
     channel = 1;
     done = 0;
@@ -289,17 +289,17 @@ void far gmain_play_intro_animation(void) {
     }
 }
 
-int far gmain_play_chapter_intro(int chapter, int part) {
+s16 far gmain_play_chapter_intro(s16 chapter, s16 part) {
     ResFile *file;
-    int result;
-    int trackId;
+    s16 result;
+    s16 trackId;
     char bookName[20];
 
     trackId = -999;
     result = 1;
     if ((part == 1) || (part == 2)) {
         file = res_fopen("chapsong.dat", "rb");
-        res_fseek(file, (long)(unsigned int)((part + (chapter - 1) * 2 - 1) * 2), SEEK_SET);
+        res_fseek(file, (s32)(u16)((part + (chapter - 1) * 2 - 1) * 2), SEEK_SET);
         res_fread(&trackId, 2, 1, file);
         res_fclose(file);
     }
@@ -314,10 +314,10 @@ int far gmain_play_chapter_intro(int chapter, int part) {
     return result;
 }
 
-int far gmain_play_chapter_cutscene(int chapter_num, int channel_1, int channel_2) {
-    register int scriptHandle;
-    register int ch2;
-    int result;
+s16 far gmain_play_chapter_cutscene(s16 chapter_num, s16 channel_1, s16 channel_2) {
+    register s16 scriptHandle;
+    register s16 ch2;
+    s16 result;
     char adsName[20];
 
     ch2 = channel_2;
@@ -387,7 +387,7 @@ void far gmain_screen_fade_to_black(void) {
     return;
 }
 
-void far gmain_cutsc_play_fullmap_scene(int scene_index) {
+void far gmain_cutsc_play_fullmap_scene(s16 scene_index) {
     unsigned char far *pal = (unsigned char far *)0;
 
     gmain_screen_fade_to_black();
@@ -406,28 +406,28 @@ void far gmain_cutsc_play_fullmap_scene(int scene_index) {
     palette_fade_in(0, 0x100, -1, 0);
     font_activate(g_wGameFontSlot);
     screen_cursor_set_hidden_flag(0);
-    dialog_play_record((long)scene_index + 0x186ab5, 1);
+    dialog_play_record((s32)scene_index + 0x186ab5, 1);
     screen_cursor_set_hidden_flag(1);
     cache_release(pal);
     gmain_screen_fade_to_black();
 }
 
 void far gmain_restart_from_save_flow(void) {
-    unsigned int run_result;
-    unsigned short do_cutscene;
-    int chapter_arg;
-    int channel_arg;
-    int sec_ch_arg;
-    int highest_slot;
-    int track_id;
-    int state_eq2;
-    int exit_flag;
+    u16 run_result;
+    u16 do_cutscene;
+    s16 chapter_arg;
+    s16 channel_arg;
+    s16 sec_ch_arg;
+    s16 highest_slot;
+    s16 track_id;
+    s16 state_eq2;
+    s16 exit_flag;
     unsigned char far *palette_result;
     unsigned char far *chunk_ptr;
     register MenuPage *page;
-    register int scene_index;
-    int i;
-    int presentY;
+    register s16 scene_index;
+    s16 i;
+    s16 presentY;
 
     scene_index = -1;
     highest_slot = mainmenu_save_scan_highest_slot();
@@ -458,7 +458,7 @@ void far gmain_restart_from_save_flow(void) {
     gfx_present_dispatch(0, 0, 0x140, 200);
     palette_fade_in(0, 0x100, -1, 0);
     page = menupage_load("contents.dat");
-    for (i = highest_slot; i < (int)page->wEntry_count; i++) {
+    for (i = highest_slot; i < (s16)page->wEntry_count; i++) {
         if (page->pEntries[i].wAction_id != 1) {
             page->pEntries[i].wEnable_gate = 1;
         }
@@ -698,8 +698,8 @@ void far gmain_restart_from_save_flow(void) {
 
 #pragma option -O-l
 
-void far gmain_parse_cmdline_sound_flag(int argc, char **argv) {
-    int i;
+void far gmain_parse_cmdline_sound_flag(s16 argc, char **argv) {
+    s16 i;
     char *arg;
 
     for (i = 1; i < argc; i++) {
@@ -707,7 +707,7 @@ void far gmain_parse_cmdline_sound_flag(int argc, char **argv) {
             switch (*++arg) {
             case 'S':
             case 's':
-                g_sound_driver = (int)*++arg - 0x30;
+                g_sound_driver = (s16)*++arg - 0x30;
             }
         }
     }
@@ -715,8 +715,8 @@ void far gmain_parse_cmdline_sound_flag(int argc, char **argv) {
 
 #pragma option -Ol
 
-void far main(int argc, char **argv) {
-    register int mode;
+void far main(s16 argc, char **argv) {
+    register s16 mode;
 
     mode = 6;
     parse_krondor_cfg();

@@ -13,12 +13,12 @@
 
 ImageRecord **g_pButtonSpriteUp;
 ImageRecord **g_pBtnSpriteDownSheet;
-short g_nScrollTrackOffset;
+s16 g_nScrollTrackOffset;
 unsigned char g_saved_clip_enabled;
-unsigned short g_saved_clip_ymax;
-unsigned short g_saved_clip_xmin;
-unsigned short g_saved_clip_xmax;
-unsigned short g_saved_clip_ymin;
+u16 g_saved_clip_ymax;
+u16 g_saved_clip_xmin;
+u16 g_saved_clip_xmax;
+u16 g_saved_clip_ymin;
 
 static char _str_name_tmpl[13] = "01234567.012";
 static char _str_ext_tmpl[5] = ".bmx";
@@ -42,7 +42,7 @@ typedef struct {
 void widget_load_button_sprite_pair(char *filename) {
     NameBuf name;
     ExtBuf ext;
-    int i;
+    s16 i;
 
     *(NameCopy *)name.b = *(NameCopy *)_str_name_tmpl;
     *(ExtCopy *)ext.b = *(ExtCopy *)_str_ext_tmpl;
@@ -67,11 +67,11 @@ void widget_free_button_sprite_pair(void) {
     return;
 }
 
-void widget_blit_button_sprite(unsigned int sprite_idx, int x, int y, int palette, int center, int rect_w,
-                               int rect_h) {
+void widget_blit_button_sprite(u16 sprite_idx, s16 x, s16 y, s16 palette, s16 center, s16 rect_w,
+                               s16 rect_h) {
     ImageRecord **sheet;
 
-    if (0x32 < (int)sprite_idx) {
+    if (0x32 < (s16)sprite_idx) {
         sprite_idx = sprite_idx + 1;
     }
     if ((sprite_idx & 1) != 0) {
@@ -79,7 +79,7 @@ void widget_blit_button_sprite(unsigned int sprite_idx, int x, int y, int palett
     } else {
         sheet = g_pButtonSpriteUp;
     }
-    sprite_idx = (unsigned int)((int)sprite_idx >> 1);
+    sprite_idx = (u16)((s16)sprite_idx >> 1);
     if (center != 0) {
         x = x + ((rect_w >> 1) - (sheet[sprite_idx]->nWidth >> 1));
         y += (rect_h >> 1) - (sheet[sprite_idx]->nHeight >> 1);
@@ -87,8 +87,8 @@ void widget_blit_button_sprite(unsigned int sprite_idx, int x, int y, int palett
     resblit_sprite_frame(sheet[sprite_idx], x, y, palette);
 }
 
-int widget_hit_test(MenuEntry *widget, int x, int y, int *out_region) {
-    int m;
+s16 widget_hit_test(MenuEntry *widget, s16 x, s16 y, s16 *out_region) {
+    s16 m;
 
     x -= widget->rect.x;
     y -= widget->rect.y;
@@ -157,7 +157,7 @@ done:
     return *out_region != 0;
 }
 
-void widget_dispatch_by_type(MenuEntry *widget, int x, int y, int hover_flag) {
+void widget_dispatch_by_type(MenuEntry *widget, s16 x, s16 y, s16 hover_flag) {
     if (widget->bActive_flag != 0) {
         switch (widget->wWidget_type) {
         case 3:
@@ -192,7 +192,7 @@ void widget_toggle_state(MenuEntry *widget) {
     return;
 }
 
-void far widget_list_scroll(MenuEntry *widget, int dir) {
+void far widget_list_scroll(MenuEntry *widget, s16 dir) {
     if (widget->wWidget_type == 2) {
         if (dir != 0) {
             if (widget->wSub_state == 0) {
@@ -204,7 +204,7 @@ void far widget_list_scroll(MenuEntry *widget, int dir) {
             }
             return;
         }
-        if ((int)widget->wSub_state >= (int)widget->wEnable_gate - 1) {
+        if ((s16)widget->wSub_state >= (s16)widget->wEnable_gate - 1) {
             return;
         }
         widget->wSub_state++;
@@ -218,8 +218,8 @@ void far widget_list_scroll(MenuEntry *widget, int dir) {
 }
 
 void far widget_scrollbar_update(MenuEntry *widget) {
-    int corner2;
-    int step;
+    s16 corner2;
+    s16 step;
     if (widget->wWidget_type == 2) {
         if (widget->wEnable_gate == 0 || widget->wEnable_gate == 1) {
             widget->wSub_state = 0;
@@ -228,18 +228,18 @@ void far widget_scrollbar_update(MenuEntry *widget) {
                 corner2 = widget->rect.width - 4;
                 widget->wSub_state =
                     (g_nScrollTrackOffset + ((step = (widget->rect.height - corner2 * 2 - 8) /
-                                                     ((int)widget->wEnable_gate - 1)) >>
+                                                     ((s16)widget->wEnable_gate - 1)) >>
                                              1)) /
                     step;
             } else {
                 corner2 = widget->rect.height - 4;
                 widget->wSub_state =
                     (g_nScrollTrackOffset + ((step = (widget->rect.width - corner2 * 2 - 8) /
-                                                     ((int)widget->wEnable_gate - 1)) >>
+                                                     ((s16)widget->wEnable_gate - 1)) >>
                                              1)) /
                     step;
             }
-            if ((int)widget->wSub_state >= (int)widget->wEnable_gate) {
+            if ((s16)widget->wSub_state >= (s16)widget->wEnable_gate) {
                 widget->wSub_state = widget->wEnable_gate - 1;
             }
         }
@@ -250,28 +250,28 @@ void far widget_scrollbar_update(MenuEntry *widget) {
     return;
 }
 
-void widget_menu_draw(MenuEntry *widget, int x, int y, int hover_flag) {
+void widget_menu_draw(MenuEntry *widget, s16 x, s16 y, s16 hover_flag) {
     if (widget->wEnable_gate != 0) {
         widget_blit_button_sprite(0x32, x + widget->rect.x, y + widget->rect.y, 0, 0, 0, 0);
         return;
     }
     if ((widget->wWidget_type == 3) || ((widget->wWidget_type == 4 && (widget->wSub_state != 0))))
-        widget_blit_button_sprite(widget->wSprite_base + (unsigned int)(hover_flag != 0),
+        widget_blit_button_sprite(widget->wSprite_base + (u16)(hover_flag != 0),
                                   x + widget->rect.x, y + widget->rect.y, 0, 0, 0, 0);
     else
-        widget_blit_button_sprite(widget->wSprite_base + (unsigned int)(hover_flag != 0) + 2,
+        widget_blit_button_sprite(widget->wSprite_base + (u16)(hover_flag != 0) + 2,
                                   x + widget->rect.x, y + widget->rect.y, 0, 0, 0, 0);
 }
 
-void widget_button_render_full(MenuEntry *button, int x, int y, int pressed, int sprite_set) {
-    unsigned short base_color;
-    int bx;
-    int by;
-    int hy;
-    int hx;
-    int span;
+void widget_button_render_full(MenuEntry *button, s16 x, s16 y, s16 pressed, s16 sprite_set) {
+    u16 base_color;
+    s16 bx;
+    s16 by;
+    s16 hy;
+    s16 hx;
+    s16 span;
     char *text;
-    int i;
+    s16 i;
 
     base_color = button->wBase_color;
     bx = x + button->rect.x;
@@ -348,12 +348,12 @@ void widget_button_render_full(MenuEntry *button, int x, int y, int pressed, int
     }
 }
 
-void widget_draw_text_button(MenuEntry *widget, int x, int y, int pressed) {
-    int edgeColor;
-    int textColor;
-    int shadowColor;
-    int outline_color;
-    int fill_color;
+void widget_draw_text_button(MenuEntry *widget, s16 x, s16 y, s16 pressed) {
+    s16 edgeColor;
+    s16 textColor;
+    s16 shadowColor;
+    s16 outline_color;
+    s16 fill_color;
 
     x += widget->rect.x;
     y += widget->rect.y;
@@ -401,10 +401,10 @@ void widget_draw_text_button(MenuEntry *widget, int x, int y, int pressed) {
     }
 }
 
-void widget_draw_iconbox(MenuEntry *widget, int x, int y, int pressed, int sprite_flags) {
-    int edgeColor;
-    int outline_color;
-    int fill_color;
+void widget_draw_iconbox(MenuEntry *widget, s16 x, s16 y, s16 pressed, s16 sprite_flags) {
+    s16 edgeColor;
+    s16 outline_color;
+    s16 fill_color;
 
     x += widget->rect.x;
     y += widget->rect.y;
@@ -426,20 +426,20 @@ void widget_draw_iconbox(MenuEntry *widget, int x, int y, int pressed, int sprit
     draw_line(x, y, x, y + widget->rect.height - 1);
     draw_line(x, y + widget->rect.height - 1, x + widget->rect.width - 1,
               y + widget->rect.height - 1);
-    widget_blit_button_sprite(widget->wSprite_base + (unsigned int)(pressed != 0), x, y, sprite_flags, 1,
+    widget_blit_button_sprite(widget->wSprite_base + (u16)(pressed != 0), x, y, sprite_flags, 1,
                               widget->rect.width, widget->rect.height);
     return;
 }
 
-void widget_draw_scrollbar(MenuEntry *widget, int x, int y, int pressed_part) {
-    int thumbOff;
-    int sprite_flags;
-    int btnSize;
+void widget_draw_scrollbar(MenuEntry *widget, s16 x, s16 y, s16 pressed_part) {
+    s16 thumbOff;
+    s16 sprite_flags;
+    s16 btnSize;
     MenuEntry iconBtn;
-    int sx;
-    int sy;
-    int isVertical;
-    int trackLen;
+    s16 sx;
+    s16 sy;
+    s16 isVertical;
+    s16 trackLen;
 
     sx = x + widget->rect.x;
     sy = y + widget->rect.y;
@@ -471,10 +471,10 @@ void widget_draw_scrollbar(MenuEntry *widget, int x, int y, int pressed_part) {
     iconBtn.pPrimary_label = (char *)0x0;
     iconBtn.pAlt_label = (char *)0x0;
     iconBtn.wCursor_shape = widget->wCursor_shape;
-    widget_draw_iconbox(&iconBtn, sx, sy, (unsigned int)(pressed_part == 2), 0);
+    widget_draw_iconbox(&iconBtn, sx, sy, (u16)(pressed_part == 2), 0);
 
-    if (1 < (int)widget->wEnable_gate) {
-        thumbOff = (int)widget->wSub_state * (trackLen + -7) / ((int)widget->wEnable_gate - 1);
+    if (1 < (s16)widget->wEnable_gate) {
+        thumbOff = (s16)widget->wSub_state * (trackLen + -7) / ((s16)widget->wEnable_gate - 1);
     } else {
         thumbOff = 0;
     }
@@ -494,21 +494,21 @@ void widget_draw_scrollbar(MenuEntry *widget, int x, int y, int pressed_part) {
         iconBtn.rect.x = (widget->rect.width - btnSize) + -2;
         sprite_flags = 2;
     }
-    widget_draw_iconbox(&iconBtn, sx, sy, (unsigned int)(pressed_part == 4), sprite_flags);
+    widget_draw_iconbox(&iconBtn, sx, sy, (u16)(pressed_part == 4), sprite_flags);
 }
 
-void widget_render_button(MenuEntry *widget, int x_off, int y_off, int hover_flag) {
+void widget_render_button(MenuEntry *widget, s16 x_off, s16 y_off, s16 hover_flag) {
     if (widget->wEnable_gate != 0) {
         widget_blit_button_sprite(widget->wSprite_base + 2, x_off + widget->rect.x,
                                   y_off + widget->rect.y, 0, 0, 0, 0);
         return;
     }
-    widget_blit_button_sprite(widget->wSprite_base + (unsigned int)(hover_flag != 0),
+    widget_blit_button_sprite(widget->wSprite_base + (u16)(hover_flag != 0),
                               x_off + widget->rect.x, y_off + widget->rect.y, 0, 0, 0, 0);
     return;
 }
 
-void widget_push_clip_rect(short xmin, short ymin, short xmax, short ymax) {
+void widget_push_clip_rect(s16 xmin, s16 ymin, s16 xmax, s16 ymax) {
     g_saved_clip_enabled = g_graphics_context.bClip_enabled;
     g_saved_clip_ymax = g_graphics_context.clip.ymax;
     g_saved_clip_xmin = g_graphics_context.clip.xmin;

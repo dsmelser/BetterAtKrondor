@@ -4,6 +4,6 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-extern void far *bak_load_chunk(FileRef *file, char *chunk_id, int mode);
+extern void far *bak_load_chunk(FileRef *file, char *chunk_id, s16 mode);
 
 #endif

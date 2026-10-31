@@ -15,15 +15,15 @@
 
 unsigned char *g_pCreditsBlob;
 char **g_credits_strings;
-short g_credits_pair_count;
-short g_credits_scroll_y;
+s16 g_credits_pair_count;
+s16 g_credits_scroll_y;
 
-unsigned short g_nCreditsPassCount = 0x0000;
+u16 g_nCreditsPassCount = 0x0000;
 
 void credits_load(void) {
     ResFile *file;
-    int i;
-    unsigned short blobSize;
+    s16 i;
+    u16 blobSize;
 
     file = res_fopen("cred.dat", "rb");
     res_fread(&g_credits_pair_count, 2, 1, file);
@@ -34,7 +34,7 @@ void credits_load(void) {
     res_fread(g_pCreditsBlob, 1, blobSize, file);
     res_fclose(file);
     for (i = 0; i < g_credits_pair_count; i++) {
-        g_credits_strings[i] += (int)g_pCreditsBlob;
+        g_credits_strings[i] += (s16)g_pCreditsBlob;
     }
     return;
 }
@@ -51,18 +51,18 @@ void credits_free(void) {
     return;
 }
 
-int credits_draw_scroll_pass(int x_left, int width, int reset) {
-    int pair_idx;
-    int y;
-    int x;
-    int right_col_x;
-    int drew_something;
-    int is_name_swap;
-    int x_start;
-    int x_end;
-    int bot_fade_shade;
-    int top_fade_shade;
-    int band_kind;
+s16 credits_draw_scroll_pass(s16 x_left, s16 width, s16 reset) {
+    s16 pair_idx;
+    s16 y;
+    s16 x;
+    s16 right_col_x;
+    s16 drew_something;
+    s16 is_name_swap;
+    s16 x_start;
+    s16 x_end;
+    s16 bot_fade_shade;
+    s16 top_fade_shade;
+    s16 band_kind;
 
     drew_something = 0;
     if (reset != 0) {
@@ -72,12 +72,12 @@ int credits_draw_scroll_pass(int x_left, int width, int reset) {
     y = 0x36 - g_credits_scroll_y;
     for (pair_idx = 1; pair_idx < g_credits_pair_count; pair_idx += 2) {
         if (g_credits_strings[pair_idx][0] == 'L' && g_credits_strings[pair_idx][1] == 'O' &&
-            (int)g_nCreditsPassCount % 0x1e != 8) {
+            (s16)g_nCreditsPassCount % 0x1e != 8) {
             y -= 0xb;
         } else if (y > g_graphics_context.clip.ymin && y < g_graphics_context.clip.ymax &&
                    (g_credits_strings[pair_idx][0] != '\0' ||
                     g_credits_strings[pair_idx + 1][0] != '\0')) {
-            is_name_swap = (((int)g_nCreditsPassCount % 0x1e == 8 || key_is_down(0x31) != 0) &&
+            is_name_swap = (((s16)g_nCreditsPassCount % 0x1e == 8 || key_is_down(0x31) != 0) &&
                             g_credits_strings[pair_idx + 1][0] == 'N' &&
                             g_credits_strings[pair_idx + 1][5] == 'B')
                                ? 1
@@ -112,7 +112,7 @@ int credits_draw_scroll_pass(int x_left, int width, int reset) {
             }
 
             if (g_credits_strings[pair_idx][0] != '\0') {
-                int col_x;
+                s16 col_x;
                 if (g_credits_pair_count - 5 < pair_idx) {
                     col_x =
                         (0xa0 - x_left) - (font_text_width_ds(g_credits_strings[pair_idx]) >> 1);
@@ -152,14 +152,14 @@ int credits_draw_scroll_pass(int x_left, int width, int reset) {
                 x_start = g_graphics_context.clip.xmin - g_graphics_context.clip.xmin % 4;
                 x_end = g_graphics_context.clip.xmax + g_graphics_context.clip.xmax % 4 + 3;
                 for (x = x_start; x < x_end; x += 4) {
-                    int dy;
+                    s16 dy;
                     if (band_kind == 2) {
                         g_graphics_context.bText_fg_color = RND2(0x100);
                         dy = (y + x / 4) % 4 + 3;
                     } else {
                         dy = 7;
                     }
-                    putpixel(x, y + dy, (int)(char)g_graphics_context.bText_fg_color);
+                    putpixel(x, y + dy, (s16)(char)g_graphics_context.bText_fg_color);
                 }
                 g_graphics_context.clip.ymax = 0x9e;
                 g_graphics_context.bClip_enabled = 0;
@@ -173,9 +173,9 @@ int credits_draw_scroll_pass(int x_left, int width, int reset) {
     return !drew_something;
 }
 
-int far credits_run(void) {
-    int scroll_done;
-    unsigned int sc;
+s16 far credits_run(void) {
+    s16 scroll_done;
+    u16 sc;
 
     scroll_done = 0;
 

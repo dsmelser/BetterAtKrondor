@@ -29,16 +29,16 @@
 #include "SRC/R3D/ACTOR/ACTOROVL.H"
 #include "gfx169d.h"
 
-short g_game_mode;
+s16 g_game_mode;
 WorldEntity *g_world_camera;
 ViewContext *g_world_widget;
 unsigned char g_bZoneSkyColor;
 unsigned char g_bZoneGroundColor;
 void *g_pZoneGridData;
-short g_nZoneRenderTableCount;
+s16 g_nZoneRenderTableCount;
 char g_szZoneMapFilename[13];
 
-unsigned short g_wZoneFlags = 0x0000;
+u16 g_wZoneFlags = 0x0000;
 char g_szZoneRefFilenameTmpl[11] = "ZzzREF.DAT";
 
 void far zone_subsystem_init(void) {
@@ -67,11 +67,11 @@ void far zone_subsystem_shutdown(void) {
 
 void far zone_load(void) {
     ResFile *file;
-    short slot;
-    long inset_z;
+    s16 slot;
+    s32 inset_z;
     ImageRecord **render_table;
 
-    sprintf(g_szZoneMapFilename, "Z%02uDEF.DAT", (unsigned int)g_gameState.nZoneId);
+    sprintf(g_szZoneMapFilename, "Z%02uDEF.DAT", (u16)g_gameState.nZoneId);
     file = res_fopen(g_szZoneMapFilename, "rb");
     res_fread(&g_game_mode, 2, 1, file);
     res_fread(g_world_widget, 2, 1, file);
@@ -97,7 +97,7 @@ void far zone_load(void) {
     } else if (g_gameState.nZoneId == '\x06') {
 
         audio_music_play(0x3fe);
-    } else if ((int)g_gameState.nChapter == 8) {
+    } else if ((s16)g_gameState.nChapter == 8) {
 
         audio_music_play(0x405);
     } else {
@@ -118,42 +118,42 @@ void far zone_load(void) {
     }
     g_world_camera->base.orientation.roll = 0;
     g_world_camera->base.orientation.yaw = g_gameState.wZoneDefaultCameraHeading;
-    sprintf(g_szZoneMapFilename, "Z%02u.RMP", (unsigned int)g_gameState.nZoneId);
+    sprintf(g_szZoneMapFilename, "Z%02u.RMP", (u16)g_gameState.nZoneId);
     file = res_fopen(g_szZoneMapFilename, "rb");
-    res_fread_far(g_abFogRemapTable, 0x100, (long)(int)g_nFogRemapTableCount, file);
+    res_fread_far(g_abFogRemapTable, 0x100, (s32)(s16)g_nFogRemapTableCount, file);
     res_fclose(file);
     combat_arena_load_remap_pals();
-    sprintf(g_szZoneMapFilename, "Z%02u.PAL", (unsigned int)g_gameState.nZoneId);
+    sprintf(g_szZoneMapFilename, "Z%02u.PAL", (u16)g_gameState.nZoneId);
     palette_buffers_alloc(g_szZoneMapFilename);
     uiwidget_compass_load();
     world_render_sky_texture_load();
     if ((g_wZoneFlags & 1) == 0) {
-        sprintf(g_szZoneMapFilename, "Z%02uH.BMX", (unsigned int)g_gameState.nZoneId);
-        g_pSkyPanoAssetTable = (unsigned short *)resblit_load_asset_table(g_szZoneMapFilename, 1);
+        sprintf(g_szZoneMapFilename, "Z%02uH.BMX", (u16)g_gameState.nZoneId);
+        g_pSkyPanoAssetTable = (u16 *)resblit_load_asset_table(g_szZoneMapFilename, 1);
     } else {
-        g_pSkyPanoAssetTable = (unsigned short *)0x0;
+        g_pSkyPanoAssetTable = (u16 *)0x0;
     }
     actoroverlay_image_1ff4_load();
     slot = 0;
     do {
-        sprintf(g_szZoneMapFilename, "Z%02uSLOT%d.BMX", (unsigned int)g_gameState.nZoneId, slot);
+        sprintf(g_szZoneMapFilename, "Z%02uSLOT%d.BMX", (u16)g_gameState.nZoneId, slot);
         render_table = worldrender_table_load(slot, g_szZoneMapFilename);
         if (render_table == 0)
             break;
         slot = slot + 1;
     } while (slot < 7);
     g_nZoneRenderTableCount = slot;
-    sprintf(g_szZoneMapFilename, "Z%02u.TBL", (unsigned int)g_gameState.nZoneId);
+    sprintf(g_szZoneMapFilename, "Z%02u.TBL", (u16)g_gameState.nZoneId);
     ts_load_shape_tbl(0, g_szZoneMapFilename);
     ts_load_shape_tbl(1, "combat.tbl");
     if (g_game_mode == 2) {
-        sprintf(g_szZoneMapFilename, "Z%02uM.TBL", (unsigned int)g_gameState.nZoneId);
+        sprintf(g_szZoneMapFilename, "Z%02uM.TBL", (u16)g_gameState.nZoneId);
         ts_load_shape_tbl(2, g_szZoneMapFilename);
     }
     zone_load_scx_image();
     zone_alloc_400byte_buffer();
     zone_map_data_load(g_gameState.nZoneId);
-    sprintf(g_szZoneMapFilename, "Z%02u.DAT", (unsigned int)g_gameState.nZoneId);
+    sprintf(g_szZoneMapFilename, "Z%02u.DAT", (u16)g_gameState.nZoneId);
     map_color_remap_load(g_szZoneMapFilename);
     proxscan_scratch_alloc();
     vislist_alloc();
@@ -183,7 +183,7 @@ LAB_74fb_04ad:
 }
 
 void far zone_world_scene_teardown(void) {
-    int slot;
+    s16 slot;
 
     zone_scene_runtime_teardown();
     zone_release_object_states();
@@ -206,7 +206,7 @@ void far zone_world_scene_teardown(void) {
     actoroverlay_image_1ff4_free();
     if ((g_wZoneFlags & 1) == 0) {
         emsimg_free_paged(g_pSkyPanoAssetTable);
-        g_pSkyPanoAssetTable = (unsigned short *)0x0;
+        g_pSkyPanoAssetTable = (u16 *)0x0;
     }
     world_render_sky_texture_free();
     uiwidget_compass_free();
@@ -215,9 +215,9 @@ void far zone_world_scene_teardown(void) {
 
 void far zone_combat_camera_set_world_pos(PlayerSpawnRecord *pos) {
     g_world_camera->base.pos.xy.nWorld_x =
-        (long)(int)(unsigned int)pos->bTileX * 64000 + (long)(int)(unsigned int)pos->bSubX * 0x640 + 800;
+        (s32)(s16)(u16)pos->bTileX * 64000 + (s32)(s16)(u16)pos->bSubX * 0x640 + 800;
     g_world_camera->base.pos.xy.nWorld_y =
-        (long)(int)(unsigned int)pos->bTileY * 64000 + (long)(int)(unsigned int)pos->bSubY * 0x640 + 800;
+        (s32)(s16)(u16)pos->bTileY * 64000 + (s32)(s16)(u16)pos->bSubY * 0x640 + 800;
     if (g_full_redraw_needed == 0) {
         g_world_camera->base.pos.nWorld_z = g_lZoneDefaultZ;
         g_world_camera->base.orientation.pitch = g_wZoneDefaultYaw;
@@ -237,7 +237,7 @@ void far zone_combat_camera_set_world_pos(PlayerSpawnRecord *pos) {
 }
 
 void far zone_load_shape_sprite(void) {
-    sprintf(g_szZoneMapFilename, "Z%02uSHP.DAT", (unsigned int)g_gameState.nZoneId);
+    sprintf(g_szZoneMapFilename, "Z%02uSHP.DAT", (u16)g_gameState.nZoneId);
     rgnenc_load_zone_shape_index(g_szZoneMapFilename);
 }
 
@@ -247,7 +247,7 @@ void far zone_release_object_states(void) {
 
 void far zone_load_audio_proximity(void) {
     audio_sfx_register_world_bank();
-    sprintf(g_szZoneMapFilename, "Z%02u.TBL", (unsigned int)g_gameState.nZoneId);
+    sprintf(g_szZoneMapFilename, "Z%02u.TBL", (u16)g_gameState.nZoneId);
     proximity_table_load(g_szZoneMapFilename);
     czone_subsystem_init();
 }
@@ -258,7 +258,7 @@ void far zone_scene_runtime_teardown(void) {
     audio_sfx_stop_scene_sounds();
 }
 
-void far zone_teardown(int free_resources) {
+void far zone_teardown(s16 free_resources) {
     rgnenc_persist_zone_snapshot();
     zone_scene_runtime_teardown();
     if (free_resources != 0) {
@@ -266,7 +266,7 @@ void far zone_teardown(int free_resources) {
     }
 }
 
-void far zone_refresh_visible(int reload_shapes) {
+void far zone_refresh_visible(s16 reload_shapes) {
     if (reload_shapes != 0) {
         zone_load_shape_sprite();
     }
@@ -288,14 +288,14 @@ void zone_free_400byte_buffer(void) {
 void far zone_map_data_load(unsigned char zone_id) {
     ResFile *file;
 
-    sprintf(g_szZoneMapFilename, "Z%02uMAP.DAT", (unsigned int)zone_id);
+    sprintf(g_szZoneMapFilename, "Z%02uMAP.DAT", (u16)zone_id);
     file = res_fopen(g_szZoneMapFilename, "rb");
     res_fread(g_pZoneGridData, 400, 1, file);
     res_fclose(file);
 }
 
-int far zone_grid_bit_get(unsigned char x, unsigned char y) {
-    int offset;
+s16 far zone_grid_bit_get(unsigned char x, unsigned char y) {
+    s16 offset;
     unsigned char mask;
 
     if (x >= 50 || y >= 50)
@@ -352,6 +352,6 @@ void far zone_savegame_snap_world_state(void) {
 
 void far zone_load_scx_image(void) {
     g_graphics_context.wGfxBlitDstPage = g_wVgaScratchPageBase;
-    sprintf(g_szZoneMapFilename, "Z%02uL.SCX", (unsigned int)g_gameState.nZoneId);
+    sprintf(g_szZoneMapFilename, "Z%02uL.SCX", (u16)g_gameState.nZoneId);
     resblit_load_pal_or_stream(g_szZoneMapFilename);
 }

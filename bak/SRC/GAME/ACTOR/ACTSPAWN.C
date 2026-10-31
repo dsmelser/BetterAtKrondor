@@ -41,8 +41,8 @@ static Actor far *actor_alloc_from_template(Actor far *actor, bool16 canFlush) {
     return dst;
 }
 
-long far actorspawn_location_lookup(int location_id) {
-    register int i;
+s32 far actorspawn_location_lookup(s16 location_id) {
+    register s16 i;
     ObjFixedLocationCacheEntry rec;
 
     if (location_id == g_gameState.objfixed_location_cache.location_id) {
@@ -50,7 +50,7 @@ long far actorspawn_location_lookup(int location_id) {
     }
     for (i = 0; i < 20; i++) {
 
-        gstate_temp_file_read_at(&rec, (unsigned)GAM_OBJFIXED_LOCATION(i), 0x16);
+        gstate_temp_file_read_at(&rec, (u16)GAM_OBJFIXED_LOCATION(i), 0x16);
         if (location_id == rec.location_id) {
             g_gameState.objfixed_location_cache = rec;
             return rec.temp_gam_offset;
@@ -59,13 +59,13 @@ long far actorspawn_location_lookup(int location_id) {
     return 0;
 }
 
-int actorspawn_for_location_by_time(int location_id) {
-    int hi_nibble;
-    int lo_nibble;
-    int count;
-    long offset;
-    register int spawned;
-    register int i;
+s16 actorspawn_for_location_by_time(s16 location_id) {
+    s16 hi_nibble;
+    s16 lo_nibble;
+    s16 count;
+    s32 offset;
+    register s16 spawned;
+    register s16 i;
     Actor hdr;
 
     if ((offset = actorspawn_location_lookup(location_id)) == 0) {
@@ -81,7 +81,7 @@ int actorspawn_for_location_by_time(int location_id) {
             hi_nibble = hdr.chap_band >> 4 & 0xf;
             lo_nibble = hdr.chap_band & 0xf;
             if (((hdr.flags & 0x80) != 0 || hdr.bResidence == RES_SELF_SPAWN) &&
-                (g_gameState.nChapter >= (unsigned int)hi_nibble) &&
+                (g_gameState.nChapter >= (u16)hi_nibble) &&
                 (g_gameState.nChapter <= lo_nibble && hdr.bResidence != RES_FREE)) {
                 rgnenc_visible_pool_append_spawn(&hdr.kind);
                 spawned++;
@@ -92,14 +92,14 @@ int actorspawn_for_location_by_time(int location_id) {
     return spawned;
 }
 
-Actor far *actorspawn_objfixed(int kind, long world_x, long world_y) {
+Actor far *actorspawn_objfixed(s16 kind, s32 world_x, s32 world_y) {
     register ResFile *file;
-    register int ipass;
-    int rec_idx;
-    unsigned int chap_min;
-    unsigned int chap_max;
-    int record_count;
-    long offset;
+    register s16 ipass;
+    s16 rec_idx;
+    u16 chap_min;
+    u16 chap_max;
+    s16 record_count;
+    s32 offset;
     Actor far *spawned;
     ObjFixedTemplateBuffer tmpl;
 
@@ -125,13 +125,13 @@ Actor far *actorspawn_objfixed(int kind, long world_x, long world_y) {
         for (rec_idx = 0; spawned == NULL && rec_idx < record_count; rec_idx++) {
             offset = res_ftell(file);
             res_fread(&tmpl.header, 0x10, 1, file);
-            chap_min = (int)(unsigned int)tmpl.header.chap_band >> 4 & 0xf;
+            chap_min = (s16)(u16)tmpl.header.chap_band >> 4 & 0xf;
             chap_max = tmpl.header.chap_band & 0xf;
             if (tmpl.header.kind == kind && tmpl.header.nWorld_x == world_x &&
                 tmpl.header.nWorld_y == world_y && g_gameState.nChapter >= chap_min &&
                 g_gameState.nChapter <= chap_max) {
                 spawned = actor_alloc_from_template((Actor far *)&tmpl, ipass == 0);
-                *(long far *)spawned->temp_file_off = offset;
+                *(s32 far *)spawned->temp_file_off = offset;
                 res_fread_far((char far *)spawned + sizeof(Actor), 1,
                                   actorrec_payload_size((Actor far *)&tmpl), file);
             } else {
@@ -154,7 +154,7 @@ void far actorspawn_persist_to_temp(Actor far *actor) {
             sub->dwLast_touch_time = g_gameState.game_time;
         }
         g_pendingTempWriteRegion = TWR_ACTOR_POOL;
-        gstate_temp_file_write_at(&actor->kind, *(unsigned long far *)actor->temp_file_off,
+        gstate_temp_file_write_at(&actor->kind, *(u32 far *)actor->temp_file_off,
                                   actorrec_payload_size(actor) + sizeof(Actor) - 6);
     }
     actor->needsFlush = FALSE;
@@ -171,15 +171,15 @@ void far actorspawn_destroy_and_persist(Actor far *actor) {
     }
 }
 
-Actor far *actorspawn_enc_location(int kind, long world_x, long world_y) {
-    register int i;
-    register int found;
-    long spawn_loc;
-    long cur_off;
-    unsigned long cur_time;
-    long best_off;
-    unsigned long best_time;
-    int count;
+Actor far *actorspawn_enc_location(s16 kind, s32 world_x, s32 world_y) {
+    register s16 i;
+    register s16 found;
+    s32 spawn_loc;
+    s32 cur_off;
+    u32 cur_time;
+    s32 best_off;
+    u32 best_time;
+    s16 count;
     Actor far *result;
     ActorSubrec10_LastTouch far *p_touch;
     Actor far *tmp_clone;
@@ -251,20 +251,20 @@ Actor far *actorspawn_enc_location(int kind, long world_x, long world_y) {
     result->itemCount = '\0';
     result->bResidence = RES_ENCOUNTER;
     result->flags |= 0x80;
-    *(long far *)result->temp_file_off = cur_off;
+    *(s32 far *)result->temp_file_off = cur_off;
     result->needsFlush = TRUE;
     actorspawn_persist_to_temp(result);
     return result;
 }
 
 void far actorspawn_npc_prox_periodic(Actor far *actor) {
-    register int iZone;
-    register int kind;
-    int iEntry;
-    int coverWeight;
-    int trafficWeight;
-    long dist;
-    long score;
+    register s16 iZone;
+    register s16 kind;
+    s16 iEntry;
+    s16 coverWeight;
+    s16 trafficWeight;
+    s32 dist;
+    s32 score;
     ActorSubrec01_Proximity far *pProx;
     ActorSubrec10_LastTouch far *pTouch;
     VisibleEntryList *pList;
@@ -317,11 +317,11 @@ void far actorspawn_npc_prox_periodic(Actor far *actor) {
     for (iZone = 0; iZone < g_nCombat_zone_count; iZone++) {
         pList = g_apCombat_zone_actor_lists[iZone];
         pEnt = pList->pEntries;
-        for (iEntry = 0; iEntry < (int)pList->wEntry_count; iEntry++, pEnt++) {
+        for (iEntry = 0; iEntry < (s16)pList->wEntry_count; iEntry++, pEnt++) {
             npc_pos = *(Vec3Long far *)&pEnt->pos.xy.nWorld_x;
             pRec = ts_get_shape(pEnt->shapeId);
             kind = pRec->kind;
-            dist = distdir_octagonal_distance((long *)&actor_pos, (long *)&npc_pos);
+            dist = distdir_octagonal_distance((s32 *)&actor_pos, (s32 *)&npc_pos);
             if (kind == 5 || kind == 0x1e || kind == 0x15 || kind == 0x16 || kind == 0x12) {
                 if (dist < 6000) {
                     coverWeight += (dist < 1000) + 1;
@@ -333,10 +333,10 @@ void far actorspawn_npc_prox_periodic(Actor far *actor) {
         }
     }
 
-    score = score * (long)trafficWeight / (long)coverWeight;
-    score = score * (long)((g_gameState.game_time - pTouch->dwLast_touch_time) / 0xa8c0ul);
+    score = score * (s32)trafficWeight / (s32)coverWeight;
+    score = score * (s32)((g_gameState.game_time - pTouch->dwLast_touch_time) / 0xa8c0ul);
 
-    if ((long)RND(10000u) < score || gstate_event_read(0xdc54)) {
+    if ((s32)RND(10000u) < score || gstate_event_read(0xdc54)) {
         actor->itemCount = 0;
         actor->needsFlush = TRUE;
     }

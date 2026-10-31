@@ -3,10 +3,10 @@
 #include "SRC/AUDIO/CHAN/SFXCHAN.H"
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
-int music_fade(int track_id, int target_volume, int steps) {
+s16 music_fade(s16 track_id, s16 target_volume, s16 steps) {
     AudioTrackHandle far *handle_fp;
-    int step_size;
-    int count;
+    s16 step_size;
+    s16 count;
 
     if ((handle_fp = sfxchan_apply_to_channels(track_id)) != 0) {
         if ((step_size = (target_volume - (signed char)handle_fp->bVolume) / steps) != 0) {

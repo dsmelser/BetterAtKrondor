@@ -3,25 +3,25 @@
 #include "SRC/STREAM/CODEC/CODEC.H"
 
 unsigned char g_lzwEncOutBuf[12];
-unsigned short g_wLzwEncCurCode;
+u16 g_wLzwEncCurCode;
 unsigned char g_bLzwEncSeedPending;
-long g_lLzwOutByteCount;
-unsigned short g_wLzwOutBitPos;
-unsigned short g_wLzwEncMaxCode;
-unsigned short g_wLzwEncCodeBits;
+s32 g_lLzwOutByteCount;
+u16 g_wLzwOutBitPos;
+u16 g_wLzwEncMaxCode;
+u16 g_wLzwEncCodeBits;
 
-unsigned short g_nLzwTableSize = 0x138b;
-unsigned short g_nLzwNextFreeCode = 0x0000;
-unsigned short g_nLzwMode = 0x0000;
-unsigned short g_bLzwClearPending = 0x0000;
-long g_lLzwBestRatio = 0x00000000UL;
-long g_lLzwRatioThresh = 0x00002710UL;
-long g_lLzwInputCount = 0x00000001UL;
-long g_lLzwOutputCount = 0x00000000UL;
+u16 g_nLzwTableSize = 0x138b;
+u16 g_nLzwNextFreeCode = 0x0000;
+u16 g_nLzwMode = 0x0000;
+u16 g_bLzwClearPending = 0x0000;
+s32 g_lLzwBestRatio = 0x00000000UL;
+s32 g_lLzwRatioThresh = 0x00002710UL;
+s32 g_lLzwInputCount = 0x00000001UL;
+s32 g_lLzwOutputCount = 0x00000000UL;
 unsigned char g_lzwHiMask[9] = {0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80, 0x00};
 unsigned char g_lzwLoMask[9] = {0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff};
 
-int near lzw_reset_state(void) {
+s16 near lzw_reset_state(void) {
     g_wLzwOutBitPos = 0;
     g_lLzwOutByteCount = 0;
     g_lLzwOutputCount = 0;
@@ -33,26 +33,26 @@ int near lzw_reset_state(void) {
     g_wLzwEncMaxCode = (1 << (g_wLzwEncCodeBits = 9)) - 1;
 
     g_nLzwNextFreeCode = 0x101;
-    lzw_clear_code_table((int)g_nLzwTableSize);
+    lzw_clear_code_table((s16)g_nLzwTableSize);
     g_bLzwEncSeedPending = 1;
     g_nLzwMode = 0;
     return 0;
 }
 
-int near lzw_decompressor_init(void) {
+s16 near lzw_decompressor_init(void) {
     lzw_reset_state();
     g_nLzwMode = 1;
     return 0;
 }
 
-int near lzw_compress_input(int flush) {
-    long hashKey;
-    int step;
-    unsigned int readIdx;
-    unsigned int sentinel;
+s16 near lzw_compress_input(s16 flush) {
+    s32 hashKey;
+    s16 step;
+    u16 readIdx;
+    u16 sentinel;
     unsigned char *pRing;
-    register int curByte;
-    register int slot = 0;
+    register s16 curByte;
+    register s16 slot = 0;
 
     pRing = g_pCurStreamRingBuf;
     readIdx = g_pCurStreamDesc->bRingTail;
@@ -68,7 +68,7 @@ int near lzw_compress_input(int flush) {
         }
 
         g_lLzwInputCount++;
-        hashKey = ((long)curByte << 12) + (long)(int)g_wLzwEncCurCode;
+        hashKey = ((s32)curByte << 12) + (s32)(s16)g_wLzwEncCurCode;
         slot = (curByte << 4) ^ g_wLzwEncCurCode;
         if (slot == 0)
             step = 1;
@@ -76,21 +76,21 @@ int near lzw_compress_input(int flush) {
             step = g_nLzwTableSize - slot;
 
         for (;;) {
-            if (*(long huge *)(g_pCurCodecScratch + ((long)slot << 2)) == hashKey) {
+            if (*(s32 huge *)(g_pCurCodecScratch + ((s32)slot << 2)) == hashKey) {
                 g_wLzwEncCurCode =
-                    *(unsigned short huge *)(g_pCurCodecScratch + ((long)slot << 1) + 0x4e2c);
+                    *(u16 huge *)(g_pCurCodecScratch + ((s32)slot << 1) + 0x4e2c);
                 goto next;
             }
-            if (*(long huge *)(g_pCurCodecScratch + ((long)slot << 2)) < 0) {
+            if (*(s32 huge *)(g_pCurCodecScratch + ((s32)slot << 2)) < 0) {
 
                 lzw_emit_code(g_wLzwEncCurCode);
                 g_lLzwOutputCount++;
                 g_wLzwEncCurCode = curByte;
-                if ((int)g_nLzwNextFreeCode < 0x1000) {
-                    *(unsigned short huge *)(g_pCurCodecScratch + ((long)slot << 1) + 0x4e2c) =
+                if ((s16)g_nLzwNextFreeCode < 0x1000) {
+                    *(u16 huge *)(g_pCurCodecScratch + ((s32)slot << 1) + 0x4e2c) =
                         g_nLzwNextFreeCode;
                     g_nLzwNextFreeCode++;
-                    *(long huge *)(g_pCurCodecScratch + ((long)slot << 2)) = hashKey;
+                    *(s32 huge *)(g_pCurCodecScratch + ((s32)slot << 2)) = hashKey;
                 } else if (g_lLzwInputCount >= g_lLzwRatioThresh || g_nLzwMode != 0) {
                     lzw_check_ratio();
                 }
@@ -98,7 +98,7 @@ int near lzw_compress_input(int flush) {
             }
 
             if ((slot -= step) < 0)
-                slot += (int)g_nLzwTableSize;
+                slot += (s16)g_nLzwTableSize;
         }
     next:;
     }
@@ -113,11 +113,11 @@ int near lzw_compress_input(int flush) {
     return 0;
 }
 
-void near lzw_emit_code(int code) {
+void near lzw_emit_code(s16 code) {
     register unsigned char *p;
-    register int rem;
-    int bitpos;
-    int i;
+    register s16 rem;
+    s16 bitpos;
+    s16 i;
 
     bitpos = g_wLzwOutBitPos;
     rem = g_wLzwEncCodeBits;
@@ -149,11 +149,11 @@ void near lzw_emit_code(int code) {
             g_wLzwOutBitPos = 0;
         }
 
-        if ((int)g_nLzwNextFreeCode > (int)g_wLzwEncMaxCode || g_bLzwClearPending != 0) {
-            if ((int)g_wLzwOutBitPos > 0) {
-                for (i = 0; i < (int)g_wLzwEncCodeBits; i++)
+        if ((s16)g_nLzwNextFreeCode > (s16)g_wLzwEncMaxCode || g_bLzwClearPending != 0) {
+            if ((s16)g_wLzwOutBitPos > 0) {
+                for (i = 0; i < (s16)g_wLzwEncCodeBits; i++)
                     stream_putc(g_lzwEncOutBuf[i]);
-                g_lLzwOutByteCount += (int)g_wLzwEncCodeBits;
+                g_lLzwOutByteCount += (s16)g_wLzwEncCodeBits;
             }
             g_wLzwOutBitPos = 0;
             if (g_bLzwClearPending != 0) {
@@ -168,21 +168,21 @@ void near lzw_emit_code(int code) {
             }
         }
     } else {
-        if ((int)g_wLzwOutBitPos > 0) {
-            for (i = 0; i < ((int)g_wLzwOutBitPos + 7) / 8; i++)
+        if ((s16)g_wLzwOutBitPos > 0) {
+            for (i = 0; i < ((s16)g_wLzwOutBitPos + 7) / 8; i++)
                 stream_putc(g_lzwEncOutBuf[i]);
         }
-        g_lLzwOutByteCount += ((int)g_wLzwOutBitPos + 7) / 8;
+        g_lLzwOutByteCount += ((s16)g_wLzwOutBitPos + 7) / 8;
         g_wLzwOutBitPos = 0;
     }
 }
 
-long thunk_LDIV_at(long numer, long denom) {
+s32 thunk_LDIV_at(s32 numer, s32 denom) {
     return numer / denom;
 }
 
 void near lzw_check_ratio(void) {
-    long ratio;
+    s32 ratio;
 
     g_lLzwRatioThresh = g_lLzwInputCount + 10000;
 
@@ -199,17 +199,17 @@ void near lzw_check_ratio(void) {
         g_lLzwBestRatio = ratio;
     } else {
         g_lLzwBestRatio = 0;
-        lzw_clear_code_table((long)(int)g_nLzwTableSize);
+        lzw_clear_code_table((s32)(s16)g_nLzwTableSize);
         g_nLzwNextFreeCode = 0x101;
         g_bLzwClearPending = 1;
         lzw_emit_code(0x100);
     }
 }
 
-void near lzw_clear_code_table(long count) {
-    long huge *p;
+void near lzw_clear_code_table(s32 count) {
+    s32 huge *p;
 
-    p = (long huge *)g_pCurCodecScratch;
+    p = (s32 huge *)g_pCurCodecScratch;
     while (--count >= 0) {
         *p = -1L;
         p++;

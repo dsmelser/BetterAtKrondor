@@ -1,4 +1,4 @@
-#define FP_OFF(fp) (*(unsigned *)&(fp))
+#define FP_OFF(fp) (*(u16 *)&(fp))
 #include "SRC/GEN/GFXCTX.H"
 #include "structs.h"
 #include "SRC/STREAM/RESLOAD/FONTLOAD.H"
@@ -9,18 +9,18 @@
 #include "SRC/STREAM/RESLOAD/IFFREAD.H"
 #include "SRC/STREAM/CODEC/STREAM.H"
 
-unsigned short g_font_chunk_tag_ptr = (unsigned short)"FNT:";
+u16 g_font_chunk_tag_ptr = (u16)"FNT:";
 
-int font_load(FileRef *filename) {
-    int openedCache;
-    int dataSize;
-    int stream_id;
-    int error_flag;
+s16 font_load(FileRef *filename) {
+    s16 openedCache;
+    s16 dataSize;
+    s16 stream_id;
+    s16 error_flag;
     void far *buf;
     void *malloc_result;
-    int slot;
+    s16 slot;
 
-    for (slot = 2; *(long *)&g_font_bitmap_data[slot] && slot < 0x14; slot++)
+    for (slot = 2; *(s32 *)&g_font_bitmap_data[slot] && slot < 0x14; slot++)
         ;
     if (slot >= 0x14)
         goto full;
@@ -52,22 +52,22 @@ int font_load(FileRef *filename) {
             ((stream_id = stream_open(-1, filename, "r", cached_file_chunk_size(filename))) < 0);
 
         if (error_flag == 0) {
-            error_flag = ((unsigned int)stream_size(stream_id) != (unsigned int)dataSize);
+            error_flag = ((u16)stream_size(stream_id) != (u16)dataSize);
         }
 
         if (error_flag == 0) {
-            error_flag = ((buf = alloc_far((unsigned long)(unsigned int)dataSize, 0L)) == 0);
+            error_flag = ((buf = alloc_far((u32)(u16)dataSize, 0L)) == 0);
         }
 
         if (error_flag == 0) {
-            error_flag = (stream_read(stream_id, buf, dataSize) != (unsigned int)dataSize);
+            error_flag = (stream_read(stream_id, buf, dataSize) != (u16)dataSize);
         }
 
         if (error_flag == 0) {
-            g_font_glyph_offset_table[slot] = (int far *)buf;
-            FP_OFF(buf) += (unsigned int)g_graphics_context.pFont_glyph_count[slot] * 2;
+            g_font_glyph_offset_table[slot] = (s16 far *)buf;
+            FP_OFF(buf) += (u16)g_graphics_context.pFont_glyph_count[slot] * 2;
             g_font_width_table[slot] = (unsigned char far *)buf;
-            FP_OFF(buf) += (unsigned int)g_graphics_context.pFont_glyph_count[slot];
+            FP_OFF(buf) += (u16)g_graphics_context.pFont_glyph_count[slot];
             g_font_bitmap_data[slot] = (unsigned char far *)buf;
         }
 
@@ -85,17 +85,17 @@ int font_load(FileRef *filename) {
         if ((char)g_graphics_context.pFont_glyph_width_bits[slot] == -2) {
             g_font_format[slot] = 2;
             res_fread(&g_graphics_context.pFont_glyph_width_bits[slot], 1, 1, filename);
-            dataSize = (unsigned int)g_graphics_context.pFont_glyph_width_bits[slot];
+            dataSize = (u16)g_graphics_context.pFont_glyph_width_bits[slot];
         } else {
             g_font_format[slot] = 0;
-            dataSize = ((int)g_graphics_context.pFont_glyph_width_bits[slot] + 7) >> 3;
+            dataSize = ((s16)g_graphics_context.pFont_glyph_width_bits[slot] + 7) >> 3;
         }
         res_fread(&g_graphics_context.pFont_height[slot], 1, 1, filename);
         res_fread(&g_graphics_context.pFont_base_char[slot], 1, 1, filename);
         res_fread(&g_graphics_context.pFont_glyph_count[slot], 1, 1, filename);
 
-        dataSize *= (int)(unsigned char)g_graphics_context.pFont_height[slot] *
-                    (int)(unsigned char)g_graphics_context.pFont_glyph_count[slot];
+        dataSize *= (s16)(unsigned char)g_graphics_context.pFont_height[slot] *
+                    (s16)(unsigned char)g_graphics_context.pFont_glyph_count[slot];
 
         error_flag = !((malloc_result = my_malloc(dataSize)));
 
@@ -105,8 +105,8 @@ int font_load(FileRef *filename) {
 
         if (error_flag == 0) {
             g_font_bitmap_data[slot] = (unsigned char far *)malloc_result;
-            *(long *)&g_font_glyph_offset_table[slot] = 0L;
-            *(long *)&g_font_width_table[slot] = 0L;
+            *(s32 *)&g_font_glyph_offset_table[slot] = 0L;
+            *(s32 *)&g_font_width_table[slot] = 0L;
         }
         if (error_flag == 0) {
             goto epilogue;
@@ -133,7 +133,7 @@ done:
     return slot;
 }
 
-void font_unload(register int slot) {
+void font_unload(register s16 slot) {
     if (font_slot_in_use(slot)) {
         if (((void far *far *)g_font_bitmap_data)[slot] ==
             ((void far *far *)g_font_bitmap_data)[0]) {
@@ -141,20 +141,20 @@ void font_unload(register int slot) {
             g_graphics_context.pFont_base_char[0] = g_graphics_context.pFont_glyph_count[0] = 0;
             g_graphics_context.pFont_glyph_width_bits[0] = g_graphics_context.pFont_height[0] =
                 g_font_underline_offset[0] = 0;
-            *(long *)&g_font_glyph_offset_table[0] = 0L;
-            *(long *)&g_font_width_table[0] = 0L;
-            *(long *)&g_font_bitmap_data[0] = 0L;
+            *(s32 *)&g_font_glyph_offset_table[0] = 0L;
+            *(s32 *)&g_font_width_table[0] = 0L;
+            *(s32 *)&g_font_bitmap_data[0] = 0L;
         }
 
-        if (*(unsigned long *)&g_font_glyph_offset_table[slot]) {
+        if (*(u32 *)&g_font_glyph_offset_table[slot]) {
             _freemem(((unsigned char far *far *)g_font_glyph_offset_table)[slot]);
         } else {
             my_free((void *)FP_OFF(g_font_bitmap_data[slot]));
         }
 
         g_font_format[slot] = 0;
-        *(long *)&g_font_bitmap_data[slot] = 0L;
-        *(long *)&g_font_glyph_offset_table[slot] = 0L;
-        *(long *)&g_font_width_table[slot] = 0L;
+        *(s32 *)&g_font_bitmap_data[slot] = 0L;
+        *(s32 *)&g_font_glyph_offset_table[slot] = 0L;
+        *(s32 *)&g_font_width_table[slot] = 0L;
     }
 }

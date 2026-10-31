@@ -15,30 +15,30 @@
 #include "SRC/DIALOG/DIALOG.H"
 #include "SRC/SCRIPT/ADSCRIPT.H"
 
-unsigned short g_wScriptEnhancedAuxFlag = 0x0000;
-unsigned short g_nScriptEnhancedOpcodeDispatchEnabled = 0x0000;
-unsigned short g_aTtmFadeStepTable[7] = {0x0000, 0x0050, 0x0014, 0x000a, 0x0005, 0x0002, 0x0001};
+u16 g_wScriptEnhancedAuxFlag = 0x0000;
+u16 g_nScriptEnhancedOpcodeDispatchEnabled = 0x0000;
+u16 g_aTtmFadeStepTable[7] = {0x0000, 0x0050, 0x0014, 0x000a, 0x0005, 0x0002, 0x0001};
 
-int far ttmscript_show_dialog_action(int arg, unsigned int mode) {
-    register unsigned int img;
+s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
+    register u16 img;
 
     img = g_pCurScriptObject->pAhPagedImage[0];
 
     if (arg == -1) {
         if (img = g_pCurScriptObject->pAhPagedImage[1])
-            blit_sprite_aa_edges((ImageRecord *)(*(unsigned int *)img),
-                                 0xa0 - ((ImageRecord *)*(unsigned int *)img)->nWidth / 2,
-                                 0x70 - ((ImageRecord *)*(unsigned int *)img)->nHeight,
+            blit_sprite_aa_edges((ImageRecord *)(*(u16 *)img),
+                                 0xa0 - ((ImageRecord *)*(u16 *)img)->nWidth / 2,
+                                 0x70 - ((ImageRecord *)*(u16 *)img)->nHeight,
                                  g_pCurScriptObject->pCachedResource[0]);
         return;
     }
     if (arg == 0) {
-        int xs[4];
-        int ys[4];
+        s16 xs[4];
+        s16 ys[4];
 
         if (mode == 0xff) {
             unsigned char buf[320];
-            int row;
+            s16 row;
             resblit_load_pal_or_stream("DIALOG.SCR");
             g_graphics_context.bClip_enabled = 0;
             g_graphics_context.bGfx_outline_color = 6;
@@ -51,40 +51,40 @@ int far ttmscript_show_dialog_action(int arg, unsigned int mode) {
             adscript_blit_full_other_page();
             return;
         }
-        arg = (int)((unsigned long)mode * 0x333);
-        if ((int)mode > 0x14)
+        arg = (s16)((u32)mode * 0x333);
+        if ((s16)mode > 0x14)
             return;
         if (!img)
             return;
 
         xs[0] = xs[3] = 0;
-        xs[1] = xs[2] = (int)((long)r3d_tbl_cos(arg) * 0x13f >> 0xe);
+        xs[1] = xs[2] = (s16)((s32)r3d_tbl_cos(arg) * 0x13f >> 0xe);
         {
-            int sin_y = (int)((long)r3d_tbl_sin(arg) * 0x19 >> 0xe);
+            s16 sin_y = (s16)((s32)r3d_tbl_sin(arg) * 0x19 >> 0xe);
             ys[1] = (ys[0] = 0) - sin_y;
             ys[2] = (ys[3] = 199) + sin_y;
         }
         if (xs[0] > xs[1]) {
-            register int tmp = xs[0];
+            register s16 tmp = xs[0];
             xs[0] = xs[3] = xs[1];
             xs[1] = xs[2] = tmp;
         }
-        emsimg_gouraud_blit_paged((unsigned int *)*(unsigned int *)img, xs, ys);
+        emsimg_gouraud_blit_paged((u16 *)*(u16 *)img, xs, ys);
         return;
     }
 
     switch (mode) {
     case 0:
     case 3: {
-        long key;
+        s32 key;
         PDdxRecord rec;
 
-        key = (long)arg + 1600000;
+        key = (s32)arg + 1600000;
         g_graphics_context.clip.ymin = g_graphics_context.clip.xmin = 0;
         g_graphics_context.clip.ymax = 199;
 
         g_graphics_context.clip.xmax = 0x13f;
-        if (rec = dialog_load_record_by_key((unsigned long)key, 0)) {
+        if (rec = dialog_load_record_by_key((u32)key, 0)) {
             font_activate(g_wGameFontSlot);
             g_graphics_context.wGfxBlitSrcPage = g_wVgaScratchPageBase;
             g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
@@ -104,7 +104,7 @@ int far ttmscript_show_dialog_action(int arg, unsigned int mode) {
     case 1:
         font_activate(g_wGameFontSlot);
         screen_cursor_set_hidden_flag(0);
-        dialog_show_by_key((long)arg + 1600000, 0);
+        dialog_show_by_key((s32)arg + 1600000, 0);
         screen_cursor_set_hidden_flag(1);
         break;
     case 2:
@@ -113,13 +113,13 @@ int far ttmscript_show_dialog_action(int arg, unsigned int mode) {
     case 4:
         screen_cursor_set_hidden_flag(0);
         font_activate(g_wGameFontSlot);
-        dialog_show_by_key((long)arg + 1600000, 0);
+        dialog_show_by_key((s32)arg + 1600000, 0);
         screen_cursor_set_hidden_flag(1);
         break;
     case 5:
         screen_cursor_set_hidden_flag(0);
         font_activate(g_wGameFontSlot);
-        dialog_play_record((long)arg + 1600000, 0);
+        dialog_play_record((s32)arg + 1600000, 0);
         screen_cursor_set_hidden_flag(1);
         g_pPalQueuedForFlip = 0;
         break;

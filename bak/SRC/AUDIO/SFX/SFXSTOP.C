@@ -4,7 +4,7 @@
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
 void sfx_stop_in_slot(unsigned char far *script) {
-    int i;
+    s16 i;
     AudioTrackHandle far *h;
 
     for (i = 0; i < 7; i++) {

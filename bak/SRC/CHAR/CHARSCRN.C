@@ -33,18 +33,18 @@ extern ConditionInfo far g_aConditionInfo[7];
 
 struct SpellRecord {
     char name[0x18];
-    int idx;
+    s16 idx;
 };
 
 static void charscreen_draw_spell_book_actor(Combatant *actor, unsigned char far *pal_scratch) {
-    int row;
-    int spell_icon;
-    int spell_count;
-    int first;
+    s16 row;
+    s16 spell_icon;
+    s16 spell_count;
+    s16 first;
     ResFile *file;
     struct SpellRecord spell_rec;
-    register int panel_y;
-    register int spell_idx;
+    register s16 panel_y;
+    register s16 spell_idx;
 
     if (gstate_actor_is_caster(actor) != 0) {
         file = res_fopen("InvSpell.dat", "rb");
@@ -81,10 +81,10 @@ static void charscreen_draw_spell_book_actor(Combatant *actor, unsigned char far
             }
             g_graphics_context.bText_fg_color = '\x01';
 
-            textwrap_draw_aligned((long)g_pMainScratchBuf, 0x33, panel_y + 1, 0x109, 0x1e, 0, 0x10,
+            textwrap_draw_aligned((s32)g_pMainScratchBuf, 0x33, panel_y + 1, 0x109, 0x1e, 0, 0x10,
                                   0);
             g_graphics_context.bText_fg_color = '\n';
-            textwrap_draw_aligned((long)g_pMainScratchBuf, 0x32, panel_y, 0x109, 0x1e, 0, 0x10, 0);
+            textwrap_draw_aligned((s32)g_pMainScratchBuf, 0x32, panel_y, 0x109, 0x1e, 0, 0x10, 0);
         }
         res_fclose(file);
         g_pPalQueuedForFlip = pal_scratch = chunk_load_into_slot("INVENTOR.PAL");
@@ -98,12 +98,12 @@ static void charscreen_draw_spell_book_actor(Combatant *actor, unsigned char far
     }
 }
 
-static void far charscreen_draw_sheet_stat_row(int stat_idx, int value, int party_slot) {
-    int x_base;
-    int y_pos;
-    int skillIdx;
-    unsigned short selected;
-    unsigned short improved;
+static void far charscreen_draw_sheet_stat_row(s16 stat_idx, s16 value, s16 party_slot) {
+    s16 x_base;
+    s16 y_pos;
+    s16 skillIdx;
+    u16 selected;
+    u16 improved;
     char buf[10];
 
     x_base = stat_idx > 9 ? 0x93 : 0x1e;
@@ -164,13 +164,13 @@ static void far charscreen_draw_sheet_stat_row(int stat_idx, int value, int part
     return;
 }
 
-static void far charscreen_draw_stat_row(int stat_idx, int cur_val, int max_val, int party_slot) {
-    int skillIdx;
-    int y;
-    int fgColor;
-    int shadowColor;
+static void far charscreen_draw_stat_row(s16 stat_idx, s16 cur_val, s16 max_val, s16 party_slot) {
+    s16 skillIdx;
+    s16 y;
+    s16 fgColor;
+    s16 shadowColor;
     char buf[10];
-    unsigned short improved;
+    u16 improved;
 
     y = stat_idx * 0xb + 0x1c;
     skillIdx = party_slot * 0x11 + stat_idx;
@@ -188,12 +188,12 @@ static void far charscreen_draw_stat_row(int stat_idx, int cur_val, int max_val,
     }
 }
 
-static void far charscreen_info_draw(Combatant *actor, MenuPage *page, int party_slot,
-                                     int full_sheet, unsigned char far *pal_buf) {
-    int condCount;
+static void far charscreen_info_draw(Combatant *actor, MenuPage *page, s16 party_slot,
+                                     s16 full_sheet, unsigned char far *pal_buf) {
+    s16 condCount;
     char buf[80];
     MenuEntry stack_me;
-    int i;
+    s16 i;
 
     charscreen_recalc_condition_tick();
     g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaPage1Base;
@@ -224,7 +224,7 @@ static void far charscreen_info_draw(Combatant *actor, MenuPage *page, int party
     for (; i < 7; i++) {
         if ((char)g_gameState.abActorStatusRanks[party_slot][i] > 0) {
             sprintf(buf, "%Fs (%d%)", g_aConditionInfo[i].pName,
-                    (int)(char)g_gameState.abActorStatusRanks[party_slot][i]);
+                    (s16)(char)g_gameState.abActorStatusRanks[party_slot][i]);
             invui_draw_text_aligned_shadow((unsigned char far *)buf, 0xdc, ++condCount * 9 + 0x10, 0, 0x89,
                                            0x8f);
         }
@@ -251,16 +251,16 @@ static void far charscreen_info_draw(Combatant *actor, MenuPage *page, int party
 }
 
 void charscreen_info_loop(Combatant *actor) {
-    unsigned short memberIdx;
-    int firstDraw;
-    unsigned short redrawFlag;
-    unsigned short savedBlendMode;
+    u16 memberIdx;
+    s16 firstDraw;
+    u16 redrawFlag;
+    u16 savedBlendMode;
     MenuPage *page;
     unsigned char far *savedPal;
     unsigned char far *pal_buf;
-    int tmp;
-    int slot;
-    unsigned int key;
+    s16 tmp;
+    s16 slot;
+    u16 key;
 
     firstDraw = 1;
     redrawFlag = 0xffff;
@@ -284,11 +284,11 @@ void charscreen_info_loop(Combatant *actor) {
         do {
             do {
                 if (redrawFlag != 0) {
-                    memberIdx = (unsigned short)g_gameState.activeParty[slot];
+                    memberIdx = (u16)g_gameState.activeParty[slot];
                     actor = &g_gameState.characters[memberIdx];
                     page->pEntries[2].bActive_flag = (unsigned char)gstate_actor_is_caster(actor);
                     if (redrawFlag != 1) {
-                        memberIdx = (unsigned short)g_gameState.activeParty[slot];
+                        memberIdx = (u16)g_gameState.activeParty[slot];
                         actor = &g_gameState.characters[memberIdx];
                         charscreen_info_draw(actor, page, memberIdx, 1, pal_buf);
                         if ((g_pPalQueuedForFlip != (unsigned char far *)0x0) && (firstDraw != 0)) {
@@ -310,7 +310,7 @@ void charscreen_info_loop(Combatant *actor) {
                     screen_frame_present();
                 }
             } while ((key = menupage_run(page, &redrawFlag)) == 0);
-            if ((int)key >= 0x80) {
+            if ((s16)key >= 0x80) {
                 redrawFlag = 0xffff;
                 if ((menupage_state_0e7c() == 2) ||
                     (key_is_down(0x2a) != 0 || key_is_down(0x36) != 0)) {
@@ -320,7 +320,7 @@ void charscreen_info_loop(Combatant *actor) {
                     if (stat_actor_get(actor, key + 0xff84, 1) != 0) {
                         tmp = memberIdx * 0x11 + key + 0xff84;
                         gstate_event_write(SKILL_SELECTED(tmp),
-                                           (unsigned int)!gstate_event_read(SKILL_SELECTED(tmp)));
+                                           (u16)!gstate_event_read(SKILL_SELECTED(tmp)));
                     }
                 }
             } else {
@@ -340,7 +340,7 @@ void charscreen_info_loop(Combatant *actor) {
                     if (((key == 2) || (key == 3)) || (key == 4)) {
                         tmp = key + 0xfffe;
                         askabout_free_paged_image_table();
-                        if ((int)tmp < (int)g_gameState.partySize)
+                        if ((s16)tmp < (s16)g_gameState.partySize)
                             slot = tmp;
                         redrawFlag = 0xffff;
                     } else {
@@ -364,9 +364,9 @@ void charscreen_info_loop(Combatant *actor) {
 }
 
 void far charscreen_recalc_condition_tick(void) {
-    int memberIdx;
-    int i;
-    int count;
+    s16 memberIdx;
+    s16 i;
+    s16 count;
 
     memberIdx = 0;
     do {
@@ -382,10 +382,10 @@ void far charscreen_recalc_condition_tick(void) {
     return;
 }
 
-static long charscreen_temple_heal_price(Combatant *actor, int multiplier_pct) {
-    int cond;
-    int i;
-    long total;
+static s32 charscreen_temple_heal_price(Combatant *actor, s16 multiplier_pct) {
+    s16 cond;
+    s16 i;
+    s32 total;
 
     i = total = 0;
     for (; i < 7; i++) {
@@ -414,22 +414,22 @@ static long charscreen_temple_heal_price(Combatant *actor, int multiplier_pct) {
             }
         }
     }
-    return (long)total * multiplier_pct / 100;
+    return (s32)total * multiplier_pct / 100;
 }
 
-void charscreen_temple_heal_menu(int actor_filter, int mode) {
-    unsigned short member_idx;
-    unsigned short redraw_flag;
-    unsigned short saved_blend_mode;
+void charscreen_temple_heal_menu(s16 actor_filter, s16 mode) {
+    u16 member_idx;
+    u16 redraw_flag;
+    u16 saved_blend_mode;
     MenuPage *page;
     unsigned char far *saved_pal;
     unsigned char far *pal_buf;
-    long price;
+    s32 price;
     DDXRecord far *dlg_rec;
-    int slot;
-    unsigned int key;
-    int stat_idx;
-    int dst_slot;
+    s16 slot;
+    u16 key;
+    s16 stat_idx;
+    s16 dst_slot;
 
     redraw_flag = 0xffff;
     saved_blend_mode = g_nPalBlendMode;
@@ -474,7 +474,7 @@ LAB_main:
                                                          actor_filter);
                     if (mode == 4) {
                         price +=
-                            (int)(stat_actor_get(&g_gameState.characters[member_idx], 0x10, 1) -
+                            (s16)(stat_actor_get(&g_gameState.characters[member_idx], 0x10, 1) -
                                   stat_actor_get(&g_gameState.characters[member_idx], 0x10, 0));
                     }
                     g_gameState.lEvtArgGoldCost = price;
@@ -504,7 +504,7 @@ LAB_main:
             key = 0;
         }
         if ((key == 2 || key == 3 || key == 4) && g_wInCombatMode == 0) {
-            dst_slot = (int)key - 2;
+            dst_slot = (s16)key - 2;
             if (dst_slot < g_gameState.partySize)
                 slot = dst_slot;
             redraw_flag = 0xffff;

@@ -3,7 +3,7 @@
 #include "SRC/AUDIO/ENGINE/AUDITER.H"
 #include "SRC/AUDIO/SFX/SFXFIND.H"
 
-AudioTrackHandle far *sfxchan_apply_to_channels(int channel_or_mode) {
+AudioTrackHandle far *sfxchan_apply_to_channels(s16 channel_or_mode) {
     AudioListNode far *handle;
     AudioTrackHandle far *result;
 

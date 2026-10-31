@@ -27,7 +27,7 @@ struct PolyListBlock {
     union {             /**< +0x2..+0x7, 6B: active arm (widest is @ref SpriteBillboard, 6B). */
         /** tag 0: face count + near offset to the @ref MeshPolygon array. */
         struct MeshPolyHeader {
-            unsigned short polyCount, firstPolyOff;
+            u16 polyCount, firstPolyOff;
         } poly;
         CircObj circ;           /**< tag 1: world-point circle. */
         SpriteBillboard sprite; /**< tag 2: sprite billboard. */
@@ -41,7 +41,7 @@ struct MeshPolygon {
     unsigned char bFlags; /**< +0x0, 1B: low 2 bits = type; 0x20 = back-face test; 0x80 = fill. */
     unsigned char abShadeOp
         [5]; /**< +0x1, 5B: shade/color operands -> @ref r3d_polygon_resolve_shade_color. */
-    unsigned short
+    u16
         wIdxListOff; /**< +0x6, 2B: near offset to the 0xff-terminated vertex-index list. */
 };
 
@@ -49,9 +49,9 @@ struct MeshPolygon {
  * struct. This TU is the block's sole referencer and owns its storage. */
 ShapeBuilder g_builder;
 
-long ts_isqrt_long(long n) {
-    long x;
-    long quot;
+s32 ts_isqrt_long(s32 n) {
+    s32 x;
+    s32 quot;
 
     x = n;
     quot = 1L;
@@ -63,12 +63,12 @@ long ts_isqrt_long(long n) {
 }
 
 void ts_emit_ribbon_joint(Vec3Short *anchorXy) {
-    int dxOff;
-    int t;
-    unsigned int a1, a2, base;
-    int delta;
+    s16 dxOff;
+    s16 t;
+    u16 a1, a2, base;
+    s16 delta;
     Vec3Short vtx;
-    int i;
+    s16 i;
 
     dxOff = g_builder.aVtx1Packed.nX - g_builder.aVtx2Packed.nX;
     t = g_builder.aVtx1Packed.nY - g_builder.aVtx2Packed.nY;
@@ -153,18 +153,18 @@ void ts_pack_vertex(Vec3Short far *dstShort3, Vec3Long far *srcLong3) {
     dstShort3->nZ = srcLong3->nZ >> g_builder.builtShape->shift;
 }
 
-void ts_project_shape(Vec3Long *vtxData, unsigned int vtxSeg, int vtxCount, int radiusIn) {
+void ts_project_shape(Vec3Long *vtxData, u16 vtxSeg, s16 vtxCount, s16 radiusIn) {
     Vec3Long far *vtxCur;
-    int tmp;
-    long maxMag;
-    long curMag;
-    int absZ, absY, absX;
-    long labZ, labY, labX;
-    int i;
+    s16 tmp;
+    s32 maxMag;
+    s32 curMag;
+    s16 absZ, absY, absX;
+    s32 labZ, labY, labX;
+    s16 i;
 
     maxMag = 0;
 
-    vtxCur = MK_FP(vtxSeg, (unsigned)vtxData);
+    vtxCur = MK_FP(vtxSeg, (u16)vtxData);
 
     for (i = 0; i < vtxCount; i++, vtxCur++) {
         labX = labs(vtxCur->nX);
@@ -189,7 +189,7 @@ void ts_project_shape(Vec3Long *vtxData, unsigned int vtxSeg, int vtxCount, int 
 
     g_builder.nSegmentRadius = radiusIn >> (g_builder.builtShape->shift + 1);
 
-    vtxCur = MK_FP(vtxSeg, (unsigned)vtxData);
+    vtxCur = MK_FP(vtxSeg, (u16)vtxData);
 
     ts_pack_vertex(&g_builder.aVtx1Packed, vtxCur++);
     ts_pack_vertex(&g_builder.aVtx2Packed, vtxCur++);
@@ -233,7 +233,7 @@ void ts_project_shape(Vec3Long *vtxData, unsigned int vtxSeg, int vtxCount, int 
     g_builder.builtShape->radius = ts_isqrt_long(curMag);
 }
 
-void far *ts_bump_alloc(int size) {
+void far *ts_bump_alloc(s16 size) {
     unsigned char far *p;
 
     p = g_builder.bumpCursor;
@@ -241,10 +241,10 @@ void far *ts_bump_alloc(int size) {
     return p;
 }
 
-void ts_alloc_shape_block(int recordCount) {
+void ts_alloc_shape_block(s16 recordCount) {
     unsigned char far *p;
-    unsigned int i;
-    unsigned int size;
+    u16 i;
+    u16 size;
 
     /* Fixed prefix: Shape + LOD descriptor + one mesh part + one poly-list block. */
     size = sizeof(Shape) + sizeof(struct LodDescriptor) + sizeof(MeshPartRecord) +
@@ -264,16 +264,16 @@ void ts_alloc_shape_block(int recordCount) {
     }
 }
 
-Shape far *ts_build_shape(int slot, Vec3Long *vtxData, unsigned int vtxSeg, int vtxCount, int ribbonWidth,
-                          int color1, int color2) {
-    int idxBase;
+Shape far *ts_build_shape(s16 slot, Vec3Long *vtxData, u16 vtxSeg, s16 vtxCount, s16 ribbonWidth,
+                          s16 color1, s16 color2) {
+    s16 idxBase;
     struct LodDescriptor far *pLod;
     MeshPartRecord far *pPart;
     struct PolyListBlock far *pPolyBlock;
     struct MeshPolyHeader far *pPolyHeader;
     struct MeshPolygon far *pFace;
     unsigned char far *pIndices;
-    int i;
+    s16 i;
 
     if (vtxCount >= 3) {
 

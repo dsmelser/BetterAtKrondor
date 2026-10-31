@@ -8,7 +8,7 @@
 #include "SRC/STREAM/BUFLOAD/CHUNKRD.H"
 
 ProximityZoneSettings far *g_pCurProximityZoneRec;
-unsigned short g_nProximityTableCount;
+u16 g_nProximityTableCount;
 ProximityZone far *far *g_pProximityTable;
 
 void far proximity_table_load(char *file) {
@@ -23,7 +23,7 @@ void far proximity_table_load(char *file) {
     cursor = g_pProximityTable;
     g_nProximityTableCount = 0;
     for (; *cursor != (ProximityZone far *)0; cursor++) {
-        *cursor = (ProximityZone far *)((long)g_pProximityTable + (long)*cursor);
+        *cursor = (ProximityZone far *)((s32)g_pProximityTable + (s32)*cursor);
         g_nProximityTableCount++;
     }
 }
@@ -33,11 +33,11 @@ void far proximity_table_free(void) {
     return;
 }
 
-unsigned char far proximity_scan_list(ProximityScanHit *out_hit, WorldPos2 *pos, unsigned short record_seg,
-                              unsigned short *record_offsets, int count) {
-    int i;
+unsigned char far proximity_scan_list(ProximityScanHit *out_hit, WorldPos2 *pos, u16 record_seg,
+                              u16 *record_offsets, s16 count) {
+    s16 i;
     ProximityRecord far *pRecord;
-    unsigned short *pOffset;
+    u16 *pOffset;
 
     pOffset = record_offsets + (count - 1);
     if (g_pProximityTable != (ProximityZone far *far *)0) {
@@ -46,7 +46,7 @@ unsigned char far proximity_scan_list(ProximityScanHit *out_hit, WorldPos2 *pos,
         for (i = count - 1; i >= 0; i--) {
             pRecord = (ProximityRecord far *)MK_FP(record_seg, *pOffset);
             pOffset--;
-            if ((int)pRecord->wRecord_id < (int)g_nProximityTableCount) {
+            if ((s16)pRecord->wRecord_id < (s16)g_nProximityTableCount) {
                 if (proximity_check_index(out_hit, pos, pRecord))
                     return 1;
             }
@@ -68,10 +68,10 @@ char far proximity_check_index(ProximityScanHit *out_hit, WorldPos2 *pos,
     return 0;
 }
 
-void proximity_vec2_long_rotate_q14(long *xy, int angle) {
-    long sin;
-    long cos;
-    long xp;
+void proximity_vec2_long_rotate_q14(s32 *xy, s16 angle) {
+    s32 sin;
+    s32 cos;
+    s32 xp;
 
     if (angle != 0) {
         cos = r3d_tbl_cos(angle);
@@ -82,9 +82,9 @@ void proximity_vec2_long_rotate_q14(long *xy, int angle) {
     }
 }
 
-unsigned char far *proximity_record_vertex_ptr(ProximityZone far *zone, int vertex_idx) {
+unsigned char far *proximity_record_vertex_ptr(ProximityZone far *zone, s16 vertex_idx) {
     unsigned char far *result;
-    int stride;
+    s16 stride;
 
     result = (unsigned char far *)MK_FP(FP_SEG(zone), zone->wVertex_table_offset);
     stride = (zone->bFlags & 2) ? 10 : 6;
@@ -94,14 +94,14 @@ unsigned char far *proximity_record_vertex_ptr(ProximityZone far *zone, int vert
 
 unsigned char far proximity_point_test(ProximityScanHit *out_hit, WorldPos2 *pos, ProximityZone far *zone,
                                ProximityRecord far *pRecord, char check_first_vertex) {
-    int xi;
-    int yi;
-    long lx;
-    long ly;
-    unsigned int idx;
+    s16 xi;
+    s16 yi;
+    s32 lx;
+    s32 ly;
+    u16 idx;
     ProximityPolygon far *polyIter;
-    int stride;
-    long vec[3];
+    s16 stride;
+    s32 vec[3];
 
     vec[0] = (pos->nWorld_x - pRecord->nWorld_x) >> g_pCurProximityZoneRec->bResolution_shift;
     vec[1] = (pos->nWorld_y - pRecord->nWorld_y) >> g_pCurProximityZoneRec->bResolution_shift;
@@ -123,14 +123,14 @@ unsigned char far proximity_point_test(ProximityScanHit *out_hit, WorldPos2 *pos
     if (!(zone->bFlags & 1)) {
         if (check_first_vertex != '\0') {
             polyIter = (ProximityPolygon
-                        far *)proximity_record_vertex_ptr(zone, (unsigned int)out_hit->bHit_index);
+                        far *)proximity_record_vertex_ptr(zone, (u16)out_hit->bHit_index);
             if ((char)proximity_polygon_contains(polyIter, xi, yi) != '\0') {
-                idx = (unsigned int)out_hit->bHit_index;
+                idx = (u16)out_hit->bHit_index;
                 goto hit_found;
             }
             polyIter = MK_FP(FP_SEG(zone), zone->wVertex_table_offset);
         }
-        while ((int)idx < (int)(unsigned int)zone->bVertex_count) {
+        while ((s16)idx < (s16)(u16)zone->bVertex_count) {
             if ((char)proximity_polygon_contains(polyIter, xi, yi) != '\0') {
                 break;
             }
@@ -149,9 +149,9 @@ hit_found:
         out_hit->nZ_delta = 0;
     } else {
         if ((zone->bFlags & 2) != 0) {
-            out_hit->nZ_delta = (long)proximity_interp_height(polyIter, xi, yi);
+            out_hit->nZ_delta = (s32)proximity_interp_height(polyIter, xi, yi);
         } else {
-            out_hit->nZ_delta = (long)polyIter->nBase_height;
+            out_hit->nZ_delta = (s32)polyIter->nBase_height;
         }
         out_hit->nZ_delta <<= g_pCurProximityZoneRec->bResolution_shift;
         out_hit->nZ_delta += pRecord->nZ_base;
@@ -159,16 +159,16 @@ hit_found:
     return '\x01';
 }
 
-unsigned char proximity_polygon_contains(ProximityPolygon far *poly, int point_x, int point_y) {
-    long side;
+unsigned char proximity_polygon_contains(ProximityPolygon far *poly, s16 point_x, s16 point_y) {
+    s32 side;
     ProximityVertex far *v;
-    int count;
-    int i;
-    int dy;
-    int cy;
+    s16 count;
+    s16 i;
+    s16 dy;
+    s16 cy;
     unsigned char agree_y;
-    register int dx;
-    register int cx;
+    register s16 dx;
+    register s16 cx;
     unsigned char agree_x;
 
     if (g_pProximityTable == (ProximityZone far *far *)0)
@@ -182,21 +182,21 @@ unsigned char proximity_polygon_contains(ProximityPolygon far *poly, int point_x
     v = (ProximityVertex far *)MK_FP(FP_SEG(poly), poly->wVertex_list_offset);
     for (i = 0; i < count; i++) {
         side = 0;
-        if ((cy = (int)(signed char)v->cCy) != 0 && (dy = point_y - v->nY) != 0) {
+        if ((cy = (s16)(signed char)v->cCy) != 0 && (dy = point_y - v->nY) != 0) {
             agree_y = (unsigned char)((0 < cy) == (0 < dy));
-            if ((cx = (int)(signed char)v->cCx) != 0 && (dx = point_x - v->nX) != 0) {
+            if ((cx = (s16)(signed char)v->cCx) != 0 && (dx = point_x - v->nX) != 0) {
                 agree_x = (unsigned char)((0 < cx) == (0 < dx));
                 if (agree_x == agree_y) {
-                    side = (long)(agree_x ? 1 : -1);
+                    side = (s32)(agree_x ? 1 : -1);
                 } else {
                     side = r3d_imul_full32(cy, dy) + r3d_imul_full32(cx, dx);
                 }
             } else {
-                side = (long)(agree_y ? 1 : -1);
+                side = (s32)(agree_y ? 1 : -1);
             }
         } else {
-            if ((cx = (int)(signed char)v->cCx) != 0 && (dx = point_x - v->nX) != 0) {
-                side = (long)(((0 < cx) == (0 < dx)) ? 1 : -1);
+            if ((cx = (s16)(signed char)v->cCx) != 0 && (dx = point_x - v->nX) != 0) {
+                side = (s32)(((0 < cx) == (0 < dx)) ? 1 : -1);
             }
         }
         if (side > 0)
@@ -206,25 +206,25 @@ unsigned char proximity_polygon_contains(ProximityPolygon far *poly, int point_x
     return 1;
 }
 
-int far proximity_interp_height(ProximityPolygon far *poly, int point_x, int point_y) {
+s16 far proximity_interp_height(ProximityPolygon far *poly, s16 point_x, s16 point_y) {
     ProximityVertex far *ref;
-    long accum;
-    int cx, cy;
-    int height;
+    s32 accum;
+    s16 cx, cy;
+    s16 height;
 
     if (g_pProximityTable == (ProximityZone far *far *)0)
         return 0;
 
     ref = (ProximityVertex far *)MK_FP(FP_SEG(poly), poly->wReference_vertex_offset);
     accum = 0;
-    if ((cx = (int)(signed char)ref->cCx) != 0) {
+    if ((cx = (s16)(signed char)ref->cCx) != 0) {
         accum = r3d_imul_full32(cx, ref->nX - point_x);
     }
-    if ((cy = (int)(signed char)ref->cCy) != 0) {
+    if ((cy = (s16)(signed char)ref->cCy) != 0) {
         accum += r3d_imul_full32(cy, ref->nY - point_y);
     }
     if (accum != 0) {
-        height = (int)((long)(accum * (unsigned long)poly->bShift) >> 12);
+        height = (s16)((s32)(accum * (u32)poly->bShift) >> 12);
     } else {
         height = 0;
     }

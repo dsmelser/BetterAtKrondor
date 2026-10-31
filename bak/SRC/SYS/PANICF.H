@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int panic(char *fmt, ...);
+extern s16 panic(char *fmt, ...);
 
 #endif

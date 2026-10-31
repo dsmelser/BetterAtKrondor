@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_channel_set_word_bc(int channel, int word_val, int voice_slot);
+extern s16 audio_channel_set_word_bc(s16 channel, s16 word_val, s16 voice_slot);
 
 #endif

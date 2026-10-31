@@ -38,8 +38,8 @@
 #include "SRC/SYS/CFGPARSE.H"
 
 MenuPage *g_pReqMainPage = {0};
-short g_nSceneReloadPending = 0;
-short g_nHotspotActivateRequest = 0;
+s16 g_nSceneReloadPending = 0;
+s16 g_nHotspotActivateRequest = 0;
 
 void far worldloop_req_main_screen_load(void) {
     g_pReqMainPage = menupage_load("req_main.dat");
@@ -56,23 +56,23 @@ void far worldloop_req_main_screen_unload(void) {
     return;
 }
 
-short far world3d_main_loop(void) {
+s16 far world3d_main_loop(void) {
 
-    short exit_mode;
-    int keep_running;
-    unsigned short redraw_menu;
-    int redraw_caption;
-    unsigned short pending_events;
-    unsigned short key_repeat_armed;
-    unsigned short refusal_mode;
+    s16 exit_mode;
+    s16 keep_running;
+    u16 redraw_menu;
+    s16 redraw_caption;
+    u16 pending_events;
+    u16 key_repeat_armed;
+    u16 refusal_mode;
     MenuEntry *focused_entry;
     MenuEntry *prev_focused_entry;
-    unsigned int action_id;
+    u16 action_id;
     unsigned char far *saved_pal;
     /* This pair must stay `register`: render_dirty is allocated to SI,
        hotspot_active to DI. */
-    register int render_dirty;   /* party-dirty / render-scene flag */
-    register int hotspot_active; /* hotspot / descent / entered flag */
+    register s16 render_dirty;   /* party-dirty / render-scene flag */
+    register s16 hotspot_active; /* hotspot / descent / entered flag */
 
     exit_mode = 0;
     keep_running = 1;
@@ -355,16 +355,16 @@ short far world3d_main_loop(void) {
             case 2:
             case 3:
             case 4: {
-                unsigned int chap_sub = action_id - 2;
-                if (g_gameState.partySize > (short)chap_sub) {
+                u16 chap_sub = action_id - 2;
+                if (g_gameState.partySize > (s16)chap_sub) {
                     if (menupage_state_0e7c() == 2 || key_is_down(0x2a) != 0 ||
                         key_is_down(0x36) != 0) {
 
-                        charscreen_info_loop(gstate_party_member_record((int)chap_sub));
+                        charscreen_info_loop(gstate_party_member_record((s16)chap_sub));
                         g_nSceneReloadPending = 1;
                     } else {
 
-                        cmbinv_inventory_screen_run((Actor far *)0, (int)chap_sub + 1, 0);
+                        cmbinv_inventory_screen_run((Actor far *)0, (s16)chap_sub + 1, 0);
                     }
                     redraw_menu = render_dirty = redraw_caption = 1;
                 }
@@ -418,7 +418,7 @@ short far world3d_main_loop(void) {
     return exit_mode;
 }
 
-void worldloop_camera_snap_reset(long *pSavedZ, short *pSavedYaw) {
+void worldloop_camera_snap_reset(s32 *pSavedZ, s16 *pSavedYaw) {
     if (g_full_redraw_needed != 0) {
         g_world_widget->colorRemap = NULL;
         *pSavedZ = g_world_camera->base.pos.nWorld_z;
@@ -429,7 +429,7 @@ void worldloop_camera_snap_reset(long *pSavedZ, short *pSavedYaw) {
     return;
 }
 
-void worldloop_camera_set_pos_z_yaw(long pos_z, short yaw) {
+void worldloop_camera_set_pos_z_yaw(s32 pos_z, s16 yaw) {
     if (g_full_redraw_needed != 0) {
         if (g_pColorRemap != (unsigned char *)0x0) {
             g_world_widget->colorRemap = g_pColorRemap;
@@ -474,8 +474,8 @@ enable:
 }
 
 void far worldloop_pty_stat7_flag_cd(void) {
-    int found;
-    int i;
+    s16 found;
+    s16 i;
 
     found = 0;
     if (g_pReqMainPage != (MenuPage *)0x0) {

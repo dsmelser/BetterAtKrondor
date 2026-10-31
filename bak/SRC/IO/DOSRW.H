@@ -18,7 +18,7 @@
  * @param fd    Open DOS file handle.
  * @return Bytes actually read, or 0 on error.
  */
-extern long far dos_read(unsigned char far *buf, long count, int fd);
+extern s32 far dos_read(unsigned char far *buf, s32 count, s16 fd);
 
 /**
  * @brief Write up to @p count bytes from @p buf to DOS handle @p fd
@@ -28,6 +28,6 @@ extern long far dos_read(unsigned char far *buf, long count, int fd);
  * @param fd    Open DOS file handle.
  * @return Bytes actually written, or 0 on error.
  */
-extern long far dos_write(unsigned char far *buf, long count, int fd);
+extern s32 far dos_write(unsigned char far *buf, s32 count, s16 fd);
 
 #endif

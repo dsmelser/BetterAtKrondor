@@ -13,18 +13,18 @@
 
 
 ItemRecord far *g_pItemDefTable = {0};
-unsigned long *g_pItemPriceTable = {0};
+u32 *g_pItemPriceTable = {0};
 
 ItemRecord far *itemtbl_record_ptr(ItemSlot far *slot_ptr) {
     return g_pItemDefTable + slot_ptr->item_id;
 }
 
-ItemRecord far *itemtbl_record_ptr_by_id(int id) {
+ItemRecord far *itemtbl_record_ptr_by_id(s16 id) {
     return g_pItemDefTable + id;
 }
 
-int itemtbl_find_by_full_record(ItemRecord far *record) {
-    int i;
+s16 itemtbl_find_by_full_record(ItemRecord far *record) {
+    s16 i;
 
     for (i = 0; i < 0x8a; i++) {
         if (_fmemcmp(record, g_pItemDefTable + i, sizeof(ItemRecord)) == 0) {
@@ -34,54 +34,54 @@ int itemtbl_find_by_full_record(ItemRecord far *record) {
     return 0;
 }
 
-long *itemtbl_count(void) {
-    return (long *)g_pItemPriceTable;
+s32 *itemtbl_count(void) {
+    return (s32 *)g_pItemPriceTable;
 }
 
 void itemtbl_free(void) {
     my_free(g_pItemPriceTable);
     _freemem(g_pItemDefTable);
-    g_pItemPriceTable = (unsigned long *)0x0;
+    g_pItemPriceTable = (u32 *)0x0;
     g_pItemDefTable = (ItemRecord far *)0x0;
     return;
 }
 
-int itemtbl_load(void) {
+s16 itemtbl_load(void) {
     ResFile *fp;
-    int size;
+    s16 size;
 
     if (g_pItemDefTable == (ItemRecord far *)0) {
 
         size = 0x2b7a;
         fp = res_fopen("OBJINFO.DAT", "rb");
-        g_pItemDefTable = (ItemRecord far *)alloc_far((long)size, 0);
-        res_fread_far(g_pItemDefTable, 1, (long)size, fp);
+        g_pItemDefTable = (ItemRecord far *)alloc_far((s32)size, 0);
+        res_fread_far(g_pItemDefTable, 1, (s32)size, fp);
         res_fclose(fp);
-        g_pItemPriceTable = (unsigned long *)my_malloc(0x228);
+        g_pItemPriceTable = (u32 *)my_malloc(0x228);
         return 1;
     }
     return 0;
 }
 
-long itemtbl_compute_value(ItemSlot far *slot) {
-    long value;
+s32 itemtbl_compute_value(ItemSlot far *slot) {
+    s32 value;
     ItemRecord far *rec;
-    int far *sub;
+    s16 far *sub;
 
     rec = g_pItemDefTable + slot->item_id;
     value = g_pItemPriceTable[slot->item_id];
     if (slot->item_id == 0x85) {
 
-        sub = (int far *)((char far *)g_pItemDefTable + 0x2b20);
+        sub = (s16 far *)((char far *)g_pItemDefTable + 0x2b20);
         value = sub[slot->condition];
     } else if (value >= 0) {
         if (rec->wFlags & 0x1000) {
             value = value * itemtbl_slot_value_modifier(slot) / 100L;
         } else if (rec->wFlags & 0xa000) {
-            value = value * slot->condition / (long)(unsigned long)rec->bCharges_per_use;
+            value = value * slot->condition / (s32)(u32)rec->bCharges_per_use;
         }
     }
-    if ((long)g_pItemPriceTable[slot->item_id] >= 0) {
+    if ((s32)g_pItemPriceTable[slot->item_id] >= 0) {
         if (value <= 1) {
             value = 1;
         }
@@ -89,12 +89,12 @@ long itemtbl_compute_value(ItemSlot far *slot) {
     return value;
 }
 
-int itemtbl_inv_count_by_kind(Actor far *inv, unsigned int kind) {
-    int total;
-    int i;
+s16 itemtbl_inv_count_by_kind(Actor far *inv, u16 kind) {
+    s16 total;
+    s16 i;
 
     i = total = 0;
-    for (; i < (int)inv->itemCount; i++) {
+    for (; i < (s16)inv->itemCount; i++) {
         if (ACTOR_ITEM(inv, i).item_id == kind) {
             if (ACTOR_ITEM(inv, i).condition != 0) {
                 total += ACTOR_ITEM(inv, i).condition;
@@ -106,10 +106,10 @@ int itemtbl_inv_count_by_kind(Actor far *inv, unsigned int kind) {
     return total;
 }
 
-int itemtbl_partySize_by_kind(unsigned int kind) {
-    int n;
-    int slot;
-    int total;
+s16 itemtbl_partySize_by_kind(u16 kind) {
+    s16 n;
+    s16 slot;
+    s16 total;
 
     total = 0;
     g_gameState.nEvtArgActor0 = g_gameState.activeParty[0];
@@ -124,9 +124,9 @@ int itemtbl_partySize_by_kind(unsigned int kind) {
     return total;
 }
 
-int far itemtbl_slot_value_modifier(ItemSlot far *slot) {
+s16 far itemtbl_slot_value_modifier(ItemSlot far *slot) {
     ItemRecord far *rec;
-    int val;
+    s16 val;
 
     rec = itemtbl_record_ptr(slot);
     val = (rec->wFlags & 0x1000) ? slot->condition : 100;
@@ -145,12 +145,12 @@ int far itemtbl_slot_value_modifier(ItemSlot far *slot) {
     return val;
 }
 
-int itemtbl_inv_consume_one_by_kind(Actor far *inv, unsigned int kind) {
-    int old_count;
-    int i;
+s16 itemtbl_inv_consume_one_by_kind(Actor far *inv, u16 kind) {
+    s16 old_count;
+    s16 i;
 
     inv->needsFlush = TRUE;
-    for (i = 0; i < (int)inv->itemCount; i++) {
+    for (i = 0; i < (s16)inv->itemCount; i++) {
         if (ACTOR_ITEM(inv, i).item_id != kind || kind == 0x54) {
             continue;
         }
@@ -159,8 +159,8 @@ int itemtbl_inv_consume_one_by_kind(Actor far *inv, unsigned int kind) {
             return 1;
         }
         {
-            int wf;
-            wf = g_pItemDefTable ? (int)g_pItemDefTable[kind].wFlags : 0;
+            s16 wf;
+            wf = g_pItemDefTable ? (s16)g_pItemDefTable[kind].wFlags : 0;
             if ((wf & 0x2000) && !(wf & 0x10)) {
                 old_count = ACTOR_ITEM(inv, i).condition;
                 ACTOR_ITEM(inv, i).condition = 0;
@@ -176,8 +176,8 @@ int itemtbl_inv_consume_one_by_kind(Actor far *inv, unsigned int kind) {
     return 0;
 }
 
-int itemtbl_pty_consum_one_kind(unsigned int kind) {
-    int slot;
+s16 itemtbl_pty_consum_one_kind(u16 kind) {
+    s16 slot;
 
     g_gameState.nEvtArgActor0 = g_gameState.activeParty[0];
     for (slot = 0; slot < g_gameState.partySize; slot++) {

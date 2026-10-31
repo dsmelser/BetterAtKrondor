@@ -23,19 +23,19 @@
 #include "structs.h"
 #include "SRC/GFX/SPRITE/RECTSPR.H"
 
-void blit_sprite_flipped_clipped(void *sprite, int x, int y, int flags) {
+void blit_sprite_flipped_clipped(void *sprite, s16 x, s16 y, s16 flags) {
     char op;              /* [bp-1]  current stream opcode / run counter */
     char cnt;             /* [bp-2]  pixel-run length for the dispatch  */
     unsigned char far *p; /* [bp-6]  sprite stream read pointer         */
-    int skip;             /* [bp-8]  coarse x-skip (<<6)                */
-    int yStep;            /* [bp-a]  +1, or -1 when vertically flipped  */
-    int xEnd;             /* [bp-c]  x after the current run            */
-    int delta;            /* [bp-e]  clip adjustment                    */
+    s16 skip;             /* [bp-8]  coarse x-skip (<<6)                */
+    s16 yStep;            /* [bp-a]  +1, or -1 when vertically flipped  */
+    s16 xEnd;             /* [bp-c]  x after the current run            */
+    s16 delta;            /* [bp-e]  clip adjustment                    */
     char *bufPtr;         /* [bp-10] run-buffer cursor                  */
     char rowVisible;      /* [bp-11] current row inside the y clip band */
     char clipped;         /* [bp-12] clipping active for this blit      */
-    unsigned rowOfs;      /* [bp-14] row start offset from the LUT      */
-    int dstPage;          /* [bp-16] destination page segment           */
+    u16 rowOfs;      /* [bp-14] row start offset from the LUT      */
+    s16 dstPage;          /* [bp-16] destination page segment           */
     char colorBase;       /* [bp-17] palette base from the stream head  */
     char dataByte;        /* [bp-18] current stream data byte           */
     char buf[320];        /* [bp-158] decoded pixel run                 */
@@ -60,8 +60,8 @@ void blit_sprite_flipped_clipped(void *sprite, int x, int y, int flags) {
                                   y >= g_graphics_context.clip.ymin) != 0)
         rowOfs = g_pRow_offset_lut[y];
 
-    p = (unsigned char far *)(((unsigned long)(int)((ImageRecord *)sprite)->wImageData << 16) |
-                              (unsigned)((ImageRecord *)sprite)->wImageOff);
+    p = (unsigned char far *)(((u32)(s16)((ImageRecord *)sprite)->wImageData << 16) |
+                              (u16)((ImageRecord *)sprite)->wImageOff);
     colorBase = *p++;
 
     for (;;) {

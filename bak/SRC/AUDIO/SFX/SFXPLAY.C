@@ -6,8 +6,8 @@
 
 AudioTrackHandle far *g_apSfxSlotPool[7];
 
-AudioTrackHandle far *sfx_play_in_slot(unsigned char far *script_data, int sfx_id, unsigned char loop) {
-    int i;
+AudioTrackHandle far *sfx_play_in_slot(unsigned char far *script_data, s16 sfx_id, unsigned char loop) {
+    s16 i;
     AudioTrackHandle far *h = 0;
 
     if (script_data != 0) {

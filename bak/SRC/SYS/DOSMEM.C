@@ -15,7 +15,7 @@
 #include "SRC/SYS/DOSMEM.H"
 #include "SRC/SYS/FARPTR.H" /* memset_far — referenced only in inline asm below */
 
-void far *alloc_far(unsigned long size, long flags) {
+void far *alloc_far(u32 size, s32 flags) {
     asm mov ax, word ptr size + 2;
     asm mov bx, word ptr size;
     if (_AX == _BX && _AX == 0xFFFF)
@@ -78,7 +78,7 @@ query_free:
 done:;
 }
 
-int _freemem(void far *block) {
+s16 _freemem(void far *block) {
     asm push es;
     asm mov ax, word ptr block + 2;
     asm mov es, ax;

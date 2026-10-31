@@ -3,9 +3,9 @@
 #include "SRC/STREAM/RESLOAD/IFFREAD.H"
 #include "SRC/STREAM/BUFLOAD/STRMLOAD.H"
 
-void far *bak_load_chunk(FileRef *file, char *chunk_id, int mode) {
+void far *bak_load_chunk(FileRef *file, char *chunk_id, s16 mode) {
     void far *out_buf;
-    int opened;
+    s16 opened;
     ResFile *fp;
 
     opened = 0;
@@ -17,7 +17,7 @@ void far *bak_load_chunk(FileRef *file, char *chunk_id, int mode) {
         fp = file;
     }
     if (fp != 0 && chunk_seek(fp, chunk_id, mode) != -1L) {
-        out_buf = stream_load_to_buffer(fp, cached_file_chunk_size(fp), (unsigned long *)0, 1);
+        out_buf = stream_load_to_buffer(fp, cached_file_chunk_size(fp), (u32 *)0, 1);
     }
     if (opened) {
         cached_file_close(fp);

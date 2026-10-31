@@ -5,8 +5,8 @@
 
 extern char *g_pChapDatFilename;
 
-extern int savegame_write(char *filename);
-extern int savegame_read(char *filename);
-extern void savegame_chapter_start_dispatch(int chapter);
+extern s16 savegame_write(char *filename);
+extern s16 savegame_read(char *filename);
+extern void savegame_chapter_start_dispatch(s16 chapter);
 
 #endif

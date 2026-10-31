@@ -22,7 +22,7 @@ extern bool16 g_cfgKnockKnock;
  * Parsed from a `cycle` line in `resource.cfg` into this global, which has no
  * reader anywhere in the game.
  */
-extern int g_cfgCycle;
+extern s16 g_cfgCycle;
 
 /**
  * @brief Drive letter for the `TEMP.GAM` swap file (0 = current drive).
@@ -31,7 +31,7 @@ extern int g_cfgCycle;
  * upper-cased). When non-zero the swap path is drive-relative `D:TEMP.GAM`;
  * when 0 (the default) the file is the bare `TEMP.GAM` on the current drive.
  */
-extern int g_cfgTempDrive;
+extern s16 g_cfgTempDrive;
 
 /**
  * @brief Bookmark-overwrite confirmation flag.

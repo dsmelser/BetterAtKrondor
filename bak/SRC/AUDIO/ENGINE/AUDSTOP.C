@@ -5,11 +5,11 @@
 #include "SRC/AUDIO/SFX/SFXSTPAL.H"
 #include "SRC/AUDIO/ENGINE/AUDDRVST.H"
 
-int audio_stop(int what) {
+s16 audio_stop(s16 what) {
     AudioListNode far *prev;
     AudioListNode far *cur;
     AudioListNode sentinel;
-    int result;
+    s16 result;
 
     result = 0;
 

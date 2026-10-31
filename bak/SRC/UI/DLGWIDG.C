@@ -17,30 +17,30 @@ unsigned char g_key_ascii;
 unsigned char g_key_held;
 unsigned char g_key_shift_held;
 
-short g_text_input_drag_anchor = -1;
-int g_nCursorBlinkOn = 0;
-unsigned long g_dwCursorBlinkPhaseStart = 0x00000000UL;
+s16 g_text_input_drag_anchor = -1;
+s16 g_nCursorBlinkOn = 0;
+u32 g_dwCursorBlinkPhaseStart = 0x00000000UL;
 
 Dialog *dlgwidget_dialog_load(char *filename) {
     ResFile *file;
     Dialog *dialog;
     DialogWidget *widget;
     void *string_table;
-    short label_offset;
-    unsigned short widget_count;
-    unsigned int capacity;
-    short rect_x;
-    short rect_y;
-    short rect_w;
-    unsigned short label_x;
-    unsigned short label_y;
-    int has_fill_image;
+    s16 label_offset;
+    u16 widget_count;
+    u16 capacity;
+    s16 rect_x;
+    s16 rect_y;
+    s16 rect_w;
+    u16 label_x;
+    u16 label_y;
+    s16 has_fill_image;
     unsigned char bg_color;
     unsigned char fg_color;
     unsigned char cursor_color;
     unsigned char label_fg;
     unsigned char selection_color;
-    int i;
+    s16 i;
 
     string_table = (void *)0x0;
     file = res_fopen(filename, "rb");
@@ -51,7 +51,7 @@ Dialog *dlgwidget_dialog_load(char *filename) {
     }
     res_fread(&widget_count, 2, 1, file);
     dialog = dlgwidget_dialog_create(widget_count);
-    for (i = 0; i < (int)widget_count; i++) {
+    for (i = 0; i < (s16)widget_count; i++) {
         res_fread(&capacity, 2, 1, file);
         res_fread(&rect_x, 2, 1, file);
         res_fread(&rect_y, 2, 1, file);
@@ -68,7 +68,7 @@ Dialog *dlgwidget_dialog_load(char *filename) {
         if (label_offset == -1) {
             label_offset = 0;
         } else {
-            label_offset += (int)string_table;
+            label_offset += (s16)string_table;
         }
         widget = dlgwidget_create(capacity, rect_x, rect_y, rect_w, bg_color, fg_color,
                                   cursor_color, label_fg, selection_color, has_fill_image);
@@ -80,7 +80,7 @@ Dialog *dlgwidget_dialog_load(char *filename) {
 }
 
 void dlgwidget_dialog_destroy_bgs(Dialog *dialog) {
-    int i;
+    s16 i;
     char *lowestLabel;
 
     lowestLabel = (*dialog->pWidgets)->pLabel;
@@ -97,7 +97,7 @@ void dlgwidget_dialog_destroy_bgs(Dialog *dialog) {
     return;
 }
 
-Dialog *dlgwidget_dialog_create(int capacity) {
+Dialog *dlgwidget_dialog_create(s16 capacity) {
     Dialog *pDialog;
 
     pDialog = galloc_safe_zcalloc(8);
@@ -109,7 +109,7 @@ Dialog *dlgwidget_dialog_create(int capacity) {
 }
 
 void dlgwidget_dialog_destroy(Dialog *dialog) {
-    int i;
+    s16 i;
 
     i = dialog->nWidget_count - 1;
     while (i >= 0) {
@@ -121,8 +121,8 @@ void dlgwidget_dialog_destroy(Dialog *dialog) {
     return;
 }
 
-int dlgwidget_dialog_add_widget(Dialog *dialog, DialogWidget *widget, char *label_text, char *label,
-                                short label_x, short label_y) {
+s16 dlgwidget_dialog_add_widget(Dialog *dialog, DialogWidget *widget, char *label_text, char *label,
+                                s16 label_x, s16 label_y) {
     if (dialog->nWidget_count < dialog->nWidget_capacity) {
         dialog->pWidgets[dialog->nWidget_count++] = widget;
         dialog->nFocused_idx = 0;
@@ -133,14 +133,14 @@ int dlgwidget_dialog_add_widget(Dialog *dialog, DialogWidget *widget, char *labe
     return 0;
 }
 
-void far dlgwidget_dialog_set_widget_text(Dialog *dialog, int widget_index, char *text) {
+void far dlgwidget_dialog_set_widget_text(Dialog *dialog, s16 widget_index, char *text) {
     if (widget_index < dialog->nWidget_count) {
         dlgwidget_set_text(dialog->pWidgets[widget_index], text);
     }
     return;
 }
 
-int dlgwidget_dialog_focus_widget(Dialog *dialog, int widget_idx) {
+s16 dlgwidget_dialog_focus_widget(Dialog *dialog, s16 widget_idx) {
     if (widget_idx < dialog->nWidget_count) {
         dialog->nFocused_idx = widget_idx;
         dialog->pWidgets[widget_idx]->nCursor = 0;
@@ -150,13 +150,13 @@ int dlgwidget_dialog_focus_widget(Dialog *dialog, int widget_idx) {
     return 0;
 }
 
-char *dlgwidget_dialog_widget_text_ptr(Dialog *dialog, int widget_idx) {
+char *dlgwidget_dialog_widget_text_ptr(Dialog *dialog, s16 widget_idx) {
     return (widget_idx < dialog->nWidget_count) ? dialog->pWidgets[widget_idx]->pText_buf
                                                 : (char *)0x0;
 }
 
 void dlgwidget_dlg_capture_bgs(Dialog *dialog) {
-    int i;
+    s16 i;
 
     for (i = 0; i < dialog->nWidget_count; i = i + 1) {
         dlgwidget_capture_background(dialog->pWidgets[i]);
@@ -175,14 +175,14 @@ void dlgwidget_dlg_focus_first_wdg(Dialog *dialog) {
     return;
 }
 
-int dlgwidget_text_input_dialog_pump(Dialog *pDialog) {
+s16 dlgwidget_text_input_dialog_pump(Dialog *pDialog) {
     DialogWidget **widgets;
     char ch;
-    short x;
-    short y;
-    int char_idx;
+    s16 x;
+    s16 y;
+    s16 char_idx;
     DialogWidget *widget;
-    int i;
+    s16 i;
 
     widget = pDialog->pWidgets[pDialog->nFocused_idx];
     widgets = pDialog->pWidgets;
@@ -197,7 +197,7 @@ int dlgwidget_text_input_dialog_pump(Dialog *pDialog) {
             widget->nFull_length = widget->nLength;
             break;
         case 1: {
-            int ci;
+            s16 ci;
             if (g_text_input_drag_anchor < 0) {
                 ci = g_text_input_drag_anchor = char_idx;
             } else {
@@ -285,8 +285,8 @@ L_keyboard:
 void dlgwidget_dialog_rstrip_widgets(Dialog *dialog) {
     DialogWidget **ppWidgets;
     char *pText;
-    int i;
-    int idx;
+    s16 i;
+    s16 idx;
 
     ppWidgets = dialog->pWidgets;
     for (idx = 0; idx < dialog->nWidget_count; idx++) {
@@ -301,13 +301,13 @@ void dlgwidget_dialog_rstrip_widgets(Dialog *dialog) {
     return;
 }
 
-void dlgwidget_dialog_render(Dialog *dialog, int show_selection) {
-    int i;
+void dlgwidget_dialog_render(Dialog *dialog, s16 show_selection) {
+    s16 i;
 
     if (show_selection != 0) {
         for (i = 0; i < dialog->nWidget_count; i = i + 1) {
             dlgwidget_draw_text_input_widget(dialog->pWidgets[i],
-                                             (unsigned)(dialog->nFocused_idx == i));
+                                             (u16)(dialog->nFocused_idx == i));
         }
     } else {
         for (i = 0; i < dialog->nWidget_count; i = i + 1) {
@@ -316,9 +316,9 @@ void dlgwidget_dialog_render(Dialog *dialog, int show_selection) {
     }
 }
 
-DialogWidget *dlgwidget_create(unsigned int capacity, short rect_x, short rect_y, short rect_w,
+DialogWidget *dlgwidget_create(u16 capacity, s16 rect_x, s16 rect_y, s16 rect_w,
                                unsigned char bg_color, unsigned char fg_color, unsigned char cursor_color, unsigned char label_fg,
-                               unsigned char selection_color, int has_fill_image) {
+                               unsigned char selection_color, s16 has_fill_image) {
     DialogWidget *w;
 
     w = (DialogWidget *)galloc_safe_zcalloc(0x21);
@@ -338,7 +338,7 @@ DialogWidget *dlgwidget_create(unsigned int capacity, short rect_x, short rect_y
     w->bSelection_color = selection_color;
     if (has_fill_image != 0) {
         w->pFill_image =
-            (unsigned char far *)alloc_far((unsigned long)(unsigned short)rect_byte_size(w->rect.width, w->rect.height), 0L);
+            (unsigned char far *)alloc_far((u32)(u16)rect_byte_size(w->rect.width, w->rect.height), 0L);
     } else {
         w->pFill_image = (unsigned char far *)0x0;
     }
@@ -348,7 +348,7 @@ DialogWidget *dlgwidget_create(unsigned int capacity, short rect_x, short rect_y
 
 void dlgwidget_destroy(DialogWidget *widget) {
 
-    if (*(int *)&widget->pFill_image | *((int *)&widget->pFill_image + 1)) {
+    if (*(s16 *)&widget->pFill_image | *((s16 *)&widget->pFill_image + 1)) {
         _freemem(widget->pFill_image);
     }
     galloc_zfree(widget->pText_buf);
@@ -357,12 +357,12 @@ void dlgwidget_destroy(DialogWidget *widget) {
 }
 
 void far dlgwidget_set_text(DialogWidget *widget, char *text) {
-    int cap_minus_1;
-    int pixel_width;
-    int glyph_w;
-    int glyph_h;
-    int threshold;
-    int i;
+    s16 cap_minus_1;
+    s16 pixel_width;
+    s16 glyph_w;
+    s16 glyph_h;
+    s16 threshold;
+    s16 i;
 
     cap_minus_1 = widget->nCapacity - 1;
     i = 0;
@@ -370,7 +370,7 @@ void far dlgwidget_set_text(DialogWidget *widget, char *text) {
     threshold = widget->rect.width - 6;
     if (text != 0) {
         for (; text[i] != '\0' && i < cap_minus_1; i++) {
-            font_glyph_metrics((int)text[i], &glyph_w, &glyph_h);
+            font_glyph_metrics((s16)text[i], &glyph_w, &glyph_h);
             pixel_width += glyph_w;
             if (pixel_width > threshold)
                 break;
@@ -381,7 +381,7 @@ void far dlgwidget_set_text(DialogWidget *widget, char *text) {
     }
 }
 
-void dlgwidget_set_label_pos(DialogWidget *widget, char *label, short label_x, short label_y) {
+void dlgwidget_set_label_pos(DialogWidget *widget, char *label, s16 label_x, s16 label_y) {
     widget->nLabel_x = label_x;
     widget->nLabel_y = label_y;
     widget->pLabel = label;
@@ -389,20 +389,20 @@ void dlgwidget_set_label_pos(DialogWidget *widget, char *label, short label_x, s
 
 void dlgwidget_capture_background(DialogWidget *widget) {
 
-    if (*(int *)&widget->pFill_image | *((int *)&widget->pFill_image + 1)) {
+    if (*(s16 *)&widget->pFill_image | *((s16 *)&widget->pFill_image + 1)) {
         cga_save_rect_to_buffer(widget->pFill_image, widget->rect.x, widget->rect.y,
                                 widget->rect.width, widget->rect.height);
     }
 }
 
-int far dlgwidget_text_char_at_point(DialogWidget *widget, int x, int y) {
+s16 far dlgwidget_text_char_at_point(DialogWidget *widget, s16 x, s16 y) {
     char *text;
-    int nlen;
-    int w;
-    int half_w;
-    int running;
-    int limit;
-    int i;
+    s16 nlen;
+    s16 w;
+    s16 half_w;
+    s16 running;
+    s16 limit;
+    s16 i;
 
     text = widget->pText_buf;
     i = 0;
@@ -417,7 +417,7 @@ int far dlgwidget_text_char_at_point(DialogWidget *widget, int x, int y) {
 
         if (i < nlen) {
             do {
-                font_glyph_metrics((int)text[i], (unsigned int *)&w, (unsigned int *)&half_w);
+                font_glyph_metrics((s16)text[i], (u16 *)&w, (u16 *)&half_w);
                 half_w = w >> 1;
                 running += half_w;
                 if (running > limit) {
@@ -460,8 +460,8 @@ void dlgwidget_text_extend_or_end(DialogWidget *widget) {
 
 void dlgwidget_text_compact_delete(DialogWidget *widget) {
     char *text;
-    int src;
-    int dst;
+    s16 src;
+    s16 dst;
 
     text = widget->pText_buf;
     src = widget->nFull_length;
@@ -488,8 +488,8 @@ void dlgwidget_text_compact_delete(DialogWidget *widget) {
 
 void dlgwidget_text_forward_delete(DialogWidget *widget) {
     char *text;
-    int dst;
-    int src;
+    s16 dst;
+    s16 src;
 
     text = widget->pText_buf;
     src = widget->nFull_length;
@@ -522,9 +522,9 @@ void dlgwidget_text_cursor_end(DialogWidget *widget) {
 
 void dlgwidget_text_insert_char(DialogWidget *widget, unsigned char ch) {
     char *text;
-    int pixelWidth;
-    int src;
-    int dst;
+    s16 pixelWidth;
+    s16 src;
+    s16 dst;
 
     text = widget->pText_buf;
     src = widget->nLength;
@@ -550,14 +550,14 @@ void dlgwidget_text_insert_char(DialogWidget *widget, unsigned char ch) {
     }
 }
 
-void dlgwidget_draw_text_input_widget(DialogWidget *widget, int in_input_mode) {
+void dlgwidget_draw_text_input_widget(DialogWidget *widget, s16 in_input_mode) {
     char saved;
-    int caret_x;
-    int sel_w;
+    s16 caret_x;
+    s16 sel_w;
 
     g_graphics_context.bClip_enabled = 0;
     g_graphics_context.bGfx_outline_color = widget->bFg_color;
-    if (*(int *)&widget->pFill_image | *((int *)&widget->pFill_image + 1)) {
+    if (*(s16 *)&widget->pFill_image | *((s16 *)&widget->pFill_image + 1)) {
         cga_rect_paste_from_buffer(widget->pFill_image, widget->rect.x, widget->rect.y,
                                    widget->rect.width, widget->rect.height);
         g_graphics_context.bGfx_fill_enabled = 0;

@@ -26,13 +26,13 @@ unsigned char __dat_153c[128] = {
     0x07, 0x00, 0x03, 0x00, 0x02, 0x00, 0x08, 0x00, 0x06, 0x00, 0x01, 0x00, 0x05, 0x00, 0x04, 0x00,
     0x08, 0x00, 0x02, 0x00, 0x03, 0x00, 0x07, 0x00, 0x05, 0x00, 0x01, 0x00, 0x06, 0x00, 0x04, 0x00};
 
-void far combat_ai_actor_cast_spell(Combatant *caster, Combatant *target, int spell_id) {
+void far combat_ai_actor_cast_spell(Combatant *caster, Combatant *target, s16 spell_id) {
     cspell_resolve_cast(caster, target, spell_id,
                         cspell_actor_stat_get_comb_dflt(caster, spell_id));
 }
 
 void far combat_ai_resolve_attack_attempt(Combatant *attacker, Combatant *target,
-                                          int spell_id) {
+                                          s16 spell_id) {
     if (combatenc_skill_check_random(attacker, target, stat_actor_get(attacker, 7, 0), -1) != 0) {
         cspell_resolve_cast(attacker, target, spell_id,
                             cspell_actor_stat_get_comb_dflt(attacker, spell_id));
@@ -42,10 +42,10 @@ void far combat_ai_resolve_attack_attempt(Combatant *attacker, Combatant *target
 }
 
 #ifndef V102CD
-void far combat_ai_resolve_hit(Combatant *attacker, Combatant *target, int damage, int dir) {
-    int hpBefore;
-    int staminaBefore;
-    int b;
+void far combat_ai_resolve_hit(Combatant *attacker, Combatant *target, s16 damage, s16 dir) {
+    s16 hpBefore;
+    s16 staminaBefore;
+    s16 b;
 
     if ((attacker == (Combatant *)0x0) || (cspell_stat_effect_find_type(attacker, 0x1f) == -1)) {
         hpBefore = target->stats[0].base;
@@ -60,7 +60,7 @@ void far combat_ai_resolve_hit(Combatant *attacker, Combatant *target, int damag
                (b = (char)g_gameState.abActorStatusRanks[target->charSlot - 1][3]) == '\0' &&
                (b = (char)g_gameState.abActorStatusRanks[target->charSlot - 1][5]) == '\0' &&
                (b = (char)g_gameState.abActorStatusRanks[target->charSlot - 1][6]) == '\0')))) {
-            stat_combatant_modify(target, 0x10, (long)(dir << 8), 0x50);
+            stat_combatant_modify(target, 0x10, (s32)(dir << 8), 0x50);
         }
         target->inner->dmgFloatValue =
             -(((target->stats[0].base - hpBefore) + target->stats[1].base) - staminaBefore);
@@ -76,10 +76,10 @@ void far combat_ai_resolve_hit(Combatant *attacker, Combatant *target, int damag
 }
 #endif
 
-int far combat_ai_pick_action(Combatant *actor) {
-    int action_id;
-    int i;
-    int sc;
+s16 far combat_ai_pick_action(Combatant *actor) {
+    s16 action_id;
+    s16 i;
+    s16 sc;
 
     action_id = -1;
     for (i = 0; i < g_nCombatActiveCount; i++) {
@@ -142,16 +142,16 @@ L_phase2:
     return 0;
 }
 
-int far combat_ai_execute_turn(Combatant *actor, int param_2, unsigned int param_3) {
-    int ret;
-    int clearance;
-    int spell_id;
+s16 far combat_ai_execute_turn(Combatant *actor, s16 param_2, u16 param_3) {
+    s16 ret;
+    s16 clearance;
+    s16 spell_id;
 
     if (combat_ai_pick_action(actor) != 0) {
         return 1;
     }
     ret = 0;
-    clearance = 4 - (int)stat_actor_get(actor, 7, 0) / 0x19;
+    clearance = 4 - (s16)stat_actor_get(actor, 7, 0) / 0x19;
     combatenc_ai_pick_target_by_role(actor, param_2, param_3, clearance);
     if (actor->inner->target != (Combatant *)0) {
         spell_id = cspell_ai_pick_castable_spell(actor, actor->inner->target, 1, 0);
@@ -181,26 +181,26 @@ int far combat_ai_execute_turn(Combatant *actor, int param_2, unsigned int param
     return ret;
 }
 
-int far combat_ai_pick_heal_spell(Combatant *caster, Combatant *target) {
-    unsigned int curHp;
-    unsigned int min_hp_pct;
-    unsigned int threshold;
-    register int i;
-    int result;
+s16 far combat_ai_pick_heal_spell(Combatant *caster, Combatant *target) {
+    u16 curHp;
+    u16 min_hp_pct;
+    u16 threshold;
+    register s16 i;
+    s16 result;
 
     min_hp_pct = 0x6e;
     i = 0;
     while (i < g_nCombatActiveCount) {
         if (&g_pCombatActiveActors[i] != caster) {
             curHp = stat_actor_get(&g_pCombatActiveActors[i], 0, 0);
-            if ((int)curHp < (int)min_hp_pct) {
+            if ((s16)curHp < (s16)min_hp_pct) {
                 min_hp_pct = curHp;
             }
         }
         i++;
     }
     threshold = RND(80);
-    if ((int)curHp < (int)threshold) {
+    if ((s16)curHp < (s16)threshold) {
         if (cspell_check_castable(7, caster, -1)) {
             result = 7;
             return result;
@@ -216,9 +216,9 @@ int far combat_ai_pick_heal_spell(Combatant *caster, Combatant *target) {
     return result;
 }
 
-int far combat_ai_try_cast_heal(register Combatant *caster) {
-    int casted;
-    int spell_id;
+s16 far combat_ai_try_cast_heal(register Combatant *caster) {
+    s16 casted;
+    s16 spell_id;
     Combatant *target;
 
     casted = 0;
@@ -229,8 +229,8 @@ int far combat_ai_try_cast_heal(register Combatant *caster) {
             return 0;
         }
         {
-            int hp_pct;
-            int i;
+            s16 hp_pct;
+            s16 i;
             hp_pct = combat_actor_stat_percent(target, 0);
             if (caster != target && hp_pct > 0 && hp_pct < 100) {
                 cspell_resolve_cast(caster, target, spell_id,
@@ -256,53 +256,53 @@ int far combat_ai_try_cast_heal(register Combatant *caster) {
     return casted;
 }
 
-int far combat_ai_turn_kind6(Combatant *actor) {
-    int result;
+s16 far combat_ai_turn_kind6(Combatant *actor) {
+    s16 result;
 
     result = combat_ai_execute_turn(actor, 6, 0);
     return result;
 }
 
-int far combat_ai_turn_packet_10006(Combatant *actor) {
-    int result;
+s16 far combat_ai_turn_packet_10006(Combatant *actor) {
+    s16 result;
 
     result = combat_ai_execute_turn(actor, 6, 1);
     return result;
 }
 
-int far combat_ai_turn_packet_20006(Combatant *actor) {
-    int result;
+s16 far combat_ai_turn_packet_20006(Combatant *actor) {
+    s16 result;
 
     result = combat_ai_execute_turn(actor, 6, 2);
     return result;
 }
 
-int far combat_ai_turn_packet_40006(Combatant *actor) {
-    int result;
+s16 far combat_ai_turn_packet_40006(Combatant *actor) {
+    s16 result;
 
     result = combat_ai_execute_turn(actor, 6, 4);
     return result;
 }
 
-int far combat_ai_turn_packet_50006(Combatant *actor) {
-    int result;
+s16 far combat_ai_turn_packet_50006(Combatant *actor) {
+    s16 result;
 
     result = combat_ai_execute_turn(actor, 6, 5);
     return result;
 }
 
-int far combat_ai_turn_packet_30006(Combatant *actor) {
-    int result;
+s16 far combat_ai_turn_packet_30006(Combatant *actor) {
+    s16 result;
 
     result = combat_ai_execute_turn(actor, 6, 3);
     return result;
 }
 
-int far combat_ai_try_aoe_cast_spell_7(Combatant *actor) {
-    int result;
+s16 far combat_ai_try_aoe_cast_spell_7(Combatant *actor) {
+    s16 result;
     Combatant *target_actor;
-    register int i;
-    int stat;
+    register s16 i;
+    s16 stat;
 
     result = 0;
     if (combatenc_actor_stat_above_table(2, actor)) {
@@ -337,18 +337,18 @@ int far combat_ai_try_aoe_cast_spell_7(Combatant *actor) {
     return result;
 }
 
-#define AI_TURN_INDEX (*(short (*)[8][8])((char *)&__dat_1492 + (0x152c - 0x1492)))
+#define AI_TURN_INDEX (*(s16 (*)[8][8])((char *)&__dat_1492 + (0x152c - 0x1492)))
 
 #define AI_TURN_FN ((EncounterAiTurnFn far *)((char *)&__dat_1492 + (0x1518 - 0x1492)))
 
-typedef int(far *AiTurnFn)(Combatant *actor);
+typedef s16(far *AiTurnFn)(Combatant *actor);
 
 void far combat_ai_take_turn(Combatant *actor) {
-    int spell_attempt;
-    int dist;
-    int rand_mod;
-    int stat_pct;
-    int result;
+    s16 spell_attempt;
+    s16 dist;
+    s16 rand_mod;
+    s16 stat_pct;
+    s16 result;
     AiTurnFn fn;
 
     spell_attempt = 0;
@@ -356,7 +356,7 @@ void far combat_ai_take_turn(Combatant *actor) {
     if (combataiturn_pick_tile_or_attack(actor, 1, 1)) {
         result = 1;
     } else {
-        if ((int)stat_actor_get(actor, 0x10, 0) < 5)
+        if ((s16)stat_actor_get(actor, 0x10, 0) < 5)
             spell_attempt = 8;
     }
 
@@ -364,7 +364,7 @@ void far combat_ai_take_turn(Combatant *actor) {
         rand_mod = RND(100);
         if (rand_mod < 0x5b) {
             fn = (AiTurnFn)
-                AI_TURN_FN[AI_TURN_INDEX[(int)(signed char)actor->inner->aiTurnProfile][spell_attempt]];
+                AI_TURN_FN[AI_TURN_INDEX[(s16)(signed char)actor->inner->aiTurnProfile][spell_attempt]];
             result = fn(actor);
         }
         spell_attempt++;
@@ -377,7 +377,7 @@ void far combat_ai_take_turn(Combatant *actor) {
             if (dist <= 6)
                 dist = 7;
             dist -= 6;
-            g_acting_actor_speed = (dist > (int)g_acting_actor_speed) ? g_acting_actor_speed : dist;
+            g_acting_actor_speed = (dist > (s16)g_acting_actor_speed) ? g_acting_actor_speed : dist;
             combataipath_select_target(actor, 0x64, 0);
         } else {
             combatenc_actor_enter_defense(actor);

@@ -8,12 +8,12 @@
 #include "SRC/AUDIO/RES/AUDRES.H"
 #include "SRC/STREAM/BUFLOAD/STRMLOAD.H"
 
-int music_chunk_load_and_link(ResFile *file, char mode) {
-    long size;
-    unsigned short out_size[2];
+s16 music_chunk_load_and_link(ResFile *file, char mode) {
+    s32 size;
+    u16 out_size[2];
     AudioListNode far *node;
-    unsigned short scratch;
-    int allocTag;
+    u16 scratch;
+    s16 allocTag;
 
     res_fread(&size, 4, 1, file);
     res_fread(&scratch, 2, 1, file);
@@ -23,7 +23,7 @@ int music_chunk_load_and_link(ResFile *file, char mode) {
 
     node->wId = scratch;
     res_fread(&scratch, 1, 1, file);
-    *(unsigned short far *)&node->bPriority = (unsigned char)scratch;
+    *(u16 far *)&node->bPriority = (unsigned char)scratch;
     res_fread(&scratch, 1, 1, file);
     node->wFlags = (unsigned char)scratch;
 
@@ -39,15 +39,15 @@ int music_chunk_load_and_link(ResFile *file, char mode) {
             return 0;
         }
     } else if (g_nAudioStreamCodec != 0) {
-        if ((node->pData = audres_load_chunk_by_mode(file, (unsigned)size,
-                                                     (unsigned)((unsigned long)size >> 16),
-                                                     (unsigned *)out_size, allocTag)) == 0) {
+        if ((node->pData = audres_load_chunk_by_mode(file, (u16)size,
+                                                     (u16)((u32)size >> 16),
+                                                     (u16 *)out_size, allocTag)) == 0) {
             release_buffer(node, 3);
             return 0;
         }
     } else {
         if ((node->pData =
-                 stream_load_to_buffer(file, size, (unsigned long *)out_size, allocTag)) == 0) {
+                 stream_load_to_buffer(file, size, (u32 *)out_size, allocTag)) == 0) {
             release_buffer(node, 3);
             return 0;
         }

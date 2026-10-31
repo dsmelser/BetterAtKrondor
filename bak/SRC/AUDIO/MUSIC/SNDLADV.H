@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern AudioTrackHandle far *sound_list_advance_n(AudioTrackHandle far *node, int n);
+extern AudioTrackHandle far *sound_list_advance_n(AudioTrackHandle far *node, s16 n);
 
 #endif

@@ -19,16 +19,16 @@
 #include "SRC/SYS/CFGPARSE.H"
 #endif
 
-short g_nVisibleEntryCount;
-unsigned short g_wVisibleEntrySegment;
-unsigned short *g_pwVisibleEntryOffsets;
-long g_aFilterTable[43];
-long *g_pVisibleEntryDistances;
+s16 g_nVisibleEntryCount;
+u16 g_wVisibleEntrySegment;
+u16 *g_pwVisibleEntryOffsets;
+s32 g_aFilterTable[43];
+s32 *g_pVisibleEntryDistances;
 
 typedef struct {
-    long x;
-    long y;
-    long z;
+    s32 x;
+    s32 y;
+    s32 z;
 } OctPos;
 
 void far proxscan_filter_table_load(void) {
@@ -36,7 +36,7 @@ void far proxscan_filter_table_load(void) {
 
     file = res_fopen("filter.dat", "rb");
     if (g_engine_prefs != (EnginePrefs *)0 && g_engine_prefs->detail_level != 0) {
-        res_fseek(file, (unsigned long)((unsigned int)g_engine_prefs->detail_level * 0xac), SEEK_CUR);
+        res_fseek(file, (u32)((u16)g_engine_prefs->detail_level * 0xac), SEEK_CUR);
     }
     res_fread((void *)g_aFilterTable, 4, 0x2b, file);
     res_fclose(file);
@@ -55,8 +55,8 @@ void proxscan_scratch_free(void) {
 }
 
 void proxscan_full(ViewContext *widget) {
-    int i;
-    long *party_pos;
+    s16 i;
+    s32 *party_pos;
 
     party_pos = &widget->camera->base.pos.xy.nWorld_x;
     g_wVisibleEntrySegment = FP_SEG(g_apCombat_zone_actor_lists[0]->pEntries);
@@ -69,16 +69,16 @@ void proxscan_full(ViewContext *widget) {
     return;
 }
 
-void proxscan_run(VisibleEntryList *list, long *party_pos) {
-    short count;
-    int i;
+void proxscan_run(VisibleEntryList *list, s32 *party_pos) {
+    s16 count;
+    s16 i;
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long threshold;
-    long metric;
-    unsigned short *puOff;
+    s32 threshold;
+    s32 metric;
+    u16 *puOff;
     OctPos local_pos;
-    register long *plDist;
+    register s32 *plDist;
 
     count = list->wEntry_count;
     entry_ptr = list->pEntries;
@@ -90,10 +90,10 @@ void proxscan_run(VisibleEntryList *list, long *party_pos) {
         if (prec->kind != 7 && (g_game_mode != 1 || entry_ptr->shapeId != 0xb5) &&
             (threshold = g_aFilterTable[prec->kind], threshold) != -1) {
             local_pos = *(OctPos far *)&entry_ptr->pos;
-            *plDist = distdir_octagonal_distance(party_pos, (long *)&local_pos);
+            *plDist = distdir_octagonal_distance(party_pos, (s32 *)&local_pos);
             if (threshold != 1) {
                 metric = *plDist;
-                metric -= (long)((int)prec->radius << prec->shift);
+                metric -= (s32)((s16)prec->radius << prec->shift);
             } else {
                 metric = 0;
             }
@@ -114,16 +114,16 @@ void proxscan_run(VisibleEntryList *list, long *party_pos) {
     }
 }
 
-void proxscan_filter_by_distance(long *origin) {
-    short max_count;
-    int i;
+void proxscan_filter_by_distance(s32 *origin) {
+    s16 max_count;
+    s16 i;
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long threshold;
-    long metric;
+    s32 threshold;
+    s32 metric;
     OctPos local_pos;
-    register long *plDist;
-    register unsigned short *puOff;
+    register s32 *plDist;
+    register u16 *puOff;
 
     max_count = g_nVisible_entry_count;
     entry_ptr = (WorldObject far *)g_pVisible_entry_pool;
@@ -134,10 +134,10 @@ void proxscan_filter_by_distance(long *origin) {
         threshold = g_aFilterTable[prec->kind];
         if (threshold != -1) {
             local_pos = *(OctPos far *)&entry_ptr->pos;
-            *plDist = distdir_octagonal_distance(origin, (long *)&local_pos);
+            *plDist = distdir_octagonal_distance(origin, (s32 *)&local_pos);
             if (threshold != 1) {
                 metric = *plDist;
-                metric -= (long)((int)prec->radius << prec->shift);
+                metric -= (s32)((s16)prec->radius << prec->shift);
             } else {
                 metric = 0;
             }
@@ -152,15 +152,15 @@ void proxscan_filter_by_distance(long *origin) {
     }
 }
 
-void proxscan_object_list(long *origin) {
-    short max_count;
-    int i;
+void proxscan_object_list(s32 *origin) {
+    s16 max_count;
+    s16 i;
     WorldObject far *record_ptr;
-    long score;
-    long metric;
+    s32 score;
+    s32 metric;
     OctPos local_pos;
-    register long *plDist;
-    register unsigned short *puOff;
+    register s32 *plDist;
+    register u16 *puOff;
 
     max_count = g_nFixed_object_count;
     record_ptr = g_pFixed_object_entries;
@@ -170,7 +170,7 @@ void proxscan_object_list(long *origin) {
     for (i = 0; g_nVisibleEntryCount < 600 && i < max_count; i++) {
         if (score != -1) {
             local_pos = *(OctPos far *)&record_ptr->pos.xy.nWorld_x;
-            *plDist = distdir_octagonal_distance(origin, (long *)&local_pos);
+            *plDist = distdir_octagonal_distance(origin, (s32 *)&local_pos);
             if (score != 1) {
                 metric = *plDist;
             } else {
@@ -188,8 +188,8 @@ void proxscan_object_list(long *origin) {
 }
 
 void proxscan_all_zones_for_encounter(ViewContext *pContext) {
-    long *party_pos;
-    int i;
+    s32 *party_pos;
+    s16 i;
 
     party_pos = &pContext->camera->base.pos.xy.nWorld_x;
     g_wVisibleEntrySegment = FP_SEG(g_apCombat_zone_actor_lists[0]->pEntries);
@@ -200,16 +200,16 @@ void proxscan_all_zones_for_encounter(ViewContext *pContext) {
     return;
 }
 
-void proxscan_encounter_records(VisibleEntryList *list, long *party_pos) {
-    short count;
-    int i;
+void proxscan_encounter_records(VisibleEntryList *list, s32 *party_pos) {
+    s16 count;
+    s16 i;
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long threshold;
-    long metric;
-    unsigned short *puOff;
+    s32 threshold;
+    s32 metric;
+    u16 *puOff;
     OctPos local_pos;
-    register long *plDist;
+    register s32 *plDist;
 
     count = list->wEntry_count;
     entry_ptr = list->pEntries;
@@ -222,10 +222,10 @@ void proxscan_encounter_records(VisibleEntryList *list, long *party_pos) {
              prec->kind == 0x27) &&
             (threshold = g_aFilterTable[prec->kind], threshold) != -1) {
             local_pos = *(OctPos far *)&entry_ptr->pos;
-            *plDist = distdir_octagonal_distance(party_pos, (long *)&local_pos);
+            *plDist = distdir_octagonal_distance(party_pos, (s32 *)&local_pos);
             if (threshold != 1) {
                 metric = *plDist;
-                metric -= (long)((int)prec->radius << prec->shift);
+                metric -= (s32)((s16)prec->radius << prec->shift);
             } else {
                 metric = 0;
             }
@@ -246,11 +246,11 @@ void proxscan_encounter_records(VisibleEntryList *list, long *party_pos) {
     }
 }
 
-int proxscan_vis_rec_kind_0e3e(void) {
+s16 proxscan_vis_rec_kind_0e3e(void) {
     WorldObject far *entry_ptr;
-    unsigned short *puOff;
-    long *plDist;
-    register int i;
+    u16 *puOff;
+    s32 *plDist;
+    register s16 i;
 
     puOff = g_pwVisibleEntryOffsets;
     plDist = g_pVisibleEntryDistances;
@@ -276,8 +276,8 @@ int proxscan_vis_rec_kind_0e3e(void) {
     return 0;
 }
 
-int far proxscan_paged_find_next_type0f(WorldObject far **out_entry) {
-    int i;
+s16 far proxscan_paged_find_next_type0f(WorldObject far **out_entry) {
+    s16 i;
 
     for (i = g_nVisibleEntryCount - 1; i >= 0; i--) {
         *out_entry = MK_FP(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets[i]);
@@ -289,8 +289,8 @@ int far proxscan_paged_find_next_type0f(WorldObject far **out_entry) {
 }
 
 void proxscan_visibility(ViewContext *pViewContext) {
-    int i;
-    long *party_pos;
+    s16 i;
+    s32 *party_pos;
 
     party_pos = &pViewContext->camera->base.pos.xy.nWorld_x;
     g_wVisibleEntrySegment = FP_SEG(g_apCombat_zone_actor_lists[0]->pEntries);
@@ -302,18 +302,18 @@ void proxscan_visibility(ViewContext *pViewContext) {
     return;
 }
 
-void proxscan_region_bucket(VisibleEntryList *region, long *party_pos) {
-    short count;
-    int i;
-    int keep;
+void proxscan_region_bucket(VisibleEntryList *region, s32 *party_pos) {
+    s16 count;
+    s16 i;
+    s16 keep;
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long threshold;
-    long metric;
-    int view_xy[3];
+    s32 threshold;
+    s32 metric;
+    s16 view_xy[3];
     OctPos local_pos;
-    register long *plDist;
-    register unsigned short *puOff;
+    register s32 *plDist;
+    register u16 *puOff;
 
     count = region->wEntry_count;
     entry_ptr = region->pEntries;
@@ -328,17 +328,17 @@ void proxscan_region_bucket(VisibleEntryList *region, long *party_pos) {
                                         g_world_camera->base.orientation.yaw,
                                         (WorldPos2 far *)&local_pos, view_xy);
             if (view_xy[0] != -1 ||
-                distdir_octagonal_distance(party_pos, (long *)&local_pos) < 4000)
+                distdir_octagonal_distance(party_pos, (s32 *)&local_pos) < 4000)
                 keep = 0;
         } else {
             if (prec->kind == 0x2a || entry_ptr->shapeId == 0x7f)
                 keep = 0;
         }
         if (keep != 0 && (threshold = g_aFilterTable[prec->kind], threshold) != -1) {
-            *plDist = distdir_octagonal_distance(party_pos, (long *)&local_pos);
+            *plDist = distdir_octagonal_distance(party_pos, (s32 *)&local_pos);
             if (threshold != 1) {
                 metric = *plDist;
-                metric -= (long)((int)prec->radius << prec->shift);
+                metric -= (s32)((s16)prec->radius << prec->shift);
             } else {
                 metric = 0;
             }
@@ -353,17 +353,17 @@ void proxscan_region_bucket(VisibleEntryList *region, long *party_pos) {
     }
 }
 
-void proxscan_world_objects(long *p_pos) {
-    register long *plDist;
-    register unsigned short *puOff;
-    short count;
-    int i;
-    int keep;
+void proxscan_world_objects(s32 *p_pos) {
+    register s32 *plDist;
+    register u16 *puOff;
+    s16 count;
+    s16 i;
+    s16 keep;
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long threshold;
-    long metric;
-    int view_xy[3];
+    s32 threshold;
+    s32 metric;
+    s16 view_xy[3];
     OctPos local_pos;
 
     count = g_nVisible_entry_count;
@@ -378,7 +378,7 @@ void proxscan_world_objects(long *p_pos) {
             combatgrid_world_to_view_2d(&g_world_camera->base.pos.xy,
                                         g_world_camera->base.orientation.yaw,
                                         (WorldPos2 far *)&local_pos, view_xy);
-            if (view_xy[0] != -1 || distdir_octagonal_distance(p_pos, (long *)&local_pos) < 4000)
+            if (view_xy[0] != -1 || distdir_octagonal_distance(p_pos, (s32 *)&local_pos) < 4000)
                 keep = 0;
         } else {
             if (prec->kind == 0x2a || entry_ptr->shapeId == 0x7f)
@@ -387,10 +387,10 @@ void proxscan_world_objects(long *p_pos) {
         if (keep != 0) {
             threshold = g_aFilterTable[prec->kind];
             if (threshold != -1) {
-                *plDist = distdir_octagonal_distance(p_pos, (long *)&local_pos);
+                *plDist = distdir_octagonal_distance(p_pos, (s32 *)&local_pos);
                 if (threshold != 1) {
                     metric = *plDist;
-                    metric -= (long)((int)prec->radius << prec->shift);
+                    metric -= (s32)((s16)prec->radius << prec->shift);
                 } else {
                     metric = 0;
                 }
@@ -407,10 +407,10 @@ void proxscan_world_objects(long *p_pos) {
 }
 
 void proxscan_paged_dispatch_all(void) {
-    int i;
-    long *party_pos;
+    s16 i;
+    s32 *party_pos;
 #ifdef V102CD
-    short saved_heading;
+    s16 saved_heading;
 #endif
 
     party_pos = &g_world_camera->base.pos.xy.nWorld_x;
@@ -429,22 +429,22 @@ void proxscan_paged_dispatch_all(void) {
 #endif
 }
 
-void proxscan_paged_list_dispatch(VisibleEntryList *list, long *party_pos) {
+void proxscan_paged_list_dispatch(VisibleEntryList *list, s32 *party_pos) {
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long metric;
+    s32 metric;
     WorldPos local_pos;
 
-    register int i;
-    int count;
+    register s16 i;
+    s16 count;
 
-    count = (int)list->wEntry_count;
+    count = (s16)list->wEntry_count;
     entry_ptr = list->pEntries;
     i = 0;
     if (i < count) {
         do {
             prec = ts_get_shape(entry_ptr->shapeId);
-            switch ((unsigned int)prec->kind) {
+            switch ((u16)prec->kind) {
             case 0x06:
             case 0x0a:
             case 0x11:
@@ -455,8 +455,8 @@ void proxscan_paged_list_dispatch(VisibleEntryList *list, long *party_pos) {
             case 0x24:
             case 0x29:
                 local_pos = *(WorldPos far *)&entry_ptr->pos;
-                metric = distdir_octagonal_distance(party_pos, (long *)&local_pos) -
-                         ((int)prec->radius << prec->shift);
+                metric = distdir_octagonal_distance(party_pos, (s32 *)&local_pos) -
+                         ((s16)prec->radius << prec->shift);
                 if (metric < 64000) {
                     world_render_record_marker_dot(entry_ptr);
                 }
@@ -468,19 +468,19 @@ void proxscan_paged_list_dispatch(VisibleEntryList *list, long *party_pos) {
     }
 }
 
-void proxscan_paged_dispatch_by_type(long *p_coords) {
+void proxscan_paged_dispatch_by_type(s32 *p_coords) {
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long metric;
+    s32 metric;
     OctPos local_pos;
-    int i;
+    s16 i;
 
     entry_ptr = (WorldObject far *)g_pVisible_entry_pool;
     i = 0;
     if (i < g_nVisible_entry_count) {
         do {
             prec = ts_get_shape(entry_ptr->shapeId);
-            switch ((unsigned int)prec->kind) {
+            switch ((u16)prec->kind) {
             case 6:
             case 10:
             case 17:
@@ -491,8 +491,8 @@ void proxscan_paged_dispatch_by_type(long *p_coords) {
             case 36:
             case 41:
                 local_pos = *(OctPos far *)&entry_ptr->pos;
-                metric = distdir_octagonal_distance(p_coords, (long *)&local_pos) -
-                         (long)((int)prec->radius << prec->shift);
+                metric = distdir_octagonal_distance(p_coords, (s32 *)&local_pos) -
+                         (s32)((s16)prec->radius << prec->shift);
                 if (metric < 64000) {
                     world_render_record_marker_dot(entry_ptr);
                 }
@@ -505,10 +505,10 @@ void proxscan_paged_dispatch_by_type(long *p_coords) {
 }
 
 void far proxscan_draw_cmap_inset_markers(void) {
-    long *position;
-    int i;
+    s32 *position;
+    s16 i;
 #ifdef V102CD
-    short saved_heading;
+    s16 saved_heading;
 #endif
 
     position = &g_world_camera->base.pos.xy.nWorld_x;
@@ -529,15 +529,15 @@ void far proxscan_draw_cmap_inset_markers(void) {
     return;
 }
 
-void far proxscan_draw_zone_vis_marks(VisibleEntryList *list, long *position) {
+void far proxscan_draw_zone_vis_marks(VisibleEntryList *list, s32 *position) {
     OctPos local_pos;
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long dist;
-    int count;
-    int i;
+    s32 dist;
+    s16 count;
+    s16 i;
 
-    count = (int)list->wEntry_count;
+    count = (s16)list->wEntry_count;
     entry_ptr = list->pEntries;
     i = 0;
     if (i < count) {
@@ -558,8 +558,8 @@ void far proxscan_draw_zone_vis_marks(VisibleEntryList *list, long *position) {
             case 35:
             case 41:
                 local_pos = *(OctPos far *)&entry_ptr->pos.xy.nWorld_x;
-                dist = distdir_octagonal_distance(position, (long *)&local_pos) -
-                       (long)((int)prec->radius << prec->shift);
+                dist = distdir_octagonal_distance(position, (s32 *)&local_pos) -
+                       (s32)((s16)prec->radius << prec->shift);
                 if (dist < 64000) {
                     if (spellfx_actor_has_ration(entry_ptr) != 0) {
                         world_render_record_marker_dot(entry_ptr);
@@ -574,12 +574,12 @@ void far proxscan_draw_zone_vis_marks(VisibleEntryList *list, long *position) {
     return;
 }
 
-void far proxscan_draw_visible_markers(long *p_position) {
+void far proxscan_draw_visible_markers(s32 *p_position) {
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long dist;
+    s32 dist;
     OctPos local_pos;
-    int i;
+    s16 i;
 
     entry_ptr = (WorldObject far *)g_pVisible_entry_pool;
     i = 0;
@@ -601,8 +601,8 @@ void far proxscan_draw_visible_markers(long *p_position) {
             case 35:
             case 41:
                 local_pos = *(OctPos far *)&entry_ptr->pos.xy.nWorld_x;
-                dist = distdir_octagonal_distance(p_position, (long *)&local_pos) -
-                       (long)((int)prec->radius << prec->shift);
+                dist = distdir_octagonal_distance(p_position, (s32 *)&local_pos) -
+                       (s32)((s16)prec->radius << prec->shift);
                 if (dist < 64000) {
                     if (spellfx_actor_has_ration(entry_ptr) != 0) {
                         world_render_record_marker_dot(entry_ptr);
@@ -617,15 +617,15 @@ void far proxscan_draw_visible_markers(long *p_position) {
     return;
 }
 
-void far proxscan_draw_fixed_object_marks(long *p_position) {
+void far proxscan_draw_fixed_object_marks(s32 *p_position) {
     OctPos local_pos;
     WorldObject far *record_ptr;
-    int i;
+    s16 i;
 
     record_ptr = g_pFixed_object_entries;
     for (i = 0; i < g_nFixed_object_count; i++) {
         local_pos = *(OctPos far *)&record_ptr->pos.xy.nWorld_x;
-        if (distdir_octagonal_distance(p_position, (long *)&local_pos) < 64000) {
+        if (distdir_octagonal_distance(p_position, (s32 *)&local_pos) < 64000) {
             if (spellfx_actor_has_ration((WorldObject far *)record_ptr) != 0) {
                 world_render_record_marker_dot((WorldObject far *)record_ptr);
             }
@@ -636,10 +636,10 @@ void far proxscan_draw_fixed_object_marks(long *p_position) {
 }
 
 void far proxscan_broadcast_scene_events(void) {
-    long *position;
-    int i;
+    s32 *position;
+    s16 i;
 #ifdef V102CD
-    short saved_heading;
+    s16 saved_heading;
 #endif
 
     position = &g_world_camera->base.pos.xy.nWorld_x;
@@ -660,15 +660,15 @@ void far proxscan_broadcast_scene_events(void) {
     return;
 }
 
-void far proxscan_rndr_zone_recs_near(VisibleEntryList *list, long *position) {
+void far proxscan_rndr_zone_recs_near(VisibleEntryList *list, s32 *position) {
     OctPos local_pos;
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long dist;
-    int count;
-    int i;
+    s32 dist;
+    s16 count;
+    s16 i;
 
-    count = (int)list->wEntry_count;
+    count = (s16)list->wEntry_count;
     entry_ptr = list->pEntries;
     i = 0;
     if (i < count) {
@@ -693,8 +693,8 @@ void far proxscan_rndr_zone_recs_near(VisibleEntryList *list, long *position) {
             case 37:
             case 41:
                 local_pos = *(OctPos far *)&entry_ptr->pos.xy.nWorld_x;
-                dist = distdir_octagonal_distance(position, (long *)&local_pos) -
-                       (long)((int)prec->radius << prec->shift);
+                dist = distdir_octagonal_distance(position, (s32 *)&local_pos) -
+                       (s32)((s16)prec->radius << prec->shift);
                 if (dist < 64000) {
                     if ((prec->kind == 0x1d || prec->kind == 9 || prec->kind == 0x25) ||
                         spellfx_actor_has_special_item(entry_ptr) != 0) {
@@ -710,12 +710,12 @@ void far proxscan_rndr_zone_recs_near(VisibleEntryList *list, long *position) {
     return;
 }
 
-void far proxscan_draw_vis_marks_near(long *position) {
+void far proxscan_draw_vis_marks_near(s32 *position) {
     OctPos local_pos;
     WorldObject far *entry_ptr;
     Shape far *prec;
-    long dist;
-    int i;
+    s32 dist;
+    s16 i;
 
     entry_ptr = (WorldObject far *)g_pVisible_entry_pool;
     i = 0;
@@ -741,8 +741,8 @@ void far proxscan_draw_vis_marks_near(long *position) {
             case 37:
             case 41:
                 local_pos = *(OctPos far *)&entry_ptr->pos.xy.nWorld_x;
-                dist = distdir_octagonal_distance(position, (long *)&local_pos) -
-                       (long)((int)prec->radius << prec->shift);
+                dist = distdir_octagonal_distance(position, (s32 *)&local_pos) -
+                       (s32)((s16)prec->radius << prec->shift);
                 if (dist < 64000) {
                     if ((prec->kind == 0x1d || prec->kind == 9 || prec->kind == 0x25) ||
                         spellfx_actor_has_special_item(entry_ptr) != 0) {
@@ -758,15 +758,15 @@ void far proxscan_draw_vis_marks_near(long *position) {
     return;
 }
 
-void far proxscan_notify_actors_near(long *position) {
+void far proxscan_notify_actors_near(s32 *position) {
     OctPos local_pos;
     WorldObject far *record_ptr;
-    int i;
+    s16 i;
 
     record_ptr = g_pFixed_object_entries;
     for (i = 0; i < g_nFixed_object_count; i++) {
         local_pos = *(OctPos far *)&record_ptr->pos.xy.nWorld_x;
-        if (distdir_octagonal_distance(position, (long *)&local_pos) < 64000) {
+        if (distdir_octagonal_distance(position, (s32 *)&local_pos) < 64000) {
             if (spellfx_actor_has_special_item((WorldObject far *)record_ptr) != 0) {
                 world_render_record_marker_dot((WorldObject far *)record_ptr);
             }

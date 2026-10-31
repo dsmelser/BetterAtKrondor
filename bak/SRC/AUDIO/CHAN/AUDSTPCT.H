@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_stop_category(int category);
+extern s16 audio_stop_category(s16 category);
 
 #endif

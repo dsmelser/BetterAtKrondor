@@ -26,10 +26,10 @@ typedef enum CharacterId {
 } CharacterId;
 
 typedef struct GameState {
-    unsigned short nChapter;
-    long nParty_gold;
-    unsigned long game_time;
-    unsigned long dwLastActionTimeSnapshot;
+    u16 nChapter;
+    s32 nParty_gold;
+    u32 game_time;
+    u32 dwLastActionTimeSnapshot;
     unsigned char bCombatExitRequest;
     unsigned char nWorldLoopExitRequest;
     unsigned char rsvd_10[1];
@@ -39,14 +39,14 @@ typedef struct GameState {
     unsigned char nPlayerTileY;
     WorldPos2 zoneDefaultCameraPos;
     unsigned char rsvd_1d[4];
-    unsigned short wZoneDefaultCameraHeading;
+    u16 wZoneDefaultCameraHeading;
     unsigned char abTeleportRecord[11];
-    short nLastSeenStepSpeed;
-    short nLastSeenGridStride;
-    short nWorldStepPending;
+    s16 nLastSeenStepSpeed;
+    s16 nLastSeenGridStride;
+    s16 nWorldStepPending;
     unsigned char nWorldStepTickCount;
-    unsigned short world_step_tick;
-    long lInsetCameraPosZ;
+    u16 world_step_tick;
+    s32 lInsetCameraPosZ;
     char characterNames[CHARACTER_POOL_SIZE][10];
 
     /**
@@ -74,62 +74,62 @@ typedef struct GameState {
     struct Actor far *shared_inventory;
     struct Actor far *ground_pile;
     unsigned char bPartyDirtyFlags;
-    unsigned int dwPopup_retry_state;
-    unsigned short aSkillTrainRate[CHARACTER_POOL_SIZE];
+    u16 dwPopup_retry_state;
+    u16 aSkillTrainRate[CHARACTER_POOL_SIZE];
     unsigned char abActorStatusRanks[CHARACTER_POOL_SIZE][7];
     ActorStatModTable aActorStatModifiers;
-    short nEvtArgActor0;
-    short nEvtArgActor1;
-    short nEvtArgStat;
+    s16 nEvtArgActor0;
+    s16 nEvtArgActor1;
+    s16 nEvtArgStat;
     unsigned char rsvd_59c[2];
-    short nEvtArgCount;
-    short nEvtArgAux1;
-    short nEvtArgItemId;
-    short nEvtArgDlgResult;
-    long lEvtArgGoldCost;
-    long lEvtArgValue;
-    long lEvtArgAuxValue;
-    short nTimerEventPoolCount;
+    s16 nEvtArgCount;
+    s16 nEvtArgAux1;
+    s16 nEvtArgItemId;
+    s16 nEvtArgDlgResult;
+    s32 lEvtArgGoldCost;
+    s32 lEvtArgValue;
+    s32 lEvtArgAuxValue;
+    s16 nTimerEventPoolCount;
     TimerEventEntry aTimerEventPool[20];
-    unsigned short wPalEventMask;
-    short nSpellMenuCasterSlot;
-    short nSpellMenuPreselect;
-    short nPalFadeDirty;
-    short nPrevWorldBrightness;
-    short world_brightness;
-    short nPalDaynightDelta;
-    short nPalAreaBrightness;
-    short nPalBrightnessBoost;
-    short nPalBlendWeight;
+    u16 wPalEventMask;
+    s16 nSpellMenuCasterSlot;
+    s16 nSpellMenuPreselect;
+    s16 nPalFadeDirty;
+    s16 nPrevWorldBrightness;
+    s16 world_brightness;
+    s16 nPalDaynightDelta;
+    s16 nPalAreaBrightness;
+    s16 nPalBrightnessBoost;
+    s16 nPalBlendWeight;
     ObjFixedLocationCacheEntry objfixed_location_cache;
     unsigned char event_bitmap_lo[1063];
     unsigned char event_bitmap_hi[50];
 } GameState;
 
-extern unsigned long g_nVec3DistResult;
+extern u32 g_nVec3DistResult;
 extern PolyRasterState g_polyRasterState;
 extern unsigned char g_bCutsceneEscPressed;
 extern unsigned char g_bssgap_4863[3];
 extern GameState g_gameState;
-extern unsigned short g_bPaletteCycleEbActive;
-extern unsigned short g_wVgaScratchPageBase;
-extern unsigned short g_wGameFontSlot;
-extern unsigned short *g_pSkyPanoAssetTable;
+extern u16 g_bPaletteCycleEbActive;
+extern u16 g_wVgaScratchPageBase;
+extern u16 g_wGameFontSlot;
+extern u16 *g_pSkyPanoAssetTable;
 #ifdef V102CD
-extern int g_cd_present;
+extern s16 g_cd_present;
 #endif
 extern WorldEntity *g_render_camera_scratch;
 extern ViewContext *g_active_window;
-extern unsigned short g_nChapterAtLoopExit;
+extern u16 g_nChapterAtLoopExit;
 
-extern int gmain_start_dispatch(int mode);
+extern s16 gmain_start_dispatch(s16 mode);
 extern void gmain_play_intro_animation(void);
-extern int gmain_play_chapter_intro(int chapter, int part);
-extern int gmain_play_chapter_cutscene(int chapter_num, int channel_1, int channel_2);
+extern s16 gmain_play_chapter_intro(s16 chapter, s16 part);
+extern s16 gmain_play_chapter_cutscene(s16 chapter_num, s16 channel_1, s16 channel_2);
 extern void gmain_screen_fade_to_black(void);
-extern void gmain_cutsc_play_fullmap_scene(int scene_index);
+extern void gmain_cutsc_play_fullmap_scene(s16 scene_index);
 extern void gmain_restart_from_save_flow(void);
-extern void gmain_parse_cmdline_sound_flag(int argc, char **argv);
+extern void gmain_parse_cmdline_sound_flag(s16 argc, char **argv);
 
 
 #endif

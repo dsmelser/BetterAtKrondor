@@ -5,25 +5,25 @@
 
 unsigned char g_bLzwOutputSuspended;
 unsigned char g_bLzwNeedSeedCode;
-unsigned short g_wLzwInBufBitsTotal;
-unsigned short g_wLzwInBitPos;
+u16 g_wLzwInBufBitsTotal;
+u16 g_wLzwInBitPos;
 unsigned char far *g_pLzwScratchTail;
-unsigned short g_wLzwNewCode;
-unsigned short g_wLzwPrevCode;
-unsigned short g_wLzwLastByte;
-unsigned short g_wLzwResetWidthPending;
-unsigned short g_wLzwNextCode;
-unsigned short g_wLzwMaxCode;
-unsigned short g_wLzwCodeBits;
+u16 g_wLzwNewCode;
+u16 g_wLzwPrevCode;
+u16 g_wLzwLastByte;
+u16 g_wLzwResetWidthPending;
+u16 g_wLzwNextCode;
+u16 g_wLzwMaxCode;
+u16 g_wLzwCodeBits;
 
 void near lzh_decoder_init(void) {
-    register int j;
-    int i;
+    register s16 j;
+    s16 i;
 
     memset_far(g_pCurCodecScratch, '\0', 0x3aa1L);
     g_wLzwMaxCode = (1 << (g_wLzwCodeBits = 9)) - 1;
     for (i = 0xff; i >= 0; i--) {
-        ((unsigned int huge *)g_pCurCodecScratch)[i] = 0;
+        ((u16 huge *)g_pCurCodecScratch)[i] = 0;
         *(g_pCurCodecScratch + i + 0x2720) = i & 0xff;
     }
     g_wLzwNextCode = 0x101;

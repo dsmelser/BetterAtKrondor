@@ -5,36 +5,36 @@
 
 extern VfxRec *g_pVfxSparkleScratch;
 extern VfxRec *g_pVfxParticlePool;
-extern short g_nVfxTickCountdown;
-extern unsigned short g_nVfxParticleColor;
+extern s16 g_nVfxTickCountdown;
+extern u16 g_nVfxParticleColor;
 extern VfxRec *g_pVfxVelocityPool;
-extern unsigned short g_wVfxActiveParticleCount;
-extern unsigned short g_nVfxParticleBurstOriginY;
+extern u16 g_wVfxActiveParticleCount;
+extern u16 g_nVfxParticleBurstOriginY;
 extern SavedClipRect g_savedClip;
 
-extern void worldfx_sparkle_burst(Combatant *actor, int color);
-extern void worldfx_flux_vortex_step_particle(int slot, int base_ang_step);
-extern void worldfx_render_particle_blast(Combatant *actor, int color);
-extern void worldfx_flux_vortex_play(int color);
+extern void worldfx_sparkle_burst(Combatant *actor, s16 color);
+extern void worldfx_flux_vortex_step_particle(s16 slot, s16 base_ang_step);
+extern void worldfx_render_particle_blast(Combatant *actor, s16 color);
+extern void worldfx_flux_vortex_play(s16 color);
 extern void worldfx_ptcl_overlay_step_back(Combatant *pActor);
 extern void worldfx_ptcl_overlay_render_front(Combatant *pActor);
 extern void worldfx_rndr_rand_flash_at_actor(Combatant *actor);
 extern void worldfx_render_world_100_frames(void);
-extern void worldfx_combat_damage_ptcl_burst(Combatant *actor, int spread);
-extern void worldfx_render_star(int index);
-extern void worldfx_sparkle_update_particles(int y_max, int y_min);
+extern void worldfx_combat_damage_ptcl_burst(Combatant *actor, s16 spread);
+extern void worldfx_render_star(s16 index);
+extern void worldfx_sparkle_update_particles(s16 y_max, s16 y_min);
 extern void worldfx_sparkle_tick(void);
 extern void worldfx_sparkle_render(void);
 extern void worldfx_render_flame_at_actor(Combatant *actor);
 extern void worldfx_actor_box_scr_verts(Vec3Short *vertex_buf, Combatant *actor);
-extern void worldfx_draw_actor_box_wireframe(Combatant *actor, int color_idx);
-extern void worldfx_draw_actor_box_wireframe_front(Combatant *entity, int color_mod);
+extern void worldfx_draw_actor_box_wireframe(Combatant *actor, s16 color_idx);
+extern void worldfx_draw_actor_box_wireframe_front(Combatant *entity, s16 color_mod);
 extern void worldfx_state_arm_minus2(void);
 extern void worldfx_depth_clip_actor_scr_y(Combatant *actor);
 extern void worldfx_clip_rect_restore(void);
-extern void worldfx_rndr_spr_shadow(short shadow_palette_idx);
-extern void worldfx_draw_path_segment(int gridX, int gridY);
-extern void worldfx_draw_world_line(int x1, int y1, int x2, int y2);
-extern void worldfx_draw_world_line_color(int x1, int y1, int x2, int y2, int color);
+extern void worldfx_rndr_spr_shadow(s16 shadow_palette_idx);
+extern void worldfx_draw_path_segment(s16 gridX, s16 gridY);
+extern void worldfx_draw_world_line(s16 x1, s16 y1, s16 x2, s16 y2);
+extern void worldfx_draw_world_line_color(s16 x1, s16 y1, s16 x2, s16 y2, s16 color);
 
 #endif

@@ -29,15 +29,15 @@ unsigned char __dat_15dc[128] = {
     0x07, 0x00, 0x03, 0x00, 0x02, 0x00, 0x08, 0x00, 0x06, 0x00, 0x01, 0x00, 0x05, 0x00, 0x04, 0x00,
     0x08, 0x00, 0x06, 0x00, 0x07, 0x00, 0x03, 0x00, 0x04, 0x00, 0x02, 0x00, 0x01, 0x00, 0x05, 0x00};
 
-int far combataiturn_pick_tile_or_attack(Combatant *actor, int min_score_threshold,
-                                         int may_attack) {
-    int try_x, try_y;
-    int best_x, best_y;
-    int saved_x, saved_y;
-    int cur_score;
-    int ret_val;
-    int rand_pct;
-    int best_score;
+s16 far combataiturn_pick_tile_or_attack(Combatant *actor, s16 min_score_threshold,
+                                         s16 may_attack) {
+    s16 try_x, try_y;
+    s16 best_x, best_y;
+    s16 saved_x, saved_y;
+    s16 cur_score;
+    s16 ret_val;
+    s16 rand_pct;
+    s16 best_score;
 
     combatenc_find_nearest_actor(actor, &cur_score);
     if (cur_score > min_score_threshold) {
@@ -46,16 +46,16 @@ int far combataiturn_pick_tile_or_attack(Combatant *actor, int min_score_thresho
     }
     ret_val = 1;
     best_score = cur_score;
-    best_x = (int)actor->inner->gridX;
-    best_y = (int)actor->inner->gridY;
+    best_x = (s16)actor->inner->gridX;
+    best_y = (s16)actor->inner->gridY;
     for (try_x = 7; try_x > -1; try_x--) {
         for (try_y = 0xc; try_y > -1; try_y--) {
             actor->inner->destX = (unsigned char)try_x;
             actor->inner->destY = (unsigned char)try_y;
             if (combatgrid_tile_is_blocked((unsigned char)try_x, (unsigned char)try_y) == 0) {
                 if (combataipath_actor_walk_path(actor, 1) != 0) {
-                    saved_x = (int)actor->inner->gridX;
-                    saved_y = (int)actor->inner->gridY;
+                    saved_x = (s16)actor->inner->gridX;
+                    saved_y = (s16)actor->inner->gridY;
                     actor->inner->gridX = (unsigned char)try_x;
                     actor->inner->gridY = (unsigned char)try_y;
                     combatenc_find_nearest_actor(actor, &cur_score);
@@ -72,7 +72,7 @@ int far combataiturn_pick_tile_or_attack(Combatant *actor, int min_score_thresho
         }
     }
     rand_pct = RND(100);
-    if ((((int)actor->inner->gridX == best_x && (int)actor->inner->gridY == best_y) ||
+    if ((((s16)actor->inner->gridX == best_x && (s16)actor->inner->gridY == best_y) ||
          rand_pct < 0xf) &&
         may_attack) {
         combataipath_select_action(actor);
@@ -85,8 +85,8 @@ done:
     return ret_val;
 }
 
-int far combataiturn_armor_eff_stat(Combatant *actor) {
-    int effStat;
+s16 far combataiturn_armor_eff_stat(Combatant *actor) {
+    s16 effStat;
     ItemRecord far *weapon;
 
     weapon = cbstat_find_intact_equip_cat(actor, 2);
@@ -99,15 +99,15 @@ int far combataiturn_armor_eff_stat(Combatant *actor) {
     return effStat;
 }
 
-void far combataiturn_ranged_attack(Combatant *attacker, Combatant *target, int quarrel_type) {
+void far combataiturn_ranged_attack(Combatant *attacker, Combatant *target, s16 quarrel_type) {
     ItemRecord far *weapon;
-    int hit;
-    int local_damage;
-    int knockback;
-    int slot;
-    unsigned int damageFlags;
-    unsigned short actionId;
-    int armor_stat;
+    s16 hit;
+    s16 local_damage;
+    s16 knockback;
+    s16 slot;
+    u16 damageFlags;
+    u16 actionId;
+    s16 armor_stat;
     Combatant *actor;
 
     weapon = cbstat_find_intact_equip_cat(attacker, 2);
@@ -177,11 +177,11 @@ void far combataiturn_ranged_attack(Combatant *attacker, Combatant *target, int 
     cbstat_damage_equipped_items(attacker, 2, 0x100);
 }
 
-int combataiturn_sel_consum_qrl(Combatant *actor, int kind, int consume_flag) {
-    int item_id;
-    int scan_kind;
-    int kind_picked;
-    int n_quarrels;
+s16 combataiturn_sel_consum_qrl(Combatant *actor, s16 kind, s16 consume_flag) {
+    s16 item_id;
+    s16 scan_kind;
+    s16 kind_picked;
+    s16 n_quarrels;
 
     kind_picked = kind;
     item_id = -1;
@@ -232,18 +232,18 @@ int combataiturn_sel_consum_qrl(Combatant *actor, int kind, int consume_flag) {
     return kind_picked;
 }
 
-int combataiturn_action_disp_base(Combatant *actor, int param_2, unsigned int param_3) {
-    int minClearance;
-    unsigned int quarrelKind;
-    int fired;
+s16 combataiturn_action_disp_base(Combatant *actor, s16 param_2, u16 param_3) {
+    s16 minClearance;
+    u16 quarrelKind;
+    s16 fired;
 
-    minClearance = 4 - (int)(stat_actor_get(actor, 5, 0) + 0x18) / 0x19;
+    minClearance = 4 - (s16)(stat_actor_get(actor, 5, 0) + 0x18) / 0x19;
     combatenc_ai_pick_target_by_role(actor, param_2, param_3, minClearance);
     fired = 0;
     if (actor->inner->target != (Combatant *)0x0) {
         if (combat_actor_trace_proj_path(actor, actor->inner->target, 0) != 0) {
             quarrelKind = combataiturn_sel_consum_qrl(actor, -1, 1);
-            if ((int)quarrelKind != -1) {
+            if ((s16)quarrelKind != -1) {
                 combataiturn_ranged_attack(actor, actor->inner->target, quarrelKind);
                 fired = 1;
             }
@@ -252,47 +252,47 @@ int combataiturn_action_disp_base(Combatant *actor, int param_2, unsigned int pa
     return fired;
 }
 
-int far combataiturn_thunk_action_6(Combatant *actor) {
-    int result = combataipath_action_6(actor);
+s16 far combataiturn_thunk_action_6(Combatant *actor) {
+    s16 result = combataipath_action_6(actor);
     return result;
 }
 
-int far combataiturn_action_kind6(Combatant *actor) {
-    int fired = combataiturn_action_disp_base(actor, 6, 0);
+s16 far combataiturn_action_kind6(Combatant *actor) {
+    s16 fired = combataiturn_action_disp_base(actor, 6, 0);
     return fired;
 }
 
-int far combataiturn_action_1000a(Combatant *actor) {
-    int fired = combataiturn_action_disp_base(actor, 10, 1);
+s16 far combataiturn_action_1000a(Combatant *actor) {
+    s16 fired = combataiturn_action_disp_base(actor, 10, 1);
     return fired;
 }
 
-int far combataiturn_action_2000a(Combatant *actor) {
-    int fired = combataiturn_action_disp_base(actor, 10, 2);
+s16 far combataiturn_action_2000a(Combatant *actor) {
+    s16 fired = combataiturn_action_disp_base(actor, 10, 2);
     return fired;
 }
 
-int far combataiturn_action_4000a(Combatant *actor) {
-    int fired = combataiturn_action_disp_base(actor, 10, 4);
+s16 far combataiturn_action_4000a(Combatant *actor) {
+    s16 fired = combataiturn_action_disp_base(actor, 10, 4);
     return fired;
 }
 
-int far combataiturn_action_5000a(Combatant *actor) {
-    int fired = combataiturn_action_disp_base(actor, 10, 5);
+s16 far combataiturn_action_5000a(Combatant *actor) {
+    s16 fired = combataiturn_action_disp_base(actor, 10, 5);
     return fired;
 }
 
-int far combataiturn_action_3000a(Combatant *actor) {
-    int fired = combataiturn_action_disp_base(actor, 10, 3);
+s16 far combataiturn_action_3000a(Combatant *actor) {
+    s16 fired = combataiturn_action_disp_base(actor, 10, 3);
     return fired;
 }
 
-int far combataiturn_select_and_engage(Combatant *actor) {
-    int flag;
-    int speed_thr;
-    int dist;
-    int rand_pct;
-    int i;
+s16 far combataiturn_select_and_engage(Combatant *actor) {
+    s16 flag;
+    s16 speed_thr;
+    s16 dist;
+    s16 rand_pct;
+    s16 i;
 
     flag = 0;
 
@@ -300,7 +300,7 @@ int far combataiturn_select_and_engage(Combatant *actor) {
         dist = combatgrid_chebyshev_distance(actor->inner->gridX, actor->inner->gridY,
                                              g_pCombatActiveActors[i].inner->gridX,
                                              g_pCombatActiveActors[i].inner->gridY);
-        speed_thr = (int)g_acting_actor_speed - 3;
+        speed_thr = (s16)g_acting_actor_speed - 3;
         if (speed_thr >= dist) {
             rand_pct = RND(100);
             if (rand_pct >= 50) {
@@ -329,27 +329,27 @@ int far combataiturn_select_and_engage(Combatant *actor) {
 }
 
 void far combataiturn_take_actor_turn(Combatant *actor) {
-    int action_index;
-    int rand_pct;
-    unsigned int stat_pct;
-    unsigned int result;
-    unsigned int(far * fn)(Combatant * actor);
+    s16 action_index;
+    s16 rand_pct;
+    u16 stat_pct;
+    u16 result;
+    u16(far * fn)(Combatant * actor);
 
     action_index = 1;
     result = 0;
 
     if (combataiturn_pick_tile_or_attack(actor, 1, 1) != 0) {
         result = 1;
-    } else if ((int)stat_actor_get(actor, 0, 0) < 5) {
+    } else if ((s16)stat_actor_get(actor, 0, 0) < 5) {
         action_index = 8;
     }
 
     while (result == 0 && action_index < 8 && actor->inner->aiEncounterProfile != 0) {
         rand_pct = RND(100);
         if (rand_pct < 0x5b) {
-            fn = *(unsigned int(far **)(Combatant *)) &
-                 g_encounter_ai_action_table[*(short *)((char *)g_encounter_ai_action_table +
-                                                        ((int)(signed char)actor->inner->aiEncounterProfile
+            fn = *(u16(far **)(Combatant *)) &
+                 g_encounter_ai_action_table[*(s16 *)((char *)g_encounter_ai_action_table +
+                                                        ((s16)(signed char)actor->inner->aiEncounterProfile
                                                          << 4) +
                                                         (action_index << 1) + 0x10) -
                                              1];
@@ -360,7 +360,7 @@ void far combataiturn_take_actor_turn(Combatant *actor) {
 
     if (result == 0) {
         rand_pct = RND(100);
-        stat_pct = (unsigned int)combat_actor_stat_percent(actor, 1);
+        stat_pct = (u16)combat_actor_stat_percent(actor, 1);
         if (rand_pct < 0x4b || stat_pct == 0x64) {
             combataipath_select_target(actor, 100, 0);
         } else {

@@ -60,9 +60,9 @@
  */
 typedef struct RmfEntry {
     /** 0x00: @ref res_filename_hash of the uppercased resource name. */
-    unsigned long hash;
+    u32 hash;
     /** 0x04: offset in `KRONDOR.001` of the 17-byte entry header. */
-    unsigned long headerOffset;
+    u32 headerOffset;
 } RmfEntry;
 
 
@@ -77,10 +77,10 @@ typedef struct RmfEntry {
  */
 typedef struct Archive {
     char fileName[14];        /**< 0x00: NUL-padded payload name (13B used). */
-    int slotIndex;            /**< 0x0e: own pool slot; write-once, unread. */
+    s16 slotIndex;            /**< 0x0e: own pool slot; write-once, unread. */
     FILE *fp;                 /**< 0x10: open CRT stream on the payload. */
-    unsigned long filePos;    /**< 0x12: cached fp seek offset. */
-    unsigned int unused;      /**< 0x16: never read or written. */
+    u32 filePos;    /**< 0x12: cached fp seek offset. */
+    u16 unused;      /**< 0x16: never read or written. */
     RmfEntry far *directory;  /**< 0x18: loaded hash->offset table. */
 } Archive;
 
@@ -95,10 +95,10 @@ typedef struct Archive {
  * @ref FileHandle::curOffset locate it). Byte-packed; `sizeof` 18.
  */
 typedef struct FileHandle {
-    int archiveIndex;         /**< 0x00: 1-based archive index; 0 = loose. */
-    unsigned long baseOffset; /**< 0x02: payload start in KRONDOR.001. */
-    unsigned long length;     /**< 0x06: resource payload size. */
-    unsigned long curOffset;  /**< 0x0a: read cursor within the window. */
+    s16 archiveIndex;         /**< 0x00: 1-based archive index; 0 = loose. */
+    u32 baseOffset; /**< 0x02: payload start in KRONDOR.001. */
+    u32 length;     /**< 0x06: resource payload size. */
+    u32 curOffset;  /**< 0x0a: read cursor within the window. */
     bool16 inUse;             /**< 0x0e: pool slot occupied. */
     FILE *stdioFile;          /**< 0x10: loose stream; 0 = archive window. */
 } FileHandle;
@@ -239,7 +239,7 @@ extern char g_resOpenHandleCount;
  * @brief The query filename's hash, passed from @ref res_filename_hash to
  *        @ref res_lookup as the directory-scan key.
  */
-extern unsigned long g_resLookupHash;
+extern u32 g_resLookupHash;
 
 
 /**
@@ -248,7 +248,7 @@ extern unsigned long g_resLookupHash;
  * Set by @ref res_select_archive, which closes the previous archive's stream
  * before opening the new one; 0 is the loose / no-archive state.
  */
-extern int g_resCurrentArchive;
+extern s16 g_resCurrentArchive;
 
 
 /**
@@ -258,7 +258,7 @@ extern int g_resCurrentArchive;
  * 0 before the map is read, or if it cannot be opened — which leaves the whole
  * archive layer disabled.
  */
-extern int g_resArchiveCount;
+extern s16 g_resArchiveCount;
 
 
 /**
@@ -267,14 +267,14 @@ extern int g_resArchiveCount;
  *
  * Signed — sign-extended into the 32-bit hash, so the type is load-bearing.
  */
-extern int g_resHashSeed;
+extern s16 g_resHashSeed;
 
 
 /**
  * @brief Per-character left-rotate count for @ref res_filename_hash, from the
  *        `KRONDOR.RMF` header (4 in shipped data).
  */
-extern int g_resHashRotate;
+extern s16 g_resHashRotate;
 
 
 /**
@@ -325,7 +325,7 @@ extern ResFile *res_fopen(char *filename, char *mode);
  *
  * @return The CRT `fclose` result (`0` on success), or `-1` for a `NULL` token.
  */
-extern int res_fclose(ResFile *file);
+extern s16 res_fclose(ResFile *file);
 
 
 /**
@@ -339,7 +339,7 @@ extern int res_fclose(ResFile *file);
  * @return Number of whole objects read (the `count == 1` single-object
  *         convention is preserved).
  */
-extern int res_fread(void *ptr, int size, int count, ResFile *file);
+extern s16 res_fread(void *ptr, s16 size, s16 count, ResFile *file);
 
 
 /**
@@ -351,7 +351,7 @@ extern int res_fread(void *ptr, int size, int count, ResFile *file);
  * @param whence `SEEK_SET`, `SEEK_CUR`, or `SEEK_END`.
  * @return `0` on the archive path; the CRT `fseek` result for a loose stream.
  */
-extern int res_fseek(ResFile *file, long offset, int whence);
+extern s16 res_fseek(ResFile *file, s32 offset, s16 whence);
 
 
 /**
@@ -360,7 +360,7 @@ extern int res_fseek(ResFile *file, long offset, int whence);
  * @return For an archive window, the offset within the window (0-based); for a
  *         loose stream, the CRT `ftell` result.
  */
-extern long res_ftell(ResFile *file);
+extern s32 res_ftell(ResFile *file);
 
 
 /**
@@ -369,7 +369,7 @@ extern long res_ftell(ResFile *file);
  * @return An archive window's size taken directly from its handle; for a loose
  *         stream, measured by seeking to the end and restoring the position.
  */
-extern long res_filelength(ResFile *file);
+extern s32 res_filelength(ResFile *file);
 
 
 /**
@@ -385,7 +385,7 @@ extern void res_rewind(ResFile *file);
  * @return The byte as an `int`, or `-1`/`EOF` at the end of an archive window or
  *         on CRT EOF for a loose stream.
  */
-extern int res_fgetc(ResFile *file);
+extern s16 res_fgetc(ResFile *file);
 
 
 /**
@@ -395,7 +395,7 @@ extern int res_fgetc(ResFile *file);
  * raw `_F_EOF` bit (`0x20`) via the CRT `feof` macro, while the archive path
  * returns `1`. Unused in this build.
  */
-extern int res_feof(ResFile *file);
+extern s16 res_feof(ResFile *file);
 
 
 /**
@@ -407,7 +407,7 @@ extern int res_feof(ResFile *file);
  *
  * @return The element count actually written (`0` on the read-only-archive path).
  */
-extern int res_fwrite(void *ptr, int size, int count, ResFile *file);
+extern s16 res_fwrite(void *ptr, s16 size, s16 count, ResFile *file);
 
 
 /**
@@ -418,7 +418,7 @@ extern int res_fwrite(void *ptr, int size, int count, ResFile *file);
  *
  * @return The character written, or `-1`/`EOF` on failure.
  */
-extern int res_putc(int c, ResFile *file);
+extern s16 res_putc(s16 c, ResFile *file);
 
 
 /**
@@ -479,7 +479,7 @@ extern void res_invalidate_archives(void);
  * @param filename Resource name; uppercased in place. NULL yields a 0 hash.
  * @return The 32-bit hash (a mirror of @ref g_resLookupHash).
  */
-extern unsigned long res_filename_hash(char *filename);
+extern u32 res_filename_hash(char *filename);
 
 
 /**
@@ -495,7 +495,7 @@ extern unsigned long res_filename_hash(char *filename);
  * @param handle Handle to fill with the resource's location on success.
  * @return `TRUE` if the resource was found, `FALSE` otherwise.
  */
-extern int res_lookup(FileHandle *handle);
+extern s16 res_lookup(FileHandle *handle);
 
 /**
  * @brief Make @p archiveIndex the currently-open archive, (re)opening its
@@ -507,7 +507,7 @@ extern int res_lookup(FileHandle *handle);
  *
  * @param archiveIndex 1-based archive index to activate; 0 = no archive.
  */
-extern void res_select_archive(int archiveIndex);
+extern void res_select_archive(s16 archiveIndex);
 
 
 /**
@@ -522,7 +522,7 @@ extern void res_select_archive(int archiveIndex);
  *        cursor). Unsigned — always a non-negative file position, never a
  *        relative displacement (the seek is always `SEEK_SET`).
  */
-extern void res_archive_seek(unsigned long offset);
+extern void res_archive_seek(u32 offset);
 
 /** @} */
 

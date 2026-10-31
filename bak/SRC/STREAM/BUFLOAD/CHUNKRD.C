@@ -13,17 +13,17 @@
  * -1 = idle (no active session); 0 = borrowed an already-open handle (leave it
  * open); 1 = the session opened the file itself and owns the close.
  */
-int g_nChunk_session_owns_close = -1;
+s16 g_nChunk_session_owns_close = -1;
 
-unsigned long chunkread_fread_far_large(char far *dst, unsigned long len, ResFile *file) {
+u32 chunkread_fread_far_large(char far *dst, u32 len, ResFile *file) {
     char far *p;
     char *scratch;
-    unsigned long remaining;
-    unsigned int chunks_per_window;
-    unsigned int window_left;
+    u32 remaining;
+    u16 chunks_per_window;
+    u16 window_left;
     char stackbuf[256];
-    int n;
-    register int size;
+    s16 n;
+    register s16 size;
 
     remaining = len;
 
@@ -40,18 +40,18 @@ unsigned long chunkread_fread_far_large(char far *dst, unsigned long len, ResFil
     }
 
     if (len & 0xffff0000L)
-        chunks_per_window = (unsigned int)(0x10000L / (long)size);
+        chunks_per_window = (u16)(0x10000L / (s32)size);
     else
         chunks_per_window = 0;
 
     window_left = chunks_per_window;
     p = dst;
     while (len != 0) {
-        n = (long)len < (long)size ? (int)len : size;
+        n = (s32)len < (s32)size ? (s16)len : size;
         n = res_fread(scratch, 1, n, file);
         if (n == 0)
             break;
-        movedata(_DS, (unsigned int)scratch, FP_SEG(p), FP_OFF(p), n);
+        movedata(_DS, (u16)scratch, FP_SEG(p), FP_OFF(p), n);
         p += n;
         len -= n;
         if (chunks_per_window != 0 && --window_left == 0) {
@@ -66,7 +66,7 @@ unsigned long chunkread_fread_far_large(char far *dst, unsigned long len, ResFil
     return remaining - len;
 }
 
-int far chunkread_session_close(ResFile *file) {
+s16 far chunkread_session_close(ResFile *file) {
 
     g_nChunk_session_owns_close != -1 || panic(NULL);
     if (g_nChunk_session_owns_close != 0)
@@ -92,7 +92,7 @@ ResFile *far chunkread_session_open(FileRef *file, char *chunk_id) {
 
 void far *chunkread_read_all_far(FileRef *file, char *chunk_id) {
     void far *buf;
-    unsigned long size;
+    u32 size;
 
     buf = (void far *)0;
     if ((file = chunkread_session_open(file, chunk_id)) != 0) {

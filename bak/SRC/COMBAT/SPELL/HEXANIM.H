@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern void hexanim_move_tiles(int a, int b);
+extern void hexanim_move_tiles(s16 a, s16 b);
 
 #endif

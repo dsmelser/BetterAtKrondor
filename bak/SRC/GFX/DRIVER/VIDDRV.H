@@ -6,7 +6,7 @@
 
 extern void huge *g_pVideoDriverTemplate;
 extern char g_szDrvSuffix_BAD[3];
-extern unsigned short g_apVideoDriverChunkNames[13];
+extern u16 g_apVideoDriverChunkNames[13];
 extern char g_szVideoChunkName[10];
 extern char g_szDrvSuffix_CGA[5];
 extern char g_szDrvSuffix_EGA[5];
@@ -20,6 +20,6 @@ extern char g_szDrvSuffix_HVG[5];
 extern char g_szDrvSuffix_HEG[5];
 extern char g_szDrvSuffix_NEW[5];
 
-extern unsigned long far *video_driver_load(int mode, FileRef *file);
+extern u32 far *video_driver_load(s16 mode, FileRef *file);
 
 #endif

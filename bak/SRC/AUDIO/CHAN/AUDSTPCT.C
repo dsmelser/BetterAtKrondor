@@ -3,7 +3,7 @@
 #include "SRC/AUDIO/CHAN/SFXCHAN.H"
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
-int audio_stop_category(int category) {
+s16 audio_stop_category(s16 category) {
     AudioTrackHandle far *ptr;
 
     if ((ptr = sfxchan_apply_to_channels(category)) != 0) {

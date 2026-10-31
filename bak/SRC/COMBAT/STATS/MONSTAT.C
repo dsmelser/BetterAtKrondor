@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-int monstat_roll_stat_in_range(Combatant *actor, int max_val, int min_val, int stat_index) {
-    int result;
+s16 monstat_roll_stat_in_range(Combatant *actor, s16 max_val, s16 min_val, s16 stat_index) {
+    s16 result;
 
     if (max_val == min_val) {
         result = max_val;
@@ -22,12 +22,12 @@ int monstat_roll_stat_in_range(Combatant *actor, int max_val, int min_val, int s
 }
 
 void monstat_roll_stats_from_file(Combatant *actor) {
-    int max_val;
-    int min_val;
+    s16 max_val;
+    s16 min_val;
     char numbuf[6];
     char filename[13] = "monst";
     char ext[5] = ".dat";
-    int creatureType;
+    s16 creatureType;
     ResFile *file;
 
     if (actor->inner->creatureType == 0x12 &&

@@ -4,7 +4,7 @@
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
 void sfx_stop_all(void) {
-    int i;
+    s16 i;
 
     for (i = 0; i < 7; i++) {
         if (g_apSfxSlotPool[i]->bActive != 0xff) {

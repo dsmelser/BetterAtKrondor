@@ -17,21 +17,21 @@ void vislist_free(void) {
     return;
 }
 
-void vislist_sort(unsigned short seg, unsigned short *ids, long *vals, int count) {
-    int far *pId;
+void vislist_sort(u16 seg, u16 *ids, s32 *vals, s16 count) {
+    s16 far *pId;
     Shape far *rec;
-    long tmpVal;
-    long best;
-    int pivot;
-    int best_i;
-    int prio;
-    unsigned short tmpId;
-    int i;
-    int j;
+    s32 tmpVal;
+    s32 best;
+    s16 pivot;
+    s16 best_i;
+    s16 prio;
+    u16 tmpId;
+    s16 i;
+    s16 j;
 
     if (count >= 2) {
         for (i = 0, j = 0; i < count; i++) {
-            pId = (int far *)MK_FP(seg, ids[i]);
+            pId = (s16 far *)MK_FP(seg, ids[i]);
             rec = ts_get_shape(*pId);
             if (rec->priority != 0) {
                 tmpId = ids[j];
@@ -45,12 +45,12 @@ void vislist_sort(unsigned short seg, unsigned short *ids, long *vals, int count
         }
         pivot = j;
         for (i = 0; i < pivot - 1; i++) {
-            pId = (int far *)MK_FP(seg, ids[i]);
+            pId = (s16 far *)MK_FP(seg, ids[i]);
             rec = ts_get_shape(*pId);
             prio = rec->priority;
             best_i = i;
             for (j = i + 1; j < pivot; j++) {
-                pId = (int far *)MK_FP(seg, ids[j]);
+                pId = (s16 far *)MK_FP(seg, ids[j]);
                 rec = ts_get_shape(*pId);
                 if (prio < rec->priority) {
                     prio = rec->priority;

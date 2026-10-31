@@ -4,9 +4,9 @@
 #include "structs.h"
 
 extern char actorrender_frustum_cull(void);
-extern int actorrender_mesh_parts_cull_sort(int part_off, int part_count, int *parts);
-extern int actorrender_mesh_part_ptr_arr(int extra, int count, int base, int *output);
-extern void actorrender_mesh_parts(int part_off, int part_count, int *part_ptr_array);
+extern s16 actorrender_mesh_parts_cull_sort(s16 part_off, s16 part_count, s16 *parts);
+extern s16 actorrender_mesh_part_ptr_arr(s16 extra, s16 count, s16 base, s16 *output);
+extern void actorrender_mesh_parts(s16 part_off, s16 part_count, s16 *part_ptr_array);
 extern void actorrender_entity(WorldObject far *entry);
 
 #endif

@@ -3,23 +3,23 @@
 
 #include "structs.h"
 
-extern int g_nEmsInit;
-extern int g_nEmsResourcesEnabled;
-extern unsigned short g_wEmmPagesFree;
+extern s16 g_nEmsInit;
+extern s16 g_nEmsResourcesEnabled;
+extern u16 g_wEmmPagesFree;
 extern char g_szVmcodeOvl[11];
-extern unsigned short g_wTimerTickRegistrySlot;
-extern short g_nWorldViewYawNormal;
-extern short g_nWorldViewYawChapter;
-extern short g_nWorldViewFovNormal;
+extern u16 g_wTimerTickRegistrySlot;
+extern s16 g_nWorldViewYawNormal;
+extern s16 g_nWorldViewYawChapter;
+extern s16 g_nWorldViewFovNormal;
 extern unsigned char g_bssgap_4c53;
 extern unsigned char g_nWorldViewFovChapter;
 
-extern void boot_engine_exit(int exit_code);
+extern void boot_engine_exit(s16 exit_code);
 extern void boot_party_state_load_from_temp(void);
 extern void boot_party_state_save_to_temp(void);
 extern void boot_audio_init(void);
 extern void boot_sfx_resources_release(void);
-extern void boot_video_init_for_mode(int mode);
+extern void boot_video_init_for_mode(s16 mode);
 extern void boot_engine_hardware_init(void);
 extern void boot_engine_teardown_and_exit(void);
 extern void boot_start_dat_load(void);

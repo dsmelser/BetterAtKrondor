@@ -3,8 +3,8 @@
 
 #include "structs.h"
 
-extern int textwrap_compute_lines(long text, int max_width, int *out_lines, int max_lines);
-extern void textwrap_draw_aligned(long text, int x, int y, int max_width, int max_height,
-                                  int line_spacing, unsigned int flags, int first_line);
+extern s16 textwrap_compute_lines(s32 text, s16 max_width, s16 *out_lines, s16 max_lines);
+extern void textwrap_draw_aligned(s32 text, s16 x, s16 y, s16 max_width, s16 max_height,
+                                  s16 line_spacing, u16 flags, s16 first_line);
 
 #endif

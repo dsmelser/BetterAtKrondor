@@ -4,7 +4,7 @@
 #include "SRC/SYS/EMS.H"
 #include "SRC/SYS/EMSDET.H"
 
-int ems_detect_driver(void) {
+s16 ems_detect_driver(void) {
     asm {
         mov     ax, 3567h
         int     INT_DOS

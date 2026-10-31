@@ -2,12 +2,12 @@
 #include "SRC/AUDIO/RES/AUDRESIN.H"
 #include "SRC/AUDIO/ENGINE/AUDITER.H"
 
-short g_nAudioIterFilter;
+s16 g_nAudioIterFilter;
 AudioListNode far *g_pAudioIterCursor;
 
-AudioListNode far *audio_iter(int filter) {
-    unsigned int match;
-    unsigned int mask;
+AudioListNode far *audio_iter(s16 filter) {
+    u16 match;
+    u16 mask;
 
     match = 0;
     mask = 1;

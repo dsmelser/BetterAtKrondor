@@ -17,7 +17,7 @@
 #include "SRC/GFX/DRIVER/VIDMODE.H"
 
 void near bios_set_video_mode_bits(mode_bits)
-int mode_bits;
+s16 mode_bits;
 {
     _ES = 0x40;
     _AX = mode_bits;
@@ -30,7 +30,7 @@ int mode_bits;
     asm int 0x10;
 }
 
-int near bios_get_video_mode_bits(void) {
+s16 near bios_get_video_mode_bits(void) {
     _ES = 0x40;
     _BX = 0x10;
     asm mov al, byte ptr es : [bx];

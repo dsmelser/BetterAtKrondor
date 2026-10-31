@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern void vgaplanar_clear_column_strip(int vga_base_offset, int row_count);
-extern void vgaplanar_fill_band(int start_row, int row_count, int color);
+extern void vgaplanar_clear_column_strip(s16 vga_base_offset, s16 row_count);
+extern void vgaplanar_fill_band(s16 start_row, s16 row_count, s16 color);
 
 #endif

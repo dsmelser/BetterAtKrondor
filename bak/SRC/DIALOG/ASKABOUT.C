@@ -28,14 +28,14 @@
 #include "SRC/GAME/ACTOR/ITEMTBL.H"
 
 
-unsigned short *g_pKeywordTable = {0};
+u16 *g_pKeywordTable = {0};
 MenuPage *g_pKeywordMenuScratch = {0};
 ActSpriteCache *g_pActSpriteCache = {0};
 
 void askabout_keyword_table_free(void) {
-    if (g_pKeywordTable != (unsigned short *)0) {
+    if (g_pKeywordTable != (u16 *)0) {
         galloc_zfree(g_pKeywordTable);
-        g_pKeywordTable = (unsigned short *)0;
+        g_pKeywordTable = (u16 *)0;
     }
     if (g_pKeywordMenuScratch != (MenuPage *)0) {
         galloc_zfree(g_pKeywordMenuScratch);
@@ -44,19 +44,19 @@ void askabout_keyword_table_free(void) {
 }
 
 void far askabout_keyword_table_load(void) {
-    unsigned int size;
+    u16 size;
     ResFile *file;
-    int i;
+    s16 i;
 
-    if (g_pKeywordTable == (unsigned short *)0) {
+    if (g_pKeywordTable == (u16 *)0) {
         file = res_fopen("KEYWORD.DAT", "rb");
         res_fread(&size, 2, 1, file);
         g_pKeywordTable = galloc_safe_zcalloc(size);
         res_fread(g_pKeywordTable, 1, size, file);
         res_fclose(file);
-        for (i = 0; i < (int)*g_pKeywordTable; i = i + 1) {
-            *(unsigned short *)((char *)g_pKeywordTable + 2 + i * 2) +=
-                (int)((unsigned)g_pKeywordTable - 2);
+        for (i = 0; i < (s16)*g_pKeywordTable; i = i + 1) {
+            *(u16 *)((char *)g_pKeywordTable + 2 + i * 2) +=
+                (s16)((u16)g_pKeywordTable - 2);
         }
     }
     if (g_pKeywordMenuScratch == (MenuPage *)0) {
@@ -65,20 +65,20 @@ void far askabout_keyword_table_load(void) {
     }
 }
 
-char *askabout_name_or_keyword_lookup(int id) {
+char *askabout_name_or_keyword_lookup(s16 id) {
     if (id == 0) {
         return 0;
     } else if (id < 7) {
-        return *(char **)((int)&g_gameState.zoneDefaultCameraPos.nWorld_x + 3 + id * 0x5f);
+        return *(char **)((s16)&g_gameState.zoneDefaultCameraPos.nWorld_x + 3 + id * 0x5f);
     } else {
         askabout_keyword_table_load();
 
-        return (char *)*(unsigned short *)((char *)g_pKeywordTable + (id + 0x124) * 2 + 2);
+        return (char *)*(u16 *)((char *)g_pKeywordTable + (id + 0x124) * 2 + 2);
     }
 }
 
 void askabout_free_paged_image_table(void) {
-    int i;
+    s16 i;
 
     if (g_pActSpriteCache != (ActSpriteCache *)0) {
         i = 0;
@@ -97,9 +97,9 @@ void askabout_free_paged_image_table(void) {
     return;
 }
 
-int far askabout_actor_spr_cache_get(unsigned short actor_id, int pal_shift) {
-    int slot;
-    int free_slot;
+s16 far askabout_actor_spr_cache_get(u16 actor_id, s16 pal_shift) {
+    s16 slot;
+    s16 free_slot;
     char fname[16];
 
     if (g_pActSpriteCache == (ActSpriteCache *)0) {
@@ -115,11 +115,11 @@ int far askabout_actor_spr_cache_get(unsigned short actor_id, int pal_shift) {
             free_slot = slot;
         slot++;
     }
-    if ((int)actor_id < 0x31) {
-        sprintf(fname, "ACT%03d%s", (int)actor_id, (pal_shift < 0) ? "A.BMP" : ".BMP");
+    if ((s16)actor_id < 0x31) {
+        sprintf(fname, "ACT%03d%s", (s16)actor_id, (pal_shift < 0) ? "A.BMP" : ".BMP");
         g_pActSpriteCache->pActorId[free_slot] = actor_id;
-        g_pActSpriteCache->pAssetTable[free_slot] = (unsigned short)resblit_load_asset_table(fname, 2);
-        sprintf(fname, "ACT%03d.PAL", (int)actor_id);
+        g_pActSpriteCache->pAssetTable[free_slot] = (u16)resblit_load_asset_table(fname, 2);
+        sprintf(fname, "ACT%03d.PAL", (s16)actor_id);
         g_pActSpriteCache->pChunk[free_slot] = chunk_load_into_slot(fname);
         *g_pActSpriteCache->pChunk[free_slot] = 0x3f;
     } else {
@@ -135,15 +135,15 @@ typedef struct {
     unsigned char b;
 } PalEntry;
 
-void far askabout_actor_spr_blit_pal_swap(unsigned short actor_id, int pal_shift, int frame_idx,
+void far askabout_actor_spr_blit_pal_swap(u16 actor_id, s16 pal_shift, s16 frame_idx,
                                           unsigned char far *pal_buf) {
-    int x;
-    int y;
+    s16 x;
+    s16 y;
     unsigned char far *local_pal;
     unsigned char far *chunk_pal;
     ImageRecord **table;
-    int i;
-    int idx;
+    s16 i;
+    s16 idx;
 
     local_pal = pal_buf;
     idx = askabout_actor_spr_cache_get(actor_id, pal_shift);
@@ -187,8 +187,8 @@ void far askabout_actor_spr_blit_pal_swap(unsigned short actor_id, int pal_shift
     return;
 }
 
-unsigned short far askabout_dispatch_topic(unsigned short topic_id) {
-    unsigned short avail;
+u16 far askabout_dispatch_topic(u16 topic_id) {
+    u16 avail;
 
     avail = gstate_event_read(topic_id);
     switch (topic_id) {
@@ -241,14 +241,14 @@ unsigned short far askabout_dispatch_topic(unsigned short topic_id) {
     return avail;
 }
 
-static int far askabout_menu_page_build(unsigned char far *keyword_table) {
-    int writeIdx;
-    int availCount;
+static s16 far askabout_menu_page_build(unsigned char far *keyword_table) {
+    s16 writeIdx;
+    s16 availCount;
     unsigned char far *kw_ptr;
     MenuEntry *entries;
     MenuPage *src;
-    int i;
-    int last;
+    s16 i;
+    s16 last;
 
     kw_ptr = keyword_table + 9;
     entries = (MenuEntry *)(g_pKeywordMenuScratch + 1);
@@ -256,7 +256,7 @@ static int far askabout_menu_page_build(unsigned char far *keyword_table) {
     i = availCount = 0;
 
     for (; i < keyword_table[5]; i++) {
-        if (askabout_dispatch_topic(*(unsigned short far *)(kw_ptr + i * 10)) != 0) {
+        if (askabout_dispatch_topic(*(u16 far *)(kw_ptr + i * 10)) != 0) {
             ++availCount;
         }
     }
@@ -270,14 +270,14 @@ static int far askabout_menu_page_build(unsigned char far *keyword_table) {
     i = writeIdx = 0;
 
     for (; i < keyword_table[5]; i++) {
-        if (askabout_dispatch_topic(*(unsigned short far *)(kw_ptr + i * 10)) != 0) {
+        if (askabout_dispatch_topic(*(u16 far *)(kw_ptr + i * 10)) != 0) {
             entries[writeIdx].wWidget_type =
-                (gstate_event_read(KEYWORD_ASKED(*(unsigned short far *)(kw_ptr + i * 10))) != 0)
+                (gstate_event_read(KEYWORD_ASKED(*(u16 far *)(kw_ptr + i * 10))) != 0)
                     ? 8
                     : 6;
             entries[writeIdx].pPrimary_label =
-                (char *)*(unsigned short *)((char *)g_pKeywordTable +
-                                            (*(unsigned short far *)(kw_ptr + i * 10) - 1) * 2 + 2);
+                (char *)*(u16 *)((char *)g_pKeywordTable +
+                                            (*(u16 far *)(kw_ptr + i * 10) - 1) * 2 + 2);
             entries[writeIdx].wAction_id = i + 0x80;
             ++writeIdx;
         }
@@ -294,7 +294,7 @@ static int far askabout_menu_page_build(unsigned char far *keyword_table) {
 
     last = src->wEntry_count - 1;
 
-    for (i = 0; i < (int)src->wEntry_count; i++) {
+    for (i = 0; i < (s16)src->wEntry_count; i++) {
         if (entries[i].wWidget_type == 0) {
             entries[i].wWidget_type = 8;
         }
@@ -316,12 +316,12 @@ static int far askabout_menu_page_build(unsigned char far *keyword_table) {
     return 1;
 }
 
-int far askabout_dialog_run(unsigned char far *keyword_table, char *npc_name) {
+s16 far askabout_dialog_run(unsigned char far *keyword_table, char *npc_name) {
     char speechText[80];
-    unsigned short needsRedraw;
+    u16 needsRedraw;
     MenuPage *page;
-    unsigned int result;
-    int choiceIdx;
+    u16 result;
+    s16 choiceIdx;
 
     choiceIdx = -1;
     needsRedraw = 1;
@@ -358,16 +358,16 @@ int far askabout_dialog_run(unsigned char far *keyword_table, char *npc_name) {
 }
 
 static void far askabout_menu_wdg_build_global(DDXRecord far *record) {
-    int maxw;
-    short nHeight;
-    short nWidth;
-    short nY;
-    short nX;
+    s16 maxw;
+    s16 nHeight;
+    s16 nWidth;
+    s16 nY;
+    s16 nX;
     MenuEntry *entries;
     unsigned char far *kw;
     MenuPage *page;
-    int i;
-    int tw;
+    s16 i;
+    s16 tw;
 
     entries = (MenuEntry *)(g_pKeywordMenuScratch + 1);
     page = g_pKeywordMenuScratch;
@@ -385,19 +385,19 @@ static void far askabout_menu_wdg_build_global(DDXRecord far *record) {
     page->wEntry_count = record->bCnt1;
 
     i = maxw = 0;
-    for (; i < (int)page->wEntry_count;) {
+    for (; i < (s16)page->wEntry_count;) {
         memset(&entries[i], 0, 0x21);
-        gstate_event_write(*(unsigned short far *)kw, 0);
+        gstate_event_write(*(u16 far *)kw, 0);
         entries[i].pPrimary_label = (char *)*(
-            unsigned short *)((char *)g_pKeywordTable + (*(unsigned short far *)kw - 1) * 2 + 2);
+            u16 *)((char *)g_pKeywordTable + (*(u16 far *)kw - 1) * 2 + 2);
         if ((tw = font_text_width_ds(entries[i].pPrimary_label) + 10) > maxw)
             maxw = tw;
         i++;
         kw += 10;
     }
 
-    tw = page->rect.width / ((int)page->wEntry_count + 1);
-    for (i = 0; i < (int)page->wEntry_count; i++) {
+    tw = page->rect.width / ((s16)page->wEntry_count + 1);
+    for (i = 0; i < (s16)page->wEntry_count; i++) {
         entries[i].wWidget_type = 6;
         entries[i].wAction_id = i + 0x80;
         entries[i].wBase_color = 0x90;
@@ -411,15 +411,15 @@ static void far askabout_menu_wdg_build_global(DDXRecord far *record) {
 }
 
 static void far askabout_build_party_select_menu(DDXRecord far *record) {
-    int max_width;
-    short nHeight;
-    short nWidth;
-    short nY;
-    short nX;
+    s16 max_width;
+    s16 nHeight;
+    s16 nWidth;
+    s16 nY;
+    s16 nX;
     MenuEntry *src;
     MenuPage *page;
-    int i;
-    int w;
+    s16 i;
+    s16 w;
 
     src = (MenuEntry *)(g_pKeywordMenuScratch + 1);
     page = g_pKeywordMenuScratch;
@@ -433,17 +433,17 @@ static void far askabout_build_party_select_menu(DDXRecord far *record) {
     page->rect.width = nWidth;
     page->rect.height = nHeight;
     page->pEntries = (MenuEntry *)(g_pKeywordMenuScratch + 1);
-    page->wEntry_count = (int)g_gameState.partySize + 1;
+    page->wEntry_count = (s16)g_gameState.partySize + 1;
     memset(src, 0, page->wEntry_count * 0x21);
     i = max_width = 0;
-    for (; i < (int)page->wEntry_count; i++) {
+    for (; i < (s16)page->wEntry_count; i++) {
         src[i].pPrimary_label = gstate_party_member_record(i)->name;
         src[i].wAction_id = i + 0x80;
         if ((w = font_text_width_ds(src[i].pPrimary_label) + 10) > max_width)
             max_width = w;
     }
-    w = page->rect.width / ((int)page->wEntry_count + 1);
-    for (i = 0; i < (int)page->wEntry_count; i++) {
+    w = page->rect.width / ((s16)page->wEntry_count + 1);
+    for (i = 0; i < (s16)page->wEntry_count; i++) {
         src[i].wWidget_type = 6;
         src[i].wBase_color = 0x90;
         src[i].bActive_flag = 1;
@@ -456,12 +456,12 @@ static void far askabout_build_party_select_menu(DDXRecord far *record) {
     src[i - 1].pPrimary_label = "Cancel"; /* i == wEntry_count after loop */
 }
 
-int far askabout_menu_page_run_selection(DDXRecord far *record) {
-    unsigned short needsRedraw;
+s16 far askabout_menu_page_run_selection(DDXRecord far *record) {
+    u16 needsRedraw;
     MenuPage *page;
-    unsigned int result;
-    unsigned int j;
-    int selected;
+    u16 result;
+    u16 j;
+    s16 selected;
 
     selected = -1;
     needsRedraw = 1;
@@ -496,13 +496,13 @@ int far askabout_menu_page_run_selection(DDXRecord far *record) {
         if (result >= 0x80) {
             selected = result - 0x80;
         } else {
-            result = toupper((unsigned int)g_key_ascii);
+            result = toupper((u16)g_key_ascii);
         }
         if (isalpha(result)) {
-            int matchCount;
+            s16 matchCount;
             matchCount = 0;
             for (j = 0; j < page->wEntry_count; j = j + 1) {
-                if ((int)*page->pEntries[j].pPrimary_label == (int)result) {
+                if ((s16)*page->pEntries[j].pPrimary_label == (s16)result) {
                     selected = j;
                     ++matchCount;
                 }
@@ -513,13 +513,13 @@ int far askabout_menu_page_run_selection(DDXRecord far *record) {
         }
     } while (selected < 0);
     if ((record->wFlags & 0x1000) == 0) {
-        unsigned int far *p;
-        p = (unsigned int far *)((unsigned char far *)record + selected * 10 + 9);
+        u16 far *p;
+        p = (u16 far *)((unsigned char far *)record + selected * 10 + 9);
         gstate_event_write(*p, 1);
     } else if (page->wEntry_count - 1 == selected) {
         selected = 1;
     } else {
-        dialog_cmbt_name_assign_kind(0, (int)g_gameState.activeParty[selected] + 1, 0, 0);
+        dialog_cmbt_name_assign_kind(0, (s16)g_gameState.activeParty[selected] + 1, 0, 0);
         selected = 0;
     }
     menupage_end(page);

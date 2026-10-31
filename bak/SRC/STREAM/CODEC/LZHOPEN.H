@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern int near lzss_alloc_codec_buffers(void);
-extern int near lzh_stream_open(void);
+extern s16 near lzss_alloc_codec_buffers(void);
+extern s16 near lzh_stream_open(void);
 
 #endif

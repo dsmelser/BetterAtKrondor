@@ -3,9 +3,9 @@
 
 #include "structs.h"
 
-extern int *namedtbl_load(char *filename);
-extern int namedtbl_free(int *table);
-extern void namedtbl_labels_draw_all(int *table);
-extern void namedtbl_label_draw(int *label);
+extern s16 *namedtbl_load(char *filename);
+extern s16 namedtbl_free(s16 *table);
+extern void namedtbl_labels_draw_all(s16 *table);
+extern void namedtbl_label_draw(s16 *label);
 
 #endif

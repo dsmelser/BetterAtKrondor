@@ -50,18 +50,18 @@
 #include "SRC/SYS/CFGPARSE.H"
 #endif
 
-unsigned short g_wSkyColorR = 0x00d7;
-unsigned short g_wSkyColorG = 0x00e4;
-unsigned short g_wSkyColorB = 0x00a8;
+u16 g_wSkyColorR = 0x00d7;
+u16 g_wSkyColorG = 0x00e4;
+u16 g_wSkyColorB = 0x00a8;
 ImageRecord **g_pMapIconsTable = {0};
 unsigned char g_abActorAnimTemplateDefault[10] = {0xff, 0xff, 0xff, 0xff, 0xff,
                                                   0xff, 0xff, 0xff, 0xff, 0xff};
 unsigned char g_abActorAnimTemplateRanged[10] = {0x0c, 0xff, 0xff, 0xff, 0xff,
                                                  0xff, 0xff, 0xff, 0xff, 0xff};
 
-void world_render_scene_dispatch(int animate) {
+void world_render_scene_dispatch(s16 animate) {
 #ifdef V102CD
-    short saved_heading;
+    s16 saved_heading;
     if (animate != 0) {
         rgnenc_corpse_tbl_iterate_22byte();
     }
@@ -85,7 +85,7 @@ void world_render_scene_dispatch(int animate) {
         if (g_cfgNonRotatingMap) {
             if (g_pMapIconsTable != 0) {
                 ((BlitSpriteFn)blit_sprite)(
-                    (int)g_pMapIconsTable[((unsigned)(saved_heading + 0x800)) >> 12],
+                    (s16)g_pMapIconsTable[((u16)(saved_heading + 0x800)) >> 12],
                     g_world_widget->viewport.x + (g_world_widget->viewport.width >> 1) - 4,
                     g_world_widget->viewport.y + (g_world_widget->viewport.height >> 1) - 3);
             }
@@ -144,10 +144,10 @@ void world_render_scene_dispatch(int animate) {
 #endif
 }
 
-void far world_render_frame(int animate) {
+void far world_render_frame(s16 animate) {
     WorldObject far *pVis;
-    unsigned short *pOff;
-    int i;
+    u16 *pOff;
+    s16 i;
 
     pOff = g_pwVisibleEntryOffsets;
     r3d_camera_setup_view(g_world_widget);
@@ -190,11 +190,11 @@ void world_render_sky_texture_free(void) {
 }
 
 void world_render_frame_full(void) {
-    unsigned short *pOff;
+    u16 *pOff;
     WorldObject entry;
     WorldObject far *pVis;
     WorldObject far *pEntry;
-    int i;
+    s16 i;
 
     pEntry = &entry;
     pOff = g_pwVisibleEntryOffsets;
@@ -257,13 +257,13 @@ void world_render_tick_objects(void) {
 }
 
 void far world_render_frame_with_hittest(void) {
-    unsigned int i;
-    int screenShift;
-    int iX, iY;
-    long *dist;
-    unsigned int kind;
+    u16 i;
+    s16 screenShift;
+    s16 iX, iY;
+    s32 *dist;
+    u16 kind;
     WorldObject far *pVis;
-    unsigned short *pOff;
+    u16 *pOff;
 
     pOff = g_pwVisibleEntryOffsets;
     dist = g_pVisibleEntryDistances;
@@ -280,7 +280,7 @@ void far world_render_frame_with_hittest(void) {
     vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
 
-    for (i = 0; (int)i < g_nVisibleEntryCount; i++, pOff++, dist++) {
+    for (i = 0; (s16)i < g_nVisibleEntryCount; i++, pOff++, dist++) {
         pVis = MK_FP(g_wVisibleEntrySegment, *pOff);
         kind = ts_get_shape(pVis->shapeId)->kind;
         g_nBillboardScrX = -1;
@@ -319,8 +319,8 @@ void far world_render_frame_with_hittest(void) {
             case 36:
             case 39: {
                 Mat3x3 mat;
-                int in[3];
-                int out[3];
+                s16 in[3];
+                s16 out[3];
 
                 mat = g_mat3x3ViewRot;
                 in[0] = pVis->pos.xy.nWorld_x - g_world_camera->base.pos.xy.nWorld_x;
@@ -329,10 +329,10 @@ void far world_render_frame_with_hittest(void) {
                 r3d_mat3_xform_vec3_wrap(in, &mat, out);
                 if ((1 << screenShift) <= out[1]) {
 
-                    int nScale;
+                    s16 nScale;
 
-                    iX = g_nViewportCenterX + (int)(((long)out[0] << screenShift) / (long)out[1]);
-                    iY = g_nViewportCenterY - (int)(((long)out[2] << screenShift) / (long)out[1]);
+                    iX = g_nViewportCenterX + (s16)(((s32)out[0] << screenShift) / (s32)out[1]);
+                    iY = g_nViewportCenterY - (s16)(((s32)out[2] << screenShift) / (s32)out[1]);
                     nScale = g_wActorProjScale;
 
                     g_pWorldHitTestTable[g_nHitTestWriteSlot].pEntity = pVis;
@@ -343,9 +343,9 @@ void far world_render_frame_with_hittest(void) {
                     g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.height = nScale << 1;
 
                     g_nHitTestWriteSlot++;
-                    g_nHitTestWriteSlot = (int)g_nHitTestWriteSlot % 10;
+                    g_nHitTestWriteSlot = (s16)g_nHitTestWriteSlot % 10;
 
-                    if ((int)g_nHitTestEntryCount < 10)
+                    if ((s16)g_nHitTestEntryCount < 10)
                         g_nHitTestEntryCount++;
                     break;
                 }
@@ -379,8 +379,8 @@ void far world_render_frame_with_hittest(void) {
                     g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.height = g_nBillboardH;
 
                     g_nHitTestWriteSlot++;
-                    g_nHitTestWriteSlot = (int)g_nHitTestWriteSlot % 10;
-                    if ((int)g_nHitTestEntryCount < 10)
+                    g_nHitTestWriteSlot = (s16)g_nHitTestWriteSlot % 10;
+                    if ((s16)g_nHitTestEntryCount < 10)
                         g_nHitTestEntryCount++;
                 }
             }
@@ -398,7 +398,7 @@ void world_rndr_apply_window_vport(void) {
     g_graphics_context.bClip_enabled = 1;
 }
 
-void far world_render_actor_at_position(int actor_kind, int gridX, int gridY) {
+void far world_render_actor_at_position(s16 actor_kind, s16 gridX, s16 gridY) {
     WorldObject entry;
     unsigned char animState[2];
 
@@ -407,7 +407,7 @@ void far world_render_actor_at_position(int actor_kind, int gridX, int gridY) {
     animState[0] = (unsigned char)actor_kind;
     entry.shapeId = 0;
     entry.orientation.pitch = entry.orientation.roll = entry.orientation.yaw = 0;
-    entry.state.stateBits = (unsigned short)animState;
+    entry.state.stateBits = (u16)animState;
     if (gridX == -1) {
         if (screen_cursor_get_y() > 0x8c) {
             entry.pos.xy.nWorld_y = 0;
@@ -416,9 +416,9 @@ void far world_render_actor_at_position(int actor_kind, int gridX, int gridY) {
         }
     } else {
         entry.pos.xy.nWorld_x =
-            (long)(gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
+            (s32)(gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
 
-        entry.pos.xy.nWorld_y = (long)(gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
+        entry.pos.xy.nWorld_y = (s32)(gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
         entry.pos.nWorld_z = 0;
     }
     if (entry.pos.xy.nWorld_y != 0) {
@@ -430,21 +430,21 @@ typedef struct {
     unsigned char b[10];
 } ActorAnimBuf;
 
-void far world_render_actor_at_tile(int actor_id, int tile_x, int tile_y, int z, unsigned int yaw,
+void far world_render_actor_at_tile(s16 actor_id, s16 tile_x, s16 tile_y, s16 z, u16 yaw,
                                     Combatant *override_actor) {
     ActorAnimBuf animBuf;
     Shape far *pShape;
     WorldObject entry;
 
     animBuf = *(ActorAnimBuf far *)MK_FP(FP_SEG(g_pMapIconsTable),
-                                         (unsigned)g_abActorAnimTemplateDefault);
+                                         (u16)g_abActorAnimTemplateDefault);
     pShape = ts_get_shape(actor_id);
     entry.shapeId = actor_id;
     entry.orientation.pitch = entry.orientation.roll = 0;
     entry.orientation.yaw = yaw;
-    entry.state.stateBits = (unsigned short)animBuf.b;
-    entry.pos.xy.nWorld_x = (long)(tile_x * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
-    entry.pos.xy.nWorld_y = (long)(tile_y * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
+    entry.state.stateBits = (u16)animBuf.b;
+    entry.pos.xy.nWorld_x = (s32)(tile_x * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
+    entry.pos.xy.nWorld_y = (s32)(tile_y * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     entry.pos.nWorld_z = z;
     if (override_actor != 0 && override_actor->inner->creatureType != -1) {
         combat_actor_anim_step(animBuf.b, override_actor);
@@ -455,7 +455,7 @@ void far world_render_actor_at_tile(int actor_id, int tile_x, int tile_y, int z,
     actorrender_entity(&entry);
 }
 
-void far world_render_actor_swap_textures(int actor_id, int nGrid_x, int nGrid_y) {
+void far world_render_actor_swap_textures(s16 actor_id, s16 nGrid_x, s16 nGrid_y) {
     ImageRecord **pSavedTable;
     WorldObject entry;
 
@@ -464,8 +464,8 @@ void far world_render_actor_swap_textures(int actor_id, int nGrid_x, int nGrid_y
     entry.shapeId = actor_id;
     entry.orientation.pitch = entry.orientation.roll = entry.orientation.yaw = 0;
     entry.state.stateBits = 0;
-    entry.pos.xy.nWorld_x = (long)(nGrid_x * g_grid_tile_size + (g_grid_tile_size >> 1) + -0x4b0);
-    entry.pos.xy.nWorld_y = (long)(nGrid_y * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
+    entry.pos.xy.nWorld_x = (s32)(nGrid_x * g_grid_tile_size + (g_grid_tile_size >> 1) + -0x4b0);
+    entry.pos.xy.nWorld_y = (s32)(nGrid_y * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     entry.pos.nWorld_z = 0;
     actorrender_entity(&entry);
     worldrender_swap_record_table(0, 1);
@@ -497,10 +497,10 @@ void far world_render_with_overlay(void far *overlay_target) {
     return;
 }
 
-void far world_render_view(int force_overlay, int chapter_split) {
-    int bKind;
+void far world_render_view(s16 force_overlay, s16 chapter_split) {
+    s16 bKind;
     WorldObject far *pVis;
-    int i;
+    s16 i;
 
     g_bTexturedPolyEnabled = 1;
     g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaPage2Base;
@@ -515,9 +515,9 @@ void far world_render_view(int force_overlay, int chapter_split) {
     g_render_camera_scratch->base.pos.xy.nWorld_x = g_world_camera->base.pos.xy.nWorld_x;
     g_render_camera_scratch->base.pos.xy.nWorld_y = g_world_camera->base.pos.xy.nWorld_y;
     if (g_game_mode != 2) {
-        g_render_camera_scratch->base.pos.nWorld_z = (long)g_nWorldViewFovNormal;
+        g_render_camera_scratch->base.pos.nWorld_z = (s32)g_nWorldViewFovNormal;
     } else {
-        g_render_camera_scratch->base.pos.nWorld_z = (long)*(short *)&g_nWorldViewFovChapter;
+        g_render_camera_scratch->base.pos.nWorld_z = (s32)*(s16 *)&g_nWorldViewFovChapter;
     }
     g_render_camera_scratch->base.orientation.roll = 0;
     g_render_camera_scratch->base.orientation.yaw = g_world_camera->base.orientation.yaw;
@@ -560,17 +560,17 @@ void far world_render_view(int force_overlay, int chapter_split) {
     }
 }
 
-int far world_rndr_actor_angle_actor(Combatant *from, Combatant *to) {
-    long dx, dy;
-    int result;
+s16 far world_rndr_actor_angle_actor(Combatant *from, Combatant *to) {
+    s32 dx, dy;
+    s16 result;
     Vec3Long from_pos;
     Vec3Long to_pos;
 
     from_pos.nX =
-        (long)(from->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
-    from_pos.nY = (long)(from->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
-    to_pos.nX = (long)(to->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
-    to_pos.nY = (long)(to->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
+        (s32)(from->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
+    from_pos.nY = (s32)(from->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
+    to_pos.nX = (s32)(to->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
+    to_pos.nY = (s32)(to->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     dx = to_pos.nX - from_pos.nX;
     dy = to_pos.nY - from_pos.nY;
     result = actormotion_atan2_long(dx, dy);
@@ -583,26 +583,26 @@ typedef struct {
 
 #pragma option -O-b
 Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
-                                           int *p_hit_out, unsigned short action_id, int speed,
+                                           s16 *p_hit_out, u16 action_id, s16 speed,
                                            char anim_override) {
     Combatant *tgt;
     Combatant *hit;
     Shape far *pShape;
-    int scr[3]; /* projected screen pos; scr[2] never read */
+    s16 scr[3]; /* projected screen pos; scr[2] never read */
     char animBuf[10];
-    long travelDist;
-    long dx;
-    long dy;
-    int tileX;
-    int tileY;
-    int stepCount;
-    int step;
-    int deflectAngle;
-    int r_local; /* [bp-0x2c] — rand()&1 deflection sign (0 → -1) */
-    unsigned int targetIsActionClass;
-    int radius;
-    int arcDelta;
-    int canHitOthers;
+    s32 travelDist;
+    s32 dx;
+    s32 dy;
+    s16 tileX;
+    s16 tileY;
+    s16 stepCount;
+    s16 step;
+    s16 deflectAngle;
+    s16 r_local; /* [bp-0x2c] — rand()&1 deflection sign (0 → -1) */
+    u16 targetIsActionClass;
+    s16 radius;
+    s16 arcDelta;
+    s16 canHitOthers;
     WorldEntity projectile;
     Vec3Long startPos; /* target world position; nZ=250, unused by 2D distance */
 
@@ -610,8 +610,8 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
     hit = 0;
 
     *(AnimBuf10 *)animBuf =
-        *(AnimBuf10 far *)MK_FP(FP_SEG(g_pMapIconsTable), (unsigned)g_abActorAnimTemplateRanged);
-    targetIsActionClass = (unsigned int)(tgt->inner->creatureType == (short)action_id);
+        *(AnimBuf10 far *)MK_FP(FP_SEG(g_pMapIconsTable), (u16)g_abActorAnimTemplateRanged);
+    targetIsActionClass = (u16)(tgt->inner->creatureType == (s16)action_id);
 
     /* No random deflection once the shot already hit, or when the target has
      * no class record; otherwise deflect the heading by a random ±[0x400,0x700). */
@@ -621,34 +621,34 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
         r_local = RND2(2);
         if (r_local == 0)
             r_local = -1;
-        deflectAngle = (int)RNDR(0x400, 0x6ff) * r_local;
+        deflectAngle = (s16)RNDR(0x400, 0x6ff) * r_local;
     }
 
-    projectile.base.shapeId = (short)action_id;
+    projectile.base.shapeId = (s16)action_id;
     if (targetIsActionClass == 0) {
         projectile.base.state.animationState = 0;
     } else {
-        projectile.base.state.animationState = (short)(unsigned int)(unsigned char *)animBuf;
+        projectile.base.state.animationState = (s16)(u16)(unsigned char *)animBuf;
         if (anim_override != -1) {
             animBuf[0] = anim_override;
         }
     }
     projectile.base.pos.xy.nWorld_x =
-        (long)(attacker->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
+        (s32)(attacker->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
     projectile.base.pos.xy.nWorld_y =
-        (long)(attacker->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
+        (s32)(attacker->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     if ((targetIsActionClass == 0) && (action_id != 4)) {
         projectile.base.pos.nWorld_z = 200;
     } else {
         projectile.base.pos.nWorld_z = 0;
     }
     startPos.nX =
-        (long)(tgt->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
-    startPos.nY = (long)(tgt->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
-    startPos.nZ = (long)250; /* z set but never read — the 2D distance below only uses nX/nY */
+        (s32)(tgt->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
+    startPos.nY = (s32)(tgt->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
+    startPos.nZ = (s32)250; /* z set but never read — the 2D distance below only uses nX/nY */
     projectile.base.orientation.pitch = projectile.base.orientation.roll = 0;
     projectile.base.orientation.yaw =
-        (short)world_rndr_actor_angle_actor(attacker, tgt) + (short)deflectAngle;
+        (s16)world_rndr_actor_angle_actor(attacker, tgt) + (s16)deflectAngle;
     if ((action_id == 0x26) || (action_id == 3)) {
         projectile.angularVelocity.roll =
             3000; /* 0xbb8 pitch-delta scalar (3000) stored to struct field */
@@ -657,31 +657,31 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
     }
     projectile.angularVelocity.pitch = projectile.angularVelocity.yaw = 0;
     projectile.linearVelocity.nX = projectile.linearVelocity.nY = projectile.linearVelocity.nZ = 0;
-    projectile.forwardVelocity = (short)speed;
+    projectile.forwardVelocity = (s16)speed;
     dx = startPos.nX - projectile.base.pos.xy.nWorld_x;
     travelDist =
         distdir_octagonal_distance_dxdy(dx, dy = (startPos.nY - projectile.base.pos.xy.nWorld_y));
     if (*p_hit_out != 0) {
-        stepCount = (int)(travelDist / (long)projectile.forwardVelocity);
+        stepCount = (s16)(travelDist / (s32)projectile.forwardVelocity);
     } else {
         stepCount = 10000; /* 0x2710 step-count sentinel (10000) */
     }
-    pShape = ts_get_shape((int)action_id);
-    radius = (int)pShape->radius;
+    pShape = ts_get_shape((s16)action_id);
+    radius = (s16)pShape->radius;
     if (action_id == 0x14) {
         /* 0x190 arc divisor numerator (400) in integer division */
-        arcDelta = (stepCount < 10000) ? 400 / (stepCount + 4) : (int)RND(0x14) - 5;
+        arcDelta = (stepCount < 10000) ? 400 / (stepCount + 4) : (s16)RND(0x14) - 5;
         projectile.base.pos.nWorld_z += 200;
     }
-    canHitOthers = (targetIsActionClass == 0) && ((unsigned short)action_id != 5);
+    canHitOthers = (targetIsActionClass == 0) && ((u16)action_id != 5);
     for (step = 0; step < stepCount; step++) {
         if (action_id == 4) {
             if (stepCount >> 2 < step) {
-                *(int far *)&pShape->radius = (step * radius) / stepCount;
+                *(s16 far *)&pShape->radius = (step * radius) / stepCount;
             } else {
-                *(int far *)&pShape->radius = radius >> 2;
+                *(s16 far *)&pShape->radius = radius >> 2;
             }
-            projectile.base.pos.nWorld_z = (long)((int)pShape->radius - radius);
+            projectile.base.pos.nWorld_z = (s32)((s16)pShape->radius - radius);
         }
         actormotion_integrate(&projectile);
         if (action_id == 0x14) {
@@ -693,7 +693,7 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
             }
             arcDelta -= 6;
         }
-        world_render_with_overlay(MK_FP((unsigned)&projectile, -1));
+        world_render_with_overlay(MK_FP((u16)&projectile, -1));
         screen_frame_present();
         tileX = (projectile.base.pos.xy.nWorld_x + 0x4b0) / g_grid_tile_size;
         tileY = (projectile.base.pos.xy.nWorld_y + (-0xc80)) / g_grid_tile_size;
@@ -702,8 +702,8 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
             (hit != 0 && (hit->inner->flags & CAF_DEAD) != 0) || (*p_hit_out != 0)) {
             hit = 0;
         }
-        project_world_to_screen((int)projectile.base.pos.xy.nWorld_x,
-                                (int)projectile.base.pos.xy.nWorld_y, 0, scr, g_active_window);
+        project_world_to_screen((s16)projectile.base.pos.xy.nWorld_x,
+                                (s16)projectile.base.pos.xy.nWorld_y, 0, scr, g_active_window);
         if (scr[0] > 0x140) /* 0x140 screen-X bound (320) */
             break;
         if (scr[0] < 0)
@@ -712,15 +712,15 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
             break;
         if (scr[1] < 0)
             break;
-        if ((short)projectile.base.shapeId == -1)
+        if ((s16)projectile.base.shapeId == -1)
             break;
         if (hit != 0)
             break;
     }
-    if ((short)projectile.base.shapeId == -1) {
+    if ((s16)projectile.base.shapeId == -1) {
         *p_hit_out = 0;
     }
-    *(int far *)&pShape->radius = radius;
+    *(s16 far *)&pShape->radius = radius;
     if (hit == 0) {
         hit = tgt;
     } else {
@@ -732,26 +732,26 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
 
 void far world_render_combat_grid_sprite(WorldObject *actor) {
     Shape far *pShape;
-    short savedFlip;
+    s16 savedFlip;
     WorldObject entry;
-    int actorIdx;
+    s16 actorIdx;
 
     savedFlip = g_nActorSpriteFlip;
-    pShape = ts_get_shape((int)actor->shapeId);
-    actorIdx = combat_actor_find_by_id((int)actor->shapeId);
+    pShape = ts_get_shape((s16)actor->shapeId);
+    actorIdx = combat_actor_find_by_id((s16)actor->shapeId);
 
-    if ((int)actor->shapeId == 1) {
+    if ((s16)actor->shapeId == 1) {
         entry.shapeId = 0xe;
     } else if (actorIdx == -1) {
         entry.shapeId = 6;
 
-        if ((int)actor->shapeId != 4)
+        if ((s16)actor->shapeId != 4)
             g_nActorSpriteFlip = RND2(4);
         else
             g_nActorSpriteFlip = RND2(2) << 1;
     }
 
-    if (actorIdx == -1 && (int)actor->shapeId != 4) {
+    if (actorIdx == -1 && (s16)actor->shapeId != 4) {
 
         *(WorldPos far *)&entry.pos = *(WorldPos far *)&actor->pos;
         entry.pos.nWorld_z = 0;
@@ -793,18 +793,18 @@ after_flip:
 }
 
 void world_render_record_marker_dot(WorldObject far *entry) {
-    int dx;
-    int dy;
-    long rx;
-    long ry;
-    int cx;
-    int cy;
+    s16 dx;
+    s16 dy;
+    s32 rx;
+    s32 ry;
+    s16 cx;
+    s16 cy;
 
-    dx = (int)(((entry->pos.xy.nWorld_x - g_world_camera->base.pos.xy.nWorld_x) *
-                (long)(1 << g_world_widget->zoom)) /
+    dx = (s16)(((entry->pos.xy.nWorld_x - g_world_camera->base.pos.xy.nWorld_x) *
+                (s32)(1 << g_world_widget->zoom)) /
                g_world_camera->base.pos.nWorld_z);
-    dy = (int)(((entry->pos.xy.nWorld_y - g_world_camera->base.pos.xy.nWorld_y) *
-                (long)(1 << g_world_widget->zoom)) /
+    dy = (s16)(((entry->pos.xy.nWorld_y - g_world_camera->base.pos.xy.nWorld_y) *
+                (s32)(1 << g_world_widget->zoom)) /
                g_world_camera->base.pos.nWorld_z);
 
     rx = (r3d_imul_full32(dx, r3d_tbl_cos(-g_world_camera->base.orientation.yaw)) -
@@ -814,8 +814,8 @@ void world_render_record_marker_dot(WorldObject far *entry) {
           r3d_imul_full32(dx, r3d_tbl_sin(-g_world_camera->base.orientation.yaw))) >>
          0xe;
 
-    cx = g_viewportCenter.x + (int)rx;
-    cy = g_viewportCenter.y - (int)ry;
+    cx = g_viewportCenter.x + (s16)rx;
+    cy = g_viewportCenter.y - (s16)ry;
 
     if (g_graphics_context.clip.xmin + -2 <= cx && cx <= g_graphics_context.clip.xmax + 2 &&
         g_graphics_context.clip.ymin + -2 <= cy && cy <= g_graphics_context.clip.ymax + 2) {

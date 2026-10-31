@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int bios_compat_check(void);
+extern s16 bios_compat_check(void);
 
 #endif

@@ -7,10 +7,10 @@
 #include "SRC/AUDIO/MUSIC/MUSSTART.H"
 #include "SRC/AUDIO/SFX/SFXPLAY.H"
 
-int audio_start_by_id(int id) {
+s16 audio_start_by_id(s16 id) {
     AudioListNode far *node;
     AudioListNode far *other;
-    int loop_flag;
+    s16 loop_flag;
 
     node = g_pActiveAudioListHead;
     while (node != 0 && node->wId != id)

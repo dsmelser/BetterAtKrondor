@@ -38,7 +38,7 @@
  *            allocation failure. In query mode, the largest-free-block size in
  *            bytes reinterpreted as the far-pointer return value.
  */
-extern void far *alloc_far(unsigned long size, long flags);
+extern void far *alloc_far(u32 size, s32 flags);
 
 /**
  * @brief Release a block obtained from @ref alloc_far back to DOS (INT 21h AH=49h).
@@ -50,6 +50,6 @@ extern void far *alloc_far(unsigned long size, long flags);
  * @return DOS status: 0 on success, otherwise the AH=49h error code (9 =
  *         invalid memory block address).
  */
-extern int _freemem();
+extern s16 _freemem();
 
 #endif

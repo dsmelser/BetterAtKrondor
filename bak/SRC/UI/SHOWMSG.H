@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern void show_message_plus_1600000(int msg_id);
+extern void show_message_plus_1600000(s16 msg_id);
 
 #endif

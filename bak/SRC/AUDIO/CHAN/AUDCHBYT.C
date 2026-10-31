@@ -3,7 +3,7 @@
 #include "SRC/AUDIO/CHAN/SFXCHAN.H"
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
-int far audio_channel_set_byte_15a(int channel, int value) {
+s16 far audio_channel_set_byte_15a(s16 channel, s16 value) {
     AudioTrackHandle far *track;
 
     if ((track = sfxchan_apply_to_channels(channel)) != 0) {

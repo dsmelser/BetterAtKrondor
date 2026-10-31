@@ -20,23 +20,23 @@
 #include "SRC/R3D/SCENE/CZONE.H"
 
 void far worldcross_dungeon_descent_anim(void) {
-    unsigned short probe_kind;
-    int sfx_handle;
-    int descent_steps;
-    int waiting_for_key;
-    unsigned long probe_coord;
-    long saved_z;
+    u16 probe_kind;
+    s16 sfx_handle;
+    s16 descent_steps;
+    s16 waiting_for_key;
+    u32 probe_coord;
+    s32 saved_z;
     WorldObject far *pFound;
-    int i;
-    unsigned int scancode;
+    s16 i;
+    u16 scancode;
 
     waiting_for_key = 0;
     if (g_game_mode == 2) {
         worldmove_cross_get_probe_result(&probe_kind, &probe_coord);
         if (probe_kind == 0xf) {
-            for (i = 0; i < (int)g_gameState.partySize; i++) {
+            for (i = 0; i < (s16)g_gameState.partySize; i++) {
                 stat_combatant_apply_condition(
-                    &g_gameState.characters[(int)g_gameState.activeParty[i]], 6, 100);
+                    &g_gameState.characters[(s16)g_gameState.activeParty[i]], 6, 100);
             }
             if (g_full_redraw_needed == 0 && proxscan_paged_find_next_type0f(&pFound) != 0) {
                 screen_cursor_show_busy();
@@ -52,7 +52,7 @@ void far worldcross_dungeon_descent_anim(void) {
                 sfx_handle = audio_sfx_play_n_times(0x2f, 0, 0);
                 i = 0;
                 while (i < descent_steps) {
-                    g_world_camera->base.pos.nWorld_z = saved_z - (long)(i * 0x50);
+                    g_world_camera->base.pos.nWorld_z = saved_z - (s32)(i * 0x50);
                     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
                         g_graphics_context.wVgaPage2Base;
                     world_render_scene_dispatch(1);
@@ -86,17 +86,17 @@ void far worldcross_dungeon_descent_anim(void) {
 }
 
 void far worldcross_hotspot_use_rope(WorldHotspot *pHotspot) {
-    long saved_z;
-    long target_x;
-    long target_y;
-    long final_x;
-    long final_y;
-    long centerDist;
-    int crossing_found;
-    int targetHeading;
-    int axisIsEW;
-    int beyondStart;
-    int sfx_played;
+    s32 saved_z;
+    s32 target_x;
+    s32 target_y;
+    s32 final_x;
+    s32 final_y;
+    s32 centerDist;
+    s16 crossing_found;
+    s16 targetHeading;
+    s16 axisIsEW;
+    s16 beyondStart;
+    s16 sfx_played;
 
     crossing_found = 0;
     sfx_played = 0;
@@ -170,7 +170,7 @@ void far worldcross_hotspot_use_rope(WorldHotspot *pHotspot) {
             saved_z = g_world_camera->base.pos.nWorld_z;
 
             if (g_world_camera->base.orientation.yaw != targetHeading) {
-                if ((unsigned int)(targetHeading - g_world_camera->base.orientation.yaw) < 0x8000) {
+                if ((u16)(targetHeading - g_world_camera->base.orientation.yaw) < 0x8000) {
                     worldmove_animate_hdg_tgt(2, targetHeading);
                 } else {
                     worldmove_animate_hdg_tgt(3, targetHeading);

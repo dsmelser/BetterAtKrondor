@@ -20,23 +20,23 @@
 #include "defines.h"
 
 EncounterRecordTemplate *g_pEncounterRecordTemplates;
-long g_anEncounterRecordIds[5];
+s32 g_anEncounterRecordIds[5];
 WorldObject far *g_pFixed_object_entries;
 WorldObject far *g_pVisible_entry_pool;
 EncounterObjectState *g_pEncounterObjectState;
-int g_nCombatTempZoneEncounterCount;
+s16 g_nCombatTempZoneEncounterCount;
 unsigned char g_bCombatTempZoneRefPair;
 
-short g_nEncounter_record_count = 0;
-short g_nFixed_object_count = 0;
-short g_nVisible_entry_count = 0;
-unsigned short *g_pZoneShapeIndex = {0};
-unsigned short *g_pChapterShapeIds = {0};
+s16 g_nEncounter_record_count = 0;
+s16 g_nFixed_object_count = 0;
+s16 g_nVisible_entry_count = 0;
+u16 *g_pZoneShapeIndex = {0};
+u16 *g_pChapterShapeIds = {0};
 
 void far rgnenc_alloc_3bufs_init(void) {
     WorldObject far *p;
     EncounterActorAux *pBuf;
-    int i;
+    s16 i;
 
     p = g_pFixed_object_entries;
 
@@ -63,17 +63,17 @@ void rgnenc_free_3bufs_clear(void) {
     return;
 }
 
-int far rgnenc_load_zone_shape_index(char *filename) {
+s16 far rgnenc_load_zone_shape_index(char *filename) {
     ResFile *fp;
-    int i;
+    s16 i;
 
     if (g_pZoneShapeIndex != 0) {
         return 0;
     }
 
-    g_pZoneShapeIndex = (unsigned short *)galloc_safe_zcalloc(0xa);
+    g_pZoneShapeIndex = (u16 *)galloc_safe_zcalloc(0xa);
     fp = res_fopen(filename, "rb");
-    res_fseek(fp, (long)(((unsigned)g_gameState.nChapter - 1) << 3), SEEK_CUR);
+    res_fseek(fp, (s32)(((u16)g_gameState.nChapter - 1) << 3), SEEK_CUR);
     res_fread(g_pZoneShapeIndex, 2, 4, fp);
     res_fclose(fp);
 
@@ -82,24 +82,24 @@ int far rgnenc_load_zone_shape_index(char *filename) {
     }
 
     for (i = 0; i < 4; i++) {
-        if ((short)g_pZoneShapeIndex[i] != -1) {
+        if ((s16)g_pZoneShapeIndex[i] != -1) {
             combat_actor_bnames_load_cached(g_pZoneShapeIndex[i], 0);
         }
     }
     return 1;
 }
 
-int far rgnenc_rel_object_state_group(void) {
-    int i;
+s16 far rgnenc_rel_object_state_group(void) {
+    s16 i;
 
-    if (g_pZoneShapeIndex != (unsigned short *)0x0) {
+    if (g_pZoneShapeIndex != (u16 *)0x0) {
         for (i = 3; i >= 0; i--) {
             if (g_pZoneShapeIndex[i] != 0xffff) {
                 combat_actor_release_anim_images(g_pZoneShapeIndex[i]);
             }
         }
         galloc_zfree(g_pZoneShapeIndex);
-        g_pZoneShapeIndex = (unsigned short *)0x0;
+        g_pZoneShapeIndex = (u16 *)0x0;
         return 1;
     }
     return 0;
@@ -108,7 +108,7 @@ int far rgnenc_rel_object_state_group(void) {
 void far rgnenc_savefile_init_35slot_tbl(void) {
     EncounterObjectState tbl[35];
     EncounterObjectState *p;
-    int i;
+    s16 i;
 
     p = tbl;
     for (i = 0; i < 0x23; i++, p++) {
@@ -122,65 +122,65 @@ void far rgnenc_savefile_init_35slot_tbl(void) {
     for (i = 0; i < 0x28; i++) {
         g_pendingTempWriteRegion = TWR_ENCOUNTER_STATE;
         gstate_temp_file_write_at((unsigned char far *)tbl,
-                                  (unsigned long)(unsigned)GAM_ENC_OBJ_STATE((unsigned)(i * 0x23)), 0x1a4);
+                                  (u32)(u16)GAM_ENC_OBJ_STATE((u16)(i * 0x23)), 0x1a4);
     }
 }
 
 struct Type1BakRec {
     unsigned char hdr[2];
-    long recId;
+    s32 recId;
     unsigned char body[52];
     EncounterRecordTemplate tmpl;
-    unsigned int flags;
+    u16 flags;
 };
 
 struct Type7BakRec {
     unsigned char hdr[2];
-    long recId;
+    s32 recId;
     unsigned char body[62];
     EncounterRecordTemplate tmpl;
-    unsigned int flags;
+    u16 flags;
 };
 
 void far rgnenc_load_encounter_actors(void) {
     ZoneHotspot *pEvt;
     EncounterRecordTemplate *pTmpl;
     EncounterRecordTemplate *pTmplSrc;
-    short *pActorDelta;
+    s16 *pActorDelta;
     EncounterObjectState *pObjState;
     WorldObject far *pSlot;
-    long nRecordId;
-    long nOriginX;
-    long nOriginY;
-    int nEncIdx;
-    int nFlags;
-    int bPlace;
-    unsigned short nShapeCount;
-    unsigned short aShapeIds[1];
+    s32 nRecordId;
+    s32 nOriginX;
+    s32 nOriginY;
+    s16 nEncIdx;
+    s16 nFlags;
+    s16 bPlace;
+    u16 nShapeCount;
+    u16 aShapeIds[1];
     unsigned char bZoneY;
     unsigned char bZoneX;
     struct Type1BakRec type1_rec;
     struct Type7BakRec type7_rec;
-    short aActorSlots[7];
+    s16 aActorSlots[7];
     CombatantState inner;
-    int j;
+    s16 j;
     EncounterActorAux *pAux;
-    int v;
-    int i;
-    int k1;
-    int k2;
-    int k3;
-    int k4;
+    s16 v;
+    s16 i;
+    s16 k1;
+    s16 k2;
+    s16 k3;
+    s16 k4;
 
     pEvt = hotspotevt_next_entry_19byte(1);
     pObjState = g_pEncounterObjectState;
-    nEncIdx = (unsigned int)g_apCombat_zone_actor_lists[0]->bRef_pair_index * 0x23;
+    nEncIdx = (u16)g_apCombat_zone_actor_lists[0]->bRef_pair_index * 0x23;
     nShapeCount = 0;
     g_nEncounter_record_count = g_nFixed_object_count = 0;
     czone_get_party_tile_xy(&bZoneY, &bZoneX);
-    nOriginX = (long)(int)(unsigned int)bZoneY * 64000;
-    nOriginY = (long)(int)(unsigned int)bZoneX * 64000;
-    gstate_temp_file_read_at(g_pEncounterObjectState, (unsigned long)(unsigned)GAM_ENC_OBJ_STATE(nEncIdx), 0x1a4);
+    nOriginX = (s32)(s16)(u16)bZoneY * 64000;
+    nOriginY = (s32)(s16)(u16)bZoneX * 64000;
+    gstate_temp_file_read_at(g_pEncounterObjectState, (u32)(u16)GAM_ENC_OBJ_STATE(nEncIdx), 0x1a4);
     if ((g_pEncounterObjectState->wKind_state & 0xff08) >> 8 == 0) {
         g_pEncounterObjectState->wKind_state = 0x100;
         while (pEvt != (ZoneHotspot *)0) {
@@ -196,13 +196,13 @@ void far rgnenc_load_encounter_actors(void) {
                 j = 0;
                 while (j < 7) {
                     if (aActorSlots[j] != -1) {
-                        gstate_temp_file_read_at(&inner, GAM_COMBAT_ACTOR_INNER((long)aActorSlots[j]), 0x16);
+                        gstate_temp_file_read_at(&inner, GAM_COMBAT_ACTOR_INNER((s32)aActorSlots[j]), 0x16);
                         /* The flags byte is read through (int)(signed char)
                            so the compiler sign-extends it (MOV AL;CWDE) and TESTs
                            the word, rather than folding to a byte-ptr TEST. The
                            result is never used beyond the mask; v is a scratch.
                            See rgnenc_mark_defended for the same idiom. */
-                        if (((v = (int)(signed char)inner.flags) & CAF_DEAD) == 0) {
+                        if (((v = (s16)(signed char)inner.flags) & CAF_DEAD) == 0) {
                             pObjState->wKind_state = 0x200;
                         }
                     }
@@ -238,16 +238,16 @@ void far rgnenc_load_encounter_actors(void) {
                 pSlot = g_pFixed_object_entries + g_nFixed_object_count;
                 pObjState = g_pEncounterObjectState + nEncIdx * 7;
                 for (j = 0;
-                     g_nFixed_object_count < 0x23 && j < (int)(unsigned int)pTmpl->pActors[0].kind && j < 7;
+                     g_nFixed_object_count < 0x23 && j < (s16)(u16)pTmpl->pActors[0].kind && j < 7;
                      pActorDelta += 0x18, pObjState++) {
-                    unsigned int uKind = (pObjState->wKind_state & 0xff08) >> 8;
+                    u16 uKind = (pObjState->wKind_state & 0xff08) >> 8;
                     if (uKind == 4 || nFlags == 0) {
                         bPlace = 1;
                         switch (uKind) {
                         case 2:
-                            pSlot->pos.xy.nWorld_x = nOriginX + *(long *)((char *)pActorDelta + 4);
-                            pSlot->pos.xy.nWorld_y = nOriginY + *(long *)((char *)pActorDelta + 8);
-                            pSlot->orientation.yaw = *(short *)((char *)pActorDelta + 12);
+                            pSlot->pos.xy.nWorld_x = nOriginX + *(s32 *)((char *)pActorDelta + 4);
+                            pSlot->pos.xy.nWorld_y = nOriginY + *(s32 *)((char *)pActorDelta + 8);
+                            pSlot->orientation.yaw = *(s16 *)((char *)pActorDelta + 12);
                             pObjState->wKind_state = 0x300;
                             pObjState->wKind_state |= RND(3);
                             if (RND2(2))
@@ -278,8 +278,8 @@ void far rgnenc_load_encounter_actors(void) {
                             pSlot->state.encounterAux->nSlot_idx = j;
                             pSlot->state.encounterAux->nEncounter_idx = nEncIdx * 7 + j;
                             for (k2 = 0; k2 < 4; k2++) {
-                                *(long *)((char *)pActorDelta + k2 * 4 + 14) += nOriginX;
-                                *(long *)((char *)pActorDelta + k2 * 4 + 30) += nOriginY;
+                                *(s32 *)((char *)pActorDelta + k2 * 4 + 14) += nOriginX;
+                                *(s32 *)((char *)pActorDelta + k2 * 4 + 30) += nOriginY;
                             }
                             if (*pActorDelta != 0) {
                                 for (k3 = 0; k3 < 4; k3++) {
@@ -287,11 +287,11 @@ void far rgnenc_load_encounter_actors(void) {
                                         break;
                                 }
                                 if (k3 == 4) {
-                                    for (k4 = 0; k4 < (int)nShapeCount; k4++) {
+                                    for (k4 = 0; k4 < (s16)nShapeCount; k4++) {
                                         if (aShapeIds[k4] == *pActorDelta)
                                             break;
                                     }
-                                    if (k4 == (int)nShapeCount && (int)nShapeCount < 1) {
+                                    if (k4 == (s16)nShapeCount && (s16)nShapeCount < 1) {
                                         aShapeIds[nShapeCount] = *pActorDelta;
                                         nShapeCount++;
                                     }
@@ -309,12 +309,12 @@ void far rgnenc_load_encounter_actors(void) {
     }
 
     for (j = 4; j >= 4; j--) {
-        if (*(short *)&g_pZoneShapeIndex[j] != -1) {
+        if (*(s16 *)&g_pZoneShapeIndex[j] != -1) {
             combat_actor_release_anim_images(g_pZoneShapeIndex[j]);
         }
     }
     for (j = 0; j < 1; j++) {
-        if (j < (int)nShapeCount) {
+        if (j < (s16)nShapeCount) {
             g_pZoneShapeIndex[j + 4] = aShapeIds[j];
             combat_actor_bnames_load_cached(aShapeIds[j], 0);
         } else {
@@ -324,7 +324,7 @@ void far rgnenc_load_encounter_actors(void) {
 }
 
 void far rgnenc_release_anim_images_slot4(void) {
-    int i;
+    s16 i;
 
     for (i = 4; i >= 4; i--) {
         if (g_pZoneShapeIndex[i] != 0xffff) {
@@ -336,23 +336,23 @@ void far rgnenc_release_anim_images_slot4(void) {
 }
 
 void far rgnenc_zone_rectr_save_objects(void) {
-    int zone_rec;
+    s16 zone_rec;
     EncounterObjectState *pState_w;
     WorldObject far *pObj;
-    long dx;
-    long dy;
+    s32 dx;
+    s32 dy;
     EncounterObjectState empty1;
     EncounterObjectState empty3;
     EncounterObjectState table[35];
     EncounterObjectState *p;
-    int i;
-    unsigned int kind;
+    s16 i;
+    u16 kind;
 
     zone_rec = g_apCombat_zone_actor_lists[0]->bRef_pair_index * 0x23;
     pState_w = g_pEncounterObjectState;
     pObj = g_pFixed_object_entries;
-    dx = (unsigned long)g_apCombat_zone_actor_lists[0]->bParty_x * 0xfa00;
-    dy = (unsigned long)g_apCombat_zone_actor_lists[0]->bParty_y * 0xfa00;
+    dx = (u32)g_apCombat_zone_actor_lists[0]->bParty_x * 0xfa00;
+    dy = (u32)g_apCombat_zone_actor_lists[0]->bParty_y * 0xfa00;
     for (i = 0; i < g_nFixed_object_count; i++, pObj++) {
         p = g_pEncounterObjectState + pObj->state.encounterAux->nEncounter_idx;
         if (((p->wKind_state & 0xff08) >> 8) == 4) {
@@ -378,23 +378,23 @@ void far rgnenc_zone_rectr_save_objects(void) {
             *p = empty1;
     }
     g_pendingTempWriteRegion = TWR_ENCOUNTER_STATE;
-    gstate_temp_file_write_at((unsigned char far *)table, (unsigned long)(unsigned)GAM_ENC_OBJ_STATE(zone_rec),
+    gstate_temp_file_write_at((unsigned char far *)table, (u32)(u16)GAM_ENC_OBJ_STATE(zone_rec),
                               0x1a4);
 }
 
 void far rgnenc_persist_zone_snapshot(void) {
-    int record_base;
+    s16 record_base;
     WorldObject far *pCurEntry;
-    long party_x_off;
-    long party_y_off;
-    int nFixedIdx;
+    s32 party_x_off;
+    s32 party_y_off;
+    s16 nFixedIdx;
     EncounterObjectState *pState;
-    unsigned int kind;
+    u16 kind;
 
     record_base = g_apCombat_zone_actor_lists[0]->bRef_pair_index * 0x23;
     pCurEntry = g_pFixed_object_entries;
-    party_x_off = (unsigned long)g_apCombat_zone_actor_lists[0]->bParty_x * 0xfa00;
-    party_y_off = (unsigned long)g_apCombat_zone_actor_lists[0]->bParty_y * 0xfa00;
+    party_x_off = (u32)g_apCombat_zone_actor_lists[0]->bParty_x * 0xfa00;
+    party_y_off = (u32)g_apCombat_zone_actor_lists[0]->bParty_y * 0xfa00;
     for (nFixedIdx = 0; nFixedIdx < g_nFixed_object_count; nFixedIdx++, pCurEntry++) {
         pState = g_pEncounterObjectState + pCurEntry->state.encounterAux->nEncounter_idx;
         kind = (pState->wKind_state & 0xff08) >> 8;
@@ -406,48 +406,48 @@ void far rgnenc_persist_zone_snapshot(void) {
     }
     g_pendingTempWriteRegion = TWR_ENCOUNTER_STATE;
     gstate_temp_file_write_at((unsigned char far *)g_pEncounterObjectState,
-                              (unsigned long)(unsigned)GAM_ENC_OBJ_STATE(record_base), 0x1a4);
+                              (u32)(u16)GAM_ENC_OBJ_STATE(record_base), 0x1a4);
     g_nCombatTempZoneEncounterCount = g_nEncounter_record_count;
     g_bCombatTempZoneRefPair = g_apCombat_zone_actor_lists[0]->bRef_pair_index;
 }
 
-int far rgnenc_persist_actor_placed(long record_id, int slot_index,
+s16 far rgnenc_persist_actor_placed(s32 record_id, s16 slot_index,
                                     EncounterObjectState *src_partial) {
-    int nRecordIdx;
-    int nFileIdx;
+    s16 nRecordIdx;
+    s16 nFileIdx;
     EncounterObjectState record;
 
     for (nRecordIdx = 0; nRecordIdx < g_nCombatTempZoneEncounterCount; nRecordIdx++) {
         if (g_anEncounterRecordIds[nRecordIdx] == record_id) {
-            nFileIdx = (unsigned int)g_bCombatTempZoneRefPair * 0x23 + nRecordIdx * 7 + slot_index;
+            nFileIdx = (u16)g_bCombatTempZoneRefPair * 0x23 + nRecordIdx * 7 + slot_index;
             if (g_game_mode == 2)
-                gstate_temp_file_read_at(&record, (unsigned long)(unsigned)GAM_ENC_OBJ_STATE(nFileIdx), 0xc);
+                gstate_temp_file_read_at(&record, (u32)(u16)GAM_ENC_OBJ_STATE(nFileIdx), 0xc);
             else
                 record.pose = src_partial->pose;
             record.wKind_state = 0x400;
             g_pendingTempWriteRegion = TWR_ENCOUNTER_STATE;
             gstate_temp_file_write_at((unsigned char far *)&record,
-                                      (unsigned long)(unsigned)GAM_ENC_OBJ_STATE(nFileIdx), 0xc);
+                                      (u32)(u16)GAM_ENC_OBJ_STATE(nFileIdx), 0xc);
             return 1;
         }
     }
     return 0;
 }
 
-int far rgnenc_persist_actor_removed(long record_id, int slot_index) {
-    int nRecordIdx;
-    int nFileIdx;
+s16 far rgnenc_persist_actor_removed(s32 record_id, s16 slot_index) {
+    s16 nRecordIdx;
+    s16 nFileIdx;
     EncounterObjectState removalRecord;
 
     for (nRecordIdx = 0; nRecordIdx < g_nCombatTempZoneEncounterCount; nRecordIdx++) {
         if (g_anEncounterRecordIds[nRecordIdx] == record_id) {
-            nFileIdx = (unsigned int)g_bCombatTempZoneRefPair * 0x23 + nRecordIdx * 7 + slot_index;
+            nFileIdx = (u16)g_bCombatTempZoneRefPair * 0x23 + nRecordIdx * 7 + slot_index;
             removalRecord.pose.nWorld_x_offset = removalRecord.pose.nWorld_y_offset = 0;
             removalRecord.pose.nFacing = 0;
             removalRecord.wKind_state = 0x100;
             g_pendingTempWriteRegion = TWR_ENCOUNTER_STATE;
             gstate_temp_file_write_at((unsigned char far *)&removalRecord,
-                                      (unsigned long)(unsigned)GAM_ENC_OBJ_STATE(nFileIdx), 0xc);
+                                      (u32)(u16)GAM_ENC_OBJ_STATE(nFileIdx), 0xc);
             return 1;
         }
     }
@@ -455,9 +455,9 @@ int far rgnenc_persist_actor_removed(long record_id, int slot_index) {
 }
 
 void far rgnenc_reset_and_save(void) {
-    int record_base;
+    s16 record_base;
     WorldObject far *pCurEntry;
-    int nFixedIdx;
+    s16 nFixedIdx;
     EncounterObjectState *pState;
 
     record_base = g_apCombat_zone_actor_lists[0]->bRef_pair_index * 0x23;
@@ -472,16 +472,16 @@ void far rgnenc_reset_and_save(void) {
     }
     g_pendingTempWriteRegion = TWR_ENCOUNTER_STATE;
     gstate_temp_file_write_at((unsigned char far *)g_pEncounterObjectState,
-                              (unsigned long)(unsigned)GAM_ENC_OBJ_STATE(record_base), 0x1a4);
+                              (u32)(u16)GAM_ENC_OBJ_STATE(record_base), 0x1a4);
     rgnenc_load_encounter_actors();
 }
 
-void far rgnenc_mark_defended(unsigned long filter_encounter_id) {
-    int i, j, base;
-    unsigned long enc_id;
-    unsigned int kind_hi;
-    int v;
-    short actor_ids[7];
+void far rgnenc_mark_defended(u32 filter_encounter_id) {
+    s16 i, j, base;
+    u32 enc_id;
+    u16 kind_hi;
+    s16 v;
+    s16 actor_ids[7];
     CombatantState inner;
 
     for (i = 0; i < g_nEncounter_record_count; i++) {
@@ -503,28 +503,28 @@ void far rgnenc_mark_defended(unsigned long filter_encounter_id) {
         for (j = 0; j < 7; j++) {
             if (actor_ids[j] == -1)
                 continue;
-            gstate_temp_file_read_at(&inner, GAM_COMBAT_ACTOR_INNER((long)actor_ids[j]), 0x16);
+            gstate_temp_file_read_at(&inner, GAM_COMBAT_ACTOR_INNER((s32)actor_ids[j]), 0x16);
             /* The flags byte is read through (int)(signed char)
                so the compiler sign-extends it (MOV AL;CWDE) and TESTs
                the word, rather than folding to a byte-ptr TEST. The
                result is never used beyond the mask; v is a scratch.
                See rgnenc_load_encounter_actors for the same idiom. */
-            if ((v = (int)(signed char)inner.flags) & CAF_DEAD)
+            if ((v = (s16)(signed char)inner.flags) & CAF_DEAD)
                 continue;
             inner.flags |= CAF_DEAD;
             g_pendingTempWriteRegion = TWR_COMBAT_ACTOR_INNER;
             gstate_temp_file_write_at((unsigned char far *)&inner,
-                                      GAM_COMBAT_ACTOR_INNER((long)actor_ids[j]), 0x16);
+                                      GAM_COMBAT_ACTOR_INNER((s32)actor_ids[j]), 0x16);
         }
     }
 }
 
-void far rgnenc_complete_consume(unsigned long encounter_id) {
-    int hit_count;
-    int bSearching;
-    unsigned short saved_match_idx;
+void far rgnenc_complete_consume(u32 encounter_id) {
+    s16 hit_count;
+    s16 bSearching;
+    u16 saved_match_idx;
     ZoneHotspot *sub_entry;
-    int key_index;
+    s16 key_index;
 
     hit_count = 0;
     bSearching = 1;
@@ -541,7 +541,7 @@ void far rgnenc_complete_consume(unsigned long encounter_id) {
                         hotspotevt_scouted_clear();
                         g_wHotspotMatchIdx = saved_match_idx;
                         hotspotevt_enc_fought_clear(encounter_id);
-                        combatenc_chap_load_party_grn((int)encounter_id);
+                        combatenc_chap_load_party_grn((s16)encounter_id);
                         bSearching = 0;
                     } else {
                         hit_count++;
@@ -553,26 +553,26 @@ void far rgnenc_complete_consume(unsigned long encounter_id) {
     }
 }
 
-void far rgnenc_render_object(WorldObject far *entry, int bAnimTick) {
-    int record_idx;
-    int actor_idx;
-    int state_idx;
-    int dx;
-    int dy;
+void far rgnenc_render_object(WorldObject far *entry, s16 bAnimTick) {
+    s16 record_idx;
+    s16 actor_idx;
+    s16 state_idx;
+    s16 dx;
+    s16 dy;
     unsigned char animFrame;
     unsigned char animToggle;
     char entityKind;
     ImageRecord **sprite_table;
     EncounterObjectState *pState;
     unsigned char spriteDir;
-    int i;
+    s16 i;
     unsigned char *state_bytes;
-    short *pRecordDelta;
+    s16 *pRecordDelta;
     ImageRecord **saved_table;
 
-    record_idx = *(int *)(entry->state.stateBits + 2);
-    actor_idx = *(int *)(entry->state.stateBits + 4);
-    state_idx = *(int *)(entry->state.stateBits + 6);
+    record_idx = *(s16 *)(entry->state.stateBits + 2);
+    actor_idx = *(s16 *)(entry->state.stateBits + 4);
+    state_idx = *(s16 *)(entry->state.stateBits + 6);
     pState = g_pEncounterObjectState + state_idx;
     state_bytes = (unsigned char *)entry->state.stateBits;
     animFrame = (unsigned char)pState->wKind_state & 3;
@@ -642,7 +642,7 @@ void far rgnenc_render_object(WorldObject far *entry, int bAnimTick) {
         }
         *(char *)entry->state.stateBits = spriteDir + animFrame;
     } else {
-        switch ((int)(unsigned)spriteDir >> 1) {
+        switch ((s16)(u16)spriteDir >> 1) {
         case 0:
             spriteDir = 3;
             break;
@@ -669,25 +669,25 @@ void far rgnenc_render_object(WorldObject far *entry, int bAnimTick) {
         worldrender_table_swap(0, saved_table);
     }
     g_nActorSpriteFlip = 0;
-    *(int *)(entry->state.stateBits + 2) = record_idx;
-    *(int *)(entry->state.stateBits + 4) = actor_idx;
-    *(int *)(entry->state.stateBits + 6) = state_idx;
+    *(s16 *)(entry->state.stateBits + 2) = record_idx;
+    *(s16 *)(entry->state.stateBits + 4) = actor_idx;
+    *(s16 *)(entry->state.stateBits + 6) = state_idx;
 }
 
 void far rgnenc_corpse_tbl_iterate_22byte(void) {
     WorldObject far *slot;
-    int nRecord_idx;
-    int nSlot_idx;
-    int nEncounter_idx;
-    int i;
-    int facing_delta;
-    int out_target;
-    int nTemplate_off;
+    s16 nRecord_idx;
+    s16 nSlot_idx;
+    s16 nEncounter_idx;
+    s16 i;
+    s16 facing_delta;
+    s16 out_target;
+    s16 nTemplate_off;
     EncounterObjectState *pState;
-    int out_dir;
+    s16 out_dir;
     WorldPos pos_buf;
     char *pActorPoly;
-    int vertex_count;
+    s16 vertex_count;
 
     slot = g_pFixed_object_entries;
     for (i = 0; i < g_nFixed_object_count; i++, slot++) {
@@ -695,14 +695,14 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
         nSlot_idx = slot->state.encounterAux->nSlot_idx;
         nEncounter_idx = slot->state.encounterAux->nEncounter_idx;
 
-        nTemplate_off = (int)(g_pEncounterRecordTemplates + nRecord_idx);
+        nTemplate_off = (s16)(g_pEncounterRecordTemplates + nRecord_idx);
         pActorPoly = (char *)nTemplate_off + nSlot_idx * 48 + 1;
 
         pState = g_pEncounterObjectState + nEncounter_idx;
 
         if ((pState->wKind_state & 0xff08) >> 8 == 3) {
 
-            switch (*(int *)(pActorPoly + 2)) {
+            switch (*(s16 *)(pActorPoly + 2)) {
             case 1:
                 vertex_count = 2;
                 facing_delta = R3D_UDEG(180);
@@ -717,7 +717,7 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
                 break;
             }
 
-            switch (*(int *)(pActorPoly + 2)) {
+            switch (*(s16 *)(pActorPoly + 2)) {
             case 1:
             case 2:
             case 3:
@@ -725,11 +725,11 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
                 worldmove_crossing_apply_offset(&pos_buf, slot->orientation.yaw, 0x190);
                 *(WorldPos far *)&slot->pos.xy.nWorld_x = pos_buf;
                 {
-                    int dx;
+                    s16 dx;
                     for (dx = 0; dx < vertex_count; dx++) {
-                        if (*(long *)(pActorPoly + 0xe + dx * 4) == pos_buf.xy.nWorld_x &&
-                            *(long *)(pActorPoly + 0x1e + dx * 4) == pos_buf.xy.nWorld_y) {
-                            slot->orientation.yaw += (short)facing_delta;
+                        if (*(s32 *)(pActorPoly + 0xe + dx * 4) == pos_buf.xy.nWorld_x &&
+                            *(s32 *)(pActorPoly + 0x1e + dx * 4) == pos_buf.xy.nWorld_y) {
+                            slot->orientation.yaw += (s16)facing_delta;
                             break;
                         }
                     }
@@ -739,24 +739,24 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
                 pos_buf = *(WorldPos far *)&slot->pos.xy.nWorld_x;
                 if (worldmove_crossing_check_8dir(&pos_buf, slot->orientation.yaw, 0x190L, 1,
                                                   &out_dir, &out_target)) {
-                    int dx;
+                    s16 dx;
                     *(WorldPos far *)&slot->pos.xy.nWorld_x = pos_buf;
                     for (dx = 0; dx < 2; dx++) {
-                        if (*(long *)(pActorPoly + 0xe + dx * 4) == pos_buf.xy.nWorld_x &&
-                            *(long *)(pActorPoly + 0x1e + dx * 4) == pos_buf.xy.nWorld_y) {
+                        if (*(s32 *)(pActorPoly + 0xe + dx * 4) == pos_buf.xy.nWorld_x &&
+                            *(s32 *)(pActorPoly + 0x1e + dx * 4) == pos_buf.xy.nWorld_y) {
                             slot->orientation.yaw =
-                                (short)((unsigned)slot->orientation.yaw + R3D_UDEG(180));
+                                (s16)((u16)slot->orientation.yaw + R3D_UDEG(180));
                             break;
                         }
                     }
                     if (dx == 2) {
                         if (out_dir == 2 || out_dir == 3) {
-                            slot->orientation.yaw = (short)out_target;
+                            slot->orientation.yaw = (s16)out_target;
                         }
                     }
                 } else {
                     slot->orientation.yaw =
-                        (short)((unsigned)slot->orientation.yaw + R3D_UDEG(180));
+                        (s16)((u16)slot->orientation.yaw + R3D_UDEG(180));
                 }
                 continue;
             }
@@ -764,32 +764,32 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
     }
 }
 
-int far rgnenc_slot_actor_kind_eq_placed(WorldObject far *pSlot) {
-    short idx = pSlot->state.encounterAux->nEncounter_idx;
-    short state = (g_pEncounterObjectState[idx].wKind_state & 0xff08) >> 8;
+s16 far rgnenc_slot_actor_kind_eq_placed(WorldObject far *pSlot) {
+    s16 idx = pSlot->state.encounterAux->nEncounter_idx;
+    s16 state = (g_pEncounterObjectState[idx].wKind_state & 0xff08) >> 8;
     return state == 3;
 }
 
 void far rgnenc_world_objects_reset_spawn(void) {
     g_nVisible_entry_count = 0;
-    actorspawn_for_location_by_time((unsigned)g_gameState.nZoneId);
+    actorspawn_for_location_by_time((u16)g_gameState.nZoneId);
 }
 
-int far rgnenc_visible_pool_append_spawn(unsigned char far *pEntry) {
+s16 far rgnenc_visible_pool_append_spawn(unsigned char far *pEntry) {
     WorldObject far *cursor;
 
     if (g_nVisible_entry_count < 0x5d) {
-        if (g_gameState.nZoneId != 7 || *(int far *)(pEntry + 2) != 0xdd ||
+        if (g_gameState.nZoneId != 7 || *(s16 far *)(pEntry + 2) != 0xdd ||
             g_gameState.nChapter == 7) {
             cursor = (WorldObject far *)g_pVisible_entry_pool + g_nVisible_entry_count;
             g_nVisible_entry_count++;
-            cursor->shapeId = *(int far *)(pEntry + 2);
-            cursor->pos.xy.nWorld_x = *(long far *)(pEntry + 4);
-            cursor->pos.xy.nWorld_y = *(long far *)(pEntry + 8);
+            cursor->shapeId = *(s16 far *)(pEntry + 2);
+            cursor->pos.xy.nWorld_x = *(s32 far *)(pEntry + 4);
+            cursor->pos.xy.nWorld_y = *(s32 far *)(pEntry + 8);
             cursor->pos.nWorld_z = 0;
             cursor->orientation.pitch = cursor->orientation.roll = cursor->orientation.yaw = 0;
             cursor->state.stateBits = 0;
-            if (g_gameState.nZoneId == 7 && *(int far *)(pEntry + 2) == 0xdd)
+            if (g_gameState.nZoneId == 7 && *(s16 far *)(pEntry + 2) == 0xdd)
                 cursor->orientation.yaw = 0xc200;
             return 1;
         }
@@ -798,7 +798,7 @@ int far rgnenc_visible_pool_append_spawn(unsigned char far *pEntry) {
 }
 
 void far rgnenc_vis_pool_remove_matching(unsigned char far *pKey) {
-    int i;
+    s16 i;
     WorldObject far *cursor;
     WorldObject far *last;
 
@@ -806,9 +806,9 @@ void far rgnenc_vis_pool_remove_matching(unsigned char far *pKey) {
     if (*pKey != g_gameState.nZoneId)
         return;
     for (i = 0; i < g_nVisible_entry_count; i++, cursor++) {
-        if (cursor->shapeId == *(int far *)(pKey + 2) &&
-            cursor->pos.xy.nWorld_x == *(long far *)(pKey + 4) &&
-            cursor->pos.xy.nWorld_y == *(long far *)(pKey + 8))
+        if (cursor->shapeId == *(s16 far *)(pKey + 2) &&
+            cursor->pos.xy.nWorld_x == *(s32 far *)(pKey + 4) &&
+            cursor->pos.xy.nWorld_y == *(s32 far *)(pKey + 8))
             break;
     }
     if (i < g_nVisible_entry_count) {
@@ -821,17 +821,17 @@ void far rgnenc_vis_pool_remove_matching(unsigned char far *pKey) {
     }
 }
 
-int far rgnenc_chap_shp_init(void) {
+s16 far rgnenc_chap_shp_init(void) {
     ResFile *file;
-    int i;
-    int j;
+    s16 i;
+    s16 j;
 
-    if (g_pChapterShapeIds != (unsigned short *)0) {
+    if (g_pChapterShapeIds != (u16 *)0) {
         return 0;
     }
     g_pChapterShapeIds = galloc_safe_zcalloc(6);
     file = res_fopen("chap_shp.dat", "rb");
-    res_fseek(file, (unsigned long)((g_gameState.nChapter - 1) * 6), SEEK_CUR);
+    res_fseek(file, (u32)((g_gameState.nChapter - 1) * 6), SEEK_CUR);
     res_fread(g_pChapterShapeIds, 2, 3, file);
     res_fclose(file);
     i = 0;
@@ -848,24 +848,24 @@ int far rgnenc_chap_shp_init(void) {
     return 1;
 }
 
-int far rgnenc_release_sfx_slot_table(void) {
-    int i;
+s16 far rgnenc_release_sfx_slot_table(void) {
+    s16 i;
 
-    if (g_pChapterShapeIds != (unsigned short *)0x0) {
+    if (g_pChapterShapeIds != (u16 *)0x0) {
         for (i = 2; i >= 0; i--) {
             if (g_pChapterShapeIds[i] != 0xffff) {
                 combat_actor_release_anim_images(g_pChapterShapeIds[i]);
             }
         }
         galloc_zfree(g_pChapterShapeIds);
-        g_pChapterShapeIds = (unsigned short *)0x0;
+        g_pChapterShapeIds = (u16 *)0x0;
         return 1;
     }
     return 0;
 }
 
-int far rgnenc_global_flag_tbl_contains(unsigned short id) {
-    int i;
+s16 far rgnenc_global_flag_tbl_contains(u16 id) {
+    s16 i;
 
     i = 0;
     do {

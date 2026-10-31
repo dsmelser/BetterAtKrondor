@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int sndinst_drivers(int sfx_driver, int music_driver, unsigned int p3, char *p4);
+extern s16 sndinst_drivers(s16 sfx_driver, s16 music_driver, u16 p3, char *p4);
 
 #endif

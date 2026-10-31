@@ -3,7 +3,7 @@
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 #include "SRC/AUDIO/MUSIC/SNDLADV.H"
 
-void music_handle_stop(AudioTrackHandle far *pRecord, int n) {
+void music_handle_stop(AudioTrackHandle far *pRecord, s16 n) {
 
     if ((pRecord = sound_list_advance_n(pRecord, n)) != 0) {
         midi_active_release_thunk(pRecord);

@@ -9,8 +9,8 @@
 #undef fmemcpy_far
 extern void fmemcpy_far();
 
-int stream_open(int codec_kind, ResFile *file, char *mode, unsigned long size) {
-    int slot;
+s16 stream_open(s16 codec_kind, ResFile *file, char *mode, u32 size) {
+    s16 slot;
     char buf[4];
 
     if ((slot = stream_alloc_slot(mode)) == -1)
@@ -45,8 +45,8 @@ int stream_open(int codec_kind, ResFile *file, char *mode, unsigned long size) {
     return slot;
 }
 
-int stream_open_from_memory(int codec_id, unsigned char huge *pSrc, char *mode, unsigned long size) {
-    int slot;
+s16 stream_open_from_memory(s16 codec_id, unsigned char huge *pSrc, char *mode, u32 size) {
+    s16 slot;
 
     if ((slot = stream_alloc_slot(mode)) == -1)
         return -1;
@@ -74,13 +74,13 @@ int stream_open_from_memory(int codec_id, unsigned char huge *pSrc, char *mode, 
     return slot;
 }
 
-int stream_close(int stream_id) {
+s16 stream_close(s16 stream_id) {
     if (stream_select(stream_id) == 0)
         return -1;
 
     g_nStreamBytesWritten = 0;
     if (!(g_bCurStreamDescFlags & 0x40)) {
-        (*(void(near *)(int))g_codec_vtable[(unsigned char)g_bCurStreamCodecId].pWrite_chunk)(1);
+        (*(void(near *)(s16))g_codec_vtable[(unsigned char)g_bCurStreamCodecId].pWrite_chunk)(1);
         if (g_bCurStreamDescFlags & 0x20) {
             res_fseek(g_pCurStreamFp, g_pCurStreamDesc->dwFileStartOff + 1, SEEK_SET);
             res_fwrite(&g_pCurStreamDesc->dwUncompressedSize, 4, 1, g_pCurStreamFp);
@@ -94,7 +94,7 @@ int stream_close(int stream_id) {
     return g_nStreamBytesWritten;
 }
 
-unsigned int stream_read(int handle, void far *dest, unsigned int count) {
+u16 stream_read(s16 handle, void far *dest, u16 count) {
     if (stream_select(handle) == 0)
         return 0xffff;
     g_pStreamReadDst = normalize_far_ptr_thunk((unsigned char far *)dest);
@@ -102,10 +102,10 @@ unsigned int stream_read(int handle, void far *dest, unsigned int count) {
     return stream_consume(handle, count);
 }
 
-unsigned int stream_write(int stream_id, void far *pSrc, unsigned int count) {
+u16 stream_write(s16 stream_id, void far *pSrc, u16 count) {
     register unsigned char *pBuf; /* held in DI as the ring-buffer base across the copy loop */
     unsigned char huge *src;
-    unsigned ring_head, ring_end;
+    u16 ring_head, ring_end;
     if (stream_select(stream_id) == 0)
         return 0xffff;
     g_nStreamBytesWritten = 0;
@@ -121,20 +121,20 @@ unsigned int stream_write(int stream_id, void far *pSrc, unsigned int count) {
             ring_head &= 0x7f;
         } while (ring_head != ring_end && count != 0);
         g_pCurStreamDesc->bRingHead = ring_head & 0x7f;
-        (*(void(near *)(int))g_codec_vtable[(unsigned char)g_bCurStreamCodecId].pWrite_chunk)(0);
+        (*(void(near *)(s16))g_codec_vtable[(unsigned char)g_bCurStreamCodecId].pWrite_chunk)(0);
     }
     return g_nStreamBytesWritten;
 }
 
-unsigned long stream_size(int stream_id) {
+u32 stream_size(s16 stream_id) {
     if (stream_select(stream_id) == 0) {
         return 0xffffffffUL;
     }
     return g_pCurStreamDesc->dwUncompressedSize;
 }
 
-long stream_seek(int handle, long position, int origin) {
-    long pos;
+s32 stream_seek(s16 handle, s32 position, s16 origin) {
+    s32 pos;
 
     if (!stream_select(handle))
         return -1L;
@@ -153,25 +153,25 @@ long stream_seek(int handle, long position, int origin) {
     if (g_pCurStreamDesc->dwOutPos == pos)
         return pos;
 
-    if ((long)g_pCurStreamDesc->dwOutPos > pos) {
+    if ((s32)g_pCurStreamDesc->dwOutPos > pos) {
         stream_rewind(handle);
         if (pos <= 0)
             return 0L;
     } else {
-        if ((long)g_pCurStreamDesc->dwUncompressedSize <= pos) {
+        if ((s32)g_pCurStreamDesc->dwUncompressedSize <= pos) {
             pos = g_pCurStreamDesc->dwUncompressedSize - g_pCurStreamDesc->dwOutPos;
         } else {
-            pos -= (long)g_pCurStreamDesc->dwOutPos;
+            pos -= (s32)g_pCurStreamDesc->dwOutPos;
         }
     }
-    while ((pos -= stream_consume(handle, pos < 32000L ? (unsigned int)pos : 32000)) != 0) {
+    while ((pos -= stream_consume(handle, pos < 32000L ? (u16)pos : 32000)) != 0) {
         g_pCurStreamSrcCursor = (char huge *)normalize_far_ptr_thunk(
             g_pCurStreamDesc->src.pBufBase + g_pCurStreamDesc->dwInPos);
     }
     return g_pCurStreamDesc->dwOutPos;
 }
 
-int stream_rewind(int stream_id) {
+s16 stream_rewind(s16 stream_id) {
     if (!stream_select(stream_id) || !(g_bCurStreamDescFlags & 0x40))
         return -1;
     if (g_codec_vtable[(unsigned char)g_bCurStreamCodecId].pOpen_read)

@@ -8,8 +8,8 @@
 #include "SRC/AUDIO/RES/AUDRESIN.H"
 #include "SRC/AUDIO/DRIVER/SNDDRV.H"
 
-int sndinst_drivers(int sfx_driver, int music_driver, unsigned int p3, char *fileName) {
-    int failed;
+s16 sndinst_drivers(s16 sfx_driver, s16 music_driver, u16 p3, char *fileName) {
+    s16 failed;
 
     failed = 0;
 
@@ -17,7 +17,7 @@ int sndinst_drivers(int sfx_driver, int music_driver, unsigned int p3, char *fil
         my_strcpy(g_szSsmTag + 4, g_apMusicDriverTags[music_driver]);
         if ((g_pMusicDriver = bak_load_chunk(fileName, g_szSsmTag, 0)) != (void far *)0) {
             g_bMusicDriverInstalled = 1;
-            snddrv_patch_farptr((unsigned)g_pMusicDriver, ((unsigned *)&g_pMusicDriver)[1]);
+            snddrv_patch_farptr((u16)g_pMusicDriver, ((u16 *)&g_pMusicDriver)[1]);
             if (audio_driver_disp_seg1000_alt(p3, 1) == 0) {
                 g_bMusicDriverInstalled = 0;
                 audio_driver_disp_seg1000_far();
@@ -34,8 +34,8 @@ int sndinst_drivers(int sfx_driver, int music_driver, unsigned int p3, char *fil
         my_strcpy(g_szSsmTag + 4, g_apSfxDriverTags[sfx_driver]);
         if ((g_pSfxDriver = bak_load_chunk(fileName, g_szSsmTag, 0)) != (void far *)0) {
             g_nSfxResourceId = midi_driver_install_dispatch(
-                (unsigned)g_pSfxDriver, (unsigned)((unsigned long)g_pSfxDriver >> 16));
-            if (audio_resource_install_by_id(fileName, (int *)&g_nSfxResourceId, 0) == 0) {
+                (u16)g_pSfxDriver, (u16)((u32)g_pSfxDriver >> 16));
+            if (audio_resource_install_by_id(fileName, (s16 *)&g_nSfxResourceId, 0) == 0) {
                 release_buffer(g_pSfxDriver, 1);
                 g_pSfxDriver = (void far *)0;
                 failed = 1;

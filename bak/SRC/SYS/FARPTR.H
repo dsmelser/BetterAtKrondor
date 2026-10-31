@@ -3,16 +3,16 @@
 
 #include "structs.h"
 
-extern unsigned long near normalize_far_ptr(unsigned short offset, unsigned short seg);
+extern u32 near normalize_far_ptr(u16 offset, u16 seg);
 extern void near normalize_far_ptr_flatten();
-extern unsigned long near far_ptr_add_offset(unsigned int ptr_lo, unsigned int addend, unsigned int rotate, unsigned int ptr_hi);
+extern u32 near far_ptr_add_offset(u16 ptr_lo, u16 addend, u16 rotate, u16 ptr_hi);
 extern void near far_ptr_sub_offset(void);
 extern void near memcpy_far_backward(void);
 extern void near memcpy_far_forward(void);
-extern void fmemmove(unsigned char far *dst, unsigned char far *src, unsigned long n);
-extern void fmemcpy_far(unsigned long dst, unsigned long src, unsigned int count);
-extern void memset_far(void far *dst, int value, unsigned long count);
-extern int far_ptr_cmp(void far *a, void far *b);
+extern void fmemmove(unsigned char far *dst, unsigned char far *src, u32 n);
+extern void fmemcpy_far(u32 dst, u32 src, u16 count);
+extern void memset_far(void far *dst, s16 value, u32 count);
+extern s16 far_ptr_cmp(void far *a, void far *b);
 extern unsigned char far *normalize_far_ptr_thunk(unsigned char far *p);
 
 #endif

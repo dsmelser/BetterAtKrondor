@@ -4,6 +4,6 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-extern ResFile *audio_resource_load_chunk(FileRef *file, int chunk_id);
+extern ResFile *audio_resource_load_chunk(FileRef *file, s16 chunk_id);
 
 #endif

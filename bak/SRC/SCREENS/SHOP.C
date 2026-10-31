@@ -11,10 +11,10 @@
 #include "SRC/GAME/ACTOR/ACTORREC.H"
 
 
-static int shop_rand_max_of_3(unsigned int modulus) {
-    int i;
-    int max;
-    int roll;
+static s16 shop_rand_max_of_3(u16 modulus) {
+    s16 i;
+    s16 max;
+    s16 roll;
 
     max = 0;
     if (modulus != 0) {
@@ -27,11 +27,11 @@ static int shop_rand_max_of_3(unsigned int modulus) {
 }
 
 void far shop_items_compute_actor_prices(Actor far *actor) {
-    long itemId;
-    long priceScale;
+    s32 itemId;
+    s32 priceScale;
     ItemRecord far *rec;
     ActorSubrecord far *sub;
-    long *prices;
+    s32 *prices;
 
     priceScale = 100;
     prices = itemtbl_count();
@@ -44,21 +44,21 @@ void far shop_items_compute_actor_prices(Actor far *actor) {
         }
     }
     for (itemId = 0; itemId < 0x8a; itemId++) {
-        rec = itemtbl_record_ptr_by_id((int)itemId);
-        prices[(int)itemId] =
-            ((long)(unsigned short)rec->nBase_price * ((long)(int)sub->interact_msg.bFlags + 100)) /
+        rec = itemtbl_record_ptr_by_id((s16)itemId);
+        prices[(s16)itemId] =
+            ((s32)(u16)rec->nBase_price * ((s32)(s16)sub->interact_msg.bFlags + 100)) /
             100;
-        prices[(int)itemId] = (prices[(int)itemId] * priceScale) / 100;
+        prices[(s16)itemId] = (prices[(s16)itemId] * priceScale) / 100;
     }
     return;
 }
 
-int far shop_haggle_attempt_purchase(Actor far *actor, Combatant *combatant, ItemSlot far *item,
-                                     int mode) {
-    register long *prices;
-    int partyRoll;
-    int merchantRoll;
-    long price;
+s16 far shop_haggle_attempt_purchase(Actor far *actor, Combatant *combatant, ItemSlot far *item,
+                                     s16 mode) {
+    register s32 *prices;
+    s16 partyRoll;
+    s16 merchantRoll;
+    s32 price;
     ItemRecord far *rec;
     ActorSubrecord far *sub;
 
@@ -67,21 +67,21 @@ int far shop_haggle_attempt_purchase(Actor far *actor, Combatant *combatant, Ite
     sub = actorrec_get_subrecord(actor, SUBREC_EVENT_STATE);
     merchantRoll = sub->event_state.bTemple_filter;
     price =
-        (long)(unsigned int)rec->nBase_price * ((long)(int)sub->interact_msg.bFlags + 100) / 100;
+        (s32)(u16)rec->nBase_price * ((s32)(s16)sub->interact_msg.bFlags + 100) / 100;
     if ((unsigned char)sub->interact_msg.dwMessage_id != 0 && prices[item->item_id] == price) {
         g_gameState.nEvtArgStat = combatant->charSlot - 1;
         partyRoll = stat_actor_get(combatant, 0xc, 0);
         partyRoll = shop_rand_max_of_3(partyRoll);
         merchantRoll = shop_rand_max_of_3(merchantRoll);
         if (partyRoll > merchantRoll) {
-            int iDiscount;
-            iDiscount = (int)(unsigned char)sub->interact_msg.dwMessage_id / 2;
+            s16 iDiscount;
+            iDiscount = (s16)(unsigned char)sub->interact_msg.dwMessage_id / 2;
             iDiscount += partyRoll - merchantRoll;
             iDiscount = shop_rand_max_of_3(iDiscount);
-            if ((int)(unsigned char)sub->interact_msg.dwMessage_id < iDiscount) {
+            if ((s16)(unsigned char)sub->interact_msg.dwMessage_id < iDiscount) {
                 iDiscount = (unsigned char)sub->interact_msg.dwMessage_id;
             }
-            prices[item->item_id] -= prices[item->item_id] * (long)iDiscount / 100;
+            prices[item->item_id] -= prices[item->item_id] * (s32)iDiscount / 100;
             if (prices[item->item_id] < 1) {
                 prices[item->item_id] = 1;
             }
@@ -93,20 +93,20 @@ int far shop_haggle_attempt_purchase(Actor far *actor, Combatant *combatant, Ite
     if (RND(100) < (100 - partyRoll) / 5) {
         stat_party_broadcast_status_op(0xc, 1, 3);
     }
-    if (RND(100) < (unsigned)sub->event_state.bTeleport_cost_msb) {
+    if (RND(100) < (u16)sub->event_state.bTeleport_cost_msb) {
         prices[item->item_id] = -1;
     }
     return 0;
 }
 
-int far shop_npc_transaction(Actor far *actor, Actor far *merchant, ItemSlot far *item) {
+s16 far shop_npc_transaction(Actor far *actor, Actor far *merchant, ItemSlot far *item) {
     ItemRecord far *rec;
-    long *prices;
-    int purchased;
+    s32 *prices;
+    s16 purchased;
     ItemSlot pickupItem;
-    unsigned savedCount;
-    int partySlot;
-    int done;
+    u16 savedCount;
+    s16 partySlot;
+    s16 done;
 
     rec = itemtbl_record_ptr(item);
     actorrec_get_subrecord(actor, SUBREC_EVENT_STATE);
@@ -114,7 +114,7 @@ int far shop_npc_transaction(Actor far *actor, Actor far *merchant, ItemSlot far
     partySlot = merchant->loc.party_slot.wSlot_id - 1;
     done = 0;
     purchased = 0;
-    if (prices[(unsigned)item->item_id] < 0) {
+    if (prices[(u16)item->item_id] < 0) {
         return 0;
     }
     if (item->item_id == 0x86) {
@@ -163,7 +163,7 @@ int far shop_npc_transaction(Actor far *actor, Actor far *merchant, ItemSlot far
                     actor->itemCount = savedCount;
                 }
                 if (rec->wCategory == 0x17) {
-                    int slot = merchant->loc.party_slot.wSlot_id - 1;
+                    s16 slot = merchant->loc.party_slot.wSlot_id - 1;
                     if (g_gameState.abActorStatusRanks[slot][5] != 0) {
                         gstate_member_consume_rations(slot, 1);
                     }
@@ -189,20 +189,20 @@ int far shop_npc_transaction(Actor far *actor, Actor far *merchant, ItemSlot far
     return purchased;
 }
 
-int far shop_sell_item(Actor far *shop_inv, Actor far *actor, ItemSlot far *item_slot) {
+s16 far shop_sell_item(Actor far *shop_inv, Actor far *actor, ItemSlot far *item_slot) {
     ItemRecord far *rec;
     ActorSubrec04_EventState far *sub;
     ItemSlot far *best_slot;
-    int is_new_slot;
-    int i;
-    long price;
+    s16 is_new_slot;
+    s16 i;
+    s32 price;
 
     rec = itemtbl_record_ptr(item_slot);
     sub = (ActorSubrec04_EventState far *)actorrec_get_subrecord(shop_inv, SUBREC_EVENT_STATE);
     best_slot = (ItemSlot far *)0;
     is_new_slot = 0;
     if (((rec->nBase_price == 0) || ((rec->wSub_flags & sub->wShop_disposition_flags) == 0)) &&
-        (itemtbl_inv_count_by_kind(shop_inv, (unsigned int)item_slot->item_id) == 0)) {
+        (itemtbl_inv_count_by_kind(shop_inv, (u16)item_slot->item_id) == 0)) {
         dialog_play_record(0x1b7759, 0);
         return 0;
     } else {
@@ -210,11 +210,11 @@ int far shop_sell_item(Actor far *shop_inv, Actor far *actor, ItemSlot far *item
             best_slot = &ACTOR_ITEM(shop_inv, shop_inv->itemCount);
             is_new_slot = 1;
         } else {
-            for (i = 0; i < (int)(unsigned int)shop_inv->itemCount; i++) {
+            for (i = 0; i < (s16)(u16)shop_inv->itemCount; i++) {
                 if ((ACTOR_ITEM(shop_inv, i).flags & 2) != 0) {
                     if (best_slot != (ItemSlot far *)0) {
-                        if ((unsigned int)itemtbl_record_ptr(best_slot)->nBase_price >=
-                            (unsigned int)itemtbl_record_ptr(&ACTOR_ITEM(shop_inv, i))->nBase_price) {
+                        if ((u16)itemtbl_record_ptr(best_slot)->nBase_price >=
+                            (u16)itemtbl_record_ptr(&ACTOR_ITEM(shop_inv, i))->nBase_price) {
                             continue;
                         }
                     }
@@ -227,7 +227,7 @@ int far shop_sell_item(Actor far *shop_inv, Actor far *actor, ItemSlot far *item
             dialog_play_record(0x1b7748, 0);
             return 0;
         }
-        price = itemtbl_compute_value(item_slot) * (long)(int)(unsigned int)sub->bArg3 / 100;
+        price = itemtbl_compute_value(item_slot) * (s32)(s16)(u16)sub->bArg3 / 100;
         if (itemtbl_record_ptr(item_slot)->wCategory == 4) {
             price /= 2;
         }

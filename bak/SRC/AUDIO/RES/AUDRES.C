@@ -6,15 +6,15 @@
 #include "SRC/STREAM/RESLOAD/RELBUF.H"
 #include "SRC/STREAM/CODEC/STREAM.H"
 
-unsigned char far *audres_load_chunk_by_mode(ResFile *file, unsigned int size_lo, unsigned int size_hi, unsigned int *out_size,
-                                     unsigned short allocTag) {
+unsigned char far *audres_load_chunk_by_mode(ResFile *file, u16 size_lo, u16 size_hi, u16 *out_size,
+                                     u16 allocTag) {
     AudFragNode far *cursor;
     unsigned char ssmRecordTag;
-    unsigned long sum;
-    unsigned int far *chain;
+    u32 sum;
+    u16 far *chain;
     unsigned char far *buf;
-    int stream;
-    unsigned int header_size;
+    s16 stream;
+    u16 header_size;
 
     chain = 0;
     buf = 0;
@@ -44,10 +44,10 @@ unsigned char far *audres_load_chunk_by_mode(ResFile *file, unsigned int size_lo
         return 0;
     }
 
-    if ((stream = stream_open(0, file, "r", ((unsigned long)size_hi << 16) | size_lo)) >= 0) {
+    if ((stream = stream_open(0, file, "r", ((u32)size_hi << 16) | size_lo)) >= 0) {
 
         if (audres_stream_find_tagged_record(stream, ssmRecordTag) &&
-            (chain = (unsigned int far *)audres_load_sorted_chain(stream)) != 0) {
+            (chain = (u16 far *)audres_load_sorted_chain(stream)) != 0) {
 
             cursor = (AudFragNode far *)chain;
             sum = 0;
@@ -62,14 +62,14 @@ unsigned char far *audres_load_chunk_by_mode(ResFile *file, unsigned int size_lo
                 header_size++;
             header_size = (header_size >= 0x26) ? header_size : 0x26;
 
-            sum += (unsigned int)header_size;
+            sum += (u16)header_size;
 
             if ((buf = (unsigned char far *)pool_acquire_buffer(sum + 1, 4)) != 0 &&
                 audres_resource_read_fragmented(stream, (AudFragNode far *)chain, buf, header_size,
                                                 ssmRecordTag)) {
                 audres_release_buffer_chain((AudFragNode far *)chain);
                 if (out_size) {
-                    *(unsigned long *)out_size = sum;
+                    *(u32 *)out_size = sum;
                 }
                 stream_close(stream);
                 return buf;
@@ -94,7 +94,7 @@ void audres_release_buffer_chain(AudFragNode far *head) {
     }
 }
 
-int audres_stream_find_tagged_record(int stream, unsigned char tag) {
+s16 audres_stream_find_tagged_record(s16 stream, unsigned char tag) {
     unsigned char tag_byte;
     unsigned char sub_byte;
     unsigned char magic_byte;
@@ -127,7 +127,7 @@ int audres_stream_find_tagged_record(int stream, unsigned char tag) {
     return 1;
 }
 
-void far *audres_load_sorted_chain(int stream_id) {
+void far *audres_load_sorted_chain(s16 stream_id) {
     unsigned char flag;
     void far *head;
     void far *node;
@@ -181,8 +181,8 @@ AudFragNode far *audres_sorted_list_insert(AudFragNode far *head, AudFragNode fa
     return head;
 }
 
-int audres_resource_read_fragmented(int stream_id, AudFragNode far *fragment_list,
-                                    unsigned char far *out_buf, int header_size, int tag) {
+s16 audres_resource_read_fragmented(s16 stream_id, AudFragNode far *fragment_list,
+                                    unsigned char far *out_buf, s16 header_size, s16 tag) {
     unsigned char far *data_ptr;
     unsigned char far *hdrp;
 
@@ -198,10 +198,10 @@ int audres_resource_read_fragmented(int stream_id, AudFragNode far *fragment_lis
 
         hdrp[0] = 0;
         hdrp[1] = 0;
-        *(unsigned int far *)(hdrp + 2) = (unsigned)((long)(data_ptr - out_buf) + (long)0xfffe);
-        *(unsigned int far *)(hdrp + 4) = fragment_list->wSize;
+        *(u16 far *)(hdrp + 2) = (u16)((s32)(data_ptr - out_buf) + (s32)0xfffe);
+        *(u16 far *)(hdrp + 4) = fragment_list->wSize;
 
-        stream_seek(stream_id, (unsigned long)(unsigned short)(fragment_list->wKey + 2), 0);
+        stream_seek(stream_id, (u32)(u16)(fragment_list->wKey + 2), 0);
 
         if (stream_read(stream_id, data_ptr, fragment_list->wSize) != fragment_list->wSize) {
             return 0;
@@ -214,6 +214,6 @@ int audres_resource_read_fragmented(int stream_id, AudFragNode far *fragment_lis
         hdrp += 6;
     }
 
-    *(unsigned int far *)hdrp = 0xffff;
+    *(u16 far *)hdrp = 0xffff;
     return 1;
 }

@@ -19,20 +19,20 @@
 
 
 unsigned char g_bPicklockSuccess;
-short g_nPicklockMode;
+s16 g_nPicklockMode;
 unsigned char far *g_pPicklockWorkingInv;
 Actor far *g_pPicklockOwnerActor;
-short g_nPicklockScore;
-short g_nPicklockDiffTier;
+s16 g_nPicklockScore;
+s16 g_nPicklockDiffTier;
 
 unsigned char g_bInventoryShopMode = 0x00;
 unsigned char g_abInvQuizAnswerTable[13] = {0x00, 0x32, 0x5a, 0x65, 0x66, 0x67, 0x68,
                                             0x46, 0x3c, 0x50, 0x69, 0x6a, 0x00};
 
-void far picklock_lock_slide_animation(int dir) {
-    int lockWidth;
-    int shackleOffset;
-    int slideOffset;
+void far picklock_lock_slide_animation(s16 dir) {
+    s16 lockWidth;
+    s16 shackleOffset;
+    s16 slideOffset;
 
     lockWidth = g_pInvLockAssetTable[g_nPicklockDiffTier]->nWidth;
     if (dir != 0) {
@@ -58,9 +58,9 @@ typedef struct {
     unsigned char b[0x86];
 } ActorWorkBuf;
 
-int far picklock_screen_run(int score, int mode, Actor far *record) {
-    short memberIdx;
-    int pickCount;
+s16 far picklock_screen_run(s16 score, s16 mode, Actor far *record) {
+    s16 memberIdx;
+    s16 pickCount;
     unsigned char items[0x70];
     Actor workActor;
 
@@ -92,7 +92,7 @@ int far picklock_screen_run(int score, int mode, Actor far *record) {
             g_bInventoryShopMode = '\0';
             screen_render_main_frame(0);
             g_nSceneReloadPending = 0;
-            return (unsigned int)g_bPicklockSuccess;
+            return (u16)g_bPicklockSuccess;
         }
     } else {
         g_bInventoryShopMode = '\0';
@@ -100,9 +100,9 @@ int far picklock_screen_run(int score, int mode, Actor far *record) {
     return 0;
 }
 
-int far picklock_screen_handle_drop(int item_kind, int slot) {
-    int skill;
-    int threshold;
+s16 far picklock_screen_handle_drop(s16 item_kind, s16 slot) {
+    s16 skill;
+    s16 threshold;
 
     skill = stat_actor_get(gstate_party_member_record(slot - 1), 0xd, 0);
     g_gameState.nEvtArgActor0 = slot = g_gameState.activeParty[slot - 1];
@@ -128,7 +128,7 @@ int far picklock_screen_handle_drop(int item_kind, int slot) {
         }
 
         threshold = (100 - g_abInvQuizAnswerTable[item_kind] - skill / 3) * 2 / 3;
-        if ((int)RND(100) <= threshold) {
+        if ((s16)RND(100) <= threshold) {
 
             audio_play(0x2b);
             itemtbl_inv_consume_one_by_kind(g_pPicklockWorkingInv, item_kind + 0x3c);
@@ -163,7 +163,7 @@ int far picklock_screen_handle_drop(int item_kind, int slot) {
                                   3);
         }
 
-        if ((int)RND(100) <= (g_nPicklockScore - skill) * 2 / 3) {
+        if ((s16)RND(100) <= (g_nPicklockScore - skill) * 2 / 3) {
 
             audio_play(0x2b);
             itemtbl_inv_consume_one_by_kind(g_pPicklockWorkingInv, 0x50);
@@ -179,8 +179,8 @@ int far picklock_screen_handle_drop(int item_kind, int slot) {
 }
 
 void far picklock_inv_info_query_disp(void) {
-    int matchedKind;
-    short i;
+    s16 matchedKind;
+    s16 i;
 
     for (i = 1, matchedKind = 0; i < 0xc; i++) {
         if (g_abInvQuizAnswerTable[i] == g_nPicklockScore) {
@@ -193,7 +193,7 @@ void far picklock_inv_info_query_disp(void) {
         dialog_play_record(0x1b776a, 0);
         return;
     }
-    g_gameState.nEvtArgCount = (short)((int)stat_party_find_extreme(0xd, 0, &i) < g_nPicklockScore);
+    g_gameState.nEvtArgCount = (s16)((s16)stat_party_find_extreme(0xd, 0, &i) < g_nPicklockScore);
     if (100 < g_nPicklockScore) {
         g_gameState.nEvtArgCount = 2;
     }

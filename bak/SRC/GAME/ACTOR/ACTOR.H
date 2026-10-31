@@ -21,13 +21,13 @@
 #define RES_SELF_SPAWN 9
 
 typedef struct PartySlotCoords {
-    unsigned short wSlot_id;
+    u16 wSlot_id;
     unsigned char pPad[6];
 } PartySlotCoords;
 
 typedef struct CombatLocCoords {
-    long nCombat_idx;
-    long nCombatant_idx;
+    s32 nCombat_idx;
+    s32 nCombatant_idx;
 } CombatLocCoords;
 
 typedef union ContainerLocation {
@@ -52,7 +52,7 @@ typedef struct Actor {
     unsigned char temp_file_off[4];
     unsigned char kind;
     unsigned char chap_band;
-    unsigned short world_item_id;
+    u16 world_item_id;
     ContainerLocation loc;
     unsigned char bResidence;
     /** Item slots currently filled; mutable fill count, bounds every inventory loop, and equals @ref Actor::itemCapacity when full. */
@@ -158,7 +158,7 @@ typedef struct ActorSubrec01_Proximity {
 typedef struct ActorSubrec02_InteractMsg {
     unsigned char bKind_or_id;
     unsigned char bFlags;
-    unsigned long dwMessage_id;
+    u32 dwMessage_id;
 } ActorSubrec02_InteractMsg;
 
 typedef struct ActorSubrec04_EventState {
@@ -176,12 +176,12 @@ typedef struct ActorSubrec04_EventState {
     unsigned char bRest_gold_cost;
     unsigned char bInvreq_arg_x;
     unsigned char bInvreq_arg_y;
-    unsigned short wShop_disposition_flags;
+    u16 wShop_disposition_flags;
 } ActorSubrec04_EventState;
 
 typedef struct ActorSubrec08_HotspotAction {
-    unsigned short wPad_0;
-    unsigned short wGame_state_event_id;
+    u16 wPad_0;
+    u16 wGame_state_event_id;
     unsigned char bWarp_kind;
     unsigned char bWarp_dest;
     unsigned char bHas_hotspot;
@@ -190,11 +190,11 @@ typedef struct ActorSubrec08_HotspotAction {
 } ActorSubrec08_HotspotAction;
 
 typedef struct ActorSubrec10_LastTouch {
-    unsigned long dwLast_touch_time;
+    u32 dwLast_touch_time;
 } ActorSubrec10_LastTouch;
 
 typedef struct ActorSubrec20_DoorVariant {
-    short nDoor_variant;
+    s16 nDoor_variant;
 } ActorSubrec20_DoorVariant;
 
 typedef union ActorSubrec01_Params {

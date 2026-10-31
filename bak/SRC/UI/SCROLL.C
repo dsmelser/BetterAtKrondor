@@ -5,23 +5,23 @@
 #include "SRC/GFX/RASTER/PRESENT.H"
 #include <conio.h>
 
-short g_nVgaScrollPageCount;
-short g_nVgaScrollPanStep;
+s16 g_nVgaScrollPageCount;
+s16 g_nVgaScrollPanStep;
 unsigned char far *g_pVgaScrollScratchBuf;
 
-void far scrolltrans_scroll_fast(int direction, int speed, int distance) {
+void far scrolltrans_scroll_fast(s16 direction, s16 speed, s16 distance) {
     unsigned char far *front_end;
     unsigned char far *page2_end;
     unsigned char far *page1_end;
     unsigned char far *scratch;
-    int xOff;
-    int screen_width;
-    int x_step;
-    int y_step;
-    int absStep;
-    int fallback;
-    int y;
-    int set_split;
+    s16 xOff;
+    s16 screen_width;
+    s16 x_step;
+    s16 y_step;
+    s16 absStep;
+    s16 fallback;
+    s16 y;
+    s16 set_split;
 
     fallback = 0;
     if (distance > 0x140) {
@@ -48,17 +48,17 @@ void far scrolltrans_scroll_fast(int direction, int speed, int distance) {
     screen_width = (g_graphics_context.bVideoAdapter == '\x08') ? 0x50 : 0x28;
 
     {
-        int sw200 = screen_width * 200;
+        s16 sw200 = screen_width * 200;
         front_end =
-            (unsigned char far *)((unsigned long)((long)(int)g_graphics_context.wVgaFrontPageBase << 16) +
-                          (unsigned)sw200 - 1);
+            (unsigned char far *)((u32)((s32)(s16)g_graphics_context.wVgaFrontPageBase << 16) +
+                          (u16)sw200 - 1);
         page2_end =
-            (unsigned char far *)((unsigned long)((long)(int)g_graphics_context.wVgaPage2Base << 16) +
-                          (unsigned)sw200 - 1);
+            (unsigned char far *)((u32)((s32)(s16)g_graphics_context.wVgaPage2Base << 16) +
+                          (u16)sw200 - 1);
         page1_end =
-            (unsigned char far *)((unsigned long)((long)(int)g_graphics_context.wVgaPage1Base << 16) +
-                          (unsigned)sw200 - 1);
-        scratch = (unsigned char far *)((unsigned long)(unsigned int)(sw200 << 1) + 0xa8000050UL - 1);
+            (unsigned char far *)((u32)((s32)(s16)g_graphics_context.wVgaPage1Base << 16) +
+                          (u16)sw200 - 1);
+        scratch = (unsigned char far *)((u32)(u16)(sw200 << 1) + 0xa8000050UL - 1);
     }
 
     if (direction == 0) {
@@ -157,20 +157,20 @@ lab_320:
     scrolltrans_planar_blit_pageflip(direction, xOff, y, screen_width);
 }
 
-void far scrolltrans_scroll(int direction, int duration, int distance) {
+void far scrolltrans_scroll(s16 direction, s16 duration, s16 distance) {
     unsigned char far *front_end;
     unsigned char far *page2_end;
     unsigned char far *page1_end;
     unsigned char far *scratch;
-    int xOff;
-    int screen_width;
-    int absStep;
-    unsigned long fy_idx;
-    int x_step;
-    int y_step;
-    unsigned int y;
-    int set_split;
-    int fallback;
+    s16 xOff;
+    s16 screen_width;
+    s16 absStep;
+    u32 fy_idx;
+    s16 x_step;
+    s16 y_step;
+    u16 y;
+    s16 set_split;
+    s16 fallback;
 
     fallback = 0;
     if (direction < 0 || direction > 3 || duration < 1 || distance < 0 ||
@@ -194,14 +194,14 @@ void far scrolltrans_scroll(int direction, int duration, int distance) {
     screen_width = (g_graphics_context.bVideoAdapter == '\x08') ? 0x50 : 0x28;
 
     {
-        int sw200 = screen_width * 200;
+        s16 sw200 = screen_width * 200;
         g_nVgaScrollPageCount = 3;
-        front_end = (unsigned char far *)((unsigned long)(g_graphics_context.wVgaFrontPageBase << 4) +
-                                  (unsigned long)(unsigned)sw200 + 0xa0000000UL - 1);
-        page2_end = (unsigned char far *)((unsigned long)(g_graphics_context.wVgaPage2Base << 4) +
-                                  (unsigned long)(unsigned)sw200 + 0xa0000000UL - 1);
-        page1_end = (unsigned char far *)((unsigned long)(g_graphics_context.wVgaPage1Base << 4) +
-                                  (unsigned long)(unsigned)sw200 + 0xa0000000UL - 1);
+        front_end = (unsigned char far *)((u32)(g_graphics_context.wVgaFrontPageBase << 4) +
+                                  (u32)(u16)sw200 + 0xa0000000UL - 1);
+        page2_end = (unsigned char far *)((u32)(g_graphics_context.wVgaPage2Base << 4) +
+                                  (u32)(u16)sw200 + 0xa0000000UL - 1);
+        page1_end = (unsigned char far *)((u32)(g_graphics_context.wVgaPage1Base << 4) +
+                                  (u32)(u16)sw200 + 0xa0000000UL - 1);
     }
     scratch = (unsigned char far *)0xa000ffffUL;
     g_nVgaScrollPanStep = -(screen_width * 600);
@@ -241,7 +241,7 @@ void far scrolltrans_scroll(int direction, int duration, int distance) {
             while ((fy_idx = (fy_idx * 200) % 599) < y) {
             }
             if (y < fy_idx) {
-                page2_end = front_end + (int)(fy_idx * (unsigned)screen_width);
+                page2_end = front_end + (s16)(fy_idx * (u16)screen_width);
                 page1_end = front_end - 1;
                 for (xOff = screen_width; xOff != 0; xOff--) {
                     *page1_end = *page2_end;
@@ -293,7 +293,7 @@ void far scrolltrans_scroll(int direction, int duration, int distance) {
     set_split = (direction >= 2) ? 1 : 0;
     while (distance != 0) {
         scrolltrans_pageflip_pan(xOff, y, screen_width, set_split);
-        if ((unsigned int)absStep > distance) {
+        if ((u16)absStep > distance) {
             if (x_step != 0) {
                 x_step = (x_step < 0) ? -distance : distance;
             }
@@ -312,9 +312,9 @@ void far scrolltrans_scroll(int direction, int duration, int distance) {
     scrolltrans_planar_blit_pageflip(direction, xOff, y, screen_width);
 }
 
-void scrolltrans_pageflip_pan(int x_off, int line, int screen_width, int set_split) {
-    int pan;
-    int start_addr;
+void scrolltrans_pageflip_pan(s16 x_off, s16 line, s16 screen_width, s16 set_split) {
+    s16 pan;
+    s16 start_addr;
 
     start_addr = x_off / (0x140 / screen_width) + line * screen_width + g_nVgaScrollPanStep;
     pan = (x_off & (0x140 / screen_width - 1)) * (screen_width / 0x28);
@@ -322,7 +322,7 @@ void scrolltrans_pageflip_pan(int x_off, int line, int screen_width, int set_spl
     while (inp(0x3da) & 8)
         ;
     outp(0x3d4, 0x0c);
-    outp(0x3d5, (char)((unsigned)start_addr >> 8));
+    outp(0x3d5, (char)((u16)start_addr >> 8));
     outp(0x3d4, 0x0d);
     outp(0x3d5, (char)start_addr & 0xff);
     while (!(inp(0x3da) & 8))
@@ -336,12 +336,12 @@ void scrolltrans_pageflip_pan(int x_off, int line, int screen_width, int set_spl
     }
 }
 
-void far scrolltrans_planar_blit_pageflip(int direction, int x_off, int y, int screen_width) {
+void far scrolltrans_planar_blit_pageflip(s16 direction, s16 x_off, s16 y, s16 screen_width) {
     unsigned char far *dst;
     unsigned char far *src;
 
     src = g_pVgaScrollScratchBuf + x_off / (0x140 / screen_width) + y * screen_width;
-    dst = (unsigned char far *)((unsigned long)((long)(int)g_graphics_context.wVgaFrontPageBase) << 16);
+    dst = (unsigned char far *)((u32)((s32)(s16)g_graphics_context.wVgaFrontPageBase) << 16);
 
     outpw(0x3c4, 0xf02);
     outpw(0x3ce, g_graphics_context.bVideoAdapter == '\b' ? 0x4105 : 0x105);
@@ -361,7 +361,7 @@ void far scrolltrans_planar_blit_pageflip(int direction, int x_off, int y, int s
         ;
 
     {
-        int crtc_val = (g_graphics_context.wVgaFrontPageBase - 0xa000) << 4;
+        s16 crtc_val = (g_graphics_context.wVgaFrontPageBase - 0xa000) << 4;
         outp(0x3d4, 0xc);
         outp(0x3d5, (char)(crtc_val >> 8));
         outp(0x3d4, 0xd);

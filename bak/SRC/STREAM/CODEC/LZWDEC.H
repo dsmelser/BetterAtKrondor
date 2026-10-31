@@ -9,6 +9,6 @@ extern unsigned char *g_pLzwEmitPos;
 
 extern void near lzw_decompress();
 extern void near lzw_decode_step(void);
-extern unsigned int near lzw_get_next_code(void);
+extern u16 near lzw_get_next_code(void);
 
 #endif

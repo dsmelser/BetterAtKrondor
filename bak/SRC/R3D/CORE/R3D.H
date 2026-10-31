@@ -22,11 +22,11 @@
  */
 
 /* Whole degrees -> the renderer's binary angle (0x10000 per turn, 0x4000 == 90 deg). */
-#define R3D_DEG(deg) ((short)((long)(deg) * 0x10000L / 360))
+#define R3D_DEG(deg) ((s16)((s32)(deg) * 0x10000L / 360))
 
 /* As R3D_DEG, but the unsigned binary angle (0..0xffff), for headings that are
  * carried and combined in unsigned form (where the >=180 deg half is positive). */
-#define R3D_UDEG(deg) ((unsigned)((long)(deg) * 0x10000L / 360))
+#define R3D_UDEG(deg) ((u16)((s32)(deg) * 0x10000L / 360))
 
 /**
  * Prepares one world-space visible entity for actor rendering by moving it
@@ -42,7 +42,7 @@
  * @note The (entry, entry_seg) pair is one far pointer split into offset and
  *       segment words; the caller passes (ptr, FP_SEG(ptr)).
  */
-extern void r3d_setup_actor_in_camera_space(WorldObject *entry, unsigned short entry_seg);
+extern void r3d_setup_actor_in_camera_space(WorldObject *entry, u16 entry_seg);
 
 /**
  * Assembles the transform that places one actor's mesh into camera space.
@@ -87,7 +87,7 @@ extern void r3d_actor_compute_lod_z(void);
  *       AH = face-vertex index (scaled + origin-biased), ES:BP = vertex-table
  *       far base (6-byte rows). Returns the dot in DX:AX; callers test DX.
  */
-extern long r3d_backface_dot_indexed(void);
+extern s32 r3d_backface_dot_indexed(void);
 
 /**
  * Renders one mesh part at full (LOD-0) detail: walks the part's polygon
@@ -149,7 +149,7 @@ extern void r3d_camera_setup_view(ViewContext *widget);
  *       drives the builder's X slot and the second its Z slot; the middle
  *       Y axis is forced to zero.
  */
-extern void r3d_light_set_direction(short elevation, short azimuth);
+extern void r3d_light_set_direction(s16 elevation, s16 azimuth);
 
 /**
  * Builds a 3x3 rotation matrix, in Q14 fixed point (0x4000 == 1.0), from a
@@ -160,7 +160,7 @@ extern void r3d_light_set_direction(short elevation, short azimuth);
  * angle-to-orientation primitive; all trig goes through a code-resident
  * cosine table. Returns the pointer to the matrix it filled.
  */
-extern Mat3x3 *r3d_build_rotation_matrix(int *angles, Mat3x3 *matrix);
+extern Mat3x3 *r3d_build_rotation_matrix(s16 *angles, Mat3x3 *matrix);
 
 /**
  * Decomposes a 3x3 rotation matrix into a triple of 16-bit fixed-point Euler
@@ -172,7 +172,7 @@ extern Mat3x3 *r3d_build_rotation_matrix(int *angles, Mat3x3 *matrix);
  * rotation matrix when the composed view matrix is non-identity. Returns the
  * output pointer.
  */
-extern int *r3d_matrix_to_euler(Mat3x3 *matrix3x3, int *out_xyz);
+extern s16 *r3d_matrix_to_euler(Mat3x3 *matrix3x3, s16 *out_xyz);
 
 /**
  * Transposes a 3x3 fixed-point rotation matrix in place, swapping the three
@@ -218,7 +218,7 @@ extern void near r3d_matrix3x3_transform_vec3(void);
  * register-convention transform kernel. Used throughout the game to move
  * points between world and camera/view space.
  */
-extern int *r3d_mat3_xform_vec3_wrap(int *vec, Mat3x3 *matrix, int *out_vec);
+extern s16 *r3d_mat3_xform_vec3_wrap(s16 *vec, Mat3x3 *matrix, s16 *out_vec);
 
 /**
  * Resolves and stores the outline/fill color pair used to draw the current
@@ -308,7 +308,7 @@ extern void near r3d_ldiv_helper();
  * @note Register convention: AX = &vec (int16[3]), BX = &Mat3x3,
  *       CX = &out (long[3]). The pseudo-parameters document the registers.
  */
-extern void near r3d_mat3_xform_vec3_long(int *vec, Mat3x3 *matrix, long *out);
+extern void near r3d_mat3_xform_vec3_long(s16 *vec, Mat3x3 *matrix, s32 *out);
 
 /**
  * Renders one mesh part's polygon list for the reduced levels of detail
@@ -333,7 +333,7 @@ extern void r3d_mesh_polygons(unsigned char far *part_header);
  * coordinates. The argument has the same layout as the siblings' part
  * header: polygon count, then the polygon-record array offset.
  */
-extern void r3d_mesh_part_polygons_lod3(unsigned short far *part_header);
+extern void r3d_mesh_part_polygons_lod3(u16 far *part_header);
 
 /**
  * Maps a projected 2D point into screen space in place: adds the viewport
@@ -344,7 +344,7 @@ extern void r3d_mesh_part_polygons_lod3(unsigned short far *part_header);
  * divide to turn projected actor-bound coordinates into clip-test
  * coordinates.
  */
-extern long *r3d_vec2_long_translate_yflip(long *pt);
+extern s32 *r3d_vec2_long_translate_yflip(s32 *pt);
 
 /**
  * Perspective-projects a 2D vector: both numerators from *args are scaled by
@@ -364,7 +364,7 @@ extern PerspDiv2Result *r3d_vec2_perspective_divide(PerspDiv2Args *args, PerspDi
  * is culled. Only the nNumX and nDenom fields of the shared PerspDiv2Args
  * are consulted.
  */
-extern long r3d_actor_proj_scale_compute(PerspDiv2Args *args);
+extern s32 r3d_actor_proj_scale_compute(PerspDiv2Args *args);
 
 /**
  * Computes the full 32-bit signed product of two 16-bit integers. Unlike a
@@ -373,7 +373,7 @@ extern long r3d_actor_proj_scale_compute(PerspDiv2Args *args);
  * and shift the result down without overflow. No shifting, rounding, or
  * saturation is performed here.
  */
-extern long r3d_imul_full32(int a, int b);
+extern s32 r3d_imul_full32(s16 a, s16 b);
 
 /**
  * Computes a mixed-precision 3-element dot product: three 16-bit signed
@@ -386,7 +386,7 @@ extern long r3d_imul_full32(int a, int b);
  * @note Register convention: AX/CX/DX = the three coefficients, BX = near
  *       pointer to the long[3] vector. Result in DX:AX.
  */
-extern long near r3d_dot3_coeff16_vec32(void);
+extern s32 near r3d_dot3_coeff16_vec32(void);
 
 /**
  * Transforms a vec3 of signed 32-bit fixed-point longs by a 3x3 matrix of
@@ -613,7 +613,7 @@ extern void near r3d_apply_viewport_offset_long(void);
  * degrees)); the angle wraps naturally, so negative and out-of-range values
  * are fine.
  */
-extern short r3d_tbl_sin(int angle);
+extern s16 r3d_tbl_sin(s16 angle);
 
 /**
  * Returns the cosine of a 16-bit binary angle as a Q14 short (0x4000 ==
@@ -622,7 +622,7 @@ extern short r3d_tbl_sin(int angle);
  * naturally. Full turn = 65536 angle units. r3d_tbl_sin shares the same
  * table via a phase shift.
  */
-extern short r3d_tbl_cos(int angle);
+extern s16 r3d_tbl_cos(s16 angle);
 
 /**
  * Computes the arcsine of a Q14 sine value (0x4000 == 1.0) by table lookup,
@@ -631,7 +631,7 @@ extern short r3d_tbl_cos(int angle);
  * Inputs outside [-1.0, 1.0] are not clamped and index past the table, so
  * callers must pass a normalized value (e.g. a rotation-matrix element).
  */
-extern int r3d_tbl_asin(int sin_value);
+extern s16 r3d_tbl_asin(s16 sin_value);
 
 /**
  * Computes the four-quadrant arctangent of y and x, returning the vector's
@@ -640,7 +640,7 @@ extern int r3d_tbl_asin(int sin_value);
  * counterclockwise, with (0, 0) returning 0. Derived from the first-octant
  * arctangent table with sign/octant folding.
  */
-extern int r3d_tbl_atan2(int y, int x);
+extern s16 r3d_tbl_atan2(s16 y, s16 x);
 
 /**
  * Returns one raw entry from the renderer's first-octant arctangent table:
@@ -649,7 +649,7 @@ extern int r3d_tbl_atan2(int y, int x);
  * (smaller << 9) / larger and do all octant and sign folding themselves; no
  * bounds check is performed.
  */
-extern short r3d_tbl_atan_lookup_raw(int idx);
+extern s16 r3d_tbl_atan_lookup_raw(s16 idx);
 
 /**
  * Computes the signed 3-element dot product of two 16-bit vectors,
@@ -661,7 +661,7 @@ extern short r3d_tbl_atan_lookup_raw(int idx);
  * @note Register convention: AX = &a, BX = &b (the pseudo-parameters
  *       document the registers). Result in DX:AX.
  */
-extern long near r3d_dot3_long(int *a, int *b);
+extern s32 near r3d_dot3_long(s16 *a, s16 *b);
 
 /**
  * Far-callable entry for the signed 32-bit dot product of two 3-element
@@ -669,6 +669,6 @@ extern long near r3d_dot3_long(int *a, int *b);
  * r3d_dot3_long and adds no arithmetic. The actor mesh-part sorter uses it
  * to derive a depth-ordering key from a part's anchor and edge vertices.
  */
-extern long r3d_dot3_long_far(int *pVecA, int *pVecB);
+extern s32 r3d_dot3_long_far(s16 *pVecA, s16 *pVecB);
 
 #endif

@@ -50,9 +50,9 @@ void worldframe_enc_tbl_reapply_chap(void) {
     }
 }
 
-void worldframe_enc_rec_prox(unsigned char *record, int direction) {
-    int i;
-    int found;
+void worldframe_enc_rec_prox(unsigned char *record, s16 direction) {
+    s16 i;
+    s16 found;
 
     for (i = found = 0; i < 0x28; i++) {
         if ((record[0] == g_pEncounterTable->xCoord[i]) &&
@@ -81,40 +81,40 @@ void worldframe_enc_rec_prox(unsigned char *record, int direction) {
     }
 }
 
-int worldframe_enc_check_visited(unsigned char *pRecord, int bitIndex) {
-    int i;
+s16 worldframe_enc_check_visited(unsigned char *pRecord, s16 bitIndex) {
+    s16 i;
 
     for (i = 0; i < 40; i++) {
         if (*pRecord == g_pEncounterTable->xCoord[i] &&
             pRecord[1] == g_pEncounterTable->yCoord[i] &&
             pRecord[2] == g_pEncounterTable->zCoord[i]) {
-            return (unsigned int)g_pEncounterTable->flags[i][bitIndex >> 3] & 1 << ((unsigned char)bitIndex & 7);
+            return (u16)g_pEncounterTable->flags[i][bitIndex >> 3] & 1 << ((unsigned char)bitIndex & 7);
         }
     }
     return 0;
 }
 
-static unsigned int far worldframe_compass_classifier(WorldObject far *entry) {
-    unsigned int mask;
-    int rot;
-    int n;
+static u16 far worldframe_compass_classifier(WorldObject far *entry) {
+    u16 mask;
+    s16 rot;
+    s16 n;
 
     mask = 0;
     rot = 0;
     n = entry->shapeId;
-    if ((int)n >= 0 && (int)n <= 0x13) {
+    if ((s16)n >= 0 && (s16)n <= 0x13) {
         mask = 10;
-    } else if ((int)n >= 0x14 && (int)n <= 0x1d) {
+    } else if ((s16)n >= 0x14 && (s16)n <= 0x1d) {
         mask = 2;
-    } else if ((int)n >= 0x1e && (int)n <= 0x25) {
+    } else if ((s16)n >= 0x1e && (s16)n <= 0x25) {
         mask = 3;
-    } else if ((int)n >= 0x26 && (int)n <= 0x2d) {
+    } else if ((s16)n >= 0x26 && (s16)n <= 0x2d) {
         mask = 0xb;
-    } else if ((int)n >= 0x5c && (int)n <= 0x65) {
+    } else if ((s16)n >= 0x5c && (s16)n <= 0x65) {
         mask = 10;
-    } else if ((int)n >= 0x66 && (int)n <= 0x6f) {
+    } else if ((s16)n >= 0x66 && (s16)n <= 0x6f) {
         mask = 10;
-    } else if ((int)n >= 0x70 && (int)n <= 0x79) {
+    } else if ((s16)n >= 0x70 && (s16)n <= 0x79) {
         mask = 0xb;
     }
     if (mask != 0) {
@@ -138,7 +138,7 @@ static unsigned int far worldframe_compass_classifier(WorldObject far *entry) {
 }
 
 void far worldframe_debug_print_compass(WorldObject far *entry) {
-    int mask;
+    s16 mask;
 
     mask = worldframe_compass_classifier(entry);
     mdacon_printf(0x14, 0x11, "ShpNo: %6d", entry->shapeId);
@@ -149,16 +149,16 @@ void far worldframe_debug_print_compass(WorldObject far *entry) {
     mdacon_printf(0x14, 0x16, "East : %s", (mask & 8) ? "WALL" : "    ");
 }
 
-void far worldframe_vislist_cull_occl(unsigned short seg, unsigned short *offsets, long *data, int *count) {
-    long boundNorth = 0x7fffffff;
-    long boundEast = 0x7fffffff;
-    long boundSouth = 0;
-    long boundWest = 0;
-    long refX;
-    long refY;
+void far worldframe_vislist_cull_occl(u16 seg, u16 *offsets, s32 *data, s16 *count) {
+    s32 boundNorth = 0x7fffffff;
+    s32 boundEast = 0x7fffffff;
+    s32 boundSouth = 0;
+    s32 boundWest = 0;
+    s32 refX;
+    s32 refY;
     WorldObject far *pEntry;
-    unsigned int mask;
-    register int i;
+    u16 mask;
+    register s16 i;
 
     if (*count >= 2) {
         pEntry = (WorldObject far *)MK_FP(seg, offsets[*count - 1]);
@@ -213,10 +213,10 @@ void far worldframe_vislist_cull_occl(unsigned short seg, unsigned short *offset
 }
 
 void far worldframe_render_chapter_full(void) {
-    int zoneIdx;
-    int uCount;
+    s16 zoneIdx;
+    s16 uCount;
     WorldObject far *pEntry;
-    int bitIndex;
+    s16 bitIndex;
 
     g_bTexturedPolyEnabled = 1;
     g_nPolygonTextureMode = 0;
@@ -262,10 +262,10 @@ void far worldframe_render_chapter_full(void) {
     return;
 }
 
-void far worldframe_render_chapter(int animate) {
+void far worldframe_render_chapter(s16 animate) {
     WorldObject far *pEntry;
-    int i;
-    unsigned short *slotPtr;
+    s16 i;
+    u16 *slotPtr;
 
     slotPtr = g_pwVisibleEntryOffsets;
     r3d_camera_setup_view(g_world_widget);
@@ -277,7 +277,7 @@ void far worldframe_render_chapter(int animate) {
     vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
     worldframe_vislist_cull_occl(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets,
-                                 g_pVisibleEntryDistances, (int *)&g_nVisibleEntryCount);
+                                 g_pVisibleEntryDistances, (s16 *)&g_nVisibleEntryCount);
     worldframe_vislist_reorder(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets,
                                g_nVisibleEntryCount);
     i = 0;
@@ -285,7 +285,7 @@ void far worldframe_render_chapter(int animate) {
         pEntry = (WorldObject far *)MK_FP(g_wVisibleEntrySegment, *slotPtr);
         if (pEntry->shapeId == g_nProximityTableCount) {
             rgnenc_render_object(pEntry, animate);
-        } else if ((int)pEntry->shapeId >= 0x84 && (int)pEntry->shapeId <= 0x88) {
+        } else if ((s16)pEntry->shapeId >= 0x84 && (s16)pEntry->shapeId <= 0x88) {
             actoroverlay_render_actor(pEntry);
         } else {
             if ((pEntry->shapeId == 0x5d) || (pEntry->shapeId == 0x5c)) {
@@ -304,18 +304,18 @@ void far worldframe_render_chapter(int animate) {
 }
 
 void far worldframe_chapter_tick_objects(void) {
-    int zoom;
-    int screen_x;
-    int screen_y;
+    s16 zoom;
+    s16 screen_x;
+    s16 screen_y;
     WorldObject far *pEntry;
-    unsigned short *slot_ptr;
-    int in[3];
-    int out[3];
+    u16 *slot_ptr;
+    s16 in[3];
+    s16 out[3];
     Mat3x3 viewRot;
-    register long *plDist;
-    register int i;
-    unsigned int kind;
-    int scale;
+    register s32 *plDist;
+    register s16 i;
+    u16 kind;
+    s16 scale;
 
     slot_ptr = g_pwVisibleEntryOffsets;
     plDist = g_pVisibleEntryDistances;
@@ -331,7 +331,7 @@ void far worldframe_chapter_tick_objects(void) {
     vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
     worldframe_vislist_cull_occl(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets,
-                                 g_pVisibleEntryDistances, (int *)&g_nVisibleEntryCount);
+                                 g_pVisibleEntryDistances, (s16 *)&g_nVisibleEntryCount);
     worldframe_vislist_reorder(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets,
                                g_nVisibleEntryCount);
     for (i = 0; i < g_nVisibleEntryCount;) {
@@ -339,7 +339,7 @@ void far worldframe_chapter_tick_objects(void) {
         g_nBillboardScrX = -1;
         if (pEntry->shapeId == g_nProximityTableCount) {
             rgnenc_render_object(pEntry, 0);
-        } else if ((int)pEntry->shapeId >= 0x84 && (int)pEntry->shapeId <= 0x88) {
+        } else if ((s16)pEntry->shapeId >= 0x84 && (s16)pEntry->shapeId <= 0x88) {
             actoroverlay_render_actor(pEntry);
         } else if ((pEntry->shapeId == 0x5d) || (pEntry->shapeId == 0x5c)) {
             worlddoor_rndr_enc_mark_actor(pEntry);
@@ -374,8 +374,8 @@ void far worldframe_chapter_tick_objects(void) {
             in[2] = pEntry->pos.nWorld_z - g_world_camera->base.pos.nWorld_z;
             r3d_mat3_xform_vec3_wrap(in, &viewRot, out);
             if ((1 << zoom) <= out[1]) {
-                screen_x = g_nViewportCenterX + (int)(((long)out[0] << zoom) / out[1]);
-                screen_y = g_nViewportCenterY - (int)(((long)out[2] << zoom) / out[1]);
+                screen_x = g_nViewportCenterX + (s16)(((s32)out[0] << zoom) / out[1]);
+                screen_y = g_nViewportCenterY - (s16)(((s32)out[2] << zoom) / out[1]);
                 scale = g_wActorProjScale;
                 g_pWorldHitTestTable[g_nHitTestWriteSlot].pEntity = pEntry;
                 g_pWorldHitTestTable[g_nHitTestWriteSlot].dwDist = *plDist;
@@ -384,8 +384,8 @@ void far worldframe_chapter_tick_objects(void) {
                 g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.width = scale * 2;
                 g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.height = scale * 2;
                 g_nHitTestWriteSlot++;
-                g_nHitTestWriteSlot = (short)g_nHitTestWriteSlot % 10;
-                if ((short)g_nHitTestEntryCount < 10) {
+                g_nHitTestWriteSlot = (s16)g_nHitTestWriteSlot % 10;
+                if ((s16)g_nHitTestEntryCount < 10) {
                     goto commit;
                 }
             }
@@ -418,8 +418,8 @@ void far worldframe_chapter_tick_objects(void) {
             g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.width = g_nBillboardW;
             g_pWorldHitTestTable[g_nHitTestWriteSlot].rect.height = g_nBillboardH;
             g_nHitTestWriteSlot++;
-            g_nHitTestWriteSlot = (short)g_nHitTestWriteSlot % 10;
-            if ((short)g_nHitTestEntryCount < 10) {
+            g_nHitTestWriteSlot = (s16)g_nHitTestWriteSlot % 10;
+            if ((s16)g_nHitTestEntryCount < 10) {
             commit:
                 g_nHitTestEntryCount++;
             }
@@ -435,18 +435,18 @@ void far worldframe_chapter_tick_objects(void) {
     return;
 }
 
-void far worldframe_vislist_reorder(unsigned short visible_seg, unsigned short *visible_offsets, int count) {
-    int outerIdx;
-    int innerIdx;
-    unsigned short *pOuterSlot;
-    unsigned short savedSlot;
+void far worldframe_vislist_reorder(u16 visible_seg, u16 *visible_offsets, s16 count) {
+    s16 outerIdx;
+    s16 innerIdx;
+    u16 *pOuterSlot;
+    u16 savedSlot;
     WorldObject far *pOuter;
     WorldObject far *pInner;
-    unsigned short *pDst;
-    unsigned short *pInnerSlot;
-    unsigned int outerKind;
-    unsigned int innerKind;
-    int i;
+    u16 *pDst;
+    u16 *pInnerSlot;
+    u16 outerKind;
+    u16 innerKind;
+    s16 i;
 
     pOuterSlot = &visible_offsets[count - 1];
     outerIdx = count - 1;
@@ -455,7 +455,7 @@ void far worldframe_vislist_reorder(unsigned short visible_seg, unsigned short *
         if (pOuter->shapeId == g_nProximityTableCount) {
             outerKind = 0x10;
         } else {
-            outerKind = (unsigned int)ts_get_shape(pOuter->shapeId)->kind;
+            outerKind = (u16)ts_get_shape(pOuter->shapeId)->kind;
         }
         switch (outerKind) {
         case 6:
@@ -484,7 +484,7 @@ void far worldframe_vislist_reorder(unsigned short visible_seg, unsigned short *
                 if (pInner->shapeId == g_nProximityTableCount) {
                     innerKind = 0x10;
                 } else {
-                    innerKind = (unsigned int)ts_get_shape(pInner->shapeId)->kind;
+                    innerKind = (u16)ts_get_shape(pInner->shapeId)->kind;
                 }
                 if ((((innerKind != 0xe) && (innerKind != 0xf)) && (innerKind != 0x14) &&
                      (innerKind != 0x17)) ||

@@ -16,22 +16,22 @@
  * add/sub/cmp (every alloc_far block is seg:0000, so the range check must
  * compare segments).
  */
-unsigned long g_pool_base = 0;
-unsigned long g_pool_top;
-unsigned long g_nPoolSize;
+u32 g_pool_base = 0;
+u32 g_pool_top;
+u32 g_nPoolSize;
 
-unsigned long pool_get_size(void) {
+u32 pool_get_size(void) {
     return g_pool_top - g_pool_base;
 }
 
 void pool_compute_size_from_music(void) {
-    unsigned long maxUsage;
-    unsigned long usage;
-    int chunkId;
+    u32 maxUsage;
+    u32 usage;
+    s16 chunkId;
 
     maxUsage = 0;
     g_nPoolSize = 0x6000;
-    g_pool_base = (unsigned long)alloc_far(g_nPoolSize, 0L);
+    g_pool_base = (u32)alloc_far(g_nPoolSize, 0L);
     g_alloc_to_pool = 1;
 
     for (chunkId = 0x3e9; chunkId <= 0x426; chunkId++) {
@@ -50,7 +50,7 @@ void pool_compute_size_from_music(void) {
 
 void pool_init(void) {
     pool_compute_size_from_music();
-    g_pool_base = (unsigned long)alloc_far(g_nPoolSize, 0L);
+    g_pool_base = (u32)alloc_far(g_nPoolSize, 0L);
 }
 
 void pool_reset(void) {
@@ -59,23 +59,23 @@ void pool_reset(void) {
     g_pool_top = g_pool_base;
 }
 
-void far *pool_alloc(unsigned long size) {
+void far *pool_alloc(u32 size) {
     g_pool_top += size;
     return (void far *)(g_pool_top - size);
 }
 
-int pool_is_managed_ptr(unsigned long ptr) {
+s16 pool_is_managed_ptr(u32 ptr) {
     return ptr >= g_pool_base && ptr < g_pool_top;
 }
 
-void far *pool_acquire_buffer(unsigned long size, int allocTag) {
+void far *pool_acquire_buffer(u32 size, s16 allocTag) {
     void far *result;
     void *nearp;
 
     if (g_alloc_to_pool != 0)
         result = pool_alloc(size);
     else if (allocTag == 6 || allocTag == 8) {
-        nearp = my_malloc((unsigned int)size);
+        nearp = my_malloc((u16)size);
         result = nearp;
     } else
         result = alloc_far(size, 0L);

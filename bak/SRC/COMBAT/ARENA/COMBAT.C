@@ -50,50 +50,50 @@
 
 Combatant *g_current_actor;
 Combatant *g_picked_actor;
-unsigned short g_acting_actor_speed;
-int g_grid_tile_size;
-short g_cursor_tile_x;
-short g_cursor_tile_y;
-unsigned short g_wInCombatMode;
+u16 g_acting_actor_speed;
+s16 g_grid_tile_size;
+s16 g_cursor_tile_x;
+s16 g_cursor_tile_y;
+u16 g_wInCombatMode;
 MenuPage *g_combat_menu;
 MenuPage *g_shoot_menu;
-unsigned short g_combat_menu_selected_item;
-unsigned short g_combat_menu_current_page;
-short g_nCurrentQuarrelKindIdx;
-unsigned short g_combat_cancelled;
-unsigned short g_combat_music_handle;
+u16 g_combat_menu_selected_item;
+u16 g_combat_menu_current_page;
+s16 g_nCurrentQuarrelKindIdx;
+u16 g_combat_cancelled;
+u16 g_combat_music_handle;
 Combatant *g_acting_actor;
-unsigned short g_traps_loaded_flag;
-unsigned short g_encounter_id;
+u16 g_traps_loaded_flag;
+u16 g_encounter_id;
 Combatant *g_pCombatActiveActors;
 AnimSlot *g_pCombatActiveAnimPool;
-int g_nCombatActiveCount;
+s16 g_nCombatActiveCount;
 Combatant *g_pCombatOtherActors;
 AnimSlot *g_pCombatOtherAnimPool;
-int g_nCombatOtherCount;
+s16 g_nCombatOtherCount;
 ImageRecord **g_combat_sprites;
 ImageRecord **g_parch_bmx;
 ImageRecord **g_combat_render_table_prev;
 
-unsigned short g_bCombatGridTerrainFeaturesEnabled = 0x0001;
-unsigned short g_bCombatGridLinesEnabled = 0x0000;
+u16 g_bCombatGridTerrainFeaturesEnabled = 0x0001;
+u16 g_bCombatGridLinesEnabled = 0x0000;
 
-unsigned short g_dgroup_12c4 = 0x0001;
-unsigned short g_bShowActorRosterIndex = 0x0000;
-unsigned short g_bStormAmplify = 0x0000;
-unsigned short **g_pTerrainBackupGrid = {0};
-unsigned short g_awQuarrelKindItemIdTable[8] = {0x0002, 0x0003, 0x0004, 0x0005,
+u16 g_dgroup_12c4 = 0x0001;
+u16 g_bShowActorRosterIndex = 0x0000;
+u16 g_bStormAmplify = 0x0000;
+u16 **g_pTerrainBackupGrid = {0};
+u16 g_awQuarrelKindItemIdTable[8] = {0x0002, 0x0003, 0x0004, 0x0005,
                                                 0x0006, 0x0008, 0x0009, 0x0007};
-unsigned short g_quarrel_kind_field19_table[8] = {0x0045, 0x0037, 0x0039, 0x003d,
+u16 g_quarrel_kind_field19_table[8] = {0x0045, 0x0037, 0x0039, 0x003d,
                                                   0x003f, 0x0041, 0x0043, 0x003b};
 
 void far combat_arena_mode_enter(void) {
-    int i;
-    int rem;
+    s16 i;
+    s16 rem;
 
     zone_teardown(1);
     itemtbl_load();
-    rem = (int)RND(3);
+    rem = (s16)RND(3);
 
     switch (rem) {
     case 0:
@@ -175,22 +175,22 @@ void far combat_arena_load_remap_pals(void) {
     ResFile *fp;
 
     fp = res_fopen("red.rmp", "rb");
-    res_fread_far(g_abCursorPaletteLut + 0x100, (long)0x100, (long)1, fp);
+    res_fread_far(g_abCursorPaletteLut + 0x100, (s32)0x100, (s32)1, fp);
     res_fclose(fp);
     fp = res_fopen("green.rmp", "rb");
-    res_fread_far(g_abCursorPaletteLut + 0x200, (long)0x100, (long)1, fp);
+    res_fread_far(g_abCursorPaletteLut + 0x200, (s32)0x100, (s32)1, fp);
     res_fclose(fp);
     fp = res_fopen("white.rmp", "rb");
-    res_fread_far(g_abCursorPaletteLut + 0x300, (long)0x100, (long)1, fp);
+    res_fread_far(g_abCursorPaletteLut + 0x300, (s32)0x100, (s32)1, fp);
     res_fclose(fp);
     fp = res_fopen("blue.rmp", "rb");
-    res_fread_far(g_abCursorPaletteLut + 0x400, (long)0x100, (long)1, fp);
+    res_fread_far(g_abCursorPaletteLut + 0x400, (s32)0x100, (s32)1, fp);
     res_fclose(fp);
 }
 
-int far combat_arena_wait_confirm_cancel(void) {
-    int result;
-    int code;
+s16 far combat_arena_wait_confirm_cancel(void) {
+    s16 result;
+    s16 code;
 
     result = 0;
     code = screen_input_poll_confirm_cancel();
@@ -203,19 +203,19 @@ int far combat_arena_wait_confirm_cancel(void) {
 }
 
 void far combat_arena_actor_poison_tick(Combatant *actor) {
-    int flags;
+    s16 flags;
     if ((actor->inner->flags & CAF_POISON) != 0 &&
-        ((flags = (int)(signed char)actor->inner->flags) & CAF_DEAD) == 0) {
+        ((flags = (s16)(signed char)actor->inner->flags) & CAF_DEAD) == 0) {
         combat_arena_apply_damage(actor, RND2(2) + 1, 0, 2, 1, 0);
     }
 }
 
-void far combat_arena_actor_die(Combatant *actor, int play_anim) {
-    int slot;
-    unsigned int type;
-    int timer;
-    int i;
-    int removed;
+void far combat_arena_actor_die(Combatant *actor, s16 play_anim) {
+    s16 slot;
+    u16 type;
+    s16 timer;
+    s16 i;
+    s16 removed;
 
     cspell_status_effect_clear_actor(actor);
     if (play_anim != 0) {
@@ -279,7 +279,7 @@ LAB_600f_0486:
     if (removed) {
         for (i = 0; i < g_combat_count_B; i++) {
             if (&g_combat_actors_B[i] == actor) {
-                rgnenc_persist_actor_removed((short)g_encounter_id, i);
+                rgnenc_persist_actor_removed((s16)g_encounter_id, i);
                 return;
             }
         }
@@ -287,7 +287,7 @@ LAB_600f_0486:
 }
 
 void far combat_arena_remove_flagd_actors(void) {
-    int i;
+    s16 i;
 
     i = 0;
     if (i < g_combat_count_A) {
@@ -301,9 +301,9 @@ void far combat_arena_remove_flagd_actors(void) {
 }
 
 #pragma option -O-l
-int far combat_arena_all_targets_immune(void) {
-    int immune;
-    int i;
+s16 far combat_arena_all_targets_immune(void) {
+    s16 immune;
+    s16 i;
 
     immune = 1;
     for (i = 0; i < g_combat_count_B; i = i + 1) {
@@ -320,11 +320,11 @@ int far combat_arena_all_targets_immune(void) {
 }
 #pragma option -Ol
 
-void far combat_arena_apply_damage(Combatant *actor, int damage, int apply_magic_defense,
-                                   int knockback, unsigned int flags, int source_type) {
-    int iBonus;
-    int savedDamage;
-    int effectSlot;
+void far combat_arena_apply_damage(Combatant *actor, s16 damage, s16 apply_magic_defense,
+                                   s16 knockback, u16 flags, s16 source_type) {
+    s16 iBonus;
+    s16 savedDamage;
+    s16 effectSlot;
 
     if ((((actor->inner->creatureType != 0x36) && (cspell_stat_effect_find_type(actor, 1) == -1)) &&
          (actor->inner->creatureType != -1)) &&
@@ -361,11 +361,11 @@ void far combat_arena_apply_damage(Combatant *actor, int damage, int apply_magic
         if ((damage != 0) && ((flags & 1) != 0)) {
             cbstat_apply_drain_tick(actor);
         }
-        if ((int)(unsigned int)actor->stats[1].base < damage) {
+        if ((s16)(u16)actor->stats[1].base < damage) {
             savedDamage = damage;
             damage -= actor->stats[1].base;
             actor->stats[1].base = '\0';
-            if ((int)(unsigned int)actor->stats[0].base < damage) {
+            if ((s16)(u16)actor->stats[0].base < damage) {
                 actor->stats[0].base = '\0';
             } else {
                 actor->stats[0].base = actor->stats[0].base - (char)damage;
@@ -414,10 +414,10 @@ void far combat_arena_apply_damage(Combatant *actor, int damage, int apply_magic
     return;
 }
 
-void far combat_arena_splash_dmg_near(Combatant *source_actor, int damage) {
-    int nMaxDist;
-    int dist;
-    int i;
+void far combat_arena_splash_dmg_near(Combatant *source_actor, s16 damage) {
+    s16 nMaxDist;
+    s16 dist;
+    s16 i;
 
     nMaxDist = 2;
     damage = damage >> 2;
@@ -460,16 +460,16 @@ void far combat_arena_splash_dmg_near(Combatant *source_actor, int damage) {
     return;
 }
 
-void far combat_arena_melee_attack(Combatant *attacker, Combatant *defender, int damage) {
-    int hit;
-    unsigned int armorMask;
+void far combat_arena_melee_attack(Combatant *attacker, Combatant *defender, s16 damage) {
+    s16 hit;
+    u16 armorMask;
     ItemRecord far *weapon_item;
 
     if ((defender->inner->flags & CAF_DEAD) == 0) {
         stat_combatant_modify(defender, 4, 1, 3);
         stat_combatant_modify(attacker, 6, 1, 3);
         attacker->inner->target = defender;
-        if (1 < (int)stat_actor_get(attacker, 0x10, 4)) {
+        if (1 < (s16)stat_actor_get(attacker, 0x10, 4)) {
             combat_arena_apply_damage(attacker, 1, 0, 0, 0, 1);
             attacker->inner->flags &= ~CAF_KNOCKBACK;
             weapon_item = cbstat_find_intact_equip_cat(attacker, 1);
@@ -497,7 +497,7 @@ void far combat_arena_melee_attack(Combatant *attacker, Combatant *defender, int
                 }
 
                 {
-                    int sound_id;
+                    s16 sound_id;
                     switch (attacker->inner->creatureType) {
                     case 0x13:
                     case 0x1c:
@@ -544,8 +544,8 @@ void far combat_arena_melee_attack(Combatant *attacker, Combatant *defender, int
                 defender->inner->dmgFloatFrames = 0xf8;
 
                 {
-                    int cf;
-                    if (((cf = (int)(signed char)defender->inner->flags) & CAF_PARRY) == 0 ||
+                    s16 cf;
+                    if (((cf = (s16)(signed char)defender->inner->flags) & CAF_PARRY) == 0 ||
                         combatenc_actor_can_act(defender, 0) == 0) {
                         stat_combatant_modify(defender, 4, 1, 3);
                         if (weapon_item != (ItemRecord far *)0) {
@@ -594,10 +594,10 @@ void far combat_arena_melee_attack(Combatant *attacker, Combatant *defender, int
 }
 
 void far combat_arena_resolve_melee_swing(Combatant *attacker, Combatant *defender,
-                                          int damage) {
-    int hit;
-    int sound_id;
-    unsigned int flags;
+                                          s16 damage) {
+    s16 hit;
+    s16 sound_id;
+    u16 flags;
     ItemRecord far *weapon_item;
 
     if ((defender->inner->flags & CAF_DEAD) == 0) {
@@ -664,7 +664,7 @@ void far combat_arena_resolve_melee_swing(Combatant *attacker, Combatant *defend
             defender->inner->dmgFloatValue = '\x01';
             defender->inner->dmgFloatFrames = 0xf8;
             combat_actor_anim0_if_not_dead(defender, -1);
-            if (!((int)(char)(defender->inner->flags) & CAF_PARRY) ||
+            if (!((s16)(char)(defender->inner->flags) & CAF_PARRY) ||
                 combatenc_actor_can_act(defender, 0) == 0) {
                 stat_combatant_modify(defender, 4, 1, 3);
                 if (weapon_item != (ItemRecord far *)0x0) {
@@ -710,15 +710,15 @@ void far combat_arena_resolve_melee_swing(Combatant *attacker, Combatant *defend
     return;
 }
 
-unsigned short combat_arena_anim_tbl_lookup_2d(int row, int col) {
+u16 combat_arena_anim_tbl_lookup_2d(s16 row, s16 col) {
     return g_pTerrainBackupGrid[row][col];
 }
 
 static void far combat_arena_burn_terr_cutsc(void) {
-    int bDone;
-    int y, x;
-    unsigned short duration;
-    int i;
+    s16 bDone;
+    s16 y, x;
+    u16 duration;
+    s16 i;
     GridCombatant *pGcmbt;
 
     bDone = 0;
@@ -814,9 +814,9 @@ static void far combat_arena_burn_terr_cutsc(void) {
 }
 
 static void far combat_arena_burn_type31_cutsc(void) {
-    int bDone;
-    int y, x, i;
-    unsigned int tile;
+    s16 bDone;
+    s16 y, x, i;
+    u16 tile;
     Combatant *saved_actor;
 
     bDone = 0;
@@ -867,7 +867,7 @@ static void far combat_arena_burn_type31_cutsc(void) {
     g_current_actor = saved_actor;
 }
 
-void far combat_arena_round_trans_show(int param_1) {
+void far combat_arena_round_trans_show(s16 param_1) {
     screen_cursor_hide();
     palette_fade_out(0, 0x100, -1, 0);
     palette_screen_clear_black();
@@ -899,8 +899,8 @@ LAB_13a1:
     return;
 }
 
-static void combat_arena_shootmenu_ent_avail(int kind, int page, MenuEntry *entry) {
-    int n_quarrels;
+static void combat_arena_shootmenu_ent_avail(s16 kind, s16 page, MenuEntry *entry) {
+    s16 n_quarrels;
 
     n_quarrels = combat_actor_cnt_qrls_kind(g_current_actor, kind);
     if ((g_combat_menu_current_page == page) && (n_quarrels != 0)) {
@@ -914,9 +914,9 @@ static void combat_arena_shootmenu_ent_avail(int kind, int page, MenuEntry *entr
 
 static void far combat_arena_shootmenu_init(void) {
     MenuEntry *entry;
-    int i;
+    s16 i;
 
-    for (i = 0; i < (int)g_shoot_menu->wEntry_count; i = i + 1) {
+    for (i = 0; i < (s16)g_shoot_menu->wEntry_count; i = i + 1) {
         entry = g_shoot_menu->pEntries + i;
         switch (entry->wAction_id) {
         case 2:
@@ -939,10 +939,10 @@ static void far combat_arena_shootmenu_init(void) {
     return;
 }
 
-static int far combat_arena_menu_find_item_page(unsigned short item_id) {
-    int i;
+static s16 far combat_arena_menu_find_item_page(u16 item_id) {
+    s16 i;
 
-    for (i = 0; i < (int)g_shoot_menu->wEntry_count; i++) {
+    for (i = 0; i < (s16)g_shoot_menu->wEntry_count; i++) {
         if (g_shoot_menu->pEntries[i].wAction_id == item_id)
             break;
     }
@@ -951,7 +951,7 @@ static int far combat_arena_menu_find_item_page(unsigned short item_id) {
 
 static void far combat_arena_menu_sync_sel_actor(Combatant *actor) {
     if (actor->inner->selectedMenuCmd != 0xff) {
-        g_combat_menu_selected_item = (int)(char)actor->inner->selectedMenuCmd;
+        g_combat_menu_selected_item = (s16)(char)actor->inner->selectedMenuCmd;
     } else {
         g_combat_menu_selected_item = 0;
     }
@@ -964,11 +964,11 @@ static void far combat_arena_menu_sync_sel_actor(Combatant *actor) {
 }
 
 static void far combat_arena_shootmenu_rebuild(void) {
-    int n_quarrels;
-    int page;
+    s16 n_quarrels;
+    s16 page;
     MenuEntry *entry;
-    int claim_idx;
-    int i;
+    s16 claim_idx;
+    s16 i;
 
     claim_idx = 0;
     i = 0;
@@ -981,7 +981,7 @@ static void far combat_arena_shootmenu_rebuild(void) {
         i = i + 1;
     } while (i < 8);
 
-    for (i = claim_idx; i < (int)g_shoot_menu->wEntry_count; i++) {
+    for (i = claim_idx; i < (s16)g_shoot_menu->wEntry_count; i++) {
         if (g_shoot_menu->pEntries[i].wAction_id != 0x32 &&
             g_shoot_menu->pEntries[i].wAction_id != 0x21 &&
             g_shoot_menu->pEntries[i].wAction_id != 0x16) {
@@ -993,7 +993,7 @@ static void far combat_arena_shootmenu_rebuild(void) {
         }
     }
 
-    for (i = 0; i < (int)g_shoot_menu->wEntry_count; i = i + 1) {
+    for (i = 0; i < (s16)g_shoot_menu->wEntry_count; i = i + 1) {
         entry = g_shoot_menu->pEntries + i;
         page = combat_arena_menu_find_item_page(entry->wAction_id);
         switch (entry->wAction_id) {
@@ -1037,14 +1037,14 @@ static void far combat_arena_shootmenu_rebuild(void) {
 
 static void far combat_arena_shootmenu_qrl_cur(void) {
     MenuEntry *pE;
-    int i;
-    unsigned short action_id;
-    int x;
-    int y;
+    s16 i;
+    u16 action_id;
+    s16 x;
+    s16 y;
 
     action_id = 0xffff;
     screen_cursor_get_position(&x, &y);
-    for (i = 0; i < (int)g_shoot_menu->wEntry_count; i++) {
+    for (i = 0; i < (s16)g_shoot_menu->wEntry_count; i++) {
         pE = &g_shoot_menu->pEntries[i];
         if (pE->bActive_flag != 0 && pE->rect.x < x && x < pE->rect.x + pE->rect.width &&
             pE->rect.y < y && y < pE->rect.y + pE->rect.height) {
@@ -1089,11 +1089,11 @@ static void far combat_arena_shootmenu_qrl_cur(void) {
     }
 }
 
-void far combat_arena_draw_tgt_info_hud(Combatant *param_1, int param_2, int param_3,
-                                        int param_4) {
+void far combat_arena_draw_tgt_info_hud(Combatant *param_1, s16 param_2, s16 param_3,
+                                        s16 param_4) {
     SpellDef *spellDef;
-    int val;
-    int accuracy;
+    s16 val;
+    s16 accuracy;
     char *pStr;
     char buf[30];
 
@@ -1108,11 +1108,11 @@ void far combat_arena_draw_tgt_info_hud(Combatant *param_1, int param_2, int par
         param_1 = (Combatant *)0x0;
     }
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((u16)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     {
-        register int x;
-        int y;
+        register s16 x;
+        s16 y;
 
         pStr = "Choose a target";
         x = 0x82 - (font_text_width_ds(pStr) >> 1);
@@ -1152,13 +1152,13 @@ void far combat_arena_draw_tgt_info_hud(Combatant *param_1, int param_2, int par
 void far combat_arena_draw_tgt_info_panel(void) {
     ItemRecord far *quarrelRec;
     Combatant *target;
-    int dmg;
-    int kindIdx;
+    s16 dmg;
+    s16 kindIdx;
     char *pStr;
     char buf[30];
-    int accuracy;
-    int x;
-    int y;
+    s16 accuracy;
+    s16 x;
+    s16 y;
 
     quarrelRec = (ItemRecord far *)0L;
     combat_arena_shootmenu_qrl_cur();
@@ -1182,7 +1182,7 @@ void far combat_arena_draw_tgt_info_panel(void) {
         target = (Combatant *)0x0;
     }
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((u16)*g_parch_bmx, 0x49, 0x81, 0);
     g_graphics_context.bText_fg_color = 0;
     pStr = (char *)"Choose a target";
     x = 0x82 - (font_text_width_ds(pStr) >> 1);
@@ -1238,21 +1238,21 @@ void far combat_arena_draw_tgt_info_panel(void) {
 void far combat_arena_hud_melee_panel(void) {
     char numBuf[6];
     char *pStr;
-    int hideSwing;
+    s16 hideSwing;
     ItemRecord far *weapon;
-    int target;
-    int n;
-    int y;
-    register int x;
+    s16 target;
+    s16 n;
+    s16 y;
+    register s16 x;
 
     if ((g_current_actor == 0) || !(g_current_actor)->charSlot) {
         return;
     }
     g_graphics_context.bClip_enabled = 0;
     target = combat_actor_terr_under_cur();
-    blit_sprite_indirect((unsigned short)*g_parch_bmx, 0x49, 0x81, 0);
+    blit_sprite_indirect((u16)*g_parch_bmx, 0x49, 0x81, 0);
     if ((combatgrid_actors_ortho_adj(g_current_actor, (Combatant *)target) != 0) &&
-        ((int)stat_actor_get(g_current_actor, 0x10, 0) > 1)) {
+        ((s16)stat_actor_get(g_current_actor, 0x10, 0) > 1)) {
         hideSwing = 0;
     } else {
         hideSwing = 1;
@@ -1333,19 +1333,19 @@ void far combat_arena_hud_melee_panel(void) {
 
 static void far combat_arena_menu_refr_avail(Combatant *actor) {
     MenuEntry *entry;
-    int i;
+    s16 i;
 
     i = 0;
-    while ((int)g_combat_menu->wEntry_count > i) {
+    while ((s16)g_combat_menu->wEntry_count > i) {
         entry = g_combat_menu->pEntries + i;
         switch (entry->wAction_id) {
         case 0x1f:
             entry->bActive_flag = combatenc_show_missile_stat_row(actor);
-            entry->wEnable_gate = (unsigned int)(!entry->bActive_flag);
+            entry->wEnable_gate = (u16)(!entry->bActive_flag);
             break;
         case 0x2e:
             entry->bActive_flag = combatenc_actor_can_cast_spells(actor, 1);
-            entry->wEnable_gate = (unsigned int)(!entry->bActive_flag);
+            entry->wEnable_gate = (u16)(!entry->bActive_flag);
             break;
         case 0xe:
             entry->bActive_flag = (combatenc_show_missile_stat_row(actor) == 0) &&
@@ -1358,8 +1358,8 @@ static void far combat_arena_menu_refr_avail(Combatant *actor) {
     return;
 }
 
-static void far combat_arena_redraw_hud_bufs(int draw_world, int draw_stats) {
-    int i;
+static void far combat_arena_redraw_hud_bufs(s16 draw_world, s16 draw_stats) {
+    s16 i;
 
     i = 0;
     do {
@@ -1408,14 +1408,14 @@ static void far combat_arena_enc_setup_view_v2(void) {
 }
 
 static void far combat_arena_finalize_round(void) {
-    int i;
+    s16 i;
 
     menupage_end(g_combat_menu);
     g_lSpriteFogOnsetDist -= 1000000L;
     i = 0;
     if (i < g_combat_count_A) {
         do {
-            if ((int)stat_actor_get(&g_combat_actors_A[i], 0, 0) < 1) {
+            if ((s16)stat_actor_get(&g_combat_actors_A[i], 0, 0) < 1) {
                 g_combat_actors_A[i].stats[1].base = '\0';
                 g_combat_actors_A[i].stats[0].base = '\x01';
                 stat_actor_get(&g_combat_actors_A[i], 0, 0);
@@ -1461,13 +1461,13 @@ static void far combat_arena_advance_turn(void) {
     return;
 }
 
-static int combat_arena_action_is_allowed(int p1, int p2) {
-    int result;
+static s16 combat_arena_action_is_allowed(s16 p1, s16 p2) {
+    s16 result;
 
     if (g_current_actor == 0)
         return 0;
     if (p2 != 3 && p2 != 4)
-        result = (short)g_acting_actor_speed >= p1;
+        result = (s16)g_acting_actor_speed >= p1;
     else
         result = 0;
     return result;
@@ -1486,7 +1486,7 @@ static void far combat_arena_switch_active_actor(Combatant *actor) {
     }
 }
 
-static void far combat_arena_wait_confirm_canc_2(Combatant *target, int quarrel_slot) {
+static void far combat_arena_wait_confirm_canc_2(Combatant *target, s16 quarrel_slot) {
     combat_arena_redraw_hud_bufs(1, 1);
     quarrel_slot = combataiturn_sel_consum_qrl(g_current_actor, quarrel_slot, 1);
     if (quarrel_slot != -1) {
@@ -1503,7 +1503,7 @@ void combat_arena_actor_set_anim_pose(Combatant *actor, unsigned char frame) {
 }
 
 void combat_arena_tick_status_timers(void) {
-    int i;
+    s16 i;
 
     for (i = 0; i < g_combat_count_A; i++) {
         if ((g_combat_actors_A[i].inner->flags & CAF_KNOCKBACK) != 0) {
@@ -1524,7 +1524,7 @@ void combat_arena_tick_status_timers(void) {
 }
 
 void far combat_arena_swap_tgt_state(void) {
-    int tmpCount;
+    s16 tmpCount;
     AnimSlot *tmpAnimPool;
     Combatant *tmpActors;
 
@@ -1542,9 +1542,9 @@ void far combat_arena_swap_tgt_state(void) {
     g_current_actor = tmpActors;
 }
 
-static int far combat_arena_maybe_random_trap(void) {
-    int flag;
-    int i;
+static s16 far combat_arena_maybe_random_trap(void) {
+    s16 flag;
+    s16 i;
 
     flag = 1;
     i = 0;
@@ -1569,9 +1569,9 @@ static int far combat_arena_maybe_random_trap(void) {
 
 static void combat_arena_menu_entry_flags(void) {
     MenuEntry *entry;
-    int i;
+    s16 i;
 
-    for (i = 0; i < (int)g_shoot_menu->wEntry_count; i = i + 1) {
+    for (i = 0; i < (s16)g_shoot_menu->wEntry_count; i = i + 1) {
         entry = g_shoot_menu->pEntries + i;
         if (g_shoot_menu->pEntries[i].wAction_id != 0x16) {
             entry->bActive_flag = 1;
@@ -1586,11 +1586,11 @@ static void combat_arena_menu_entry_flags(void) {
 }
 
 static void far combat_arena_turn_loop(void) {
-    int b_done;
-    unsigned short menu_sel;
-    int b_bail;
-    int alive_count;
-    unsigned int menu_result;
+    s16 b_done;
+    u16 menu_sel;
+    s16 b_bail;
+    s16 alive_count;
+    u16 menu_result;
 
     b_done = 0;
     alive_count = 1;
@@ -1661,28 +1661,28 @@ static void far combat_arena_turn_loop(void) {
     return;
 }
 
-static int combat_arena_actor_cnt_flags(int flags_mask) {
-    int count;
-    int i;
+static s16 combat_arena_actor_cnt_flags(s16 flags_mask) {
+    s16 count;
+    s16 i;
 
     count = 0;
     for (i = 0; i < g_combat_count_B; i = i + 1) {
-        if ((flags_mask & (int)(char)g_combat_actors_B[i].inner->flags) != 0) {
+        if ((flags_mask & (s16)(char)g_combat_actors_B[i].inner->flags) != 0) {
             count = count + 1;
         }
     }
     return count;
 }
 
-int far combat_arena_cnt_actors_combat(void) {
-    int count;
+s16 far combat_arena_cnt_actors_combat(void) {
+    s16 count;
 
     count = combat_arena_actor_cnt_flags(CAF_DEAD);
     return count;
 }
 
-int far combat_arena_cnt_actors_flag_10(void) {
-    int count;
+s16 far combat_arena_cnt_actors_flag_10(void) {
+    s16 count;
 
     count = combat_arena_actor_cnt_flags(CAF_FLEE);
     return count;
@@ -1694,7 +1694,7 @@ static void combat_arena_present(void) {
     gfx_present_dispatch(0, 0, 0x140, 0x96);
 }
 
-static void far combat_arena_view_rstr_disp(int param) {
+static void far combat_arena_view_rstr_disp(s16 param) {
     g_graphics_context.wGfxBlitSrcPage = g_wVgaScratchPageBase;
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage1Base;
     gfx_present_dispatch(0, 0, 0x140, 200);
@@ -1712,11 +1712,11 @@ static void far combat_arena_view_rstr_disp(int param) {
     }
 }
 
-static unsigned int far combat_arena_pick_target_actor(int requires_action_pred) {
-    unsigned short menuRedraw;
-    unsigned int menuResult;
-    int done;
-    int adjacent;
+static u16 far combat_arena_pick_target_actor(s16 requires_action_pred) {
+    u16 menuRedraw;
+    u16 menuResult;
+    s16 done;
+    s16 adjacent;
     Combatant *target;
 
     done = 0;
@@ -1756,10 +1756,10 @@ static unsigned int far combat_arena_pick_target_actor(int requires_action_pred)
             done = 1;
         }
     }
-    return (unsigned int)target;
+    return (u16)target;
 }
 
-void far combat_arena_resume_dispatch(int command_id, int *p_spell_result, int *out_spell_result) {
+void far combat_arena_resume_dispatch(s16 command_id, s16 *p_spell_result, s16 *out_spell_result) {
     Actor far *inv;
     Combatant *target;
 
@@ -1847,11 +1847,11 @@ void far combat_arena_resume_dispatch(int command_id, int *p_spell_result, int *
     }
 }
 
-void far combat_arena_suspend_char_screen(Combatant *actor, int *p_spell_result,
-                                          int *out_spell_result) {
-    int cmdId;
+void far combat_arena_suspend_char_screen(Combatant *actor, s16 *p_spell_result,
+                                          s16 *out_spell_result) {
+    s16 cmdId;
     CombatantState *savedInner;
-    int i;
+    s16 i;
 
     g_dwDialogInputCooldown = 0;
     combat_arena_present();
@@ -1899,11 +1899,11 @@ void far combat_arena_suspend_char_screen(Combatant *actor, int *p_spell_result,
     return;
 }
 
-int combat_arena_dist_actors_by_id(int actor_id_a, int actor_id_b) {
+s16 combat_arena_dist_actors_by_id(s16 actor_id_a, s16 actor_id_b) {
     CombatantState *actor_a_ptr;
     CombatantState *actor_b_ptr;
-    int i;
-    int dist;
+    s16 i;
+    s16 dist;
 
     actor_a_ptr = 0;
     actor_b_ptr = 0;
@@ -1916,7 +1916,7 @@ int combat_arena_dist_actors_by_id(int actor_id_a, int actor_id_b) {
     for (i = 0; i < g_combat_count_A; i = i + 1) {
         if (g_combat_actors_A[i].charSlot == actor_id_a) {
             actor_a_ptr = g_combat_actors_A[i].inner;
-        } else if ((int)g_combat_actors_A[i].charSlot == actor_id_b) {
+        } else if ((s16)g_combat_actors_A[i].charSlot == actor_id_b) {
             actor_b_ptr = g_combat_actors_A[i].inner;
         }
     }
@@ -1935,14 +1935,14 @@ int combat_arena_dist_actors_by_id(int actor_id_a, int actor_id_b) {
     return dist;
 }
 
-void far combat_arena_show_message_by_id(int message_id, unsigned short *p_menu, int *p_param3,
-                                         int *p_param4, int *p_param5, int *p_spell_result,
-                                         int *p_spell_out, int *p_param8, MenuPage **p_menu_slot,
-                                         int *p_param10, int *p_param11) {
-    unsigned int is_preview;
+void far combat_arena_show_message_by_id(s16 message_id, u16 *p_menu, s16 *p_param3,
+                                         s16 *p_param4, s16 *p_param5, s16 *p_spell_result,
+                                         s16 *p_spell_out, s16 *p_param8, MenuPage **p_menu_slot,
+                                         s16 *p_param10, s16 *p_param11) {
+    u16 is_preview;
 
     if (message_id != 0) {
-        is_preview = (unsigned int)(menupage_state_0e7c() == 2);
+        is_preview = (u16)(menupage_state_0e7c() == 2);
     }
     switch (message_id) {
     case 2:
@@ -2040,7 +2040,7 @@ void far combat_arena_show_message_by_id(int message_id, unsigned short *p_menu,
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
         combat_arena_gfx_full_unclip();
         combat_arena_present();
-        *p_spell_result = cspell_cast_menu_loop(g_current_actor, p_spell_out, (int *)0, (int *)0);
+        *p_spell_result = cspell_cast_menu_loop(g_current_actor, p_spell_out, (s16 *)0, (s16 *)0);
         combat_arena_view_rstr_disp(0);
         if (*p_spell_result != -1) {
             *p_param4 = 4;
@@ -2152,10 +2152,10 @@ void far combat_arena_show_message_by_id(int message_id, unsigned short *p_menu,
     }
 }
 
-Combatant *combat_arena_disp_spell_action(int *param_1, int *param_2, int *param_3, int param_4,
-                                            int *param_5, int *param_6) {
-    int tile_blocked;
-    int invalid;
+Combatant *combat_arena_disp_spell_action(s16 *param_1, s16 *param_2, s16 *param_3, s16 param_4,
+                                            s16 *param_5, s16 *param_6) {
+    s16 tile_blocked;
+    s16 invalid;
     Combatant *actor;
     GridCombatant *combatant;
 
@@ -2178,12 +2178,12 @@ Combatant *combat_arena_disp_spell_action(int *param_1, int *param_2, int *param
         if (combatenc_show_missile_stat_row(g_current_actor) == 0) {
             if (g_cursor_tile_x >= 0 && g_cursor_tile_x <= 8 && g_cursor_tile_y >= 0 &&
                 g_cursor_tile_y <= 0xd) {
-                switch ((unsigned int)cspell_record_field8(param_4)) {
+                switch ((u16)cspell_record_field8(param_4)) {
                 default:
                     goto validate_common;
                 case 2:
                 case 3:
-                    if (actor == (Combatant *)0x0 || !(int)(actor->charSlot) ||
+                    if (actor == (Combatant *)0x0 || !(s16)(actor->charSlot) ||
                         tile_blocked != 0 || (actor->inner->flags & CAF_DEAD) ||
                         (actor->inner->flags & CAF_AI_SUMMON))
                         break;
@@ -2203,7 +2203,7 @@ Combatant *combat_arena_disp_spell_action(int *param_1, int *param_2, int *param
                     actor = (Combatant *)combat_actor_encounter_at_tile(g_cursor_tile_x,
                                                                           g_cursor_tile_y);
                     if (actor == (Combatant *)0x0 ||
-                        !((int)(char)(actor->inner->flags) & CAF_DEAD))
+                        !((s16)(char)(actor->inner->flags) & CAF_DEAD))
                         break;
                     goto validate_common;
                 case 8:
@@ -2261,8 +2261,8 @@ validate_common:
     return actor;
 }
 
-void far combat_arena_turn_actor_inact(unsigned int *p_far_offset, int *p_turn_done, int *p_hud_state,
-                                       int *p_ai_flag) {
+void far combat_arena_turn_actor_inact(u16 *p_far_offset, s16 *p_turn_done, s16 *p_hud_state,
+                                       s16 *p_ai_flag) {
     *p_far_offset = 0xffff;
     combat_arena_advance_turn();
     if ((combatgrid_any_terrain_6() != 0 && combatgrid_actor_past_terr6_row() != 0 &&
@@ -2285,13 +2285,13 @@ void far combat_arena_turn_actor_inact(unsigned int *p_far_offset, int *p_turn_d
     return;
 }
 
-void far combat_arena_resolve_menu_action(int *p_state_a, int *p_move_cost, int *p_state_b,
-                                          int b_input_locked, int b_input_gate, int *p_dirty_hud,
-                                          Combatant **pp_cursor_target, int arg8,
-                                          int spell_record_id, int arg10, MenuPage **pp_menu_slot) {
-    int tmp;
-    int confirmCancel;
-    int switchMenu;
+void far combat_arena_resolve_menu_action(s16 *p_state_a, s16 *p_move_cost, s16 *p_state_b,
+                                          s16 b_input_locked, s16 b_input_gate, s16 *p_dirty_hud,
+                                          Combatant **pp_cursor_target, s16 arg8,
+                                          s16 spell_record_id, s16 arg10, MenuPage **pp_menu_slot) {
+    s16 tmp;
+    s16 confirmCancel;
+    s16 switchMenu;
 
     switch (*p_state_a) {
     case 3:
@@ -2342,7 +2342,7 @@ void far combat_arena_resolve_menu_action(int *p_state_a, int *p_move_cost, int 
                     *p_state_a = -1;
                 }
             } else {
-                if ((int)g_acting_actor_speed >= *p_move_cost) {
+                if ((s16)g_acting_actor_speed >= *p_move_cost) {
                     combat_actor_face_cursor();
                     *p_state_a = 0;
                     if (*p_state_b != 0) {
@@ -2352,7 +2352,7 @@ void far combat_arena_resolve_menu_action(int *p_state_a, int *p_move_cost, int 
                     if (confirmCancel == 1 && b_input_locked == 0) {
                         combat_arena_redraw_hud_bufs(1, 1);
                         if (combat_actor_melee_approach(g_current_actor, *pp_cursor_target) != 0) {
-                            if (((tmp = (int)(char)((g_current_actor)->inner->flags)) & CAF_DEAD) !=
+                            if (((tmp = (s16)(char)((g_current_actor)->inner->flags)) & CAF_DEAD) !=
                                 0)
                                 goto check_defend;
                             *p_state_a = -1;
@@ -2363,7 +2363,7 @@ void far combat_arena_resolve_menu_action(int *p_state_a, int *p_move_cost, int 
                         }
                     } else if (confirmCancel == 2) {
                         if (combatgrid_actors_ortho_adj(g_current_actor, *pp_cursor_target) != 0) {
-                            if ((int)stat_actor_get(g_current_actor, 0x10, 4) > 1) {
+                            if ((s16)stat_actor_get(g_current_actor, 0x10, 4) > 1) {
                                 (g_current_actor)->inner->flags &= ~CAF_READY;
                                 *p_state_a = -1;
                                 combat_arena_melee_attack(g_current_actor, *pp_cursor_target, 0);
@@ -2445,26 +2445,26 @@ void far combat_arena_resolve_menu_action(int *p_state_a, int *p_move_cost, int 
     return;
 }
 
-void far combat_arena_actor_turn_loop(int encounter_id, int *p_status, int b_has_fired) {
+void far combat_arena_actor_turn_loop(s16 encounter_id, s16 *p_status, s16 b_has_fired) {
     Combatant *cursorTarget;
     MenuPage *menu;
-    int hudState;
-    unsigned short menuConsumed;
-    unsigned int menuResult;
-    int done;
-    int allowed;
-    int moveDist;
-    unsigned int stateA;
-    unsigned int stateB;
-    int turnInact;
-    int spellRecId;
-    int castArg;
-    int allPartyDown;
-    short prevTileX;
-    short prevTileY;
-    int i;
-    int flags;
-    int menu_redraw;
+    s16 hudState;
+    u16 menuConsumed;
+    u16 menuResult;
+    s16 done;
+    s16 allowed;
+    s16 moveDist;
+    u16 stateA;
+    u16 stateB;
+    s16 turnInact;
+    s16 spellRecId;
+    s16 castArg;
+    s16 allPartyDown;
+    s16 prevTileX;
+    s16 prevTileY;
+    s16 i;
+    s16 flags;
+    s16 menu_redraw;
 
     hudState = 2;
     done = 0;
@@ -2513,7 +2513,7 @@ void far combat_arena_actor_turn_loop(int encounter_id, int *p_status, int b_has
             turnInact = 1;
         }
         combat_arena_show_message_by_id(menuResult, &g_combat_menu_selected_item, &turnInact,
-                                        (int *)&stateA, (int *)&stateB, &spellRecId, &castArg,
+                                        (s16 *)&stateA, (s16 *)&stateB, &spellRecId, &castArg,
                                         &done, &menu, &hudState, p_status);
         if (turnInact != 0) {
             combat_arena_turn_actor_inact(&stateA, &done, &hudState, &turnInact);
@@ -2525,9 +2525,9 @@ void far combat_arena_actor_turn_loop(int encounter_id, int *p_status, int b_has
                 screen_frame_present();
             }
         }
-        cursorTarget = combat_arena_disp_spell_action((int *)&stateA, &allowed, &moveDist,
-                                                      spellRecId, (int *)&stateB, &hudState);
-        combat_arena_resolve_menu_action((int *)&stateA, &moveDist, (int *)&stateB, menuResult,
+        cursorTarget = combat_arena_disp_spell_action((s16 *)&stateA, &allowed, &moveDist,
+                                                      spellRecId, (s16 *)&stateB, &hudState);
+        combat_arena_resolve_menu_action((s16 *)&stateA, &moveDist, (s16 *)&stateB, menuResult,
                                          allowed, &hudState, &cursorTarget,
                                          g_combat_menu_selected_item, spellRecId, castArg, &menu);
         if (g_combat_cancelled == 0) {
@@ -2642,7 +2642,7 @@ void far combat_arena_actor_turn_loop(int encounter_id, int *p_status, int b_has
                 combat_arena_swap_tgt_state();
                 if (combatenc_count_active_enemies() > 1) {
                     if (combat_arena_all_targets_immune() == 0) {
-                        if (hotspotevt_monst_dispatch_by_tag((long)(short)g_encounter_id) == 0) {
+                        if (hotspotevt_monst_dispatch_by_tag((s32)(s16)g_encounter_id) == 0) {
                             dialog_play_record(0x20, 0);
                         } else {
                             dialog_play_record(0x142, 0);

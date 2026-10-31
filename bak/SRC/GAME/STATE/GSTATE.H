@@ -67,8 +67,8 @@ extern char g_fatigueDrainPerChar[6];
  */
 extern char g_restRegenPerChar[6];
 
-extern unsigned short gstate_event_read(unsigned short event_idx);
-extern int gstate_event_write(unsigned int event_id, unsigned int value);
+extern u16 gstate_event_read(u16 event_idx);
+extern s16 gstate_event_write(u16 event_id, u16 value);
 
 #define HOTSPOT_SCOUT_TRIED(idx) ((idx) + 5200)
 #define HOTSPOT_SCOUTED(idx) ((idx) + 5210)
@@ -83,10 +83,10 @@ extern int gstate_event_write(unsigned int event_id, unsigned int value);
 #define LOCK_PICKED_WITH(idx) ((idx) + 7260)
 #define CONDITION(idx) ((idx) + 7320)
 #define KEYWORD_ASKED(idx) ((idx) + 7500)
-extern int gstate_temp_file_open(void);
+extern s16 gstate_temp_file_open(void);
 extern void gstate_temp_file_close(void);
-extern int gstate_temp_file_read_at(void far *dst_far, long offset, unsigned int bytes);
-extern int gstate_temp_file_write_at(unsigned char far *src_far, unsigned long offset, unsigned int bytes);
+extern s16 gstate_temp_file_read_at(void far *dst_far, s32 offset, u16 bytes);
+extern s16 gstate_temp_file_write_at(unsigned char far *src_far, u32 offset, u16 bytes);
 
 /* TEMP.GAM layout: GameState at 0, then EncounterTable, then the keyed
    record regions below, each based at the end of the previous one (the
@@ -96,19 +96,19 @@ extern int gstate_temp_file_write_at(unsigned char far *src_far, unsigned long o
 #define GAM_ENCOUNTER_TABLE sizeof(GameState)
 #define GAM_OBJFIXED_LOCATION(idx)                                                                 \
     ((idx) * sizeof(ObjFixedLocationCacheEntry) + (GAM_ENCOUNTER_TABLE + sizeof(EncounterTable)))
-#define GAM_ENC_ROSTER(idx) ((idx) * (7 * sizeof(short)) + (GAM_OBJFIXED_LOCATION(20) + 0x28))
-#define GAM_ENC_FOUGHT_TIME(idx) ((idx) * sizeof(unsigned long) + GAM_ENC_ROSTER(700))
-#define GAM_ENC_VISITED_TIME(idx) ((idx) * sizeof(unsigned long) + GAM_ENC_FOUGHT_TIME(700))
+#define GAM_ENC_ROSTER(idx) ((idx) * (7 * sizeof(s16)) + (GAM_OBJFIXED_LOCATION(20) + 0x28))
+#define GAM_ENC_FOUGHT_TIME(idx) ((idx) * sizeof(u32) + GAM_ENC_ROSTER(700))
+#define GAM_ENC_VISITED_TIME(idx) ((idx) * sizeof(u32) + GAM_ENC_FOUGHT_TIME(700))
 #define GAM_ENC_OBJ_STATE(idx) ((idx) * sizeof(EncounterObjectState) + GAM_ENC_VISITED_TIME(700))
 #define GAM_COMBAT_ACTOR(idx) ((idx) * sizeof(Combatant) + GAM_ENC_OBJ_STATE(40 * 5 * 7))
 #define GAM_COMBAT_ACTOR_INNER(idx) ((idx) * sizeof(CombatantState) + GAM_COMBAT_ACTOR(1730L))
-extern int gstate_member_consume_rations(int member_slot, int a);
-extern int gstate_advance_time(long seconds, int flags, int recompute_party, int a, int b);
-extern int gstate_advance_hours(int hours, int pad, int flags);
-extern int gstate_is_party_member(int actor_id);
-extern int gstate_actor_is_caster(Combatant *actor);
-extern Combatant *gstate_party_member_record(int slot);
-extern int gstate_find_party_slot(Combatant *actor);
-extern void gstate_format_money(char *buf, long gold, int mode);
+extern s16 gstate_member_consume_rations(s16 member_slot, s16 a);
+extern s16 gstate_advance_time(s32 seconds, s16 flags, s16 recompute_party, s16 a, s16 b);
+extern s16 gstate_advance_hours(s16 hours, s16 pad, s16 flags);
+extern s16 gstate_is_party_member(s16 actor_id);
+extern s16 gstate_actor_is_caster(Combatant *actor);
+extern Combatant *gstate_party_member_record(s16 slot);
+extern s16 gstate_find_party_slot(Combatant *actor);
+extern void gstate_format_money(char *buf, s32 gold, s16 mode);
 
 #endif

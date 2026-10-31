@@ -24,7 +24,7 @@
  * Set by @ref ts_init (the clamped shapeTableCapacity) and used as the loop bound of the
  * slot walk in @ref ts_get_shape / @ref ts_set_shape; @ref ts_shutdown resets it to 0.
  */
-int g_shapeTableCount;
+s16 g_shapeTableCount;
 
 /**
  * @brief Number of entries in @ref g_shapeOverride.
@@ -32,7 +32,7 @@ int g_shapeTableCount;
  * Read only inside the override branch of @ref ts_get_shape / @ref ts_set_shape; like its
  * partner it is never assigned and stays 0.
  */
-int g_shapeOverrideLen;
+s16 g_shapeOverrideLen;
 
 /**
  * @brief The table-store slot array: @ref g_shapeTableCount @ref ShapeTable slots.
@@ -53,8 +53,8 @@ Shape far *far *g_shapeOverride = {0};
  */
 unsigned char g_lightDirNotInit = 0x01;
 
-void ts_init(int shapeTableCapacity, int spriteBankCapacity) {
-    register int i;
+void ts_init(s16 shapeTableCapacity, s16 spriteBankCapacity) {
+    register s16 i;
 
     if (shapeTableCapacity < 1)
         shapeTableCapacity = 1;
@@ -97,12 +97,12 @@ void ts_shutdown(void) {
     my_free(g_spriteBanks);
 }
 
-Shape far *far *ts_load_shape_tbl(int tblIdx, char *fname) {
+Shape far *far *ts_load_shape_tbl(s16 tblIdx, char *fname) {
     union {
-        unsigned long far *ofs; /* the entries before fixup: file offsets */
+        u32 far *ofs; /* the entries before fixup: file offsets */
         Shape far *far *recs;   /* the same entries after fixup */
     } table;
-    unsigned long base;
+    u32 base;
 
     /* The DAT: chunk opens with a 0-terminated table of 32-bit file
      * offsets to the Shape records that follow it.  The chunk buffer
@@ -111,7 +111,7 @@ Shape far *far *ts_load_shape_tbl(int tblIdx, char *fname) {
      * long addition relocates each entry into a far pointer in place. */
     table.recs = chunkread_read_all_far(fname, "DAT:");
     if (table.recs != 0) {
-        base = (unsigned long)table.ofs;
+        base = (u32)table.ofs;
         g_shapeTables[tblIdx].records = table.recs;
         g_shapeTables[tblIdx].scale = SHAPE_SCALE_UNITY;
         g_shapeTables[tblIdx].scaleClamp = SHAPE_SCALE_UNITY;
@@ -126,7 +126,7 @@ Shape far *far *ts_load_shape_tbl(int tblIdx, char *fname) {
     return table.recs;
 }
 
-void far ts_free_shape_tbl(int tblIdx) {
+void far ts_free_shape_tbl(s16 tblIdx) {
     _freemem(g_shapeTables[tblIdx].records);
     g_shapeTables[tblIdx].records = 0;
     g_shapeTables[tblIdx].count = 0;
@@ -135,8 +135,8 @@ void far ts_free_shape_tbl(int tblIdx) {
     g_shapeTables[tblIdx].spriteBank = -1;
 }
 
-Shape far *ts_get_shape(int shapeIdx) {
-    int i;
+Shape far *ts_get_shape(s16 shapeIdx) {
+    s16 i;
 
     if (g_shapeOverride != 0) {
         if (shapeIdx < g_shapeOverrideLen) {
@@ -153,8 +153,8 @@ Shape far *ts_get_shape(int shapeIdx) {
     return NULL;
 }
 
-Shape far *ts_set_shape(int shapeIdx, Shape far *shape) {
-    int i;
+Shape far *ts_set_shape(s16 shapeIdx, Shape far *shape) {
+    s16 i;
 
     if (g_shapeOverride != 0) {
         if (shapeIdx < g_shapeOverrideLen) {
@@ -196,14 +196,14 @@ void far ts_my_free(void *ptr) {
     my_free(ptr);
 }
 
-int ts_get_anim_group_count(int shapeIdx) {
+s16 ts_get_anim_group_count(s16 shapeIdx) {
     Shape far *p = ts_get_shape(shapeIdx);
     if (!p)
         return 0;
     return p->animGroupCount;
 }
 
-int far ts_get_anim_frame_count(int shapeIdx, register int groupId) {
+s16 far ts_get_anim_frame_count(s16 shapeIdx, register s16 groupId) {
     Shape far *p;
     unsigned char far *d;
 
@@ -216,16 +216,16 @@ int far ts_get_anim_frame_count(int shapeIdx, register int groupId) {
     return d[groupId];
 }
 
-long far ts_get_scaled_radius(int shapeIdx) {
+s32 far ts_get_scaled_radius(s16 shapeIdx) {
     Shape far *p;
 
     p = ts_get_shape(shapeIdx);
     if (!p)
         return 0;
-    return (long)p->radius << p->shift;
+    return (s32)p->radius << p->shift;
 }
 
-int ts_get_shift(int shapeIdx) {
+s16 ts_get_shift(s16 shapeIdx) {
     Shape far *p;
 
     p = ts_get_shape(shapeIdx);

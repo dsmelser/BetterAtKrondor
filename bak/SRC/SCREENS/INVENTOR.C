@@ -33,13 +33,13 @@
 #include "SRC/COMBAT/ARENA/COMBAT.H"
 
 
-short g_nInvSelItemAnchorX;
-short g_nInvSelItemAnchorY;
-short g_nInvSelItemIconDx;
-short g_nInvSelItemIconDy;
-short g_nCursorSaveRectX;
-short g_nCursorSaveRectY;
-unsigned short g_inventory_actor_kind;
+s16 g_nInvSelItemAnchorX;
+s16 g_nInvSelItemAnchorY;
+s16 g_nInvSelItemIconDx;
+s16 g_nInvSelItemIconDy;
+s16 g_nCursorSaveRectX;
+s16 g_nCursorSaveRectY;
+u16 g_inventory_actor_kind;
 
 ImageRecord **g_pInvSpriteLoAssetTable = {0};
 ImageRecord **g_pInvSpriteHiAssetTable = {0};
@@ -48,7 +48,7 @@ ImageRecord **g_pInvMiscAssetTable = {0};
 unsigned char far *g_pCursorSaveBufActive = {0};
 unsigned char far *g_pCursorSaveBufA = {0};
 unsigned char far *g_pCursorSaveBufB = {0};
-unsigned long g_dwDblClickDeadline = 0x00000000UL;
+u32 g_dwDblClickDeadline = 0x00000000UL;
 
 void invui_inspect_image_cleanup(void) {
     if (g_pInvMiscAssetTable != (ImageRecord **)0x0) {
@@ -62,11 +62,11 @@ void invui_inspect_image_cleanup(void) {
     }
 }
 
-void invui_inspect_images_load_once(int load_lock_images) {
-    int count;
-    int maxSize;
-    int i;
-    int size;
+void invui_inspect_images_load_once(s16 load_lock_images) {
+    s16 count;
+    s16 maxSize;
+    s16 i;
+    s16 size;
 
     if (g_pInvMiscAssetTable == (ImageRecord **)0) {
         g_pInvMiscAssetTable = resblit_load_asset_table("INVMISC.BMX", 2);
@@ -79,15 +79,15 @@ void invui_inspect_images_load_once(int load_lock_images) {
         i = maxSize = 0;
         if (i < count) {
             do {
-                if ((size = (int)rect_byte_size(g_pInvSpriteLoAssetTable[i]->nWidth,
+                if ((size = (s16)rect_byte_size(g_pInvSpriteLoAssetTable[i]->nWidth,
                                                 g_pInvSpriteLoAssetTable[i]->nHeight)) > maxSize) {
                     maxSize = size;
                 }
                 i++;
             } while (i < count);
         }
-        g_pCursorSaveBufActive = g_pCursorSaveBufA = (unsigned char far *)alloc_far((long)maxSize, 0L);
-        g_pCursorSaveBufB = (unsigned char far *)alloc_far((long)maxSize, 0L);
+        g_pCursorSaveBufActive = g_pCursorSaveBufA = (unsigned char far *)alloc_far((s32)maxSize, 0L);
+        g_pCursorSaveBufB = (unsigned char far *)alloc_far((s32)maxSize, 0L);
         i = 0;
         do {
             g_abCursorPaletteLut[i] = (unsigned char)i;
@@ -99,14 +99,14 @@ void invui_inspect_images_load_once(int load_lock_images) {
 
 ImageRecord *invui_item_sprite_select(ItemSlot far *slot) {
     ItemRecord far *pItem;
-    unsigned int uIdx;
+    u16 uIdx;
     ImageRecord *pSprite;
-    int i;
+    s16 i;
 
-    pItem = itemtbl_record_ptr_by_id((unsigned int)slot->item_id);
-    uIdx = pItem->wUnk_30 != 0 ? pItem->wUnk_30 : (unsigned int)slot->item_id;
-    pSprite = (int)uIdx < 0x78 ? g_pInvSpriteLoAssetTable[uIdx]
-                               : g_pInvSpriteHiAssetTable[(int)uIdx - 0x78];
+    pItem = itemtbl_record_ptr_by_id((u16)slot->item_id);
+    uIdx = pItem->wUnk_30 != 0 ? pItem->wUnk_30 : (u16)slot->item_id;
+    pSprite = (s16)uIdx < 0x78 ? g_pInvSpriteLoAssetTable[uIdx]
+                               : g_pInvSpriteHiAssetTable[(s16)uIdx - 0x78];
     for (i = 0x88; i <= 0x8f; i++) {
         g_abCursorPaletteLut[i] = (unsigned char)i;
     }
@@ -125,7 +125,7 @@ ImageRecord *invui_item_sprite_select(ItemSlot far *slot) {
     return pSprite;
 }
 
-void far invui_blit_spr_ckey_dflt_size(ImageRecord *sprite, int x, int y, int w, int h) {
+void far invui_blit_spr_ckey_dflt_size(ImageRecord *sprite, s16 x, s16 y, s16 w, s16 h) {
     if (w <= 0) {
         w = sprite->nWidth;
     }
@@ -138,7 +138,7 @@ void far invui_blit_spr_ckey_dflt_size(ImageRecord *sprite, int x, int y, int w,
     g_polyRasterState.nRemapTableOff = 0;
 }
 
-void invui_portrait_refresh_animated(int portrait_idx, int prev_portrait, int anim_step) {
+void invui_portrait_refresh_animated(s16 portrait_idx, s16 prev_portrait, s16 anim_step) {
     g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaPage1Base;
     gfx_present_dispatch(0, 0x84, 0xbe, 0x44);
     anim_step %= 6;
@@ -158,8 +158,8 @@ void invui_portrait_refresh_animated(int portrait_idx, int prev_portrait, int an
     }
 }
 
-void invui_draw_text_aligned_shadow(char far *text, int x, int y, int align, int fg_color,
-                                    int shadow_color) {
+void invui_draw_text_aligned_shadow(char far *text, s16 x, s16 y, s16 align, s16 fg_color,
+                                    s16 shadow_color) {
     if (align == 2) {
         x -= font_text_pixel_width(text);
     } else if (align != 0) {
@@ -178,8 +178,8 @@ static void invui_op_noop(void) {
     return;
 }
 
-void far invui_portr_panel_fill_pulsing(int state, int phase) {
-    register int m;
+void far invui_portr_panel_fill_pulsing(s16 state, s16 phase) {
+    register s16 m;
 
     m = phase;
     m %= 6;
@@ -192,10 +192,10 @@ void far invui_portr_panel_fill_pulsing(int state, int phase) {
     draw_rect_filled(0xd, 0xb, 0x52, 0x79);
 }
 
-static void invui_portrait_panel_draw(int mode, int tick) {
-    register int phase;
+static void invui_portrait_panel_draw(s16 mode, s16 tick) {
+    register s16 phase;
     ImageRecord *sprite;
-    int xDst, yDst;
+    s16 xDst, yDst;
 
     phase = tick;
     sprite = g_pInvMiscAssetTable[g_inventory_actor_kind];
@@ -217,11 +217,11 @@ static void invui_portrait_panel_draw(int mode, int tick) {
     draw_rect_filled(0xc3, 0x94, 0x40, 0x1f);
 }
 
-void far invui_cur_spr_paint_ctrd(ImageRecord *sprite, int mode) {
-    short nx;
-    short ny;
-    short dstX;
-    short dstY;
+void far invui_cur_spr_paint_ctrd(ImageRecord *sprite, s16 mode) {
+    s16 nx;
+    s16 ny;
+    s16 dstX;
+    s16 dstY;
 
     if ((sprite != (ImageRecord *)0) && (mode == 0)) {
         g_graphics_context.bClip_enabled = 1;
@@ -262,7 +262,7 @@ void far invui_cur_spr_paint_ctrd(ImageRecord *sprite, int mode) {
     }
 }
 
-int far invui_actor_inventory_kind(Actor far *actor, int flag) {
+s16 far invui_actor_inventory_kind(Actor far *actor, s16 flag) {
     if (g_inventory_screen_mode == 2) {
         return -1;
     }
@@ -284,7 +284,7 @@ check_combat:
     if (actorrec_get_subrecord(actor, SUBREC_EVENT_STATE) != (ActorSubrecord far *)0) {
         return 7;
     }
-    switch ((unsigned)ts_get_shape(actor->world_item_id)->kind - 6) {
+    switch ((u16)ts_get_shape(actor->world_item_id)->kind - 6) {
     case 0:
         return 1;
     case 11:
@@ -312,8 +312,8 @@ check_combat:
     }
 }
 
-void far invui_status_icons_render(unsigned status_bits, int x, int y) {
-    int bit;
+void far invui_status_icons_render(u16 status_bits, s16 x, s16 y) {
+    s16 bit;
 
     status_bits &= 0xff80;
     if (status_bits != 0) {
@@ -326,13 +326,13 @@ void far invui_status_icons_render(unsigned status_bits, int x, int y) {
     }
 }
 
-static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_slot,
-                              short highlight_slot) {
+static void invui_grid_render(MenuPage *page, Actor far *actor, s16 selected_slot,
+                              s16 highlight_slot) {
     MenuPage *pg = page;
     MenuEntry *e;
-    int slot_idx;
-    int saved_count;
-    int has_subrec;
+    s16 slot_idx;
+    s16 saved_count;
+    s16 has_subrec;
     char buf[100];
 
     has_subrec = actorrec_get_subrecord(actor, SUBREC_EVENT_STATE) != 0;
@@ -383,7 +383,7 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
     menupage_draw(pg);
     pg->wEntry_count = saved_count;
 
-    if ((int)g_inventory_actor_kind >= 0)
+    if ((s16)g_inventory_actor_kind >= 0)
         invui_portrait_panel_draw(0, 0);
 
     g_graphics_context.bGfx_fill_enabled = 1;
@@ -408,12 +408,12 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
     g_graphics_context.bGfx_fill_enabled = 1;
     slot_idx = 7;
     e = &pg->pEntries[7];
-    while ((short)pg->wEntry_count > slot_idx) {
+    while ((s16)pg->wEntry_count > slot_idx) {
         if (e->wSprite_base != 0) {
             ItemSlot far *slot;
             ItemRecord far *item;
             ImageRecord *sprite;
-            int icon_x, icon_y;
+            s16 icon_x, icon_y;
 
             slot = ACTOR_ITEMS(actor) + (e->wAction_id - 0x80);
             item = itemtbl_record_ptr(slot);
@@ -444,8 +444,8 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
                 invui_status_icons_render(slot->flags, e->rect.x + 1, e->rect.y + 1);
 
             if (has_subrec) {
-                int text_x, text_ym1;
-                long item_value;
+                s16 text_x, text_ym1;
+                s32 item_value;
                 text_x = e->rect.x + pg->rect.x + e->rect.width / 2;
                 text_ym1 = e->rect.y + pg->rect.y + e->rect.height - 1;
                 item_value = itemtbl_compute_value(slot);
@@ -478,8 +478,8 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
                 if (item_value < 0) {
                     sprintf(buf, "Unavailable");
                 } else {
-                    long g = item_value / 10;
-                    long r = item_value % 10;
+                    s32 g = item_value / 10;
+                    s32 r = item_value % 10;
                     if (r != 0) {
                         if (g != 0)
                             sprintf(buf, "%ld gold %ld silver", g, r);
@@ -494,7 +494,7 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
                                                -1);
             } else {
                 if ((item->wFlags & 0x1000) != 0 && (item->wFlags & 8) != 0) {
-                    int text_x, text_ym1;
+                    s16 text_x, text_ym1;
                     text_x = e->rect.x + pg->rect.x + e->rect.width;
                     text_ym1 = e->rect.y + pg->rect.y + e->rect.height -
                                g_graphics_context.pFont_height[0];
@@ -502,7 +502,7 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
                     sprintf(buf, "%d%%", slot->condition);
                     font_draw_text_ds(buf, text_x - font_text_width_ds(buf), text_ym1);
                 } else {
-                    int text_x, text_ym1;
+                    s16 text_x, text_ym1;
                     if ((item->wFlags & 0x8000) == 0 && actor->bResidence != RES_PICKLOCK_BUFFER) {
                         if ((item->wFlags & 0x3000) == 0)
                             goto next_slot;
@@ -530,8 +530,8 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
         picklock_lock_slide_animation(0);
 
     {
-        long gold = g_gameState.nParty_gold / 10;
-        long silver = g_gameState.nParty_gold % 10;
+        s32 gold = g_gameState.nParty_gold / 10;
+        s32 silver = g_gameState.nParty_gold % 10;
         if (actor->bResidence == RES_PARTY_SLOT)
             invui_op_noop();
         if (gold > 9999)
@@ -543,22 +543,22 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
     invui_draw_text_aligned_shadow((char far *)buf, 0x103, 0xb7, 2, -1, -1);
 }
 
-void far invui_render_present_sync(MenuPage *page, Actor far *actor, short selected_slot,
-                                   short highlight_slot) {
+void far invui_render_present_sync(MenuPage *page, Actor far *actor, s16 selected_slot,
+                                   s16 highlight_slot) {
     invui_grid_render(page, actor, selected_slot, highlight_slot);
     screen_frame_present();
     screen_frame_sync_buffers_rect(0, 200);
 }
 
-static void far invui_animate_item_fly(ImageRecord *image, int src_x, int src_y, int dst_x,
-                                       int dst_y, int actor, int sfx_flag, int is_shop) {
-    int i;
-    int x;
-    int y;
-    int scaled_w;
-    int scaled_h;
-    int prev_x;
-    int prev_y;
+static void far invui_animate_item_fly(ImageRecord *image, s16 src_x, s16 src_y, s16 dst_x,
+                                       s16 dst_y, s16 actor, s16 sfx_flag, s16 is_shop) {
+    s16 i;
+    s16 x;
+    s16 y;
+    s16 scaled_w;
+    s16 scaled_h;
+    s16 prev_x;
+    s16 prev_y;
 
     prev_x = -999;
     prev_y = -999;
@@ -606,21 +606,21 @@ static void far invui_animate_item_fly(ImageRecord *image, int src_x, int src_y,
 
 #pragma intrinsic(abs)
 
-int far invui_handle_item_drag(MenuPage *page, Actor far *actor, int selected_slot,
-                               int *p_selected_slot) {
-    unsigned short consumed;
-    int target_slot;
-    int equip_portrait;
-    int item_cat;
-    int dist;
-    int cx;
-    int cy;
-    int phase;
-    int init_cx;
-    int init_cy;
-    int dragging;
-    unsigned int is_shop;
-    int old_sel;
+s16 far invui_handle_item_drag(MenuPage *page, Actor far *actor, s16 selected_slot,
+                               s16 *p_selected_slot) {
+    u16 consumed;
+    s16 target_slot;
+    s16 equip_portrait;
+    s16 item_cat;
+    s16 dist;
+    s16 cx;
+    s16 cy;
+    s16 phase;
+    s16 init_cx;
+    s16 init_cy;
+    s16 dragging;
+    u16 is_shop;
+    s16 old_sel;
     ItemSlot far *item_ptr;
     MenuEntry *focused;
     MenuEntry *hovered;
@@ -729,7 +729,7 @@ int far invui_handle_item_drag(MenuPage *page, Actor far *actor, int selected_sl
     if (dragging && (selected_slot == 0 || target_slot != selected_slot) && target_slot >= 1 &&
         target_slot <= g_gameState.partySize) {
         ImageRecord *spr;
-        int xfer_result;
+        s16 xfer_result;
         spr = invui_item_sprite_select(item_ptr);
         if (g_wInCombatMode != 0 &&
             combat_arena_dist_actors_by_id(selected_slot, target_slot) > 1) {
@@ -763,7 +763,7 @@ int far invui_handle_item_drag(MenuPage *page, Actor far *actor, int selected_sl
 
     if (dragging && equip_portrait != 0) {
         ImageRecord *spr;
-        int xfer_result;
+        s16 xfer_result;
         spr = invui_item_sprite_select(item_ptr);
         invui_portrait_panel_draw(1, 0);
         invui_portrait_refresh_animated(selected_slot, 0, 0);
@@ -800,14 +800,14 @@ int far invui_handle_item_drag(MenuPage *page, Actor far *actor, int selected_sl
     } else {
         ItemSlot far *src_item;
         ItemSlot far *dst_item;
-        unsigned int cat;
+        u16 cat;
         if (selected_slot == 0 || !dragging || hovered == 0 || hovered->wAction_id < 0x80)
             return 0;
         src_item = ACTOR_ITEMS(actor) + (focused->wAction_id - 0x80);
         dst_item = ACTOR_ITEMS(actor) + (hovered->wAction_id - 0x80);
         cat = itemtbl_record_ptr(src_item)->wCategory;
         if (focused->wAction_id != hovered->wAction_id &&
-            (((int)cat >= 8 && (int)cat <= 0xc) || cat == 0x19)) {
+            (((s16)cat >= 8 && (s16)cat <= 0xc) || cat == 0x19)) {
             itemuse_dispatch_on_target(actor, src_item, dst_item, selected_slot);
         }
         *p_selected_slot = -1;

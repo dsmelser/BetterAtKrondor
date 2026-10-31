@@ -4,7 +4,7 @@
 #include "SRC/GFX/RASTER/VGARESET.H"
 
 void vga_reset_gc_default(void) {
-    unsigned v;
+    u16 v;
     if (g_graphics_context.bActiveVgaMode == '\x10') {
 
         outpw(0x3ce, v = 0x0205);

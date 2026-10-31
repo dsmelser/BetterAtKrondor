@@ -4,11 +4,11 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-extern short g_nPolygonTextureMode;
-extern unsigned short g_nWorldRenderJitter;
+extern s16 g_nPolygonTextureMode;
+extern u16 g_nWorldRenderJitter;
 extern char *g_versionBanner;
 extern ResFile *g_pSfxArchiveStream;
-extern unsigned int _ovrbuffer;
+extern u16 _ovrbuffer;
 extern unsigned char far *g_pMainScratchBuf;
 
 #endif

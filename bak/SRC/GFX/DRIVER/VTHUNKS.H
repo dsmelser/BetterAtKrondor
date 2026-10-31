@@ -4,11 +4,11 @@
 #include "structs.h"
 
 extern void gfx_dispatch_noop(void);
-extern void set_border_color(int color);
+extern void set_border_color(s16 color);
 extern void renderer_vslot26_dispatch();
-extern void vsync_hook(int a);
-extern void cga_save_rect_to_buffer(unsigned char far *pDest, int x_start, int row, int width,
-                                    int row_count);
-extern long rect_byte_size(int width, int height);
+extern void vsync_hook(s16 a);
+extern void cga_save_rect_to_buffer(unsigned char far *pDest, s16 x_start, s16 row, s16 width,
+                                    s16 row_count);
+extern s32 rect_byte_size(s16 width, s16 height);
 
 #endif

@@ -42,23 +42,23 @@ unsigned char far g_skyHorizonStrips[863] = {
 };
 
 void sky_horizon_strip_compute_slope(SkyStrip far *pStrip) {
-    unsigned int yTop;
-    unsigned int yBot;
-    unsigned int baseOff;
-    unsigned int endOff;
-    int slope;
+    u16 yTop;
+    u16 yBot;
+    u16 baseOff;
+    u16 endOff;
+    s16 slope;
 
-    yTop = (unsigned int)pStrip->bYTop;
-    yBot = (unsigned int)pStrip->bYBot;
-    baseOff = (unsigned int)pStrip->bBaseRow * 0x50;
-    endOff = baseOff + (unsigned int)pStrip->bEndRow * 0x50;
+    yTop = (u16)pStrip->bYTop;
+    yBot = (u16)pStrip->bYBot;
+    baseOff = (u16)pStrip->bBaseRow * 0x50;
+    endOff = baseOff + (u16)pStrip->bEndRow * 0x50;
     if (yBot == yTop) {
         slope = 0;
     } else {
-        if ((int)yBot < (int)yTop) {
-            slope = (int)(endOff - baseOff) / (int)(yTop - yBot) - 1;
+        if ((s16)yBot < (s16)yTop) {
+            slope = (s16)(endOff - baseOff) / (s16)(yTop - yBot) - 1;
         } else {
-            slope = (int)(endOff - baseOff) / (int)(yBot - yTop) - 1;
+            slope = (s16)(endOff - baseOff) / (s16)(yBot - yTop) - 1;
         }
     }
     pStrip->wSiBase = baseOff;
@@ -66,12 +66,12 @@ void sky_horizon_strip_compute_slope(SkyStrip far *pStrip) {
     return;
 }
 
-void sky_horizon_strips_init(int a) {
-    int i;
-    int flags;
+void sky_horizon_strips_init(s16 a) {
+    s16 i;
+    s16 flags;
 
     for (i = 0; i < 0x100; i++) {
-        *(int far *)(g_skyHorizonStrips + 0x15f + i * 2) = -1;
+        *(s16 far *)(g_skyHorizonStrips + 0x15f + i * 2) = -1;
     }
 
     for (i = 0; i < 0x1b; i++) {
@@ -89,8 +89,8 @@ void sky_horizon_strips_init(int a) {
             if (((SkyStrip far *)g_skyHorizonStrips)[i].bHorizonOverride != 0) {
                 ((SkyStrip far *)g_skyHorizonStrips)[i].bYTop = (unsigned char)g_nHorizonRowY;
             }
-            *(int far *)(g_skyHorizonStrips +
-                         (unsigned)((SkyStrip far *)g_skyHorizonStrips)[i].bKey * 2 + 0x15f) = i;
+            *(s16 far *)(g_skyHorizonStrips +
+                         (u16)((SkyStrip far *)g_skyHorizonStrips)[i].bKey * 2 + 0x15f) = i;
             sky_horizon_strip_compute_slope(&((SkyStrip far *)g_skyHorizonStrips)[i]);
         }
     }
@@ -105,9 +105,9 @@ void sky_draw_ground_band(void) {
     else
         rec = (SkyStrip far *)g_skyHorizonStrips;
 
-    g_vgablit_si_base = rec->wSiBase + (int)(g_nWorldRenderJitter & 0x3f);
+    g_vgablit_si_base = rec->wSiBase + (s16)(g_nWorldRenderJitter & 0x3f);
     g_vgablit_si_stride = rec->nSiStride;
-    g_vgablit_row_sub = (unsigned int)rec->bYTop;
+    g_vgablit_row_sub = (u16)rec->bYTop;
     g_vgablit_row_count = 0;
 
     save_fill = g_renderer_vtable.pfn_fill_spans_dithered_modey;
@@ -124,29 +124,29 @@ void sky_draw_ground_band(void) {
     g_renderer_vtable.pfn_fill_spans_dithered_modey = save_fill;
 }
 
-void sky_polygon_draw_dispatch(unsigned int vcount, int *xs, int *ys) {
+void sky_polygon_draw_dispatch(u16 vcount, s16 *xs, s16 *ys) {
     SkyStrip far *rec;
-    int fill_clr;
+    s16 fill_clr;
     Slot27Fn far *save_fill;
     Slot02Fn far *save_line;
-    int strip_idx;
+    s16 strip_idx;
 
     if (g_nPolygonTextureMode == 0)
         goto plain_draw;
 
     fill_clr = g_graphics_context.bGfx_fill_color;
-    strip_idx = *(int far *)(g_skyHorizonStrips + (unsigned)fill_clr * 2 + 0x15f);
+    strip_idx = *(s16 far *)(g_skyHorizonStrips + (u16)fill_clr * 2 + 0x15f);
     if (strip_idx < 0)
         goto plain_draw;
 
     rec = ((SkyStrip far *)g_skyHorizonStrips) + strip_idx;
 
-    g_vgablit_si_base = rec->wSiBase + (int)(g_nWorldRenderJitter & 0x3f);
+    g_vgablit_si_base = rec->wSiBase + (s16)(g_nWorldRenderJitter & 0x3f);
     g_vgablit_si_stride = rec->nSiStride;
-    g_vgablit_row_sub = (unsigned int)rec->bYTop;
+    g_vgablit_row_sub = (u16)rec->bYTop;
 
     if (rec->bFlags & 1) {
-        g_vgablit_row_count = (unsigned int)rec->bEndRow - 1;
+        g_vgablit_row_count = (u16)rec->bEndRow - 1;
         g_vgablit_si_stride = 0x50;
     } else {
         g_vgablit_row_count = 0;

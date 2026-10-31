@@ -3,7 +3,7 @@
 #include "SRC/AUDIO/SFX/SFXFIND.H"
 
 AudioTrackHandle far *sfx_find_active(unsigned char far *track_data) {
-    int i;
+    s16 i;
 
     for (i = 0; i < 7; i++) {
         if (g_apSfxSlotPool[i]->pScript == track_data && g_apSfxSlotPool[i]->bActive != 0xff)

@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern unsigned int getpixel(int x, int y);
-extern void putpixel(int x, int y, int color);
+extern u16 getpixel(s16 x, s16 y);
+extern void putpixel(s16 x, s16 y, s16 color);
 
 #endif

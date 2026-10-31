@@ -33,20 +33,20 @@
 
 unsigned char g_bssgap_4c34[2];
 GridCombatant *g_combatant_table;
-short g_combatant_count;
+s16 g_combatant_count;
 CombatTile g_combat_tile_grid[8][13];
-int g_nCombatTerrainWallColor;
+s16 g_nCombatTerrainWallColor;
 unsigned char g_combat_move_map[8][13];
 
 unsigned char far *g_pPalLoadedBuf = {0};
 unsigned char far *g_pPalAltA = {0};
 unsigned char far *g_pPalAltB = {0};
 unsigned char far *g_pPalBlendScratch = {0};
-unsigned short g_nPalBlendMode = 0x0000;
+u16 g_nPalBlendMode = 0x0000;
 unsigned char far *g_pPalLastInstalled = {0};
 char g_rgbDayNightCycle_4f4[15] = {0x0a, 0x14, 0x17, 0x00, 0x00, 0x00, 0x36, 0x2c,
                                    0x12, 0x03, 0x17, 0x01, 0x06, 0x0b, 0x21};
-int g_nPaletteBlendFactorCached = 0;
+s16 g_nPaletteBlendFactorCached = 0;
 
 unsigned char _dgroup_zero_505 = 0;
 
@@ -61,12 +61,12 @@ void combatgrid_combatants_table_free(void) {
     return;
 }
 
-int combatgrid_coord_valid(int x, int y) {
+s16 combatgrid_coord_valid(s16 x, s16 y) {
     return (x >= 0 && x < 8 && y >= 0 && y < 13) ? 1 : 0;
 }
 
-void combatgrid_remove_cmbt_at_tile(int tile_x, int tile_y) {
-    int i;
+void combatgrid_remove_cmbt_at_tile(s16 tile_x, s16 tile_y) {
+    s16 i;
 
     for (i = 0; i < g_combatant_count; i = i + 1) {
         if (((char)g_combatant_table[i].tile_x == tile_x) &&
@@ -79,8 +79,8 @@ void combatgrid_remove_cmbt_at_tile(int tile_x, int tile_y) {
     return;
 }
 
-void combatgrid_kill_cmbt_at_tile(int tile_x, int tile_y) {
-    int i;
+void combatgrid_kill_cmbt_at_tile(s16 tile_x, s16 tile_y) {
+    s16 i;
 
     for (i = 0; i < g_combatant_count; i = i + 1) {
         if (((char)g_combatant_table[i].tile_x == tile_x) &&
@@ -93,15 +93,15 @@ void combatgrid_kill_cmbt_at_tile(int tile_x, int tile_y) {
     return;
 }
 
-unsigned int combatgrid_tile_terrain(char tile_x, char tile_y) {
-    if (combatgrid_coord_valid((int)tile_x, (int)tile_y) != 0) {
-        return (unsigned int)g_combat_tile_grid[tile_x][tile_y].pOccupant;
+u16 combatgrid_tile_terrain(char tile_x, char tile_y) {
+    if (combatgrid_coord_valid((s16)tile_x, (s16)tile_y) != 0) {
+        return (u16)g_combat_tile_grid[tile_x][tile_y].pOccupant;
     }
     return 0;
 }
 
 GridCombatant *combatgrid_find_cmbt_at_tile(char tile_x, char tile_y) {
-    int i;
+    s16 i;
 
     for (i = 0; i < g_combatant_count; i++) {
         if (g_combatant_table[i].tile_x == tile_x && g_combatant_table[i].tile_y == tile_y) {
@@ -111,7 +111,7 @@ GridCombatant *combatgrid_find_cmbt_at_tile(char tile_x, char tile_y) {
     return (GridCombatant *)0;
 }
 
-unsigned int combatgrid_tile_blockd_cmbt(char tile_x, char tile_y) {
+u16 combatgrid_tile_blockd_cmbt(char tile_x, char tile_y) {
     Combatant *actor;
     actor = (Combatant *)combatgrid_tile_terrain(tile_x, tile_y);
     if (actor == (Combatant *)0 || (actor->inner->flags & CAF_DEAD) != 0)
@@ -119,13 +119,13 @@ unsigned int combatgrid_tile_blockd_cmbt(char tile_x, char tile_y) {
     return 1;
 }
 
-unsigned int combatgrid_tile_is_blocked(char tile_x, char tile_y) {
-    int blocked;
-    unsigned int terrain;
+u16 combatgrid_tile_is_blocked(char tile_x, char tile_y) {
+    s16 blocked;
+    u16 terrain;
 
     blocked = 0;
     terrain = combatgrid_tile_terrain_field(tile_x, tile_y);
-    if (combatgrid_coord_valid((int)tile_x, (int)tile_y) == 0 || terrain == 2 || terrain == 7) {
+    if (combatgrid_coord_valid((s16)tile_x, (s16)tile_y) == 0 || terrain == 2 || terrain == 7) {
         blocked = 1;
     }
     if (combatgrid_tile_terrain(tile_x, tile_y) != 0 ||
@@ -135,22 +135,22 @@ unsigned int combatgrid_tile_is_blocked(char tile_x, char tile_y) {
     return 0;
 }
 
-void combatgrid_tile_set_word(char x, char y, unsigned int value) {
-    if (combatgrid_coord_valid((int)x, (int)y) != 0) {
+void combatgrid_tile_set_word(char x, char y, u16 value) {
+    if (combatgrid_coord_valid((s16)x, (s16)y) != 0) {
         g_combat_tile_grid[x][y].pOccupant = (Combatant *)value;
     }
     return;
 }
 
-unsigned int combatgrid_tile_terrain_field(char x, char y) {
-    if (combatgrid_coord_valid((int)x, (int)y) == 0) {
+u16 combatgrid_tile_terrain_field(char x, char y) {
+    if (combatgrid_coord_valid((s16)x, (s16)y) == 0) {
         return 2;
     }
     return g_combat_tile_grid[x][y].wTerrain;
 }
 
-int combatgrid_tile_field4(char x, char y) {
-    if (combatgrid_coord_valid((int)x, (int)y) == 0) {
+s16 combatgrid_tile_field4(char x, char y) {
+    if (combatgrid_coord_valid((s16)x, (s16)y) == 0) {
         return -1;
     }
     return g_combat_tile_grid[x][y].nEffectTimer;
@@ -171,19 +171,19 @@ void far combatgrid_tick_tile_effect(char x, char y) {
     }
 }
 
-void combatgrid_set_tile_effect(char x, char y, unsigned short type, int timer) {
+void combatgrid_set_tile_effect(char x, char y, u16 type, s16 timer) {
     g_combat_tile_grid[x][y].wTerrain = type;
     g_combat_tile_grid[x][y].nEffectTimer = timer;
 }
 
-int far combatgrid_prox_check_kind_set(WorldPos2 *pos) {
+s16 far combatgrid_prox_check_kind_set(WorldPos2 *pos) {
     ProximityScanHit hit;
-    unsigned int kindCopy;
-    unsigned int kind;
+    u16 kindCopy;
+    u16 kind;
 
     if ((char)proximity_scan_list(&hit, pos, g_wVisibleEntrySegment, g_pwVisibleEntryOffsets,
                                   g_nVisibleEntryCount) != '\0') {
-        kind = kindCopy = (unsigned int)ts_get_shape((hit.pRecord)->wRecord_id)->kind;
+        kind = kindCopy = (u16)ts_get_shape((hit.pRecord)->wRecord_id)->kind;
         switch (kind) {
         case 0:
         case 1:
@@ -196,35 +196,35 @@ int far combatgrid_prox_check_kind_set(WorldPos2 *pos) {
     return 0;
 }
 
-void combatgrid_world_to_view_2d(WorldPos2 *origin, int angle, WorldPos2 far *point, int *out_xy) {
-    long dx;
-    long dy;
-    long vx;
-    long vy;
-    int x;
-    int out_y;
+void combatgrid_world_to_view_2d(WorldPos2 *origin, s16 angle, WorldPos2 far *point, s16 *out_xy) {
+    s32 dx;
+    s32 dy;
+    s32 vx;
+    s32 vy;
+    s16 x;
+    s16 out_y;
 
     dx = point->nWorld_x - origin->nWorld_x;
     dy = point->nWorld_y - origin->nWorld_y;
 
-    vx = (r3d_imul_full32((int)dx, r3d_tbl_cos(-angle)) -
-          r3d_imul_full32((int)dy, r3d_tbl_sin(-angle))) >>
+    vx = (r3d_imul_full32((s16)dx, r3d_tbl_cos(-angle)) -
+          r3d_imul_full32((s16)dy, r3d_tbl_sin(-angle))) >>
          0xe;
 
-    vy = (r3d_imul_full32((int)dy, r3d_tbl_cos(-angle)) +
-          r3d_imul_full32((int)dx, r3d_tbl_sin(-angle))) >>
+    vy = (r3d_imul_full32((s16)dy, r3d_tbl_cos(-angle)) +
+          r3d_imul_full32((s16)dx, r3d_tbl_sin(-angle))) >>
          0xe;
 
     if (vx > 0x4000 || vx < -0x4000) {
         x = -1;
     } else {
-        x = ((int)vx + 0x4b0) / g_grid_tile_size;
+        x = ((s16)vx + 0x4b0) / g_grid_tile_size;
     }
 
     if (vy > 0x4000 || vy < -0x4000) {
         out_y = -1;
     } else {
-        out_y = ((int)vy - 0xc80) / g_grid_tile_size;
+        out_y = ((s16)vy - 0xc80) / g_grid_tile_size;
     }
 
     if (combatgrid_coord_valid(x, out_y) != 0) {
@@ -236,8 +236,8 @@ void combatgrid_world_to_view_2d(WorldPos2 *origin, int angle, WorldPos2 far *po
     return;
 }
 
-int combatgrid_tile_cam_near_wedge(int tile_x, int tile_y) {
-    int result;
+s16 combatgrid_tile_cam_near_wedge(s16 tile_x, s16 tile_y) {
+    s16 result;
 
     result = 0;
     tile_y -= 6;
@@ -247,7 +247,7 @@ int combatgrid_tile_cam_near_wedge(int tile_x, int tile_y) {
     return result;
 }
 
-int far combatgrid_obj_kind_prox_actv(int kind) {
+s16 far combatgrid_obj_kind_prox_actv(s16 kind) {
     switch (kind) {
     case 5:
     case 6:
@@ -276,7 +276,7 @@ int far combatgrid_obj_kind_prox_actv(int kind) {
     return 0;
 }
 
-int far combatgrid_cmbt_block_kind(int kind) {
+s16 far combatgrid_cmbt_block_kind(s16 kind) {
     switch (kind) {
     case 5:
     case 18:
@@ -294,12 +294,12 @@ int far combatgrid_cmbt_block_kind(int kind) {
     return 0;
 }
 
-int far combatgrid_plr_prox_sweep_cnt(void) {
-    int col;
-    int row;
+s16 far combatgrid_plr_prox_sweep_cnt(void) {
+    s16 col;
+    s16 row;
     EulerAngles savedAngle;
     WorldPos savedPos;
-    int hitCount;
+    s16 hitCount;
 
     savedPos = g_world_camera->base.pos;
     savedAngle = g_world_camera->base.orientation;
@@ -340,13 +340,13 @@ int far combatgrid_plr_prox_sweep_cnt(void) {
     return hitCount;
 }
 
-int far combatgrid_tiles_match_ctr_px(void) {
-    int screen_xy[3];
-    unsigned int tileColor;
-    unsigned int refColor;
-    int matchCount;
-    int tile_x;
-    int tile_y;
+s16 far combatgrid_tiles_match_ctr_px(void) {
+    s16 screen_xy[3];
+    u16 tileColor;
+    u16 refColor;
+    s16 matchCount;
+    s16 tile_x;
+    s16 tile_y;
 
     matchCount = 0;
     world_render_view(1, 1);
@@ -376,28 +376,28 @@ int far combatgrid_tiles_match_ctr_px(void) {
     return matchCount;
 }
 
-int far combatgrid_tiles_over_thresh(void) {
-    int count;
+s16 far combatgrid_tiles_over_thresh(void) {
+    s16 count;
 
     if (g_game_mode != 2) {
         count = combatgrid_plr_prox_sweep_cnt();
     } else {
         count = combatgrid_tiles_match_ctr_px();
     }
-    return (unsigned int)(count >= 0x18);
+    return (u16)(count >= 0x18);
 }
 
-void far combatgrid_build_combatant_list(WorldPos2 *pWorldPos, short *pViewState) {
-    int dupIdx;
-    int i;
+void far combatgrid_build_combatant_list(WorldPos2 *pWorldPos, s16 *pViewState) {
+    s16 dupIdx;
+    s16 i;
     WorldObject far *entry;
     Shape far *shape;
-    int iPhantom;
-    int tileXY[2];
-    short entryCount;
-    long dist;
-    long maxDist;
-    long coords[3];
+    s16 iPhantom;
+    s16 tileXY[2];
+    s16 entryCount;
+    s32 dist;
+    s32 maxDist;
+    s32 coords[3];
 
     (void)&iPhantom;
     entry = g_apCombat_zone_actor_lists[0]->pEntries;
@@ -405,7 +405,7 @@ void far combatgrid_build_combatant_list(WorldPos2 *pWorldPos, short *pViewState
     combatgrid_tile_fx_init_pass();
     g_combatant_count = 0;
     i = 0;
-    if (i < (int)entryCount) {
+    if (i < (s16)entryCount) {
         do {
             shape = ts_get_shape(entry->shapeId);
             if (combatgrid_obj_kind_prox_actv(shape->kind) != 0) {
@@ -438,16 +438,16 @@ void far combatgrid_build_combatant_list(WorldPos2 *pWorldPos, short *pViewState
             }
             entry++;
             i++;
-        } while (i < (int)entryCount);
+        } while (i < (s16)entryCount);
     }
     entryCount = g_nVisible_entry_count;
     entry = (WorldObject far *)g_pVisible_entry_pool;
-    maxDist = (long)(g_grid_tile_size * 0xd + 0xc80);
+    maxDist = (s32)(g_grid_tile_size * 0xd + 0xc80);
     i = 0;
-    if (i < (int)entryCount) {
+    if (i < (s16)entryCount) {
         do {
             *(WorldPos *)coords = *(WorldPos far *)&entry->pos;
-            dist = distdir_octagonal_distance((long *)pWorldPos, coords);
+            dist = distdir_octagonal_distance((s32 *)pWorldPos, coords);
             shape = ts_get_shape(entry->shapeId);
             if (dist < maxDist && combatgrid_obj_kind_prox_actv(shape->kind) != 0) {
                 combatgrid_world_to_view_2d(pWorldPos, pViewState[2], (WorldPos2 far *)coords,
@@ -479,23 +479,23 @@ void far combatgrid_build_combatant_list(WorldPos2 *pWorldPos, short *pViewState
             }
             entry++;
             i++;
-        } while (i < (int)entryCount);
+        } while (i < (s16)entryCount);
     }
 }
 
-void combatgrid_tile_to_world_rotated(WorldPos2 *p_out, int tile_x, int tile_y) {
-    long rotated_x;
-    long rotated_y;
-    int neg_heading;
+void combatgrid_tile_to_world_rotated(WorldPos2 *p_out, s16 tile_x, s16 tile_y) {
+    s32 rotated_x;
+    s32 rotated_y;
+    s16 neg_heading;
 
-    p_out->nWorld_x = (long)(tile_x * g_grid_tile_size + (g_grid_tile_size >> 1) + -0x4b0);
-    p_out->nWorld_y = (long)(tile_y * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
+    p_out->nWorld_x = (s32)(tile_x * g_grid_tile_size + (g_grid_tile_size >> 1) + -0x4b0);
+    p_out->nWorld_y = (s32)(tile_y * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     neg_heading = -g_world_camera->base.orientation.yaw;
-    rotated_x = (r3d_imul_full32((int)p_out->nWorld_x, r3d_tbl_cos(-neg_heading)) -
-                 r3d_imul_full32((int)p_out->nWorld_y, r3d_tbl_sin(-neg_heading))) >>
+    rotated_x = (r3d_imul_full32((s16)p_out->nWorld_x, r3d_tbl_cos(-neg_heading)) -
+                 r3d_imul_full32((s16)p_out->nWorld_y, r3d_tbl_sin(-neg_heading))) >>
                 14;
-    rotated_y = (r3d_imul_full32((int)p_out->nWorld_y, r3d_tbl_cos(-neg_heading)) +
-                 r3d_imul_full32((int)p_out->nWorld_x, r3d_tbl_sin(-neg_heading))) >>
+    rotated_y = (r3d_imul_full32((s16)p_out->nWorld_y, r3d_tbl_cos(-neg_heading)) +
+                 r3d_imul_full32((s16)p_out->nWorld_x, r3d_tbl_sin(-neg_heading))) >>
                 14;
     p_out->nWorld_x = rotated_x + g_world_camera->base.pos.xy.nWorld_x;
     p_out->nWorld_y = rotated_y + g_world_camera->base.pos.xy.nWorld_y;
@@ -503,7 +503,7 @@ void combatgrid_tile_to_world_rotated(WorldPos2 *p_out, int tile_x, int tile_y) 
     p_out->nWorld_y -= (g_world_camera->base.pos.xy.nWorld_y / 64000) * 64000;
 }
 
-void far combatgrid_actor_set_grid_pos(int actor_idx, int new_x, int new_y) {
+void far combatgrid_actor_set_grid_pos(s16 actor_idx, s16 new_x, s16 new_y) {
     combatgrid_tile_set_word((g_combat_actors_A[actor_idx].inner)->gridX,
                              (g_combat_actors_A[actor_idx].inner)->gridY, 0);
     (g_combat_actors_A[actor_idx].inner)->gridX = (unsigned char)new_x;
@@ -513,22 +513,22 @@ void far combatgrid_actor_set_grid_pos(int actor_idx, int new_x, int new_y) {
 }
 
 void combatgrid_load_traps_dat(void) {
-    int skip;
+    s16 skip;
     ResFile *file;
-    int actor_idx;
+    s16 actor_idx;
     unsigned char tileX;
     unsigned char tileY;
-    int recordCount;
-    int i;
-    short recordId;
-    short start_idx;
-    unsigned short effectType;
-    long offset;
+    s16 recordCount;
+    s16 i;
+    s16 recordId;
+    s16 start_idx;
+    u16 effectType;
+    s32 offset;
 
     recordCount = 0;
     g_traps_loaded_flag = 1;
     file = res_fopen("traps.dat", "rb");
-    offset = (long)((int)g_encounter_id * 0x3e);
+    offset = (s32)((s16)g_encounter_id * 0x3e);
     res_fseek(file, offset, SEEK_SET);
     res_fread(&recordCount, 2, 1, file);
     start_idx = g_combatant_count;
@@ -561,7 +561,7 @@ void combatgrid_load_traps_dat(void) {
         } else {
 
             recordId =
-                (recordId < 0) ? ((recordId == (short)0x8000) ? 0x7fff : -recordId) : recordId;
+                (recordId < 0) ? ((recordId == (s16)0x8000) ? 0x7fff : -recordId) : recordId;
             if (recordId == 10 || recordId == 0xb || recordId == 0xc || recordId == 0xd) {
                 combatgrid_set_tile_effect(tileX, tileY, recordId, -1);
                 g_combatant_table[g_combatant_count].paged_id = 0xb;
@@ -569,9 +569,9 @@ void combatgrid_load_traps_dat(void) {
                 g_combatant_table[g_combatant_count].tile_y = tileY;
                 g_combatant_count++;
             } else if (recordId == 0xf || recordId == 0x10 || recordId == 0x11) {
-                actor_idx = (int)recordId - 0xf;
+                actor_idx = (s16)recordId - 0xf;
                 if (actor_idx < g_combat_count_A) {
-                    combatgrid_actor_set_grid_pos(actor_idx, (int)(char)tileX, (int)(char)tileY);
+                    combatgrid_actor_set_grid_pos(actor_idx, (s16)(char)tileX, (s16)(char)tileY);
                     combatgrid_set_tile_effect(g_combat_actors_A[actor_idx].inner->gridX,
                                                g_combat_actors_A[actor_idx].inner->gridY, recordId,
                                                -1);
@@ -594,8 +594,8 @@ void combatgrid_clear_combatants(void) {
 
 void combatgrid_tile_fx_init_walk(void) {
     EulerAngles savedAngle;
-    int col;
-    int row;
+    s16 col;
+    s16 row;
     WorldPos savedPos;
 
     savedPos = g_world_camera->base.pos;
@@ -643,11 +643,11 @@ void combatgrid_tile_fx_init_walk(void) {
 }
 
 void far combatgrid_classify_tiles_px(void) {
-    int screen_xy[3];
-    int row;
-    int col;
-    unsigned int tile_color;
-    unsigned int ref_color;
+    s16 screen_xy[3];
+    s16 row;
+    s16 col;
+    u16 tile_color;
+    u16 ref_color;
 
     world_render_view(1, 1);
     g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaPage1Base;
@@ -677,10 +677,10 @@ void far combatgrid_classify_tiles_px(void) {
 }
 
 void far combatgrid_tile_fx_init_pass(void) {
-    int col;
-    int row;
+    s16 col;
+    s16 row;
 
-    int tile_count = 0;
+    s16 tile_count = 0;
     if (g_game_mode != 2) {
         combatgrid_tile_fx_init_walk();
     } else {
@@ -715,11 +715,11 @@ void far combatgrid_tile_fx_init_pass(void) {
 
 void combatgrid_load_and_init(void) {
     ResFile *file;
-    int col;
-    int row;
+    s16 col;
+    s16 row;
 
     file = res_fopen("grid.dat", "rb");
-    res_fseek(file, (long)(unsigned)((g_gameState.nZoneId - 1) * 2), SEEK_SET);
+    res_fseek(file, (s32)(u16)((g_gameState.nZoneId - 1) * 2), SEEK_SET);
     res_fread(&g_nCombatTerrainWallColor, 2, 1, file);
     res_fclose(file);
     combatgrid_set_tile_effect('\0', '\0', 2, -1);
@@ -739,9 +739,9 @@ void combatgrid_load_and_init(void) {
 }
 
 void combatgrid_draw_terrain_walls(void) {
-    int run_start;
-    int col;
-    int row;
+    s16 run_start;
+    s16 col;
+    s16 row;
 
     g_nPolygonTextureMode = 0;
     row = 0;
@@ -792,13 +792,13 @@ void combatgrid_draw_terrain_walls(void) {
     return;
 }
 
-void far combatgrid_apply_tile_status_fx(int tile_x, int tile_y, int target_actor) {
-    int effect_slot;
+void far combatgrid_apply_tile_status_fx(s16 tile_x, s16 tile_y, s16 target_actor) {
+    s16 effect_slot;
     Combatant tempActor;
     CombatantState tempInner;
 
     if (target_actor != 0) {
-        combatgrid_tile_set_word(tile_x, tile_y, (unsigned int)&tempActor);
+        combatgrid_tile_set_word(tile_x, tile_y, (u16)&tempActor);
     }
     tempInner.gridX = tile_x;
     tempInner.gridY = tile_y;
@@ -819,10 +819,10 @@ void far combatgrid_apply_tile_status_fx(int tile_x, int tile_y, int target_acto
     return;
 }
 
-void combatgrid_mark_engagement_line(int x1, int y1, int x2, int y2, short paged_id,
-                                     int do_register) {
-    int sx;
-    int sy;
+void combatgrid_mark_engagement_line(s16 x1, s16 y1, s16 x2, s16 y2, s16 paged_id,
+                                     s16 do_register) {
+    s16 sx;
+    s16 sy;
 
     if (do_register != 0) {
         if (combatgrid_find_cmbt_at_tile((unsigned char)x1, (unsigned char)y1) != 0)
@@ -865,7 +865,7 @@ void combatgrid_mark_engagement_line(int x1, int y1, int x2, int y2, short paged
     }
 }
 
-int far combatgrid_place_actor_on_tile(int tile_x, int tile_y, int new_tile_x, int new_tile_y) {
+s16 far combatgrid_place_actor_on_tile(s16 tile_x, s16 tile_y, s16 new_tile_x, s16 new_tile_y) {
     GridCombatant *cmbt;
 
     if (combatgrid_tile_is_blocked((unsigned char)new_tile_x, (unsigned char)new_tile_y) != 0)
@@ -889,12 +889,12 @@ int far combatgrid_place_actor_on_tile(int tile_x, int tile_y, int new_tile_x, i
     return 1;
 }
 
-void combatgrid_find_adj_pass_tile(int x, int y, unsigned int terrain_mask, int *out_dx, int *out_dy) {
-    int dx;
-    int dy;
-    int found;
+void combatgrid_find_adj_pass_tile(s16 x, s16 y, u16 terrain_mask, s16 *out_dx, s16 *out_dy) {
+    s16 dx;
+    s16 dy;
+    s16 found;
     GridCombatant *combatant;
-    unsigned int terrain;
+    u16 terrain;
 
     found = 0;
     combatant = combatgrid_find_cmbt_at_tile((unsigned char)x, (unsigned char)y);
@@ -957,8 +957,8 @@ void combatgrid_find_adj_pass_tile(int x, int y, unsigned int terrain_mask, int 
     }
 }
 
-void combatgrid_spread_tile_fx_line(int x, int y) {
-    int step_x, step_y;
+void combatgrid_spread_tile_fx_line(s16 x, s16 y) {
+    s16 step_x, step_y;
 
     combatgrid_find_adj_pass_tile(x, y, 3, &step_x, &step_y);
     while (combatgrid_coord_valid(x, y) &&
@@ -977,8 +977,8 @@ void combatgrid_spread_tile_fx_line(int x, int y) {
     }
 }
 
-void far combatgrid_line_effect_propagate(int x, int y) {
-    int dx, dy;
+void far combatgrid_line_effect_propagate(s16 x, s16 y) {
+    s16 dx, dy;
     combatgrid_find_adj_pass_tile(x, y, 4, &dx, &dy);
     while (combatgrid_coord_valid(x, y) &&
            combatgrid_tile_terrain_field((char)x - (char)dx, (char)y - (char)dy) == 4) {
@@ -996,8 +996,8 @@ void far combatgrid_line_effect_propagate(int x, int y) {
     }
 }
 
-int far combatgrid_tile_walkable_kind(int x, int y, int kind) {
-    int ok;
+s16 far combatgrid_tile_walkable_kind(s16 x, s16 y, s16 kind) {
+    s16 ok;
     GridCombatant *cmbt;
 
     cmbt = combatgrid_find_cmbt_at_tile(x, y);
@@ -1012,7 +1012,7 @@ int far combatgrid_tile_walkable_kind(int x, int y, int kind) {
     return 0;
 }
 
-int far combatgrid_nbr_probe_diag(int x, int y, int kind) {
+s16 far combatgrid_nbr_probe_diag(s16 x, s16 y, s16 kind) {
     if (combatgrid_nbr_probe_orthogonal(x, y, kind) ||
         combatgrid_tile_walkable_kind(x + 1, y + 1, kind) ||
         combatgrid_tile_walkable_kind(x + 1, y - 1, kind) ||
@@ -1022,10 +1022,10 @@ int far combatgrid_nbr_probe_diag(int x, int y, int kind) {
     return 0;
 }
 
-void combatgrid_kill_adj_cmbt_team(int tile_x, int tile_y, int team) {
+void combatgrid_kill_adj_cmbt_team(s16 tile_x, s16 tile_y, s16 team) {
     GridCombatant *pCmbt;
-    int dy;
-    int dx;
+    s16 dy;
+    s16 dx;
 
     dy = -1;
     do {
@@ -1043,12 +1043,12 @@ void combatgrid_kill_adj_cmbt_team(int tile_x, int tile_y, int team) {
 }
 
 #pragma option -O-b
-void combatgrid_push_back_actor(int tile_x, int tile_y) {
-    int dx;
-    int dy;
+void combatgrid_push_back_actor(s16 tile_x, s16 tile_y) {
+    s16 dx;
+    s16 dy;
     GridCombatant *cmbt;
-    int origX;
-    int origY;
+    s16 origX;
+    s16 origY;
 
     cmbt = combatgrid_find_cmbt_at_tile((unsigned char)tile_x, (unsigned char)tile_y);
     origX = tile_x;
@@ -1076,7 +1076,7 @@ void combatgrid_push_back_actor(int tile_x, int tile_y) {
 }
 #pragma option -Ob
 
-void far combatgrid_shove_until_unblocked(int tile_x, int tile_y) {
+void far combatgrid_shove_until_unblocked(s16 tile_x, s16 tile_y) {
     GridCombatant *combatant;
 
     combatant = combatgrid_find_cmbt_at_tile((unsigned char)tile_x, (unsigned char)tile_y);
@@ -1087,7 +1087,7 @@ void far combatgrid_shove_until_unblocked(int tile_x, int tile_y) {
     return;
 }
 
-int combatgrid_nbr_probe_orthogonal(int x, int y, int kind) {
+s16 combatgrid_nbr_probe_orthogonal(s16 x, s16 y, s16 kind) {
     if (combatgrid_tile_walkable_kind(x + 1, y, kind) != 0 ||
         combatgrid_tile_walkable_kind(x - 1, y, kind) != 0 ||
         combatgrid_tile_walkable_kind(x, y + 1, kind) != 0 ||
@@ -1097,7 +1097,7 @@ int combatgrid_nbr_probe_orthogonal(int x, int y, int kind) {
     return 0;
 }
 
-int combatgrid_is_combatant_type(int paged_id) {
+s16 combatgrid_is_combatant_type(s16 paged_id) {
     return ((((paged_id == 7) || (paged_id == 8)) || (paged_id == 10)) ||
             (((paged_id == 9 || (paged_id == 0x28)) || (paged_id == 0xb))))
                ? 1
@@ -1105,9 +1105,9 @@ int combatgrid_is_combatant_type(int paged_id) {
 }
 
 void combatgrid_clear_tile_effects(void) {
-    int i;
-    int x;
-    int y;
+    s16 i;
+    s16 x;
+    s16 y;
 
     i = 0;
     if (i < g_combatant_count) {
@@ -1123,7 +1123,7 @@ void combatgrid_clear_tile_effects(void) {
     do {
         y = 0;
         do {
-            if (2 < (int)combatgrid_tile_terrain_field((char)x, (char)y)) {
+            if (2 < (s16)combatgrid_tile_terrain_field((char)x, (char)y)) {
                 combatgrid_set_tile_effect((char)x, (char)y, 0, -1);
             }
             y++;
@@ -1133,20 +1133,20 @@ void combatgrid_clear_tile_effects(void) {
     return;
 }
 
-void combatgrid_save_traps_terr(int encounter_idx) {
+void combatgrid_save_traps_terr(s16 encounter_idx) {
     ResFile *file;
-    int i;
+    s16 i;
     char tileX;
     char tileY;
-    int writeCount;
-    int firstIdx;
-    unsigned int terrain;
-    long offset;
+    s16 writeCount;
+    s16 firstIdx;
+    u16 terrain;
+    s32 offset;
 
     writeCount = 0;
     firstIdx = -1;
     file = res_fopen("traps.dat", "r+b");
-    offset = (long)(encounter_idx * 0x3e);
+    offset = (s32)(encounter_idx * 0x3e);
     res_fseek(file, offset, SEEK_SET);
     for (i = 0; i < g_combatant_count; i++) {
         if (combatgrid_is_combatant_type(g_combatant_table[i].paged_id) != 0) {
@@ -1209,11 +1209,11 @@ void combatgrid_save_traps_terr(int encounter_idx) {
     return;
 }
 
-int combatgrid_can_engage_same_kind(int idx_a, int idx_b) {
-    int samePaged;
-    int bothType;
-    int dx;
-    int dy;
+s16 combatgrid_can_engage_same_kind(s16 idx_a, s16 idx_b) {
+    s16 samePaged;
+    s16 bothType;
+    s16 dx;
+    s16 dy;
 
     samePaged = (g_combatant_table[idx_a].paged_id == g_combatant_table[idx_b].paged_id);
 
@@ -1221,8 +1221,8 @@ int combatgrid_can_engage_same_kind(int idx_a, int idx_b) {
         ((g_combatant_table[idx_a].paged_id == 7 || g_combatant_table[idx_a].paged_id == 8) &&
          (g_combatant_table[idx_b].paged_id == 7 || g_combatant_table[idx_b].paged_id == 8));
 
-    dx = (int)(char)g_combatant_table[idx_b].tile_x - (int)(char)g_combatant_table[idx_a].tile_x;
-    dy = (int)(char)g_combatant_table[idx_b].tile_y - (int)(char)g_combatant_table[idx_a].tile_y;
+    dx = (s16)(char)g_combatant_table[idx_b].tile_x - (s16)(char)g_combatant_table[idx_a].tile_x;
+    dy = (s16)(char)g_combatant_table[idx_b].tile_y - (s16)(char)g_combatant_table[idx_a].tile_y;
 
     if (samePaged && bothType) {
         if (dx != 0 && dy != 0) {
@@ -1235,25 +1235,25 @@ int combatgrid_can_engage_same_kind(int idx_a, int idx_b) {
     return 0;
 }
 
-void combatgrid_apply_engage_links(int start_idx) {
-    int idx_a;
-    int idx_b;
+void combatgrid_apply_engage_links(s16 start_idx) {
+    s16 idx_a;
+    s16 idx_b;
 
     for (idx_a = start_idx; idx_a < g_combatant_count; idx_a++) {
         for (idx_b = start_idx; idx_b < g_combatant_count; idx_b++) {
             if (idx_a != idx_b && combatgrid_can_engage_same_kind(idx_a, idx_b) != 0) {
-                combatgrid_mark_engagement_line((int)(char)g_combatant_table[idx_a].tile_x,
-                                                (int)(char)g_combatant_table[idx_a].tile_y,
-                                                (int)(char)g_combatant_table[idx_b].tile_x,
-                                                (int)(char)g_combatant_table[idx_b].tile_y,
+                combatgrid_mark_engagement_line((s16)(char)g_combatant_table[idx_a].tile_x,
+                                                (s16)(char)g_combatant_table[idx_a].tile_y,
+                                                (s16)(char)g_combatant_table[idx_b].tile_x,
+                                                (s16)(char)g_combatant_table[idx_b].tile_y,
                                                 g_combatant_table[idx_a].paged_id, 0);
             }
         }
     }
 }
 
-void far combatgrid_place_tile_fx_at_cur(unsigned short type, int timer) {
-    unsigned int terrain;
+void far combatgrid_place_tile_fx_at_cur(u16 type, s16 timer) {
+    u16 terrain;
 
     while (combat_arena_wait_confirm_cancel() != 0)
         ;
@@ -1268,7 +1268,7 @@ void far combatgrid_place_tile_fx_at_cur(unsigned short type, int timer) {
 void far combatgrid_clear_terr_6_effects(void) {
     char x;
     char y;
-    unsigned int terrain;
+    u16 terrain;
 
     for (x = 0; x < 8; x++) {
         for (y = 0; y < 13; y++) {
@@ -1280,11 +1280,11 @@ void far combatgrid_clear_terr_6_effects(void) {
     }
 }
 
-int combatgrid_actor_past_terr6_row(void) {
+s16 combatgrid_actor_past_terr6_row(void) {
     char x;
     char y;
     char foundY;
-    int i;
+    s16 i;
 
     foundY = '\0';
     x = '\0';
@@ -1313,7 +1313,7 @@ int combatgrid_actor_past_terr6_row(void) {
     return 0;
 }
 
-int combatgrid_any_terrain_6(void) {
+s16 combatgrid_any_terrain_6(void) {
     char x;
     char y;
 
@@ -1332,18 +1332,18 @@ int combatgrid_any_terrain_6(void) {
 }
 
 void far combatgrid_cur_tile_world(void) {
-    long world_xyz[3];
+    s32 world_xyz[3];
 
     project_cursor_to_world_tile(world_xyz);
     g_cursor_tile_x = (world_xyz[0] + 0x4b0) / g_grid_tile_size;
     g_cursor_tile_y = (world_xyz[1] + -0xc80) / g_grid_tile_size;
 }
 
-int combatgrid_chebyshev_distance(char x1, char y1, char x2, char y2) {
-    int t;
-    int dx;
-    int dy;
-    int result;
+s16 combatgrid_chebyshev_distance(char x1, char y1, char x2, char y2) {
+    s16 t;
+    s16 dx;
+    s16 dy;
+    s16 result;
 
     if (x1 > x2) {
         t = x2;
@@ -1355,8 +1355,8 @@ int combatgrid_chebyshev_distance(char x1, char y1, char x2, char y2) {
         y2 = y1;
         y1 = t;
     }
-    dx = (int)x2 - (int)x1;
-    dy = (int)y2 - (int)y1;
+    dx = (s16)x2 - (s16)x1;
+    dy = (s16)y2 - (s16)y1;
     if (dx > dy) {
         result = dx;
     } else {
@@ -1365,24 +1365,24 @@ int combatgrid_chebyshev_distance(char x1, char y1, char x2, char y2) {
     return result;
 }
 
-int combatgrid_actors_ortho_adj(Combatant *actor_a, Combatant *actor_b) {
-    int dist;
+s16 combatgrid_actors_ortho_adj(Combatant *actor_a, Combatant *actor_b) {
+    s16 dist;
 
     dist = combatgrid_chebyshev_distance(actor_a->inner->gridX, actor_a->inner->gridY,
                                          actor_b->inner->gridX, actor_b->inner->gridY);
-    return (dist == 1) && (combatgrid_is_pure_diagonal(actor_a, (int)actor_b->inner->gridX,
-                                                       (int)actor_b->inner->gridY) == 0);
+    return (dist == 1) && (combatgrid_is_pure_diagonal(actor_a, (s16)actor_b->inner->gridX,
+                                                       (s16)actor_b->inner->gridY) == 0);
 }
 
-int combatgrid_is_pure_diagonal(Combatant *actor, int target_x, int target_y) {
-    int ax;
-    int ay;
-    int t;
-    int dx;
-    int dy;
+s16 combatgrid_is_pure_diagonal(Combatant *actor, s16 target_x, s16 target_y) {
+    s16 ax;
+    s16 ay;
+    s16 t;
+    s16 dx;
+    s16 dy;
 
-    ax = (int)actor->inner->gridX;
-    ay = (int)actor->inner->gridY;
+    ax = (s16)actor->inner->gridX;
+    ay = (s16)actor->inner->gridY;
     if (ax > target_x) {
         t = target_x;
         target_x = ax;
@@ -1395,11 +1395,11 @@ int combatgrid_is_pure_diagonal(Combatant *actor, int target_x, int target_y) {
     }
     dx = target_x - ax;
     dy = target_y - ay;
-    return (unsigned int)(dx == dy);
+    return (u16)(dx == dy);
 }
 
-int far combatgrid_actor_try_step_tile(Combatant *actor, int tx, int ty) {
-    int result;
+s16 far combatgrid_actor_try_step_tile(Combatant *actor, s16 tx, s16 ty) {
+    s16 result;
 
     if (combatgrid_tile_terrain_field((unsigned char)tx, (unsigned char)ty) == 5) {
         if (combatgrid_chebyshev_distance(actor->inner->gridX, actor->inner->gridY, (unsigned char)tx,
@@ -1418,8 +1418,8 @@ int far combatgrid_actor_try_step_tile(Combatant *actor, int tx, int ty) {
 
 void far combatgrid_build_move_attack_map(Combatant *actor) {
     Combatant *target;
-    int col;
-    int row;
+    s16 col;
+    s16 row;
 
     col = 0;
     do {
@@ -1442,19 +1442,19 @@ void far combatgrid_build_move_attack_map(Combatant *actor) {
     return;
 }
 
-int combatgrid_cursor_tile_movable(void) {
+s16 combatgrid_cursor_tile_movable(void) {
     return (signed char)g_combat_move_map[g_cursor_tile_x][g_cursor_tile_y] & 1;
 }
 
-int combatgrid_tile_has_terr_bit2(Combatant *actor) {
+s16 combatgrid_tile_has_terr_bit2(Combatant *actor) {
     if (actor != (Combatant *)0 &&
-        combatgrid_coord_valid((int)actor->inner->gridX, (int)actor->inner->gridY) != 0) {
-        return (int)(char)g_combat_move_map[actor->inner->gridX][actor->inner->gridY] & 2;
+        combatgrid_coord_valid((s16)actor->inner->gridX, (s16)actor->inner->gridY) != 0) {
+        return (s16)(char)g_combat_move_map[actor->inner->gridX][actor->inner->gridY] & 2;
     }
     return 0;
 }
 
-void far combatgrid_actor_step_to_tile(Combatant *mover, int tile_x, int tile_y) {
+void far combatgrid_actor_step_to_tile(Combatant *mover, s16 tile_x, s16 tile_y) {
     audio_play(1);
     g_nCombatTileX = tile_x;
     g_nCombatTileY = tile_y;
@@ -1462,7 +1462,7 @@ void far combatgrid_actor_step_to_tile(Combatant *mover, int tile_x, int tile_y)
     return;
 }
 
-void far combatgrid_pathfind_from_tile(int tx, int ty, int dest) {
+void far combatgrid_pathfind_from_tile(s16 tx, s16 ty, s16 dest) {
     Combatant tempActor;
     CombatantState tempInner;
 
@@ -1474,13 +1474,13 @@ void far combatgrid_pathfind_from_tile(int tx, int ty, int dest) {
     tempInner.gridX = (unsigned char)tx;
     tempInner.gridY = (unsigned char)ty;
     tempInner.statusHead = -1;
-    combatgrid_tile_set_word((unsigned char)tx, (unsigned char)ty, (unsigned int)&tempActor);
+    combatgrid_tile_set_word((unsigned char)tx, (unsigned char)ty, (u16)&tempActor);
     combatgrid_step_search(&tempActor, dest);
     combatgrid_tile_set_word((unsigned char)tx, (unsigned char)ty, 0);
     return;
 }
 
-int combatgrid_tile_blockd_kind10(Combatant *actor) {
+s16 combatgrid_tile_blockd_kind10(Combatant *actor) {
     GridCombatant *cmbt;
 
     cmbt = combatgrid_find_cmbt_at_tile(actor->inner->gridX, actor->inner->gridY);
@@ -1489,9 +1489,9 @@ int combatgrid_tile_blockd_kind10(Combatant *actor) {
     return 1;
 }
 
-int far combatgrid_tile_passable_check(int required_terrain, int tile_x, int tile_y,
+s16 far combatgrid_tile_passable_check(s16 required_terrain, s16 tile_x, s16 tile_y,
                                        Combatant *mover) {
-    unsigned int terrain;
+    u16 terrain;
     GridCombatant *cmbt;
 
     terrain = combatgrid_tile_terrain_field((char)tile_x, (char)tile_y);
@@ -1510,21 +1510,21 @@ int far combatgrid_tile_passable_check(int required_terrain, int tile_x, int til
     return 0;
 }
 
-void combatgrid_step_search(Combatant *actor, int preferred_dir) {
-    int tile_x;
-    int tile_y;
+void combatgrid_step_search(Combatant *actor, s16 preferred_dir) {
+    s16 tile_x;
+    s16 tile_y;
 
     if ((actor->inner->flags & CAF_DEAD) != 0)
         return;
-    tile_x = (int)actor->inner->gridX;
-    tile_y = (int)actor->inner->gridY;
+    tile_x = (s16)actor->inner->gridX;
+    tile_y = (s16)actor->inner->gridY;
     if ((preferred_dir == 0xb) || (preferred_dir < 0)) {
         while (tile_x >= 0) {
             tile_x--;
             if (combatgrid_tile_passable_check(0xb, tile_x, tile_y, actor) != 0)
                 break;
         }
-        tile_x = (int)actor->inner->gridX;
+        tile_x = (s16)actor->inner->gridX;
     }
     if ((preferred_dir == 10) || (preferred_dir < 0)) {
         while (tile_x < 8) {
@@ -1532,7 +1532,7 @@ void combatgrid_step_search(Combatant *actor, int preferred_dir) {
             if (combatgrid_tile_passable_check(10, tile_x, tile_y, actor) != 0)
                 break;
         }
-        tile_x = (int)actor->inner->gridX;
+        tile_x = (s16)actor->inner->gridX;
     }
     if ((preferred_dir == 0xc) || (preferred_dir < 0)) {
         while (tile_y >= 0) {
@@ -1540,7 +1540,7 @@ void combatgrid_step_search(Combatant *actor, int preferred_dir) {
             if (combatgrid_tile_passable_check(0xc, tile_x, tile_y, actor) != 0)
                 break;
         }
-        tile_y = (int)actor->inner->gridY;
+        tile_y = (s16)actor->inner->gridY;
     }
     if ((preferred_dir == 0xd) || (preferred_dir < 0)) {
         while (tile_y < 0xd) {
@@ -1553,8 +1553,8 @@ void combatgrid_step_search(Combatant *actor, int preferred_dir) {
 }
 
 void far combatgrid_rndr_engagement_lines(void) {
-    int i;
-    int j;
+    s16 i;
+    s16 j;
 
     i = 0;
     if (i < g_combatant_count) {
@@ -1564,10 +1564,10 @@ void far combatgrid_rndr_engagement_lines(void) {
                 do {
                     if (i != j) {
                         if (combatgrid_can_engage_same_kind(i, j) != 0) {
-                            worldfx_draw_world_line((int)(char)g_combatant_table[i].tile_x,
-                                                    (int)(char)g_combatant_table[i].tile_y,
-                                                    (int)(char)g_combatant_table[j].tile_x,
-                                                    (int)(char)g_combatant_table[j].tile_y);
+                            worldfx_draw_world_line((s16)(char)g_combatant_table[i].tile_x,
+                                                    (s16)(char)g_combatant_table[i].tile_y,
+                                                    (s16)(char)g_combatant_table[j].tile_x,
+                                                    (s16)(char)g_combatant_table[j].tile_y);
                         }
                     }
                     j = j + 1;
@@ -1579,9 +1579,9 @@ void far combatgrid_rndr_engagement_lines(void) {
     return;
 }
 
-void combatgrid_unhighlight_terr_type(unsigned short terrain) {
-    int x;
-    int y;
+void combatgrid_unhighlight_terr_type(u16 terrain) {
+    s16 x;
+    s16 y;
 
     x = 0;
     do {
@@ -1596,13 +1596,13 @@ void combatgrid_unhighlight_terr_type(unsigned short terrain) {
     } while (x < 8);
 }
 
-int far combatgrid_tile_has_mobility(int col, int row, int tile_count) {
-    int reachCount;
-    int hasMobility;
+s16 far combatgrid_tile_has_mobility(s16 col, s16 row, s16 tile_count) {
+    s16 reachCount;
+    s16 hasMobility;
     Combatant tempActor;
     CombatantState tempInner;
-    int c;
-    int r;
+    s16 c;
+    s16 r;
 
     reachCount = 0;
     hasMobility = 0;

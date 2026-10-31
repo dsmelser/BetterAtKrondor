@@ -20,7 +20,7 @@
  * @note Kept as one struct rather than separate globals — do not split.
  */
 typedef struct ShapeBuilder {
-    short nSegmentRadius;               /**< +0x00 */
+    s16 nSegmentRadius;               /**< +0x00 */
     unsigned char far *bumpCursor;      /**< +0x02, 4B: allocation cursor into the shape block. */
     unsigned char bFirstVtxFlag;        /**< +0x06 */
     unsigned char bReserved_07;         /**< +0x07 dead alignment pad */
@@ -42,7 +42,7 @@ extern ShapeBuilder g_builder;
  * @param[in] n Value to root; treated as a non-negative magnitude.
  * @return    floor(sqrt(@p n)).
  */
-extern long ts_isqrt_long(long n);
+extern s32 ts_isqrt_long(s32 n);
 
 /**
  * @brief Append one polyline joint's pair of ribbon vertices and extend the shape's bounding box.
@@ -73,7 +73,7 @@ extern void ts_pack_vertex(Vec3Short far *dstShort3, Vec3Long far *srcLong3);
  * @param[in] vtxCount Number of input vertices (>= 3).
  * @param[in] radiusIn Ribbon half-width, before scaling.
  */
-extern void ts_project_shape(Vec3Long *vtxData, unsigned int vtxSeg, int vtxCount, int radiusIn);
+extern void ts_project_shape(Vec3Long *vtxData, u16 vtxSeg, s16 vtxCount, s16 radiusIn);
 
 /**
  * @brief Reserve @p size bytes from the shape block (bump allocation; never individually freed).
@@ -83,7 +83,7 @@ extern void ts_project_shape(Vec3Long *vtxData, unsigned int vtxSeg, int vtxCoun
  * @param[in] size Number of bytes to reserve.
  * @return    Far pointer to the reserved run.
  */
-extern void far *ts_bump_alloc(int size);
+extern void far *ts_bump_alloc(s16 size);
 
 /**
  * @brief Allocate and zero the single far block that backs the whole shape.
@@ -93,7 +93,7 @@ extern void far *ts_bump_alloc(int size);
  * @param[in] recordCount Number of input vertices the shape is built from.
  * @warning Panics ("ts_build_shape") if the allocation fails.
  */
-extern void ts_alloc_shape_block(int recordCount);
+extern void ts_alloc_shape_block(s16 recordCount);
 
 /**
  * @brief Build a flat two-tone ribbon-mesh @ref Shape (a beam/bolt-style streak) from a polyline and
@@ -113,7 +113,7 @@ extern void ts_alloc_shape_block(int recordCount);
  * @param[in] color2      Second fill color of the ribbon.
  * @return    The built @ref Shape (also stored in @p slot), or NULL if @p vtxCount < 3 or the slot rejects it.
  */
-extern Shape far *ts_build_shape(int slot, Vec3Long *vtxData, unsigned int vtxSeg, int vtxCount,
-                                 int ribbonWidth, int color1, int color2);
+extern Shape far *ts_build_shape(s16 slot, Vec3Long *vtxData, u16 vtxSeg, s16 vtxCount,
+                                 s16 ribbonWidth, s16 color1, s16 color2);
 
 #endif

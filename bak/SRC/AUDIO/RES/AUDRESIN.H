@@ -5,23 +5,23 @@
 #include "SRC/IO/RESOURCE.H"
 
 extern unsigned char g_abIntensityCurve[64];
-extern unsigned short g_nSfxResourceId;
+extern u16 g_nSfxResourceId;
 extern unsigned char far *g_pSsmChunkBuf;
 extern AudioListNode far *g_pActiveAudioListHead;
-extern unsigned short g_bAudioTimerInstalled;
-extern unsigned short g_nSfxSampleSlot;
-extern unsigned short g_nSfxWorkSlot;
+extern u16 g_bAudioTimerInstalled;
+extern u16 g_nSfxSampleSlot;
+extern u16 g_nSfxWorkSlot;
 extern SfxLoopPri *g_pSfxLoopPriorityTable;
 extern void far *g_pSfxDriver;
 extern void far *g_pMusicDriver;
-extern unsigned short g_nAudioBufLastError;
+extern u16 g_nAudioBufLastError;
 extern unsigned char g_bAudioLooseTag;
-extern short g_nAudioFilterMode;
+extern s16 g_nAudioFilterMode;
 extern MusicChunkHeader far *g_pMusicChunkBuf;
 extern ResFile *g_music_archive;
-extern int g_music_archive_owned;
-extern unsigned short g_bMusicDriverInstalled;
-extern unsigned short g_nAudioStreamCodec;
+extern s16 g_music_archive_owned;
+extern u16 g_bMusicDriverInstalled;
+extern u16 g_nAudioStreamCodec;
 
 /**
  * @brief Sound-driver ids: indices into the SFX driver-tag table
@@ -58,7 +58,7 @@ typedef enum SoundDriverId SoundDriverId;
 
 extern SoundDriverId g_sound_driver;
 
-extern int audio_resource_install_by_id(char *file, int *p_resource_id, int load_mode);
+extern s16 audio_resource_install_by_id(char *file, s16 *p_resource_id, s16 load_mode);
 
 extern char g_szSsmTemplate[9];
 extern char g_szSsmTag[9];
@@ -78,6 +78,6 @@ extern char g_szMusicTag_APS[5];
 extern char g_szMusicTag_ATD[5];
 extern char g_szMusicTag_APA[5];
 extern char g_szMusicTag_ADS[5];
-extern short g_nSfxDriverMode;
+extern s16 g_nSfxDriverMode;
 
 #endif

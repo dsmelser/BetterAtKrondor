@@ -5,19 +5,19 @@
 #include "SRC/GAME/ACTOR/ACTOR.H"
 
 extern ItemRecord far *g_pItemDefTable;
-extern unsigned long *g_pItemPriceTable;
+extern u32 *g_pItemPriceTable;
 
-extern int itemtbl_slot_value_modifier(ItemSlot far *slot);
+extern s16 itemtbl_slot_value_modifier(ItemSlot far *slot);
 extern void itemtbl_free(void);
-extern int itemtbl_load(void);
+extern s16 itemtbl_load(void);
 extern ItemRecord far *itemtbl_record_ptr(ItemSlot far *slot_ptr);
-extern ItemRecord far *itemtbl_record_ptr_by_id(int id);
-extern long *itemtbl_count(void);
-extern long itemtbl_compute_value(ItemSlot far *slot);
-extern int itemtbl_find_by_full_record(ItemRecord far *record);
-extern int itemtbl_inv_count_by_kind(Actor far *inv, unsigned int kind);
-extern int itemtbl_partySize_by_kind(unsigned int kind);
-extern int itemtbl_inv_consume_one_by_kind(Actor far *inv, unsigned int kind);
-extern int itemtbl_pty_consum_one_kind(unsigned int kind);
+extern ItemRecord far *itemtbl_record_ptr_by_id(s16 id);
+extern s32 *itemtbl_count(void);
+extern s32 itemtbl_compute_value(ItemSlot far *slot);
+extern s16 itemtbl_find_by_full_record(ItemRecord far *record);
+extern s16 itemtbl_inv_count_by_kind(Actor far *inv, u16 kind);
+extern s16 itemtbl_partySize_by_kind(u16 kind);
+extern s16 itemtbl_inv_consume_one_by_kind(Actor far *inv, u16 kind);
+extern s16 itemtbl_pty_consum_one_kind(u16 kind);
 
 #endif

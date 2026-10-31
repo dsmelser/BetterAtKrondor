@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_driver_cmd07_dispatch(int velocity);
+extern s16 audio_driver_cmd07_dispatch(s16 velocity);
 
 #endif

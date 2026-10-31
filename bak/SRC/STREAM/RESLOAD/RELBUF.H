@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern void release_buffer(void far *ptr, int kind);
+extern void release_buffer(void far *ptr, s16 kind);
 
 #endif

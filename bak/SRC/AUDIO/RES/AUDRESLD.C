@@ -10,11 +10,11 @@
 #include "SRC/AUDIO/ENGINE/AUDITER.H"
 #include "SRC/AUDIO/ENGINE/AUDSTOP.H"
 
-ResFile *audio_resource_load_chunk(FileRef *file, int chunk_id) {
-    long found_offset;
-    long buf_size;
+ResFile *audio_resource_load_chunk(FileRef *file, s16 chunk_id) {
+    s32 found_offset;
+    s32 buf_size;
     MusicChunkEntry far *entry;
-    int i;
+    s16 i;
 
     if (chunk_id == 0 || file != g_music_archive || g_music_archive == 0) {
         if (g_music_archive != file && g_music_archive_owned != 0) {
@@ -36,7 +36,7 @@ ResFile *audio_resource_load_chunk(FileRef *file, int chunk_id) {
         if (g_pMusicChunkBuf != 0)
             release_buffer(g_pMusicChunkBuf, 10);
         if ((g_pMusicChunkBuf =
-                 (MusicChunkHeader far *)pool_acquire_buffer((unsigned long)(buf_size + 4), 10)) == 0)
+                 (MusicChunkHeader far *)pool_acquire_buffer((u32)(buf_size + 4), 10)) == 0)
             goto cleanup;
         if (res_fread_far(&g_pMusicChunkBuf->nMagic, buf_size, 1,
                               g_music_archive) != 1)

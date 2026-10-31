@@ -3,15 +3,15 @@
 
 #include "structs.h"
 
-extern unsigned short g_wTextWrapXAccum;
-extern unsigned short g_wTextWrapLinesDrawn;
-extern unsigned short g_wTextWrapLinesRemaining;
+extern u16 g_wTextWrapXAccum;
+extern u16 g_wTextWrapLinesDrawn;
+extern u16 g_wTextWrapLinesRemaining;
 extern BookViewerState *g_pBookViewer;
 
 extern void bookview_init(void);
 extern void bookview_shutdown(void);
-extern int bookview_show(char *filename, int page_number);
+extern s16 bookview_show(char *filename, s16 page_number);
 extern BookPage far *bookview_find_page_by_number(PageDirectory far *page_directory,
-                                                  int page_number);
+                                                  s16 page_number);
 
 #endif

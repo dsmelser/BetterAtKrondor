@@ -11,17 +11,17 @@
 #include "SRC/SYS/EMS.H"
 
 ImageRecord **emsimg_migrate_to_ems(ImageRecord **image_record_list) {
-    unsigned long sizeBytes;
-    int i;
-    int page_id;
+    u32 sizeBytes;
+    s16 i;
+    s16 page_id;
     unsigned char far *firstbuf;
     unsigned char far *dst;
-    unsigned long linear_base;
-    unsigned long linear_cur;
+    u32 linear_base;
+    u32 linear_cur;
 
-    sizeBytes = (*(unsigned long(far *)(unsigned short *,
-                                        unsigned short *))g_renderer_vtable.pfn_image_install)(
-        (unsigned short *)image_record_list, (unsigned short *)&i);
+    sizeBytes = (*(u32(far *)(u16 *,
+                                        u16 *))g_renderer_vtable.pfn_image_install)(
+        (u16 *)image_record_list, (u16 *)&i);
 
     if ((page_id = ems_alloc_pages(sizeBytes)) != 0) {
 
@@ -30,16 +30,16 @@ ImageRecord **emsimg_migrate_to_ems(ImageRecord **image_record_list) {
         firstbuf =
             (unsigned char far *)MK_FP(image_record_list[0]->wImageData, image_record_list[0]->wImageOff);
 
-        fmemcpy_far((unsigned long)dst, (unsigned long)firstbuf, (unsigned int)sizeBytes);
+        fmemcpy_far((u32)dst, (u32)firstbuf, (u16)sizeBytes);
 
         linear_base =
-            ((unsigned long)image_record_list[0]->wImageData << 4) | image_record_list[0]->wImageOff;
+            ((u32)image_record_list[0]->wImageData << 4) | image_record_list[0]->wImageOff;
 
         i = null_terminated_count(image_record_list) - 1;
         while (i >= 0) {
 
             linear_cur =
-                ((unsigned long)image_record_list[i]->wImageData << 4) | image_record_list[i]->wImageOff;
+                ((u32)image_record_list[i]->wImageData << 4) | image_record_list[i]->wImageOff;
 
             image_record_list[i]->wImageData = page_id;
             image_record_list[i]->wImageOff = linear_cur - linear_base;
@@ -54,11 +54,11 @@ ImageRecord **emsimg_migrate_to_ems(ImageRecord **image_record_list) {
     }
 }
 
-int *far emsimg_load_to_ems(char *fname) {
-    int *image_record_list;
+s16 *far emsimg_load_to_ems(char *fname) {
+    s16 *image_record_list;
 
-    image_record_list = (int *)bak_load_image_record_chunked(fname);
-    if (image_record_list != (int *)0x0) {
+    image_record_list = (s16 *)bak_load_image_record_chunked(fname);
+    if (image_record_list != (s16 *)0x0) {
         emsimg_migrate_to_ems((ImageRecord **)image_record_list);
     }
     return image_record_list;
@@ -78,10 +78,10 @@ void far emsimg_free_paged(void *pImgRecord) {
     free_image_record(list);
 }
 
-void emsimg_polygon_quad_canonicalize(int *xs, int *ys) {
-    int tmp;
-    int i;
-    int tmpY;
+void emsimg_polygon_quad_canonicalize(s16 *xs, s16 *ys) {
+    s16 tmp;
+    s16 i;
+    s16 tmpY;
 
     if ((*xs == xs[1]) && (xs[2] == xs[3])) {
         tmp = *xs;
@@ -113,8 +113,8 @@ void emsimg_polygon_quad_canonicalize(int *xs, int *ys) {
     }
 }
 
-void emsimg_gouraud_blit_paged(unsigned int *page_ptr, int *xs, int *ys) {
-    unsigned int page_id;
+void emsimg_gouraud_blit_paged(u16 *page_ptr, s16 *xs, s16 *ys) {
+    u16 page_id;
     unsigned char far *mapped;
 
     page_id = *page_ptr;
@@ -127,9 +127,9 @@ void emsimg_gouraud_blit_paged(unsigned int *page_ptr, int *xs, int *ys) {
     *page_ptr = page_id;
 }
 
-void emsimg_sprite_blit_scaled_paged(ImageRecord *sprite, int dst_x, int dst_y, unsigned int frame,
-                                     int width, int height) {
-    unsigned int page_id;
+void emsimg_sprite_blit_scaled_paged(ImageRecord *sprite, s16 dst_x, s16 dst_y, u16 frame,
+                                     s16 width, s16 height) {
+    u16 page_id;
     unsigned char far *mapped;
 
     page_id = sprite->wImageData;
@@ -138,13 +138,13 @@ void emsimg_sprite_blit_scaled_paged(ImageRecord *sprite, int dst_x, int dst_y, 
         sprite->wImageData = FP_SEG(mapped);
     }
 
-    (*(void (*)(void *, int, int, unsigned int, int, int))polyrast_spr_scaled_blit_planar)(
+    (*(void (*)(void *, s16, s16, u16, s16, s16))polyrast_spr_scaled_blit_planar)(
         sprite, dst_x, dst_y, frame, width, height);
     sprite->wImageData = page_id;
 }
 
-void emsimg_putsprite_ems_swap(unsigned int *img_ptr, int x, int y) {
-    unsigned int page_id;
+void emsimg_putsprite_ems_swap(u16 *img_ptr, s16 x, s16 y) {
+    u16 page_id;
     unsigned char far *mapped;
 
     page_id = *img_ptr;
@@ -156,8 +156,8 @@ void emsimg_putsprite_ems_swap(unsigned int *img_ptr, int x, int y) {
     *img_ptr = page_id;
 }
 
-void emsimg_map_then_call_180c(unsigned int *p_id_or_ptr, int x, int y, unsigned int flip_flags) {
-    unsigned int page_id;
+void emsimg_map_then_call_180c(u16 *p_id_or_ptr, s16 x, s16 y, u16 flip_flags) {
+    u16 page_id;
     unsigned char far *mapped;
 
     page_id = *p_id_or_ptr;
@@ -165,6 +165,6 @@ void emsimg_map_then_call_180c(unsigned int *p_id_or_ptr, int x, int y, unsigned
         mapped = ems_map_resource_pages(page_id);
         *p_id_or_ptr = FP_SEG(mapped);
     }
-    blit_sprite_indirect((int)p_id_or_ptr, x, y, flip_flags);
+    blit_sprite_indirect((s16)p_id_or_ptr, x, y, flip_flags);
     *p_id_or_ptr = page_id;
 }

@@ -20,13 +20,13 @@
 #include "SRC/GAME/ENC/HOTSPOT.H"
 #include "SRC/SYS/CFGPARSE.H"
 
-int far savegame_write(char *filename) {
-    int dest_fd;
-    int ok;
-    int chunk;
-    int src_fd;
-    long remaining;
-    unsigned short version;
+s16 far savegame_write(char *filename) {
+    s16 dest_fd;
+    s16 ok;
+    s16 chunk;
+    s16 src_fd;
+    s32 remaining;
+    u16 version;
     char temp_path[50];
 
     ok = 1;
@@ -50,11 +50,11 @@ int far savegame_write(char *filename) {
                 ok = 0;
 
             while (ok != 0 && remaining != 0) {
-                chunk = (remaining > 0x3a98) ? 15000 : (int)remaining;
+                chunk = (remaining > 0x3a98) ? 15000 : (s16)remaining;
                 remaining -= chunk;
-                if (dos_read(g_pMainScratchBuf, (long)chunk, src_fd) != (long)chunk) {
+                if (dos_read(g_pMainScratchBuf, (s32)chunk, src_fd) != (s32)chunk) {
                     ok = 0;
-                } else if (dos_write(g_pMainScratchBuf, (long)chunk, dest_fd) != (long)chunk) {
+                } else if (dos_write(g_pMainScratchBuf, (s32)chunk, dest_fd) != (s32)chunk) {
                     ok = 0;
                 }
             }
@@ -75,14 +75,14 @@ done:
     return ok;
 }
 
-int far savegame_read(char *filename) {
-    int src_fd;
-    int dest_fd;
-    long remaining;
-    unsigned short far *version_ptr;
+s16 far savegame_read(char *filename) {
+    s16 src_fd;
+    s16 dest_fd;
+    s32 remaining;
+    u16 far *version_ptr;
     char temp_path[50];
-    int ok;
-    int chunk;
+    s16 ok;
+    s16 chunk;
 
     ok = 1;
     remaining = 0x51aa9;
@@ -97,17 +97,17 @@ int far savegame_read(char *filename) {
         if ((src_fd = open(filename, -0x7fff)) >= 0) {
             if (dos_read(g_pMainScratchBuf, 100, src_fd) != 100)
                 ok = 0;
-            version_ptr = (unsigned short far *)((char huge *)g_pMainScratchBuf + 0x62);
+            version_ptr = (u16 far *)((char huge *)g_pMainScratchBuf + 0x62);
             if (ok != 0 && *version_ptr != 0x16)
                 ok = 0;
             while (ok != 0 && remaining != 0) {
-                chunk = (remaining > 0x3a98) ? 15000 : (int)remaining;
+                chunk = (remaining > 0x3a98) ? 15000 : (s16)remaining;
                 remaining -= chunk;
-                if (dos_read(g_pMainScratchBuf, (long)chunk, src_fd) != (long)chunk) {
+                if (dos_read(g_pMainScratchBuf, (s32)chunk, src_fd) != (s32)chunk) {
                     ok = 0;
                     continue;
                 }
-                if (dos_write(g_pMainScratchBuf, (long)chunk, dest_fd) != (long)chunk) {
+                if (dos_write(g_pMainScratchBuf, (s32)chunk, dest_fd) != (s32)chunk) {
                     ok = 0;
                 }
             }
@@ -132,13 +132,13 @@ int far savegame_read(char *filename) {
 
 char *g_pChapDatFilename = "CHAPx.DAT";
 
-void far savegame_chapter_start_dispatch(int chapter) {
+void far savegame_chapter_start_dispatch(s16 chapter) {
     PlayerSpawnRecord spawn_rec;
-    unsigned long round_time;
-    long saved_gold;
+    u32 round_time;
+    s32 saved_gold;
     Actor far *actor_ptr;
     Actor far *src_actor;
-    int i;
+    s16 i;
 
     saved_gold = g_gameState.nParty_gold;
     g_gameState.game_time += 0xa8c0;
@@ -152,7 +152,7 @@ void far savegame_chapter_start_dispatch(int chapter) {
     if (chapter > 1) {
         g_pendingTempWriteRegion = TWR_ENCOUNTER_STATE;
         gstate_temp_file_write_at((unsigned char *)&g_gameState.nParty_gold,
-                                  (unsigned long)(unsigned int)((chapter - 1) * 4 + 0x12f7), 4);
+                                  (u32)(u16)((chapter - 1) * 4 + 0x12f7), 4);
     }
 
     g_pChapDatFilename[4] = (char)chapter + '0';
@@ -204,7 +204,7 @@ void far savegame_chapter_start_dispatch(int chapter) {
     case 5:
         actor_ptr = actorspawn_objfixed(0, 10L, 0L);
         g_gameState.characters[CHR_LOCKLEAR].actor_record->itemCount = actor_ptr->itemCount;
-        for (i = 0; i < (int)(unsigned int)actor_ptr->itemCount; i++) {
+        for (i = 0; i < (s16)(u16)actor_ptr->itemCount; i++) {
             ACTOR_ITEM(g_gameState.characters[CHR_LOCKLEAR].actor_record, i) =
                 ACTOR_ITEM(actor_ptr, i);
         }
@@ -228,7 +228,7 @@ void far savegame_chapter_start_dispatch(int chapter) {
     case 7:
     case 8:
         gstate_temp_file_read_at(&g_gameState.nParty_gold,
-                                 (unsigned long)(unsigned int)((chapter - 2) * 4 + 0x12f7), 4);
+                                 (u32)(u16)((chapter - 2) * 4 + 0x12f7), 4);
         break;
     }
 

@@ -62,8 +62,8 @@ void palette_state_reset(void) {
     return;
 }
 
-void far palette_fade_in(unsigned int palette_off, unsigned int palette_seg, int step, int wait_each_step) {
-    int intensity;
+void far palette_fade_in(u16 palette_off, u16 palette_seg, s16 step, s16 wait_each_step) {
+    s16 intensity;
 
     if (step == -1) {
         step = 2;
@@ -80,8 +80,8 @@ void far palette_fade_in(unsigned int palette_off, unsigned int palette_seg, int
     return;
 }
 
-void far palette_fade_out(unsigned int palette_off, unsigned int palette_seg, int step, int wait_each_step) {
-    int intensity;
+void far palette_fade_out(u16 palette_off, u16 palette_seg, s16 step, s16 wait_each_step) {
+    s16 intensity;
 
     if (step == -1) {
         step = 2;
@@ -111,11 +111,11 @@ void far palette_screen_clear_black(void) {
 }
 
 void far palette_blend_with_daynight(unsigned char far *pPalSrc) {
-    int cycleBlend;
-    int range_start;
+    s16 cycleBlend;
+    s16 range_start;
     char *pCycleBand;
-    int darkness;
-    int range_end;
+    s16 darkness;
+    s16 range_end;
 
     if (g_game_mode == 2) {
         if (g_gameState.nPalAreaBrightness != 0) {
@@ -186,14 +186,14 @@ void palette_apply_cycled(void) {
     g_pPalLastInstalled = g_pPalLoadedBuf;
 }
 
-void far palette_interpolate_range(unsigned char far *src, unsigned char far *dst, char *pTarget, int range_start,
-                                   int range_end, int blend) {
+void far palette_interpolate_range(unsigned char far *src, unsigned char far *dst, char *pTarget, s16 range_start,
+                                   s16 range_end, s16 blend) {
     char far *pSrc;
     char far *pDst;
-    int target_r;
-    int target_g;
-    int target_b;
-    int i;
+    s16 target_r;
+    s16 target_g;
+    s16 target_b;
+    s16 i;
 
     pSrc = (char far *)src + range_start * 3;
     pDst = (char far *)dst + range_start * 3;
@@ -217,10 +217,10 @@ void far palette_interpolate_range(unsigned char far *src, unsigned char far *ds
     }
 }
 
-void palette_build_blend_lut(int blend_factor) {
-    register int shifted;
-    register int acc;
-    int i;
+void palette_build_blend_lut(s16 blend_factor) {
+    register s16 shifted;
+    register s16 acc;
+    s16 i;
 
     if (blend_factor != g_nPaletteBlendFactorCached) {
         g_nPaletteBlendFactorCached = blend_factor;
@@ -242,13 +242,13 @@ void palette_daylight_tick(void) {
     return;
 }
 
-int palette_compute_daylight(void) {
-    unsigned int hour;
-    int remainder;
-    int ramp;
+s16 palette_compute_daylight(void) {
+    u16 hour;
+    s16 remainder;
+    s16 ramp;
 
-    hour = (unsigned int)((g_gameState.game_time % 0xa8c0UL) / 0x708UL);
-    remainder = (int)(unsigned int)(g_gameState.game_time % 0xa8c0UL);
+    hour = (u16)((g_gameState.game_time % 0xa8c0UL) / 0x708UL);
+    remainder = (s16)(u16)(g_gameState.game_time % 0xa8c0UL);
 
     if (hour >= 8 && hour < 0x11) {
         return 0x40;
@@ -258,23 +258,23 @@ int palette_compute_daylight(void) {
     }
     if (hour < 0x11) {
         remainder += 0xe3e0;
-        ramp = (int)(((long)(unsigned int)remainder * 0x31L) / 0x1c20L);
+        ramp = (s16)(((s32)(u16)remainder * 0x31L) / 0x1c20L);
         return ramp + 0xf;
     }
     remainder += 0x8878;
-    ramp = (int)(((long)(unsigned int)remainder * 0x31L) / 0x1518L);
+    ramp = (s16)(((s32)(u16)remainder * 0x31L) / 0x1518L);
     return 0x40 - ramp;
 }
 
-int palette_daylight_modulate(int base_brightness) {
-    int level;
-    unsigned int hour;
-    int remainder;
-    int ramp;
+s16 palette_daylight_modulate(s16 base_brightness) {
+    s16 level;
+    u16 hour;
+    s16 remainder;
+    s16 ramp;
 
     level = base_brightness;
-    hour = (unsigned int)((unsigned long)(g_gameState.game_time % 0xa8c0) / 0x708);
-    remainder = (int)((unsigned long)g_gameState.game_time % 0xa8c0);
+    hour = (u16)((u32)(g_gameState.game_time % 0xa8c0) / 0x708);
+    remainder = (s16)((u32)g_gameState.game_time % 0xa8c0);
     if (hour >= 8 && hour < 0x11) {
         return 0x40;
     }
@@ -283,21 +283,21 @@ int palette_daylight_modulate(int base_brightness) {
     }
     if (hour < 0x11) {
         remainder += 0xe3e0;
-        ramp = (int)((long)((unsigned long)(unsigned)remainder * (long)(0x40 - level)) / 0x1c20);
+        ramp = (s16)((s32)((u32)(u16)remainder * (s32)(0x40 - level)) / 0x1c20);
         return level + ramp;
     }
     remainder += 0x8878;
-    ramp = (int)((long)((unsigned long)(unsigned)remainder * (long)(0x40 - level)) / 0x1518);
+    ramp = (s16)((s32)((u32)(u16)remainder * (s32)(0x40 - level)) / 0x1518);
     return 0x40 - ramp;
 }
 
-TimerEventEntry *far palette_fade_schedule(unsigned short sub_id, unsigned long duration) {
+TimerEventEntry *far palette_fade_schedule(u16 sub_id, u32 duration) {
     g_gameState.nPalFadeDirty = 1;
     return timerpool_upsert(1, sub_id, 0x80, duration);
 }
 
 void far palette_fade_run_scheduled(TimerEventEntry *entry) {
-    long phase;
+    s32 phase;
 
     if (entry == 0)
         return;
@@ -306,7 +306,7 @@ void far palette_fade_run_scheduled(TimerEventEntry *entry) {
     switch (entry->wSub_id) {
     case 0:
         if (phase < 8)
-            g_gameState.nPalDaynightDelta = (short)(phase * phase);
+            g_gameState.nPalDaynightDelta = (s16)(phase * phase);
         else
             g_gameState.nPalDaynightDelta = 0x31;
         if (entry->nValue == 0)
@@ -317,7 +317,7 @@ void far palette_fade_run_scheduled(TimerEventEntry *entry) {
         if (phase < 8) {
             if (phase != 0) {
                 phase = 8 - phase;
-                g_gameState.nPalBlendWeight = (short)(phase * phase) + 8;
+                g_gameState.nPalBlendWeight = (s16)(phase * phase) + 8;
             } else {
                 g_gameState.nPalBlendWeight = 0x40;
                 g_gameState.nPalFadeDirty = 1;
@@ -330,13 +330,13 @@ void far palette_fade_run_scheduled(TimerEventEntry *entry) {
         return;
     case 2:
         if (phase < 8)
-            g_gameState.nPalAreaBrightness = (short)(phase * phase);
+            g_gameState.nPalAreaBrightness = (s16)(phase * phase);
         else
             g_gameState.nPalAreaBrightness = 0x31;
         break;
     case 3:
         if (phase < 8)
-            g_gameState.nPalBrightnessBoost = (short)(phase * phase);
+            g_gameState.nPalBrightnessBoost = (s16)(phase * phase);
         else
             g_gameState.nPalBrightnessBoost = 0x31;
         break;

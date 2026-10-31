@@ -16,21 +16,21 @@
  *          reduces modulo @p n.
  * @param n Exclusive upper bound; must be > 0.
  */
-#define RND(n) ((unsigned)(rand() & 0xfff) % (n))
+#define RND(n) ((u16)(rand() & 0xfff) % (n))
 /**
  * @brief Cheap roll in [0, @p n - 1] with no 12-bit mask.
  * @details Reduces a full @ref rand draw modulo @p n. When @p n is a power of
  *          two the modulo folds to a single AND.
  * @param n Exclusive upper bound; must be > 0.
  */
-#define RND2(n) ((unsigned)rand() % (n))
+#define RND2(n) ((u16)rand() % (n))
 /**
  * @brief Roll in [@p lo, @p hi] inclusive.
  * @details Built on the masked 12-bit @ref rand draw (see @ref RND).
  * @param lo Inclusive lower bound.
  * @param hi Inclusive upper bound; must be >= @p lo.
  */
-#define RNDR(lo, hi) ((lo) + (unsigned)(rand() & 0xfff) % ((hi) - (lo) + 1))
+#define RNDR(lo, hi) ((lo) + (u16)(rand() & 0xfff) % ((hi) - (lo) + 1))
 
 /**
  * @brief   The game's core pseudo-random generator.
@@ -38,7 +38,7 @@
  *          runtime's @c rand, so every includer draws from the game generator.
  * @return  The next pseudo-random word.
  */
-extern int rand(void);
+extern s16 rand(void);
 /**
  * @brief   Reseed the generator's two ring cursors to their starting offsets.
  * @details Restarts the walk over the state ring without altering the ring

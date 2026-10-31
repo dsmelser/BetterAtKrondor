@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int sfx_event_call_32c8_0063(int voice_count);
+extern s16 sfx_event_call_32c8_0063(s16 voice_count);
 
 #endif

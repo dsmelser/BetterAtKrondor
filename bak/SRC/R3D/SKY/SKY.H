@@ -4,8 +4,8 @@
 #include "structs.h"
 
 extern void sky_horizon_strip_compute_slope(SkyStrip far *pStrip);
-extern void sky_horizon_strips_init(int a);
+extern void sky_horizon_strips_init(s16 a);
 extern void sky_draw_ground_band(void);
-extern void sky_polygon_draw_dispatch(unsigned int vcount, int *xs, int *ys);
+extern void sky_polygon_draw_dispatch(u16 vcount, s16 *xs, s16 *ys);
 
 #endif

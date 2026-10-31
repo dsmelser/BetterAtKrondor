@@ -18,7 +18,7 @@
  *             `size * count` bytes.
  * @return @p count, unconditionally — short reads are not detected.
  */
-extern long res_fread_far(void huge *dest, long size, long count, ResFile *file);
+extern s32 res_fread_far(void huge *dest, s32 size, s32 count, ResFile *file);
 
 
 /**
@@ -30,6 +30,6 @@ extern long res_fread_far(void huge *dest, long size, long count, ResFile *file)
  * @param src Source anywhere in far memory.
  * @return `0`, unconditionally — short writes are not detected.
  */
-extern long res_fwrite_far(void huge *src, long size, long count, ResFile *file);
+extern s32 res_fwrite_far(void huge *src, s32 size, s32 count, ResFile *file);
 
 #endif

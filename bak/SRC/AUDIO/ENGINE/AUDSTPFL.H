@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_stop_filter(int filter_mode);
+extern s16 audio_stop_filter(s16 filter_mode);
 
 #endif

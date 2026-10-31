@@ -7,15 +7,15 @@
 #include "SRC/GFX/RASTER/CIRCLE.H"
 #include "SRC/GFX/RASTER/POLYGON.H"
 
-short g_nCircleCenterX;
-short g_nCircleClipCenterY;
-short g_nCircleClipDyMax;
-short g_nCircleClipDyMin;
-short g_nCircleClipTopY;
-unsigned short far *g_pSpanBufCursor;
+s16 g_nCircleCenterX;
+s16 g_nCircleClipCenterY;
+s16 g_nCircleClipDyMax;
+s16 g_nCircleClipDyMin;
+s16 g_nCircleClipTopY;
+u16 far *g_pSpanBufCursor;
 CirclePlotterFn *g_pfnCirclePlotter;
 
-void far draw_circle(int radius, int cx, int cy) {
+void far draw_circle(s16 radius, s16 cx, s16 cy) {
     void far *spanBuf;
 
     if (g_graphics_context.bGfx_fill_enabled != 0) {
@@ -31,17 +31,17 @@ void far draw_circle(int radius, int cx, int cy) {
     }
 }
 
-typedef void(near *NearPlotterFn)(int x, int y);
+typedef void(near *NearPlotterFn)(s16 x, s16 y);
 
-unsigned long near draw_circle_bresenham(int radius, int cx, int cy) {
-    register int x;
-    register int r;
-    int d;
-    unsigned short rows;
-    unsigned short far *p;
+u32 near draw_circle_bresenham(s16 radius, s16 cx, s16 cy) {
+    register s16 x;
+    register s16 r;
+    s16 d;
+    u16 rows;
+    u16 far *p;
 
     p = g_pSpanBufCursor =
-        (unsigned short far *)((long)(int)g_graphics_context_render.wSpanTableBufSeg << 16);
+        (u16 far *)((s32)(s16)g_graphics_context_render.wSpanTableBufSeg << 16);
     x = 0;
     r = radius;
     d = 3 - radius * 2;
@@ -49,14 +49,14 @@ unsigned long near draw_circle_bresenham(int radius, int cx, int cy) {
         (cy - radius < g_graphics_context.clip.ymin) ? g_graphics_context.clip.ymin : (cy - radius);
     g_pSpanBufCursor++;
     rows = (cy - g_nCircleClipTopY) + radius + 1;
-    *g_pSpanBufCursor = rows = ((g_graphics_context.clip.ymax - g_nCircleClipTopY) + 1 > (int)rows)
+    *g_pSpanBufCursor = rows = ((g_graphics_context.clip.ymax - g_nCircleClipTopY) + 1 > (s16)rows)
                                    ? rows
                                    : (g_graphics_context.clip.ymax - g_nCircleClipTopY) + 1;
     g_pSpanBufCursor++;
     if (g_nCircleClipTopY > g_graphics_context.clip.ymax) {
         return 0;
     }
-    if ((int)(g_nCircleClipTopY + rows) < g_graphics_context.clip.ymin) {
+    if ((s16)(g_nCircleClipTopY + rows) < g_graphics_context.clip.ymin) {
         return 0;
     }
     g_nCircleClipDyMin = g_graphics_context.clip.ymin - g_nCircleClipTopY;
@@ -75,13 +75,13 @@ unsigned long near draw_circle_bresenham(int radius, int cx, int cy) {
             r--;
         }
     }
-    return (unsigned long)p;
+    return (u32)p;
 }
 
-void near record_circle_span(int dx, int dy) {
-    int left;
-    int right;
-    unsigned short far *p;
+void near record_circle_span(s16 dx, s16 dy) {
+    s16 left;
+    s16 right;
+    u16 far *p;
 
     left = (g_nCircleCenterX - dx) - (dx >> 1 >> 1 >> 1);
     right = g_nCircleCenterX + dx + (dx >> 1 >> 1 >> 1);
@@ -114,9 +114,9 @@ void near record_circle_span(int dx, int dy) {
     *p = right;
 }
 
-void near circle_plot_mirror_pair(int dx, int dy) {
-    int left_x;
-    int right_x;
+void near circle_plot_mirror_pair(s16 dx, s16 dy) {
+    s16 left_x;
+    s16 right_x;
 
     left_x = (g_nCircleCenterX - dx) - (dx >> 1 >> 1 >> 1);
     right_x = g_nCircleCenterX + dx + (dx >> 1 >> 1 >> 1);

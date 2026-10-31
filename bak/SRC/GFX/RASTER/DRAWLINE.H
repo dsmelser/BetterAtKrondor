@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern void draw_line(int x1, int y1, int x2, int y2);
+extern void draw_line(s16 x1, s16 y1, s16 x2, s16 y2);
 
 #endif

@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_channel_apply_chord_event(int channel, int event);
+extern s16 audio_channel_apply_chord_event(s16 channel, s16 event);
 
 #endif

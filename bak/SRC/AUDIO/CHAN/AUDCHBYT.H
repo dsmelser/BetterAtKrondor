@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_channel_set_byte_15a(int channel, int value);
+extern s16 audio_channel_set_byte_15a(s16 channel, s16 value);
 
 #endif

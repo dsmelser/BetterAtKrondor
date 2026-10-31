@@ -3,8 +3,8 @@
 
 #include "structs.h"
 
-extern unsigned long g_pAaPaletteBuf;
+extern u32 g_pAaPaletteBuf;
 
-extern void blit_sprite_aa_edges(ImageRecord *sprite, int dst_x, int dst_y, unsigned char far *palette);
+extern void blit_sprite_aa_edges(ImageRecord *sprite, s16 dst_x, s16 dst_y, unsigned char far *palette);
 
 #endif

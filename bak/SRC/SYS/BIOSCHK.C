@@ -2,7 +2,7 @@
 #include "SRC/GEN/GFXCTX.H"
 #include "SRC/SYS/BIOSCHK.H"
 
-int bios_compat_check(void) {
+s16 bios_compat_check(void) {
     asm push es;
     asm push bx;
     asm mov bx, 0F000h;

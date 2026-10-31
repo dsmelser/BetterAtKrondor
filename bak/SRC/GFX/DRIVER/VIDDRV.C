@@ -8,19 +8,19 @@
 
 void huge *g_pVideoDriverTemplate = {0};
 char g_szDrvSuffix_BAD[3] = {'B', 'A', 'D'};
-unsigned short g_apVideoDriverChunkNames[13] = {0x003a,
-                                                (unsigned short)g_szDrvSuffix_CGA,
-                                                (unsigned short)g_szDrvSuffix_EGA,
-                                                (unsigned short)g_szDrvSuffix_TAN,
-                                                (unsigned short)g_szDrvSuffix_HER,
-                                                (unsigned short)g_szDrvSuffix_MCG,
-                                                (unsigned short)g_szDrvSuffix_BAD,
-                                                (unsigned short)g_szDrvSuffix_EVA,
-                                                (unsigned short)g_szDrvSuffix_VGA,
-                                                (unsigned short)g_szDrvSuffix_EVG,
-                                                (unsigned short)g_szDrvSuffix_HVG,
-                                                (unsigned short)g_szDrvSuffix_HEG,
-                                                (unsigned short)g_szDrvSuffix_NEW};
+u16 g_apVideoDriverChunkNames[13] = {0x003a,
+                                                (u16)g_szDrvSuffix_CGA,
+                                                (u16)g_szDrvSuffix_EGA,
+                                                (u16)g_szDrvSuffix_TAN,
+                                                (u16)g_szDrvSuffix_HER,
+                                                (u16)g_szDrvSuffix_MCG,
+                                                (u16)g_szDrvSuffix_BAD,
+                                                (u16)g_szDrvSuffix_EVA,
+                                                (u16)g_szDrvSuffix_VGA,
+                                                (u16)g_szDrvSuffix_EVG,
+                                                (u16)g_szDrvSuffix_HVG,
+                                                (u16)g_szDrvSuffix_HEG,
+                                                (u16)g_szDrvSuffix_NEW};
 char g_szVideoChunkName[10] = "OVL:     ";
 char g_szDrvSuffix_CGA[5] = "CGA:";
 char g_szDrvSuffix_EGA[5] = "EGA:";
@@ -34,10 +34,10 @@ char g_szDrvSuffix_HVG[5] = "HVG:";
 char g_szDrvSuffix_HEG[5] = "HEG:";
 char g_szDrvSuffix_NEW[5] = "NEW:";
 
-unsigned long far *video_driver_load(int mode, FileRef *file) {
-    long size;
-    int stream_id;
-    int did_open;
+u32 far *video_driver_load(s16 mode, FileRef *file) {
+    s32 size;
+    s16 stream_id;
+    s16 did_open;
     ResFile *handle;
 
     did_open = 0;
@@ -92,13 +92,13 @@ unsigned long far *video_driver_load(int mode, FileRef *file) {
         goto fail;
     }
 
-    stream_read(stream_id, (void far *)g_pVideoDriverTemplate, (unsigned int)size);
+    stream_read(stream_id, (void far *)g_pVideoDriverTemplate, (u16)size);
     stream_close(stream_id);
 
     if (did_open != 0) {
         cached_file_close(handle);
     }
-    return (unsigned long far *)g_pVideoDriverTemplate;
+    return (u32 far *)g_pVideoDriverTemplate;
 
 fail:
     return 0;

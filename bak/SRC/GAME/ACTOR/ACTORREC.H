@@ -23,7 +23,7 @@
  *         carry it (the @p which_subrecord bit is clear in @ref Actor::flags).
  * @retval NULL The requested subrecord is not present.
  */
-extern ActorSubrecord far *actorrec_get_subrecord(Actor far *actor, int which_subrecord);
+extern ActorSubrecord far *actorrec_get_subrecord(Actor far *actor, s16 which_subrecord);
 
 /**
  * @brief Byte size of an actor record's variable payload, excluding the fixed
@@ -37,6 +37,6 @@ extern ActorSubrecord far *actorrec_get_subrecord(Actor far *actor, int which_su
  * @param actor Actor record to measure; must be non-NULL.
  * @return Payload size in bytes (item array + present subrecords), header excluded.
  */
-extern int actorrec_payload_size(Actor far *actor);
+extern s16 actorrec_payload_size(Actor far *actor);
 
 #endif

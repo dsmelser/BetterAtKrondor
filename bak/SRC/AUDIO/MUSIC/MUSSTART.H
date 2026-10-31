@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern AudioTrackHandle far *music_handle_start(AudioTrackHandle far *handle, int advance_n,
-                                                int volume);
+extern AudioTrackHandle far *music_handle_start(AudioTrackHandle far *handle, s16 advance_n,
+                                                s16 volume);
 
 #endif

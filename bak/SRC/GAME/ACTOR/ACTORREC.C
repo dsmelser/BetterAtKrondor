@@ -6,7 +6,7 @@
 #include "structs.h"
 #include "SRC/GAME/ACTOR/ACTORREC.H"
 
-ActorSubrecord far *actorrec_get_subrecord(Actor far *actor, int which_subrecord) {
+ActorSubrecord far *actorrec_get_subrecord(Actor far *actor, s16 which_subrecord) {
     unsigned char mask;
     ActorSubrecord far *p;
 
@@ -19,27 +19,27 @@ ActorSubrecord far *actorrec_get_subrecord(Actor far *actor, int which_subrecord
     if (mask & SUBREC_PARAMS) {
         if (which_subrecord & SUBREC_PARAMS)
             return p;
-        *(unsigned *)&p += sizeof(ActorSubrec01_Params);
+        *(u16 *)&p += sizeof(ActorSubrec01_Params);
     }
     if (mask & SUBREC_INTERACT_MSG) {
         if (which_subrecord & SUBREC_INTERACT_MSG)
             return p;
-        *(unsigned *)&p += sizeof(ActorSubrec02_InteractMsg);
+        *(u16 *)&p += sizeof(ActorSubrec02_InteractMsg);
     }
     if (mask & SUBREC_EVENT_STATE) {
         if (which_subrecord & SUBREC_EVENT_STATE)
             return p;
-        *(unsigned *)&p += sizeof(ActorSubrec04_EventState);
+        *(u16 *)&p += sizeof(ActorSubrec04_EventState);
     }
     if (mask & SUBREC_HOTSPOT) {
         if (which_subrecord & SUBREC_HOTSPOT)
             return p;
-        *(unsigned *)&p += sizeof(ActorSubrec08_HotspotAction);
+        *(u16 *)&p += sizeof(ActorSubrec08_HotspotAction);
     }
     if (mask & SUBREC_LAST_TOUCH) {
         if (which_subrecord & SUBREC_LAST_TOUCH)
             return p;
-        *(unsigned *)&p += sizeof(ActorSubrec10_LastTouch);
+        *(u16 *)&p += sizeof(ActorSubrec10_LastTouch);
     }
     if (mask & SUBREC_DOOR_VARIANT) {
         if (which_subrecord & SUBREC_DOOR_VARIANT)
@@ -50,8 +50,8 @@ L_null:
     return NULL;
 }
 
-int actorrec_payload_size(Actor far *actor) {
-    int size;
+s16 actorrec_payload_size(Actor far *actor) {
+    s16 size;
 
     size = actor->itemCapacity * sizeof(ItemSlot);
     if ((actor->flags & SUBREC_PARAMS) != 0) {

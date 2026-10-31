@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int palette_blend_lookup(unsigned int idx_a, unsigned int idx_b);
+extern s16 palette_blend_lookup(u16 idx_a, u16 idx_b);
 
 #endif

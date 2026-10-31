@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern void gfx_present_dispatch(int x, int y, int w, int h);
+extern void gfx_present_dispatch(s16 x, s16 y, s16 w, s16 h);
 
 #endif

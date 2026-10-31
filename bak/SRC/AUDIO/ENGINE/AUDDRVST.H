@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_driver_stop(int id);
+extern s16 audio_driver_stop(s16 id);
 
 #endif

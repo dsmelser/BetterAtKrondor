@@ -4,7 +4,7 @@
 #include "SRC/AUDIO/CHAN/SFXCHAN.H"
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
-int audio_set_intensity(int id, int intensity) {
+s16 audio_set_intensity(s16 id, s16 intensity) {
     AudioTrackHandle far *track;
 
     intensity = intensity > 0x3f ? 0x3f : intensity;

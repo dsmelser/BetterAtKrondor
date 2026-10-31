@@ -5,7 +5,7 @@
 #include "SRC/SYS/HWSHUT.H"
 #include "SRC/GFX/DRIVER/VIDDET.H"
 
-int panic(char *fmt, ...) {
+s16 panic(char *fmt, ...) {
     va_list args;
 
     hardware_shutdown();

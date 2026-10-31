@@ -3,7 +3,7 @@
 #include "SRC/AUDIO/CHAN/SFXCHAN.H"
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
-int audio_channel_set_word_bc(int channel, int word_val, int voice_slot) {
+s16 audio_channel_set_word_bc(s16 channel, s16 word_val, s16 voice_slot) {
     AudioTrackHandle far *handle_fp;
 
     if ((handle_fp = sfxchan_apply_to_channels(channel)) != 0) {

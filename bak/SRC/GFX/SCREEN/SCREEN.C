@@ -28,26 +28,26 @@ unsigned char far *g_pActiveCursorBuf;
 unsigned char far *g_pCursorScratchBuf1;
 unsigned char far *g_pCursorScratchBuf2;
 
-short g_cursor_hidden = 1;
-short g_cursor_prev_shape = 0;
+s16 g_cursor_hidden = 1;
+s16 g_cursor_prev_shape = 0;
 ImageRecord **g_cursor_state = {0};
 unsigned char far *g_pPalQueuedForFlip = {0};
-short g_nCursorX = 0;
-short g_nCursorY = 0;
-unsigned short g_nCursorStateSaved = 0x0000;
+s16 g_nCursorX = 0;
+s16 g_nCursorY = 0;
+u16 g_nCursorStateSaved = 0x0000;
 unsigned char far *g_pSavedCursorBuf1 = {0};
 unsigned char far *g_pSavedCursorBuf2 = {0};
 
-int screen_cursor_get_position(short *out_x, short *out_y) {
+s16 screen_cursor_get_position(s16 *out_x, s16 *out_y) {
     if (g_mouse_installed) {
-        return mouse_get_position((unsigned int *)out_x, (unsigned int *)out_y);
+        return mouse_get_position((u16 *)out_x, (u16 *)out_y);
     }
     *out_x = g_nCursorX;
     *out_y = g_nCursorY;
     return 1;
 }
 
-int screen_cursor_set_position(int x, int y) {
+s16 screen_cursor_set_position(s16 x, s16 y) {
     if (g_mouse_installed != '\0') {
         return mouse_set_position(x, y);
     }
@@ -69,15 +69,15 @@ int screen_cursor_set_position(int x, int y) {
     return 1;
 }
 
-void screen_cursor_set_hidden_flag(int hidden) {
+void screen_cursor_set_hidden_flag(s16 hidden) {
     g_cursor_hidden = hidden;
 }
 
-short screen_cursor_get_x(void) {
+s16 screen_cursor_get_x(void) {
     return g_cursor_prev_x[1].nX;
 }
 
-short screen_cursor_get_y(void) {
+s16 screen_cursor_get_y(void) {
     return g_cursor_prev_x[1].nY;
 }
 
@@ -85,12 +85,12 @@ ImageRecord **screen_cursor_state_get(void) {
     return g_cursor_state;
 }
 
-void screen_cur_set_shape_remember(int shape_id) {
+void screen_cur_set_shape_remember(s16 shape_id) {
     screen_cursor_set_shape(shape_id);
     g_cursor_prev_shape = g_cursor_prev_x[1].shape;
 }
 
-void screen_cursor_set_shape(int shape_id) {
+void screen_cursor_set_shape(s16 shape_id) {
     g_cBusyCursorShown = 0;
     if (0 < shape_id && shape_id < null_terminated_count(g_cursor_state)) {
         g_cursor_prev_x[1].shape = shape_id;
@@ -111,8 +111,8 @@ void screen_cursor_set_shape(int shape_id) {
     return;
 }
 
-int screen_input_poll_confirm_cancel(void) {
-    int result;
+s16 screen_input_poll_confirm_cancel(void) {
+    s16 result;
 
     result = 0;
     if (mouse_button_pressed(0) || key_is_down(0x4c) || key_is_down(0x52)) {
@@ -123,11 +123,11 @@ int screen_input_poll_confirm_cancel(void) {
     return result;
 }
 
-void screen_cursor_load_pack(int pack_id) {
-    int i;
-    int sz;
-    int count;
-    int maxSize;
+void screen_cursor_load_pack(s16 pack_id) {
+    s16 i;
+    s16 sz;
+    s16 count;
+    s16 maxSize;
 
     switch (pack_id) {
     case 0:
@@ -141,7 +141,7 @@ void screen_cursor_load_pack(int pack_id) {
     count = null_terminated_count(g_cursor_state);
     i = maxSize = 0;
     for (; i < count; i++) {
-        if ((sz = (int)rect_byte_size(g_cursor_state[i]->nWidth, g_cursor_state[i]->nHeight)) >
+        if ((sz = (s16)rect_byte_size(g_cursor_state[i]->nWidth, g_cursor_state[i]->nHeight)) >
             maxSize) {
             maxSize = sz;
         }
@@ -151,8 +151,8 @@ void screen_cursor_load_pack(int pack_id) {
     screen_cur_set_shape_remember(0);
     g_cursor_prev_x[0] = g_cursor_prev_x[1];
 
-    g_pCursorScratchBuf1 = g_pActiveCursorBuf = alloc_far((long)maxSize, 0);
-    g_pCursorScratchBuf2 = alloc_far((long)maxSize, 0);
+    g_pCursorScratchBuf1 = g_pActiveCursorBuf = alloc_far((s32)maxSize, 0);
+    g_pCursorScratchBuf2 = alloc_far((s32)maxSize, 0);
 
     cga_save_rect_to_buffer(g_pCursorScratchBuf1, g_cursor_prev_x[1].nX, g_cursor_prev_x[1].nY,
                             g_cursor_prev_x[1].nWidth, g_cursor_prev_x[1].nHeight);
@@ -168,10 +168,10 @@ void screen_cursor_unload_pack(void) {
     return;
 }
 
-void screen_cursor_state_push_pop(int restore) {
+void screen_cursor_state_push_pop(s16 restore) {
     if (restore != 0) {
 
-        g_nCursorStateSaved = (unsigned short)g_cursor_state;
+        g_nCursorStateSaved = (u16)g_cursor_state;
         g_pSavedCursorBuf1 = g_pCursorScratchBuf1;
         g_pSavedCursorBuf2 = g_pCursorScratchBuf2;
         g_cursor_state = (ImageRecord **)0;
@@ -200,8 +200,8 @@ void screen_cursor_hide(void) {
 }
 
 void screen_cursor_draw(CursorState *cursor_rec, unsigned char far *buf) {
-    int x_start;
-    int row;
+    s16 x_start;
+    s16 row;
 
     x_start = cursor_rec->nX - cursor_rec->nHotX;
     row = cursor_rec->nY - cursor_rec->nHotY;
@@ -216,8 +216,8 @@ void screen_cursor_draw(CursorState *cursor_rec, unsigned char far *buf) {
 }
 
 void screen_cursor_restore_background(CursorState *cur, unsigned char far *pBgBuffer) {
-    int x;
-    int row;
+    s16 x;
+    s16 row;
 
     x = cur->nX - cur->nHotX;
     row = cur->nY - cur->nHotY;
@@ -227,7 +227,7 @@ void screen_cursor_restore_background(CursorState *cur, unsigned char far *pBgBu
     if (row < 0) {
         row = 0;
     }
-    if (row + cur->nHeight > (int)g_wScreen_height - 1) {
+    if (row + cur->nHeight > (s16)g_wScreen_height - 1) {
         cga_rect_paste_from_buffer(pBgBuffer, x, row, cur->nWidth, g_wScreen_height - row);
     } else {
         cga_rect_paste_from_buffer(pBgBuffer, x, row, cur->nWidth, cur->nHeight);
@@ -236,11 +236,11 @@ void screen_cursor_restore_background(CursorState *cur, unsigned char far *pBgBu
 
 void screen_cur_refr_during_long_op(void) {
     unsigned char far *pBgBuffer;
-    short savedClipXmin;
-    short savedClipYmin;
-    short savedClipXmax;
-    short savedClipYmax;
-    short savedClipEnabled;
+    s16 savedClipXmin;
+    s16 savedClipYmin;
+    s16 savedClipXmax;
+    s16 savedClipYmax;
+    s16 savedClipEnabled;
 
     screen_cursor_get_position(&g_cursor_prev_x[1].nX, &g_cursor_prev_x[1].nY);
 
@@ -278,7 +278,7 @@ void screen_cur_refr_during_long_op(void) {
     screen_cursor_draw(&g_cursor_prev_x[1], pBgBuffer);
 
     if (g_cursor_hidden != 0 && g_cursor_prev_x[1].shape != 2) {
-        blit_sprite_indirect((unsigned short)g_cursor_state[g_cursor_prev_x[1].shape],
+        blit_sprite_indirect((u16)g_cursor_state[g_cursor_prev_x[1].shape],
                              g_cursor_prev_x[1].nX - g_cursor_prev_x[1].nHotX,
                              g_cursor_prev_x[1].nY - g_cursor_prev_x[1].nHotY, 0);
     }
@@ -303,7 +303,7 @@ void far screen_frame_present(void) {
     screen_cursor_get_position(&g_cursor_prev_x[1].nX, &g_cursor_prev_x[1].nY);
     screen_cursor_draw(&g_cursor_prev_x[1], g_pActiveCursorBuf);
     if (g_cursor_prev_x[0].nX != -999 && g_cursor_hidden != 0 && g_cursor_prev_x[1].shape != 2) {
-        blit_sprite_indirect((unsigned short)g_cursor_state[g_cursor_prev_x[1].shape],
+        blit_sprite_indirect((u16)g_cursor_state[g_cursor_prev_x[1].shape],
                              g_cursor_prev_x[1].nX - g_cursor_prev_x[1].nHotX,
                              g_cursor_prev_x[1].nY - g_cursor_prev_x[1].nHotY, 0);
     }
@@ -319,7 +319,7 @@ void far screen_frame_present(void) {
     g_cursor_prev_x[0] = g_cursor_prev_x[1];
 }
 
-void far screen_frame_sync_buffers_rect(int row_start, int row_count) {
+void far screen_frame_sync_buffers_rect(s16 row_start, s16 row_count) {
     asm mov dx, 050h;
     asm mov ax, word ptr row_start;
     asm imul dx;
@@ -353,7 +353,7 @@ void far screen_frame_sync_buffers_rect(int row_start, int row_count) {
 }
 
 void screen_clear_both_pages(void) {
-    int i;
+    s16 i;
 
     i = 0;
     do {
@@ -434,10 +434,10 @@ void far screen_scene_reset_clip_cur(void) {
     }
 }
 
-void far screen_wipe_horizontal(int x, int y, int w, int h) {
-    int center;
-    int left_x;
-    int step;
+void far screen_wipe_horizontal(s16 x, s16 y, s16 w, s16 h) {
+    s16 center;
+    s16 left_x;
+    s16 step;
 
     g_graphics_context.bClip_enabled = 1;
     g_graphics_context.clip.xmin = g_graphics_context.clip.ymin = 0;
@@ -449,7 +449,7 @@ void far screen_wipe_horizontal(int x, int y, int w, int h) {
     screen_cursor_draw(&g_cursor_prev_x[0], g_pActiveCursorBuf);
 
     if (g_cursor_hidden != 0 && g_cursor_prev_x[0].shape != 2) {
-        blit_sprite_indirect((unsigned short)g_cursor_state[g_cursor_prev_x[0].shape],
+        blit_sprite_indirect((u16)g_cursor_state[g_cursor_prev_x[0].shape],
                              g_cursor_prev_x[0].nX - g_cursor_prev_x[0].nHotX,
                              g_cursor_prev_x[0].nY - g_cursor_prev_x[0].nHotY, 0);
     }

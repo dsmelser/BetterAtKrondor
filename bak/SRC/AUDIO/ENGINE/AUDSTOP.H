@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_stop(int what);
+extern s16 audio_stop(s16 what);
 
 #endif

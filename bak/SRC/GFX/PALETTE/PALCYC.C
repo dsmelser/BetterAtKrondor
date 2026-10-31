@@ -3,7 +3,7 @@
 #include "SRC/GFX/PALETTE/PALCYC.H"
 #include "SRC/GFX/DRIVER/PALDRV.H"
 
-void far palette_cycle_eb_toggle(int enable) {
+void far palette_cycle_eb_toggle(s16 enable) {
     if (enable != 0) {
         if (g_bPaletteCycleEbActive == 0) {
             palette_cycle_add(0xeb, 5, -1);

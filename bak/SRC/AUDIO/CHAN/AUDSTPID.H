@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_stop_sfx_all_with_id(int sfx_id);
+extern s16 audio_stop_sfx_all_with_id(s16 sfx_id);
 
 #endif

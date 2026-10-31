@@ -4,7 +4,7 @@
 #include "SRC/IO/RESOURCE.H"
 
 IffResReader *near iff_reader_find(FileRef *key) {
-    int i;
+    s16 i;
 
     i = 4;
     while (--i >= 0) {
@@ -17,23 +17,23 @@ IffResReader *near iff_reader_find(FileRef *key) {
 
 void near bakfile_reset_preserve_cursor(IffResReader *reader) {
     ResFile *file;
-    long end;
+    s32 end;
     register char *p;
-    register int count;
+    register s16 count;
 
     p = (char *)reader;
     count = sizeof(IffResReader);
     file = reader->pStream;
-    end = *(long *)&reader->pLevel_cache[0];
+    end = *(s32 *)&reader->pLevel_cache[0];
     while (--count >= 0) {
         *p = 0;
         p++;
     }
-    *(long *)&reader->pLevel_cache[0] = end;
+    *(s32 *)&reader->pLevel_cache[0] = end;
     res_rewind(reader->pStream = file);
 }
 
-int near strncmp_eq(char *a, char *b, int n) {
+s16 near strncmp_eq(char *a, char *b, s16 n) {
     while ((*a != '\0' || *b != '\0') && n-- != 0) {
         if (*a++ != *b++) {
             return 0;
@@ -50,7 +50,7 @@ IffResReader *cache_slot_read(IffResReader *dst, FileRef *key) {
     return dst;
 }
 
-int cache_slot_write(IffResReader *record) {
+s16 cache_slot_write(IffResReader *record) {
     IffResReader *slot;
 
     if (record == 0 || record->pStream == 0 || (slot = iff_reader_find(record->pStream)) == 0)
@@ -68,21 +68,21 @@ ResFile *far cached_file_open(char *filename) {
     if ((reader->pStream = res_fopen(filename, "rb")) == 0)
         return (ResFile *)0;
     res_fseek(reader->pStream, 0L, SEEK_END);
-    *(long *)&reader->pLevel_cache[0] = res_ftell(reader->pStream) | 0x80000000L;
+    *(s32 *)&reader->pLevel_cache[0] = res_ftell(reader->pStream) | 0x80000000L;
     bakfile_reset_preserve_cursor(reader);
     return reader->pStream;
 }
 
-long near chunk_seek_rollback(IffResReader *reader) {
+s32 near chunk_seek_rollback(IffResReader *reader) {
     *reader = g_chunkSeekSaveIffReader;
     res_fseek(reader->pStream, reader->nCursor, SEEK_SET);
     return -1L;
 }
 
-long chunk_seek(ResFile *handle, char *chunk_id, int mode) {
+s32 chunk_seek(ResFile *handle, char *chunk_id, s16 mode) {
     IffResReader *reader;
-    int len;
-    short saved_skip_count;
+    s16 len;
+    s16 saved_skip_count;
 
     if ((handle == 0) || ((reader = iff_reader_find(handle)) == 0)) {
         return -1L;
@@ -139,14 +139,14 @@ long chunk_seek(ResFile *handle, char *chunk_id, int mode) {
         }
     }
 
-    if (!(*(long *)&reader->pLevel_cache[reader->nDepth >> 2] & 0x80000000L)) {
-        reader->nCursor += *(long *)&reader->wChunk_size_lo;
+    if (!(*(s32 *)&reader->pLevel_cache[reader->nDepth >> 2] & 0x80000000L)) {
+        reader->nCursor += *(s32 *)&reader->wChunk_size_lo;
     }
     res_fseek(reader->pStream, reader->nCursor, SEEK_SET);
 
     while (mode-- != 0) {
         for (;;) {
-            if ((*(long *)&reader->pLevel_cache[reader->nDepth >> 2] & 0x7fffffffL) ==
+            if ((*(s32 *)&reader->pLevel_cache[reader->nDepth >> 2] & 0x7fffffffL) ==
                 reader->nCursor) {
                 if (reader->nDepth == 0) {
                     return chunk_seek_rollback(reader);
@@ -154,8 +154,8 @@ long chunk_seek(ResFile *handle, char *chunk_id, int mode) {
                 reader->nDepth -= 4;
                 continue;
             }
-            if (!(*(long *)&reader->pLevel_cache[reader->nDepth >> 2] & 0x80000000L)) {
-                reader->nCursor += *(long *)&reader->wChunk_size_lo;
+            if (!(*(s32 *)&reader->pLevel_cache[reader->nDepth >> 2] & 0x80000000L)) {
+                reader->nCursor += *(s32 *)&reader->wChunk_size_lo;
                 res_fseek(reader->pStream, reader->nCursor, SEEK_SET);
                 continue;
             }
@@ -173,12 +173,12 @@ long chunk_seek(ResFile *handle, char *chunk_id, int mode) {
                 return chunk_seek_rollback(reader);
             }
 
-            *(long *)&reader->pLevel_cache[reader->nDepth >> 2] =
-                reader->nCursor + *(long *)&reader->wChunk_size_lo;
-            *(long *)&reader->wChunk_size_lo &= 0x7fffffffL;
-            if ((*(long *)&reader->wChunk_size_lo < 0L) ||
-                (*(unsigned long *)&reader->wChunk_size_lo >=
-                 (*(unsigned long *)&reader->pLevel_cache[0] & 0x7fffffffUL))) {
+            *(s32 *)&reader->pLevel_cache[reader->nDepth >> 2] =
+                reader->nCursor + *(s32 *)&reader->wChunk_size_lo;
+            *(s32 *)&reader->wChunk_size_lo &= 0x7fffffffL;
+            if ((*(s32 *)&reader->wChunk_size_lo < 0L) ||
+                (*(u32 *)&reader->wChunk_size_lo >=
+                 (*(u32 *)&reader->pLevel_cache[0] & 0x7fffffffUL))) {
                 return chunk_seek_rollback(reader);
             }
 
@@ -193,14 +193,14 @@ long chunk_seek(ResFile *handle, char *chunk_id, int mode) {
     return reader->nCursor;
 }
 
-unsigned long far cached_file_chunk_size(register ResFile *file) {
+u32 far cached_file_chunk_size(register ResFile *file) {
     IffResReader *reader;
     if (!file || !((reader = iff_reader_find(file)) != 0))
         return 0xFFFFFFFFUL;
-    return (unsigned long)reader->wChunk_size_hi_flags << 16 | reader->wChunk_size_lo;
+    return (u32)reader->wChunk_size_hi_flags << 16 | reader->wChunk_size_lo;
 }
 
-int far cached_file_close(ResFile *file) {
+s16 far cached_file_close(ResFile *file) {
     register IffResReader *reader;
     if (!file || !((reader = iff_reader_find(file)) != 0))
         return 0;
@@ -209,6 +209,6 @@ int far cached_file_close(ResFile *file) {
     return 1;
 }
 
-int is_file_cached(FileRef *key) {
+s16 is_file_cached(FileRef *key) {
     return iff_reader_find(key) ? 1 : 0;
 }

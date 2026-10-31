@@ -7,8 +7,8 @@
 #include "SRC/AUDIO/SND/SNDINST.H"
 #include "SRC/AUDIO/RES/AUDRESIN.H"
 
-int audio_driver_init(int driver_id, int music_driver, unsigned int p3, char *fileName) {
-    int install;
+s16 audio_driver_init(s16 driver_id, s16 music_driver, u16 p3, char *fileName) {
+    s16 install;
 
     install = 1;
 

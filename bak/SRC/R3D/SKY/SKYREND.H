@@ -3,21 +3,21 @@
 
 #include "structs.h"
 
-extern short g_nHorizonScratchW;
+extern s16 g_nHorizonScratchW;
 extern unsigned char g_bCurSkyColorR;
 extern unsigned char g_bCurSkyColorG;
 extern unsigned char g_bCurSkyColorB;
 extern unsigned char g_bSkyBandSelectB;
 extern unsigned char g_bSkyBandSelectA;
-extern unsigned short g_wHorizonCamYaw;
-extern unsigned short g_wHorizonCamPitch;
-extern short g_nClipLineX0;
-extern short g_nClipLineY0;
-extern short g_nClipLineX1;
-extern short g_nClipLineY1;
-extern short g_nHorizonRowY;
+extern u16 g_wHorizonCamYaw;
+extern u16 g_wHorizonCamPitch;
+extern s16 g_nClipLineX0;
+extern s16 g_nClipLineY0;
+extern s16 g_nClipLineX1;
+extern s16 g_nClipLineY1;
+extern s16 g_nHorizonRowY;
 
-extern void skyrender_sky_and_ground(unsigned short sky_r, unsigned short sky_g, unsigned short sky_b, unsigned short cam_yaw,
-                                     unsigned short cam_pitch);
+extern void skyrender_sky_and_ground(u16 sky_r, u16 sky_g, u16 sky_b, u16 cam_yaw,
+                                     u16 cam_pitch);
 
 #endif

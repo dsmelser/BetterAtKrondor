@@ -4,11 +4,11 @@
 #include "structs.h"
 #include "SRC/GAME/ACTOR/ACTOR.H"
 
-extern int modalscreen_pending_scene_trans(void);
-extern void modalscreen_teleport_dat_load(int n_index);
-extern void modalscreen_inventory_request(unsigned int category_mask, int discount_pct);
+extern s16 modalscreen_pending_scene_trans(void);
+extern void modalscreen_teleport_dat_load(s16 n_index);
+extern void modalscreen_inventory_request(u16 category_mask, s16 discount_pct);
 extern void modalscreen_rest_until_time(Actor far *pActor);
-extern int modalscreen_teleport_spell_run(int current_city, long cost_base, int cost_per_unit);
-extern void modalscreen_req_inv_run(int kind_or_id, int tax, int qty_mult, int char_slot);
+extern s16 modalscreen_teleport_spell_run(s16 current_city, s32 cost_base, s16 cost_per_unit);
+extern void modalscreen_req_inv_run(s16 kind_or_id, s16 tax, s16 qty_mult, s16 char_slot);
 
 #endif

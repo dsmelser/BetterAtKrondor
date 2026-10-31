@@ -3,8 +3,8 @@
 
 #include "structs.h"
 
-extern TimerEventEntry *timerpool_upsert(unsigned short kind, unsigned short sub_id, unsigned short mode, long value);
-extern void timerpool_tick(int delta_ticks);
-extern int timerpool_contains(unsigned short kind, unsigned short sub_id);
+extern TimerEventEntry *timerpool_upsert(u16 kind, u16 sub_id, u16 mode, s32 value);
+extern void timerpool_tick(s16 delta_ticks);
+extern s16 timerpool_contains(u16 kind, u16 sub_id);
 
 #endif

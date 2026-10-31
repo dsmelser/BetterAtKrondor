@@ -4,27 +4,27 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-typedef unsigned long(far *AllocFarFn)(unsigned long size, unsigned short unused,
-                                       unsigned short flags);
-typedef int(far *FreememFn)(unsigned long ptr);
-typedef int(far *ReadFarThunkFn)(int fd, void *buf, unsigned int count);
-typedef int(far *CloseFarThunkFn)(int fd);
-typedef void *(far *MallocFarFn)(unsigned int size);
-typedef void *(far *CallocFarThunkFn)(unsigned int nitems, unsigned int size);
+typedef u32(far *AllocFarFn)(u32 size, u16 unused,
+                                       u16 flags);
+typedef s16(far *FreememFn)(u32 ptr);
+typedef s16(far *ReadFarThunkFn)(s16 fd, void *buf, u16 count);
+typedef s16(far *CloseFarThunkFn)(s16 fd);
+typedef void *(far *MallocFarFn)(u16 size);
+typedef void *(far *CallocFarThunkFn)(u16 nitems, u16 size);
 typedef void(far *FreeThunkFn)(void *ptr);
 typedef char *(far *StrcatFarFn)(char *dest, char *src);
 typedef char *(far *StrcpyFarFn)(char *dest, char *src);
-typedef char *(far *StrchrFarFn)(char *s, int c);
-typedef void(far *GfxDefaultFn)(int arg0, int arg1, int arg2);
+typedef char *(far *StrchrFarFn)(char *s, s16 c);
+typedef void(far *GfxDefaultFn)(s16 arg0, s16 arg1, s16 arg2);
 
-typedef int(far *BakFcloseFn)(ResFile *file);
-typedef int(far *BakFgetcFn)(ResFile *file);
+typedef s16(far *BakFcloseFn)(ResFile *file);
+typedef s16(far *BakFgetcFn)(ResFile *file);
 typedef ResFile *(far *BakFopenFn)(char *filename, char *mode);
-typedef int(far *BakFreadFn)(void *ptr, int size, int count, ResFile *file);
-typedef int(far *BakFseekFn)(ResFile *file, int offset_lo, int offset_hi, int whence);
-typedef int(far *BakFtellFn)(ResFile *file);
-typedef int(far *BakFwriteFn)(void *ptr, int size, int count, ResFile *file);
-typedef int(far *BakPutcFn)(int c, ResFile *file);
+typedef s16(far *BakFreadFn)(void *ptr, s16 size, s16 count, ResFile *file);
+typedef s16(far *BakFseekFn)(ResFile *file, s16 offset_lo, s16 offset_hi, s16 whence);
+typedef s16(far *BakFtellFn)(ResFile *file);
+typedef s16(far *BakFwriteFn)(void *ptr, s16 size, s16 count, ResFile *file);
+typedef s16(far *BakPutcFn)(s16 c, ResFile *file);
 typedef void(far *BakRewindFn)(ResFile *file);
 
 typedef struct VideoDriverImports {

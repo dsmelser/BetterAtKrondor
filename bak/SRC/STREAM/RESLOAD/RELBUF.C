@@ -3,8 +3,8 @@
 #include "SRC/AUDIO/RES/POOL.H"
 #include "SRC/SYS/DOSMEM.H"
 
-void release_buffer(void far *ptr, int allocTag) {
-    if (pool_is_managed_ptr((unsigned long)ptr) != 0)
+void release_buffer(void far *ptr, s16 allocTag) {
+    if (pool_is_managed_ptr((u32)ptr) != 0)
         return;
     if (allocTag == 6 || allocTag == 8) {
         my_free((void *)ptr);

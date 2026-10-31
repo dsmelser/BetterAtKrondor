@@ -11,26 +11,26 @@
 
 
 char g_szRomanDigits[7] = "MDCLXVI";
-short g_anRomanValues[7] = {1000, 500, 100, 50, 10, 5, 1};
-short g_anRomanSubPair[7] = {100, 100, 10, 10, 1, 1, 0};
+s16 g_anRomanValues[7] = {1000, 500, 100, 50, 10, 5, 1};
+s16 g_anRomanSubPair[7] = {100, 100, 10, 10, 1, 1, 0};
 
 struct BookStyleBlock {
-    short nFontSlot;
-    short nBaselineYOff;
-    short nFgColor;
-    short nBgColor;
-    unsigned short wStyleFlags;
+    s16 nFontSlot;
+    s16 nBaselineYOff;
+    s16 nFgColor;
+    s16 nBgColor;
+    u16 wStyleFlags;
 };
 
 struct BookLayoutHdr {
-    short nMarginTop;
-    short nMarginBottom;
-    short nLineHeight;
-    short nVStepIndent;
-    short nVStepWrap;
-    short nVStepRetract;
-    short nVStepUndo;
-    unsigned short wAlignment;
+    s16 nMarginTop;
+    s16 nMarginBottom;
+    s16 nLineHeight;
+    s16 nVStepIndent;
+    s16 nVStepWrap;
+    s16 nVStepRetract;
+    s16 nVStepUndo;
+    u16 wAlignment;
 };
 
 typedef struct {
@@ -44,24 +44,24 @@ static void bookview_render_hook_noop(BookPage far *page) {
     return;
 }
 
-static void bookview_text_render_hook_noop(int nXHint) {
+static void bookview_text_render_hook_noop(s16 nXHint) {
     return;
 }
 
-static void booktext_font_select(int slot) {
+static void booktext_font_select(s16 slot) {
     if ((slot != 0) && (g_pBookViewer->pFontSlots[slot] != 0)) {
         font_activate(g_pBookViewer->pFontSlots[slot]);
     }
     return;
 }
 
-int booktext_layout_next_run(BookPage far *page, int y0, int y1, int y_bot) {
-    int avail;
+s16 booktext_layout_next_run(BookPage far *page, s16 y0, s16 y1, s16 y_bot) {
+    s16 avail;
     BookReservedRect far *r;
     BookPage far *pPage;
-    int xMin;
-    int xMax;
-    register int i;
+    s16 xMin;
+    s16 xMax;
+    register s16 i;
 
     pPage = page;
     xMin = pPage->rect.x + g_pBookViewer->nMarginTop;
@@ -81,7 +81,7 @@ int booktext_layout_next_run(BookPage far *page, int y0, int y1, int y_bot) {
                 return 0;
             }
         }
-        for (i = 0; i < (int)page->wReservedCount; i++, r++) {
+        for (i = 0; i < (s16)page->wReservedCount; i++, r++) {
             if ((((r->y0 < y1) && (y1 < r->y1)) || ((r->y0 < y_bot) && (y_bot < r->y1))) &&
                 ((r->x0 <= y0) && (y0 <= r->x1))) {
                 y0 = r->x1 + 1;
@@ -92,7 +92,7 @@ int booktext_layout_next_run(BookPage far *page, int y0, int y1, int y_bot) {
     }
     r = (BookReservedRect far *)(page + 1);
     avail = xMax - y0;
-    for (i = 0; i < (int)page->wReservedCount; i++, r++) {
+    for (i = 0; i < (s16)page->wReservedCount; i++, r++) {
         if ((((r->y0 < y1) && (y1 < r->y1)) || ((r->y0 < y_bot) && (y_bot < r->y1))) &&
             ((y0 < r->x0) && (r->x0 - y0 < avail))) {
             avail = r->x0 - y0;
@@ -105,11 +105,11 @@ int booktext_layout_next_run(BookPage far *page, int y0, int y1, int y_bot) {
     return 1;
 }
 
-static void booktext_compute_justify_spacing(int remaining_pixels) {
+static void booktext_compute_justify_spacing(s16 remaining_pixels) {
     unsigned char huge *pCur;
-    int spaces;
-    int chars;
-    int rem;
+    s16 spaces;
+    s16 chars;
+    s16 rem;
 
     spaces = 0;
     chars = 0;
@@ -170,14 +170,14 @@ static void booktext_compute_justify_spacing(int remaining_pixels) {
     g_pBookViewer->nSpaceExtraCount = g_pBookViewer->nSpaceExtraStep;
 }
 
-static int booktext_draw_glyph_kerned(char ch, int x, int y) {
-    unsigned int width;
-    unsigned int height;
+static s16 booktext_draw_glyph_kerned(char ch, s16 x, s16 y) {
+    u16 width;
+    u16 height;
 
     font_render_glyph_or_ctrl(ch, x, y + g_pBookViewer->nBaselineYOff);
     font_glyph_metrics(ch, &width, &height);
 
-    x += (int)(width + (g_pBookViewer->wStyleFlags & 2));
+    x += (s16)(width + (g_pBookViewer->wStyleFlags & 2));
 
     if (g_pBookViewer->nJustifyOn != 0) {
         if (ch == ' ') {
@@ -200,9 +200,9 @@ static int booktext_draw_glyph_kerned(char ch, int x, int y) {
 
 static void booktext_render_line_aligned(void) {
     unsigned char huge *pCur;
-    int wordHook;
-    unsigned int alignment;
-    int slack;
+    s16 wordHook;
+    u16 alignment;
+    s16 slack;
 
     wordHook = 0;
     alignment = g_pBookViewer->wAlignment;
@@ -239,7 +239,7 @@ static void booktext_render_line_aligned(void) {
                 pCur += 0x11;
                 break;
             case 3:
-                wordHook = *(int huge *)(pCur + 1) + 0x80;
+                wordHook = *(s16 huge *)(pCur + 1) + 0x80;
                 pCur += 3;
                 bookview_text_render_hook_noop(wordHook);
                 break;
@@ -259,17 +259,17 @@ static void booktext_render_line_aligned(void) {
     }
 }
 
-int booktext_is_break_char(char c) {
+s16 booktext_is_break_char(char c) {
     return (c == '-' || c == '.' || c == '\n' || c == '\r') ? 1 : 0;
 }
 
-static int booktext_layout_rndr_one_line(BookPage far *pPage) {
+static s16 booktext_layout_rndr_one_line(BookPage far *pPage) {
     unsigned char huge *pCur;
-    int xCur;
-    int done;
-    int firstRun;
-    unsigned int width;
-    unsigned int height;
+    s16 xCur;
+    s16 done;
+    s16 firstRun;
+    u16 width;
+    u16 height;
     struct BookStyleBlock style;
 
     pCur = g_pBookViewer->pCurChar;
@@ -334,7 +334,7 @@ static int booktext_layout_rndr_one_line(BookPage far *pPage) {
         }
 
         font_glyph_metrics((char)*pCur, &width, &height);
-        xCur += (int)(width + (style.wStyleFlags & 2));
+        xCur += (s16)(width + (style.wStyleFlags & 2));
         if (g_pBookViewer->nLineHeightActual < xCur)
             done = 1;
 
@@ -361,9 +361,9 @@ static int booktext_layout_rndr_one_line(BookPage far *pPage) {
     return 1;
 }
 
-static void booktext_int_to_roman(char *out, int value) {
-    int i;
-    int j;
+static void booktext_int_to_roman(char *out, s16 value) {
+    s16 i;
+    s16 j;
 
     while (value != 0) {
         for (i = 0; i < 7; i++) {
@@ -388,12 +388,12 @@ static void booktext_int_to_roman(char *out, int value) {
 }
 
 static void booktext_draw_page_number(BookPage far *page) {
-    int saved_fg;
-    int saved_style;
-    int width;
+    s16 saved_fg;
+    s16 saved_style;
+    s16 width;
     char roman[30];
-    unsigned short value;
-    int y;
+    u16 value;
+    s16 y;
 
     saved_fg = (char)g_graphics_context.bText_fg_color;
     saved_style = (char)g_graphics_context.bText_style_flags;
@@ -405,7 +405,7 @@ static void booktext_draw_page_number(BookPage far *page) {
         y = g_wScreen_height + -0x13;
         booktext_int_to_roman(roman, value);
         width = font_text_width_ds(roman);
-        if ((int)value % 2 != 0) {
+        if ((s16)value % 2 != 0) {
             font_draw_text_ds(roman, ((page->rect.x + page->rect.width) - width) + -2, y);
         } else {
             font_draw_text_ds(roman, page->rect.x + 2, y);
@@ -419,28 +419,28 @@ static void booktext_draw_page_number(BookPage far *page) {
 static unsigned char far *booktext_page_entry_offset(BookPage far *page) {
     char far *p;
 
-    p = (char far *)page + page->wReservedCount * sizeof(BookReservedRect) + (int)sizeof(BookPage);
+    p = (char far *)page + page->wReservedCount * sizeof(BookReservedRect) + (s16)sizeof(BookPage);
     p = p + page->wImageCount * sizeof(BookImage);
     return (unsigned char far *)p;
 }
 
-int booktext_render_page(PageDirectory far *page_directory, BookPage far *page, int redraw_bg) {
+s16 booktext_render_page(PageDirectory far *page_directory, BookPage far *page, s16 redraw_bg) {
     BookPage far *pageFirst;
     BookImage far *pImg;
     unsigned char far *pRes;
-    register int result;
-    register int i;
+    register s16 result;
+    register s16 i;
 
     result = 1;
     pageFirst = page;
 
     if (redraw_bg) {
         unsigned char far *pSrc;
-        int rowStride;
-        int rowBias;
-        int rowStep;
+        s16 rowStride;
+        s16 rowBias;
+        s16 rowStep;
 
-        if ((short)page->wPageNumber % 2 != 0) {
+        if ((s16)page->wPageNumber % 2 != 0) {
             rowBias = 0x15d;
             rowStep = -1;
         } else {
@@ -448,7 +448,7 @@ int booktext_render_page(PageDirectory far *page_directory, BookPage far *page, 
             rowStep = 1;
         }
 
-        rowStride = (int)rect_byte_size(0x280, 1) + 8;
+        rowStride = (s16)rect_byte_size(0x280, 1) + 8;
 
         pSrc = ems_map_resource_pages(g_pBookViewer->nEmsPage0);
         i = 0;
@@ -476,16 +476,16 @@ int booktext_render_page(PageDirectory far *page_directory, BookPage far *page, 
 
         i = 0;
         pRes = (unsigned char far *)page + sizeof(BookPage);
-        while ((short)page->wReservedCount > i) {
+        while ((s16)page->wReservedCount > i) {
             i++;
             pRes += sizeof(BookReservedRect);
         }
 
         i = 0;
         pImg = (BookImage far *)pRes;
-        while ((short)page->wImageCount > i) {
-            if (null_terminated_count(g_pBookViewer->pImageRecord) > (short)pImg->wImage) {
-                blit_sprite_indirect((unsigned short)g_pBookViewer->pImageRecord[pImg->wImage], pImg->nX,
+        while ((s16)page->wImageCount > i) {
+            if (null_terminated_count(g_pBookViewer->pImageRecord) > (s16)pImg->wImage) {
+                blit_sprite_indirect((u16)g_pBookViewer->pImageRecord[pImg->wImage], pImg->nX,
                                      pImg->nY, pImg->wMirroring);
             }
             i++;
@@ -496,7 +496,7 @@ int booktext_render_page(PageDirectory far *page_directory, BookPage far *page, 
         g_pBookViewer->nCursorX = g_pBookViewer->nLineYNext = pageFirst->rect.x;
         g_pBookViewer->nLineY1 = pageFirst->rect.y;
 
-        if ((*(int far *)&page->pReserved[0] | *(int far *)&page->pReserved[2]) != 0) {
+        if ((*(s16 far *)&page->pReserved[0] | *(s16 far *)&page->pReserved[2]) != 0) {
 
             g_pBookViewer->pCurChar = *(unsigned char far *far *)&page->pReserved[0];
             *(Block16 *)&g_pBookViewer->nMarginTop = *(Block16 far *)&page->pReserved[4];
@@ -517,7 +517,7 @@ int booktext_render_page(PageDirectory far *page_directory, BookPage far *page, 
             g_pBookViewer->nCursorX = g_pBookViewer->nLineYNext;
         }
 
-        if ((short)page->wPagePointer >= 0) {
+        if ((s16)page->wPagePointer >= 0) {
             BookPage far *pNext;
 
             pNext = bookview_find_page_by_number(page_directory, page->wPagePointer);

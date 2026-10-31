@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_set_intensity(int id, int intensity);
+extern s16 audio_set_intensity(s16 id, s16 intensity);
 
 #endif

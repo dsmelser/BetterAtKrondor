@@ -18,15 +18,15 @@
 #include "SRC/SYS/EMS.H"
 #include "SRC/SYS/EMSIMG.H"
 
-int g_nDialogScxEmsHandle = 0;
-int g_nInventorScxEmsHandle = 0;
-int g_nFrameScxEmsHandle = 0;
+s16 g_nDialogScxEmsHandle = 0;
+s16 g_nInventorScxEmsHandle = 0;
+s16 g_nFrameScxEmsHandle = 0;
 
 ImageRecord **g_pHeadsBmxAssetTable = 0;
 
-void resblit_alloc_ems_64k(char *path, int *out_handle) {
+void resblit_alloc_ems_64k(char *path, s16 *out_handle) {
     unsigned char far *dest_far;
-    unsigned short saved_src_page;
+    u16 saved_src_page;
 
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage1Base;
     resblit_load_pal_or_stream(path);
@@ -40,7 +40,7 @@ void resblit_alloc_ems_64k(char *path, int *out_handle) {
     return;
 }
 
-void resblit_load_resource_set_1ec(int flags) {
+void resblit_load_resource_set_1ec(s16 flags) {
     g_pInvSpriteLoAssetTable = resblit_load_asset_table("INVSHP1.BMX", 1);
     g_pInvSpriteHiAssetTable = resblit_load_asset_table("INVSHP2.BMX", 1);
     g_pHeadsBmxAssetTable = resblit_load_asset_table("HEADS.BMX", 1);
@@ -52,16 +52,16 @@ void resblit_load_resource_set_1ec(int flags) {
     return;
 }
 
-ImageRecord **resblit_load_asset_table(char *path, int storage_mode) {
-    int i;
+ImageRecord **resblit_load_asset_table(char *path, s16 storage_mode) {
+    s16 i;
     ImageRecord **tbl = 0;
     ResFile *fp;
     unsigned char huge *pPayload;
     unsigned char huge *cursor;
-    int published = 0;
-    int ems_handle;
-    unsigned ems_off;
-    unsigned chunk;
+    s16 published = 0;
+    s16 ems_handle;
+    u16 ems_off;
+    u16 chunk;
     char *scratch;
     struct BmxHeader hdr;
 
@@ -84,7 +84,7 @@ ImageRecord **resblit_load_asset_table(char *path, int storage_mode) {
                     }
                     tbl[hdr.wImageCount] = 0;
                     if (storage_mode == 2) {
-                        if ((long)hdr.dwDecompressedSize < 0xffdcL &&
+                        if ((s32)hdr.dwDecompressedSize < 0xffdcL &&
                             (ems_handle = ems_alloc_pages(hdr.dwDecompressedSize)) != 0) {
                             pPayload = ems_map_resource_pages(ems_handle);
                         } else {
@@ -127,7 +127,7 @@ ImageRecord **resblit_load_asset_table(char *path, int storage_mode) {
                             scratch = malloc(i);
                         } while (scratch == 0 && i > 50);
                         if (hdr.wCompression == 2)
-                            decomp_rle((unsigned char far *)pPayload, hdr.wCompressedSize, (int)scratch, i,
+                            decomp_rle((unsigned char far *)pPayload, hdr.wCompressedSize, (s16)scratch, i,
                                        fp);
                         else
                             decomp_lzss((unsigned char far *)pPayload, hdr.wCompressedSize, scratch, i, fp);
@@ -137,10 +137,10 @@ ImageRecord **resblit_load_asset_table(char *path, int storage_mode) {
                         i = stream_open(-1, fp, "r", hdr.dwDecompressedSize);
                         if (i == -1)
                             goto cleanup;
-                        while ((long)hdr.dwDecompressedSize > 0) {
-                            chunk = ((long)hdr.dwDecompressedSize > 0xfa00L)
+                        while ((s32)hdr.dwDecompressedSize > 0) {
+                            chunk = ((s32)hdr.dwDecompressedSize > 0xfa00L)
                                         ? 0xfa00U
-                                        : (unsigned)hdr.dwDecompressedSize;
+                                        : (u16)hdr.dwDecompressedSize;
                             stream_read(i, (unsigned char far *)pPayload, chunk);
                             pPayload += chunk;
                             hdr.dwDecompressedSize -= chunk;
@@ -162,7 +162,7 @@ ImageRecord **resblit_load_asset_table(char *path, int storage_mode) {
 }
 
 void resblit_list_remap_palette(ResourceRemapDesc **resource_list, unsigned char *palette_lut) {
-    register int i;
+    register s16 i;
     unsigned char far *p;
 
     for (i = 0; null_terminated_count((ImageRecord **)resource_list) > i; i++) {
@@ -180,7 +180,7 @@ void resblit_list_remap_palette(ResourceRemapDesc **resource_list, unsigned char
                     *p = palette_lut[*p];
                     p++;
                 } else {
-                    int n, j;
+                    s16 n, j;
                     n = *p & 0x7f;
                     p++;
                     for (j = 0; j < n; j++) {
@@ -193,13 +193,13 @@ void resblit_list_remap_palette(ResourceRemapDesc **resource_list, unsigned char
     }
 }
 
-void resblit_sprite(ImageRecord *sprite, int dst_x, int dst_y) {
+void resblit_sprite(ImageRecord *sprite, s16 dst_x, s16 dst_y) {
     g_polyRasterState.nRemapTableOff = 0;
     emsimg_sprite_blit_scaled_paged(sprite, dst_x, dst_y, 0, sprite->nWidth, sprite->nHeight);
     return;
 }
 
-void resblit_sprite_frame(ImageRecord *sprite, int dst_x, int dst_y, int frame) {
+void resblit_sprite_frame(ImageRecord *sprite, s16 dst_x, s16 dst_y, s16 frame) {
     g_polyRasterState.nRemapTableOff = 0;
     emsimg_sprite_blit_scaled_paged(sprite, dst_x, dst_y, frame, sprite->nWidth, sprite->nHeight);
     return;
@@ -208,8 +208,8 @@ void resblit_sprite_frame(ImageRecord *sprite, int dst_x, int dst_y, int frame) 
 #define PORTRAIT_ROW_X0 0xe
 #define PORTRAIT_PANEL_STRIDE 0x3a
 void resblit_hud_draw_party_icons_row(char *filename) {
-    int i;
-    int dst_y;
+    s16 i;
+    s16 dst_y;
 
     dst_y = 0;
     if (g_pHeadsBmxAssetTable != 0) {
@@ -234,10 +234,10 @@ void resblit_hud_draw_party_icons_row(char *filename) {
 
 void resblit_load_pal_or_stream(char *filename) {
     register char *fn = filename;
-    int *pHandle;
-    int rows;
-    int local;
-    int sHandle;
+    s16 *pHandle;
+    s16 rows;
+    s16 local;
+    s16 sHandle;
     ResFile *file;
     unsigned char huge *buf = 0;
 
@@ -259,12 +259,12 @@ void resblit_load_pal_or_stream(char *filename) {
             res_fread(&local, 2, 1, file);
 
             if (local == 0x27b6) {
-                int size;
+                s16 size;
                 rows = 0x28;
                 do {
                     rows /= 2;
                     size = rows * 0x140;
-                    buf = alloc_far((long)size, 0);
+                    buf = alloc_far((s32)size, 0);
                 } while (!buf && 1 < rows);
                 if ((sHandle = stream_open(-1, file, "r", 64000UL)) != -1) {
                     local = 0;

@@ -17,29 +17,29 @@
 #include "SRC/SCRIPT/ADSCRIPT.H"
 
 
-short g_nScriptPendingJumpTarget;
-unsigned short g_wScriptFrameHoldFlag;
-short g_nCombatResolveStaticThreshold;
-short g_nChapterSnapshotDeadStore;
+s16 g_nScriptPendingJumpTarget;
+u16 g_wScriptFrameHoldFlag;
+s16 g_nCombatResolveStaticThreshold;
+s16 g_nChapterSnapshotDeadStore;
 Slot far *g_anim_slots[2];
-unsigned short g_wScriptYieldPending;
-unsigned short g_wAnimResSfxId;
+u16 g_wScriptYieldPending;
+u16 g_wAnimResSfxId;
 ScriptAnimNode *g_pScriptAnimWalker;
 ScriptAnimNode *g_pScriptAnimTarget;
-short g_nAnimIterCursor;
+s16 g_nAnimIterCursor;
 
-short g_nCurrentChannelSlot = 0;
-short g_current_animation_slot = -1;
-short g_aScriptResourceOpcodes[2] = {8192, 8197};
+s16 g_nCurrentChannelSlot = 0;
+s16 g_current_animation_slot = -1;
+s16 g_aScriptResourceOpcodes[2] = {8192, 8197};
 
-int anim_script_subsystem_init(void) {
+s16 anim_script_subsystem_init(void) {
     anim_script_close_all();
     adscript_set_dbb_if_202d_eq_0c();
     return 1;
 }
 
 void anim_script_close_all(void) {
-    int i;
+    s16 i;
 
     i = 0;
     do {
@@ -50,7 +50,7 @@ void anim_script_close_all(void) {
     return;
 }
 
-static int anim_script_register_resource(char *name, unsigned short resource_id) {
+static s16 anim_script_register_resource(char *name, u16 resource_id) {
     if (adscript_resource_load(name) < 0) {
         return -1;
     }
@@ -59,19 +59,19 @@ static int anim_script_register_resource(char *name, unsigned short resource_id)
     return resource_id;
 }
 
-int anim_script_open(char *filename, int mode) {
-    int err;
+s16 anim_script_open(char *filename, s16 mode) {
+    s16 err;
     ResFile *fp;
     char *filenameArg;
     Slot far *slot;
-    int streamId;
-    unsigned int bytesRead;
-    int slotIdx;
+    s16 streamId;
+    u16 bytesRead;
+    s16 slotIdx;
     char *namePtr;
     unsigned char far *scriptBuf;
-    unsigned int scriptSize;
-    int resourceCount;
-    int newSlotIdx;
+    u16 scriptSize;
+    s16 resourceCount;
+    s16 newSlotIdx;
     char nameBuf[20];
 
     filenameArg = filename;
@@ -115,7 +115,7 @@ int anim_script_open(char *filename, int mode) {
                 break;
             }
         }
-        slot->wObjects_head_alt = (unsigned short)g_pScriptObjectChainHead;
+        slot->wObjects_head_alt = (u16)g_pScriptObjectChainHead;
         slot->pObjects_head = g_pScriptObjectListHead;
     }
     if (err == 0) {
@@ -127,8 +127,8 @@ int anim_script_open(char *filename, int mode) {
         err++;
         goto cleanup;
     scr_ok:
-        scriptSize = (unsigned int)stream_size(streamId);
-        scriptBuf = (unsigned char far *)alloc_far((long)(int)scriptSize, 0);
+        scriptSize = (u16)stream_size(streamId);
+        scriptBuf = (unsigned char far *)alloc_far((s32)(s16)scriptSize, 0);
         if (scriptBuf == (unsigned char far *)0)
             goto scr_fail;
         bytesRead = stream_read(streamId, scriptBuf, scriptSize);
@@ -136,8 +136,8 @@ int anim_script_open(char *filename, int mode) {
             _freemem(scriptBuf);
             goto scr_fail;
         }
-        slot->pScript_buf = (unsigned short far *)scriptBuf;
-        slot->pScript_end = (unsigned short far *)(scriptBuf + scriptSize - 1);
+        slot->pScript_buf = (u16 far *)scriptBuf;
+        slot->pScript_end = (u16 far *)(scriptBuf + scriptSize - 1);
         slot->nInitialised = 0;
         goto cleanup;
     }
@@ -156,11 +156,11 @@ cleanup:
     return slotIdx + 1;
 }
 
-static unsigned short far *anim_script_step_opcode(unsigned short far *pc) {
-    short op;
+static u16 far *anim_script_step_opcode(u16 far *pc) {
+    s16 op;
 
-    if (g_anim_slots[g_current_animation_slot]->pScript_end < pc || pc == (unsigned short far *)0) {
-        return (unsigned short far *)0;
+    if (g_anim_slots[g_current_animation_slot]->pScript_end < pc || pc == (u16 far *)0) {
+        return (u16 far *)0;
     }
     op = *pc;
     switch (op) {
@@ -216,16 +216,16 @@ static unsigned short far *anim_script_step_opcode(unsigned short far *pc) {
     return pc;
 }
 
-static ScriptAnimNode **anim_script_gather_refd_objects(unsigned short far *pc) {
+static ScriptAnimNode **anim_script_gather_refd_objects(u16 far *pc) {
     ScriptAnimNode **result;
-    int opcode;
-    unsigned short wTag;
-    unsigned short wIdB;
+    s16 opcode;
+    u16 wTag;
+    u16 wIdB;
     ScriptAnimNode *nodes[100];
     ScriptAnimNode **pSlot;
     ScriptAnimNode *pNode;
-    unsigned int opIdx;
-    int count;
+    u16 opIdx;
+    s16 count;
 
     result = (ScriptAnimNode **)0x0;
     memset(nodes, 0, 200);
@@ -257,11 +257,11 @@ static ScriptAnimNode **anim_script_gather_refd_objects(unsigned short far *pc) 
     return result;
 }
 
-int anim_script_activate(int slot_plus_one) {
+s16 anim_script_activate(s16 slot_plus_one) {
     Slot far *slot;
-    unsigned short far *pc;
-    unsigned short ops;
-    int ch;
+    u16 far *pc;
+    u16 ops;
+    s16 ch;
 
     ch = 0;
     if (slot_plus_one == 0) {
@@ -286,15 +286,15 @@ int anim_script_activate(int slot_plus_one) {
 
     pc = slot->pScript_buf + 1;
     slot->pChannels[0] = pc;
-    slot->pOp_lists[0] = ops = (unsigned short)anim_script_gather_refd_objects(pc);
+    slot->pOp_lists[0] = ops = (u16)anim_script_gather_refd_objects(pc);
 
     while (slot->pScript_end > pc) {
-        if (*(int far *)pc == -1) {
+        if (*(s16 far *)pc == -1) {
             ch = ch + 1;
             pc += 2;
             if (slot->pScript_end > pc) {
                 slot->pChannels[ch] = pc;
-                slot->pOp_lists[ch] = ops = (unsigned short)anim_script_gather_refd_objects(pc);
+                slot->pOp_lists[ch] = ops = (u16)anim_script_gather_refd_objects(pc);
             }
         } else {
             pc = anim_script_step_opcode(pc);
@@ -303,7 +303,7 @@ int anim_script_activate(int slot_plus_one) {
     slot->nChannel_count = ch;
 
     for (; ch < 0x50; ch++) {
-        slot->pChannels[ch] = (unsigned short far *)0;
+        slot->pChannels[ch] = (u16 far *)0;
     }
     for (ch = 0; ch < 0x50; ch++) {
         slot->pChannel_state[ch] = 8;
@@ -313,9 +313,9 @@ int anim_script_activate(int slot_plus_one) {
     return ++slot_plus_one;
 }
 
-void anim_script_close(int slot_plus_one) {
+void anim_script_close(s16 slot_plus_one) {
     Slot far *slot;
-    int i;
+    s16 i;
 
     if (slot_plus_one == 0) {
         slot_plus_one = g_current_animation_slot;
@@ -337,7 +337,7 @@ void anim_script_close(int slot_plus_one) {
             my_free((void *)slot->pOp_lists[i]);
         }
     }
-    if (slot->pScript_buf != (unsigned short far *)0) {
+    if (slot->pScript_buf != (u16 far *)0) {
         _freemem(slot->pScript_buf);
     }
     _freemem(slot);
@@ -347,9 +347,9 @@ void anim_script_close(int slot_plus_one) {
     }
 }
 
-int anim_script_channel_is_busy(int channel_id) {
+s16 anim_script_channel_is_busy(s16 channel_id) {
     Slot far *slot;
-    unsigned int channel_state;
+    u16 channel_state;
     ScriptAnimNode **pNodeIter;
     ScriptAnimNode *pNode;
 
@@ -378,39 +378,39 @@ int anim_script_channel_is_busy(int channel_id) {
     return 0;
 }
 
-static void anim_script_channel_set_state_or(int slot, int channel_id, unsigned int new_state) {
-    unsigned int old;
+static void anim_script_channel_set_state_or(s16 slot, s16 channel_id, u16 new_state) {
+    u16 old;
     Slot far *base;
 
     channel_id = anim_script_find_channel(channel_id);
     if (channel_id != -1) {
         base = g_anim_slots[slot];
-        ((int far *)&base->pChannel_alt[channel_id])[1] = 0;
-        ((int far *)&base->pChannel_alt[channel_id])[0] = 0;
+        ((s16 far *)&base->pChannel_alt[channel_id])[1] = 0;
+        ((s16 far *)&base->pChannel_alt[channel_id])[0] = 0;
         old = base->pChannel_state[channel_id];
         base->pChannel_state[channel_id] = old & 8 | new_state;
     }
     return;
 }
 
-void anim_script_channel_start(int channel_id) {
+void anim_script_channel_start(s16 channel_id) {
     anim_script_channel_set_state_or(g_current_animation_slot, channel_id, 3);
     return;
 }
 
-void anim_script_chan_request_pause(int channel_id) {
+void anim_script_chan_request_pause(s16 channel_id) {
     anim_script_channel_set_state_or(g_current_animation_slot, channel_id, 4);
     return;
 }
 
-static void anim_script_channel_set_state(int slot, int channel_id, unsigned int new_state) {
+static void anim_script_channel_set_state(s16 slot, s16 channel_id, u16 new_state) {
     Slot far *base;
 
     channel_id = anim_script_find_channel(channel_id);
     if (channel_id != -1) {
         base = g_anim_slots[slot];
-        ((int far *)&base->pChannel_alt[channel_id])[1] = 0;
-        ((int far *)&base->pChannel_alt[channel_id])[0] = 0;
+        ((s16 far *)&base->pChannel_alt[channel_id])[1] = 0;
+        ((s16 far *)&base->pChannel_alt[channel_id])[0] = 0;
         if (base->pChannel_state[channel_id] != 8) {
             base->pChannel_state[channel_id] = new_state;
         }
@@ -418,17 +418,17 @@ static void anim_script_channel_set_state(int slot, int channel_id, unsigned int
     return;
 }
 
-void anim_script_channel_stop(int channel_id) {
+void anim_script_channel_stop(s16 channel_id) {
     anim_script_channel_set_state(g_current_animation_slot, channel_id, 6);
 }
 
-void anim_script_channel_pause_after(int channel_id) {
+void anim_script_channel_pause_after(s16 channel_id) {
     anim_script_channel_set_state(g_current_animation_slot, channel_id, 5);
     return;
 }
 
-static int anim_script_resolve_channel(int channel_ref) {
-    int slotIdx;
+static s16 anim_script_resolve_channel(s16 channel_ref) {
+    s16 slotIdx;
 
     if (channel_ref == 0) {
         slotIdx = g_current_animation_slot;
@@ -441,9 +441,9 @@ static int anim_script_resolve_channel(int channel_ref) {
     return slotIdx;
 }
 
-void anim_script_start_all_channels(int channel_ref) {
-    int channelCount;
-    int channel_id;
+void anim_script_start_all_channels(s16 channel_ref) {
+    s16 channelCount;
+    s16 channel_id;
 
     channel_ref = anim_script_resolve_channel(channel_ref);
     if (channel_ref >= 0) {
@@ -455,9 +455,9 @@ void anim_script_start_all_channels(int channel_ref) {
     return;
 }
 
-void anim_script_pause_all_channels(int script_object_id) {
-    int channelCount;
-    int channel_id;
+void anim_script_pause_all_channels(s16 script_object_id) {
+    s16 channelCount;
+    s16 channel_id;
 
     script_object_id = anim_script_resolve_channel(script_object_id);
     if (script_object_id >= 0) {
@@ -469,9 +469,9 @@ void anim_script_pause_all_channels(int script_object_id) {
     return;
 }
 
-void anim_script_stop_all_channels(int script_object_id) {
-    int channelCount;
-    int channel_id;
+void anim_script_stop_all_channels(s16 script_object_id) {
+    s16 channelCount;
+    s16 channel_id;
 
     script_object_id = anim_script_resolve_channel(script_object_id);
     if (script_object_id >= 0) {
@@ -483,9 +483,9 @@ void anim_script_stop_all_channels(int script_object_id) {
     return;
 }
 
-void anim_script_pause_all_chans(int script_object_id) {
-    int channelCount;
-    int channel_id;
+void anim_script_pause_all_chans(s16 script_object_id) {
+    s16 channelCount;
+    s16 channel_id;
 
     script_object_id = anim_script_resolve_channel(script_object_id);
     if (script_object_id >= 0) {
@@ -497,10 +497,10 @@ void anim_script_pause_all_chans(int script_object_id) {
     return;
 }
 
-void anim_script_delete_all_channels(int script_object_id) {
-    int channelCount;
-    short savedSlot;
-    int channel_id;
+void anim_script_delete_all_channels(s16 script_object_id) {
+    s16 channelCount;
+    s16 savedSlot;
+    s16 channel_id;
 
     script_object_id = anim_script_resolve_channel(script_object_id);
     if (script_object_id >= 0) {
@@ -517,7 +517,7 @@ void anim_script_delete_all_channels(int script_object_id) {
 }
 
 static void anim_script_object_reset(ScriptAnimNode *pNode) {
-    int i;
+    s16 i;
 
     if (pNode != (ScriptAnimNode *)0x0) {
         for (i = 3; i != 0; i = i + -1) {
@@ -552,7 +552,7 @@ void anim_script_reset_all_objects(void) {
     return;
 }
 
-ScriptAnimNode *anim_script_find_object(unsigned short wTag, unsigned short wIdB) {
+ScriptAnimNode *anim_script_find_object(u16 wTag, u16 wIdB) {
     ScriptAnimNode *pNode;
 
     pNode = (ScriptAnimNode *)g_anim_slots[g_current_animation_slot]->wObjects_head_alt;
@@ -564,24 +564,24 @@ ScriptAnimNode *anim_script_find_object(unsigned short wTag, unsigned short wIdB
     return pNode;
 }
 
-static int far *anim_script_advance_to_wait(int far *pc) {
-    int far *startPc;
+static s16 far *anim_script_advance_to_wait(s16 far *pc) {
+    s16 far *startPc;
 
     startPc = pc;
     while (*pc != -1) {
         if (*pc == 5) {
             return pc + 1;
         }
-        if ((pc = (int far *)anim_script_step_opcode((unsigned short far *)pc)) == (int far *)0) {
+        if ((pc = (s16 far *)anim_script_step_opcode((u16 far *)pc)) == (s16 far *)0) {
             return startPc;
         }
     }
     return startPc;
 }
 
-static int anim_script_branch_weight(int far *pc) {
-    int opcode;
-    int weightOffset;
+static s16 anim_script_branch_weight(s16 far *pc) {
+    s16 opcode;
+    s16 weightOffset;
 
     opcode = *pc;
     switch (opcode) {
@@ -596,40 +596,40 @@ static int anim_script_branch_weight(int far *pc) {
         weightOffset = 6;
     }
     if (weightOffset != 0) {
-        return *(int far *)((char far *)pc + weightOffset);
+        return *(s16 far *)((char far *)pc + weightOffset);
     }
     return 0;
 }
 
-static int far *anim_script_pick_wtd_rand_br(int far *pc) {
-    int far *result;
-    int far *p0;
-    int total;
+static s16 far *anim_script_pick_wtd_rand_br(s16 far *pc) {
+    s16 far *result;
+    s16 far *p0;
+    s16 total;
 
     total = 0;
     p0 = pc;
-    while (pc != (int far *)0 && *pc != 0x30ff) {
+    while (pc != (s16 far *)0 && *pc != 0x30ff) {
         total += anim_script_branch_weight(pc);
-        if ((pc = (int far *)anim_script_step_opcode((unsigned short far *)pc)) == (int far *)0)
-            return (int far *)0;
+        if ((pc = (s16 far *)anim_script_step_opcode((u16 far *)pc)) == (s16 far *)0)
+            return (s16 far *)0;
     }
 
     result = pc + 1;
     if (total != 0) {
         pc = p0;
-        total = abs((int)((unsigned)rand() % (unsigned)total)) + 1;
+        total = abs((s16)((u16)rand() % (u16)total)) + 1;
         do {
             total -= anim_script_branch_weight(pc);
             if (total <= 0)
                 break;
-        } while ((pc = (int far *)anim_script_step_opcode((unsigned short far *)pc)) != (int far *)0);
+        } while ((pc = (s16 far *)anim_script_step_opcode((u16 far *)pc)) != (s16 far *)0);
         if (*pc != 0x3020)
-            anim_script_dispatch_opcode((unsigned short far *)pc);
+            anim_script_dispatch_opcode((u16 far *)pc);
     }
     return result;
 }
 
-static void anim_script_object_arm_state(unsigned short obj_key1, unsigned short obj_key2, int mode) {
+static void anim_script_object_arm_state(u16 obj_key1, u16 obj_key2, s16 mode) {
     g_pCurScriptAnimNode = anim_script_find_object(obj_key1, obj_key2);
     if (g_pCurScriptAnimNode != (ScriptAnimNode *)0) {
         if (mode == 0) {
@@ -646,7 +646,7 @@ static void anim_script_object_arm_state(unsigned short obj_key1, unsigned short
     return;
 }
 
-static void anim_script_object_restart(unsigned short obj_key1, unsigned short obj_key2, int mode) {
+static void anim_script_object_restart(u16 obj_key1, u16 obj_key2, s16 mode) {
     g_pCurScriptAnimNode = anim_script_find_object(obj_key1, obj_key2);
     if (g_pCurScriptAnimNode != (ScriptAnimNode *)0) {
         g_pCurScriptAnimNode->wPc = g_pCurScriptAnimNode->wPcSaved;
@@ -655,7 +655,7 @@ static void anim_script_object_restart(unsigned short obj_key1, unsigned short o
     return;
 }
 
-static void anim_script_object_set_state5(unsigned short id, unsigned short p2) {
+static void anim_script_object_set_state5(u16 id, u16 p2) {
     g_pCurScriptAnimNode = anim_script_find_object(id, p2);
     if (g_pCurScriptAnimNode != (ScriptAnimNode *)0) {
         g_pCurScriptAnimNode->wMode = 5;
@@ -663,7 +663,7 @@ static void anim_script_object_set_state5(unsigned short id, unsigned short p2) 
     return;
 }
 
-static void anim_script_object_set_state0(unsigned short id, unsigned short p2) {
+static void anim_script_object_set_state0(u16 id, u16 p2) {
     g_pCurScriptAnimNode = anim_script_find_object(id, p2);
     if (g_pCurScriptAnimNode != (ScriptAnimNode *)0) {
         g_pCurScriptAnimNode->wMode = 0;
@@ -671,7 +671,7 @@ static void anim_script_object_set_state0(unsigned short id, unsigned short p2) 
     return;
 }
 
-static void anim_script_object_reset_by_id(unsigned short id, unsigned short p2) {
+static void anim_script_object_reset_by_id(u16 id, u16 p2) {
     g_pCurScriptAnimNode = anim_script_find_object(id, p2);
     if (g_pCurScriptAnimNode != (ScriptAnimNode *)0) {
         anim_script_object_reset(g_pCurScriptAnimNode);
@@ -679,7 +679,7 @@ static void anim_script_object_reset_by_id(unsigned short id, unsigned short p2)
     return;
 }
 
-static void anim_script_object_move_to_front(unsigned short category, unsigned short object_id) {
+static void anim_script_object_move_to_front(u16 category, u16 object_id) {
     g_pScriptAnimWalker =
         (ScriptAnimNode *)g_anim_slots[g_current_animation_slot]->wObjects_head_alt;
     g_pScriptAnimTarget = anim_script_find_object(category, object_id);
@@ -692,7 +692,7 @@ static void anim_script_object_move_to_front(unsigned short category, unsigned s
                 g_pScriptAnimTarget->pNext =
                     (ScriptAnimNode *)g_anim_slots[g_current_animation_slot]->wObjects_head_alt;
                 g_anim_slots[g_current_animation_slot]->wObjects_head_alt =
-                    (unsigned short)g_pScriptAnimTarget;
+                    (u16)g_pScriptAnimTarget;
                 return;
             }
         }
@@ -700,7 +700,7 @@ static void anim_script_object_move_to_front(unsigned short category, unsigned s
     return;
 }
 
-static void anim_script_object_move_to_end(unsigned short category, unsigned short object_id) {
+static void anim_script_object_move_to_end(u16 category, u16 object_id) {
     g_pScriptAnimWalker =
         (ScriptAnimNode *)g_anim_slots[g_current_animation_slot]->wObjects_head_alt;
     g_pScriptAnimTarget = anim_script_find_object(category, object_id);
@@ -708,7 +708,7 @@ static void anim_script_object_move_to_end(unsigned short category, unsigned sho
         if (g_pScriptAnimWalker == g_pScriptAnimTarget) {
             g_pScriptAnimWalker =
                 (ScriptAnimNode *)(g_anim_slots[g_current_animation_slot]->wObjects_head_alt =
-                                       (unsigned short)g_pScriptAnimTarget->pNext);
+                                       (u16)g_pScriptAnimTarget->pNext);
         } else {
             for (; g_pScriptAnimWalker->pNext != 0;
                  g_pScriptAnimWalker = g_pScriptAnimWalker->pNext) {
@@ -726,10 +726,10 @@ static void anim_script_object_move_to_end(unsigned short category, unsigned sho
     }
 }
 
-static int far *anim_script_run_opcodes_dispatch(int far *script_pc, int flag) {
+static s16 far *anim_script_run_opcodes_dispatch(s16 far *script_pc, s16 flag) {
     while (*script_pc != 0) {
-        if (script_pc == (int far *)0) {
-            return (int far *)0;
+        if (script_pc == (s16 far *)0) {
+            return (s16 far *)0;
         }
         switch (*script_pc) {
         case 0x1510:
@@ -737,7 +737,7 @@ static int far *anim_script_run_opcodes_dispatch(int far *script_pc, int flag) {
         case 0x1500:
             return script_pc;
         case -1:
-            return (int far *)0;
+            return (s16 far *)0;
         case 0x1310:
         case 0x1320:
         case 0x1330:
@@ -756,98 +756,98 @@ static int far *anim_script_run_opcodes_dispatch(int far *script_pc, int flag) {
             flag++;
             script_pc = anim_script_combat_resolve_loop(script_pc);
             script_pc = anim_script_run_opcodes_dispatch(script_pc, flag);
-            if (*(unsigned short far *)script_pc == 0x1500) {
+            if (*(u16 far *)script_pc == 0x1500) {
                 script_pc = anim_script_run_opcodes_dispatch(
-                    (int far *)((unsigned short far *)script_pc + 1), flag);
+                    (s16 far *)((u16 far *)script_pc + 1), flag);
             }
-            script_pc = (int far *)anim_script_step_opcode((unsigned short far *)script_pc);
+            script_pc = (s16 far *)anim_script_step_opcode((u16 far *)script_pc);
             continue;
         }
-        if ((script_pc = (int far *)anim_script_step_opcode((unsigned short far *)script_pc)) ==
-            (int far *)0) {
-            return (int far *)0;
+        if ((script_pc = (s16 far *)anim_script_step_opcode((u16 far *)script_pc)) ==
+            (s16 far *)0) {
+            return (s16 far *)0;
         }
     }
-    return (int far *)0;
+    return (s16 far *)0;
 }
 
-static int far *anim_script_run_to_opcode_1520(int far *pc) {
+static s16 far *anim_script_run_to_opcode_1520(s16 far *pc) {
     while (*pc != 0) {
         switch (*pc) {
         case 0x1520:
             return pc;
         case -1:
-            return (int far *)0;
+            return (s16 far *)0;
         }
-        if ((pc = (int far *)anim_script_step_opcode((unsigned short far *)pc)) == (int far *)0)
-            return (int far *)0;
+        if ((pc = (s16 far *)anim_script_step_opcode((u16 far *)pc)) == (s16 far *)0)
+            return (s16 far *)0;
     }
-    return (int far *)0;
+    return (s16 far *)0;
 }
 
-static int far *anim_script_opcode_1500_follow(int far *script_pc) {
+static s16 far *anim_script_opcode_1500_follow(s16 far *script_pc) {
     script_pc = anim_script_run_opcodes_dispatch(script_pc, 0);
     if (*script_pc == 0x1500) {
-        script_pc = (int far *)anim_script_channel_step((unsigned short far *)(script_pc + 1));
+        script_pc = (s16 far *)anim_script_channel_step((u16 far *)(script_pc + 1));
     }
     return script_pc;
 }
 
-int far *anim_script_combat_resolve_loop(int far *script_pc) {
+s16 far *anim_script_combat_resolve_loop(s16 far *script_pc) {
     ScriptAnimNode *node;
-    unsigned op;
-    unsigned wTag;
-    unsigned wIdB;
-    int latchResult;
-    unsigned matched;
+    u16 op;
+    u16 wTag;
+    u16 wIdB;
+    s16 latchResult;
+    u16 matched;
 
     latchResult = 0;
     matched = 0;
 
 restart:
-    op = *(unsigned far *)script_pc;
-    wTag = ((unsigned far *)script_pc)[1];
+    op = *(u16 far *)script_pc;
+    wTag = ((u16 far *)script_pc)[1];
     if (op != 0x1080 && op != 0x1380 && op != 0x1390 && op != 0x13a0 && op != 0x13b0 &&
         op != 0x13c0 && op != 0x13a1 && op != 0x13b1 && op != 0x13c1) {
-        wIdB = ((unsigned far *)script_pc)[2];
+        wIdB = ((u16 far *)script_pc)[2];
         node = anim_script_find_object(wTag, wIdB);
     }
 
     switch (op) {
     case 0x1380:
-        if (g_nCombatResolveStaticThreshold > (int)wTag)
+        if (g_nCombatResolveStaticThreshold > (s16)wTag)
             goto step;
     accept:
         matched = 1;
         goto step;
     case 0x1390:
-        if (g_nCombatResolveStaticThreshold >= (int)wTag)
+        if (g_nCombatResolveStaticThreshold >= (s16)wTag)
             goto accept;
         goto step;
     case 0x13a0:
     case 0x13a1: {
-        unsigned idx = op & 0xf;
-        if (*(unsigned *)((char *)g_anim_slots + idx * 2 + 6) <= wTag)
+        u16 idx = op & 0xf;
+        if (*(u16 *)((char *)g_anim_slots + idx * 2 + 6) <= wTag)
             goto accept;
         goto step;
     }
     case 0x13b0:
     case 0x13b1: {
-        unsigned idx = op & 0xf;
-        if (*(unsigned *)((char *)g_anim_slots + idx * 2 + 6) >= wTag)
+        u16 idx = op & 0xf;
+        if (*(u16 *)((char *)g_anim_slots + idx * 2 + 6) >= wTag)
             goto accept;
         goto step;
     }
     case 0x13c0:
     case 0x13c1: {
-        unsigned idx = op & 0xf;
-        if (*(unsigned *)((char *)g_anim_slots + idx * 2 + 6) == wTag)
+        u16 idx = op & 0xf;
+        if (*(u16 *)((char *)g_anim_slots + idx * 2 + 6) == wTag)
             goto accept;
         goto step;
     }
     case 0x1080:
-        if (*(int far *)&g_anim_slots[g_current_animation_slot]
-                 ->pChannel_b2[g_nCurrentChannelSlot] <= (int)wTag)
+        if (*(s16 far *)&g_anim_slots[g_current_animation_slot]
+                 ->pChannel_b2[g_nCurrentChannelSlot] <= (s16)wTag)
             goto accept;
         goto step;
     case 0x1030:
@@ -906,53 +906,53 @@ restart:
     }
 
 step:
-    if ((script_pc = (int far *)anim_script_step_opcode((unsigned far *)script_pc)) == (int far *)0)
-        return (int far *)0;
+    if ((script_pc = (s16 far *)anim_script_step_opcode((u16 far *)script_pc)) == (s16 far *)0)
+        return (s16 far *)0;
 
-    op = *(unsigned far *)script_pc;
+    op = *(u16 far *)script_pc;
     if (op != 0x1430 && op != 0x1420) {
-        *(unsigned *)&g_anim_slots[1] = matched;
+        *(u16 *)&g_anim_slots[1] = matched;
     } else if (matched != 0) {
         if (op == 0x1430) {
             latchResult = 1;
-            if ((script_pc = (int far *)anim_script_step_opcode((unsigned far *)script_pc)) !=
-                (int far *)0)
+            if ((script_pc = (s16 far *)anim_script_step_opcode((u16 far *)script_pc)) !=
+                (s16 far *)0)
                 goto step;
-            return (int far *)0;
+            return (s16 far *)0;
         } else if (op == 0x1420) {
             matched = 0;
-            if ((script_pc = (int far *)anim_script_step_opcode((unsigned far *)script_pc)) !=
-                (int far *)0)
+            if ((script_pc = (s16 far *)anim_script_step_opcode((u16 far *)script_pc)) !=
+                (s16 far *)0)
                 goto restart;
-            return (int far *)0;
+            return (s16 far *)0;
         }
     } else {
         if (op == 0x1430) {
-            if ((script_pc = (int far *)anim_script_step_opcode((unsigned far *)script_pc)) !=
-                (int far *)0)
+            if ((script_pc = (s16 far *)anim_script_step_opcode((u16 far *)script_pc)) !=
+                (s16 far *)0)
                 goto restart;
-            return (int far *)0;
+            return (s16 far *)0;
         } else if (op == 0x1420) {
-            if ((script_pc = (int far *)anim_script_step_opcode((unsigned far *)script_pc)) !=
-                (int far *)0)
+            if ((script_pc = (s16 far *)anim_script_step_opcode((u16 far *)script_pc)) !=
+                (s16 far *)0)
                 goto step;
-            return (int far *)0;
+            return (s16 far *)0;
         }
     }
 
     if (latchResult)
-        *(unsigned *)&g_anim_slots[1] = 1;
+        *(u16 *)&g_anim_slots[1] = 1;
     return script_pc;
 }
 
-unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
-    int op;
-    int ch;
+u16 far *anim_script_dispatch_opcode(u16 far *script_pc) {
+    s16 op;
+    s16 ch;
     Slot far *slot;
-    unsigned short far *saved_pc;
-    unsigned short far *cell;
+    u16 far *saved_pc;
+    u16 far *cell;
 
-    if (script_pc == (unsigned short far *)0) {
+    if (script_pc == (u16 far *)0) {
         goto noop;
     }
     op = *script_pc;
@@ -962,10 +962,10 @@ unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
         return script_pc + 1;
 
     case 0xffff:
-        return (unsigned short far *)0;
+        return (u16 far *)0;
 
     case 0x1500:
-        script_pc = (unsigned short far *)anim_script_run_opcodes_dispatch((int far *)(script_pc + 1), 0);
+        script_pc = (u16 far *)anim_script_run_opcodes_dispatch((s16 far *)(script_pc + 1), 0);
         g_wScriptYieldPending++;
         break;
 
@@ -1008,21 +1008,21 @@ unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
         return script_pc + 4;
 
     case 0x3010:
-        script_pc = (unsigned short far *)anim_script_pick_wtd_rand_br((int far *)(script_pc + 1));
+        script_pc = (u16 far *)anim_script_pick_wtd_rand_br((s16 far *)(script_pc + 1));
         break;
 
     case 0x1420:
     case 0x1430:
     case 0x3020:
-        return (unsigned short far *)0;
+        return (u16 far *)0;
 
     case 0xf000:
         ch = g_nCurrentChannelSlot;
         if (ch != -1) {
             g_anim_slots[g_current_animation_slot]->pChannel_state[ch] = 2;
-            return (unsigned short far *)0;
+            return (u16 far *)0;
         }
-        return (unsigned short far *)0;
+        return (u16 far *)0;
 
     case 0xf010:
         ch = script_pc[1];
@@ -1034,10 +1034,10 @@ unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
         if (ch != -1) {
             g_anim_slots[g_current_animation_slot]->pChannel_state[ch] = 2;
         }
-        if (script_pc != (unsigned short far *)0) {
+        if (script_pc != (u16 far *)0) {
             if (ch == g_nCurrentChannelSlot) {
             null_pc:
-                script_pc = (unsigned short far *)0;
+                script_pc = (u16 far *)0;
                 break;
             }
             script_pc += 2;
@@ -1078,13 +1078,13 @@ unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
     case 0x13b1:
     case 0x13c0:
     case 0x13c1:
-        script_pc = (unsigned short far *)anim_script_combat_resolve_loop((int far *)script_pc);
+        script_pc = (u16 far *)anim_script_combat_resolve_loop((s16 far *)script_pc);
         if (FP_OFF(g_anim_slots[1]) != 0) {
             script_pc = anim_script_channel_step(script_pc);
         } else {
-            script_pc = (unsigned short far *)anim_script_opcode_1500_follow((int far *)script_pc);
+            script_pc = (u16 far *)anim_script_opcode_1500_follow((s16 far *)script_pc);
         }
-        if (script_pc != (unsigned short far *)0) {
+        if (script_pc != (u16 far *)0) {
             script_pc += 1;
             break;
         }
@@ -1099,17 +1099,17 @@ unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
     case 0x1070:
     case 0x1080:
         saved_pc = script_pc;
-        script_pc = (unsigned short far *)anim_script_combat_resolve_loop((int far *)script_pc);
+        script_pc = (u16 far *)anim_script_combat_resolve_loop((s16 far *)script_pc);
         slot = g_anim_slots[g_current_animation_slot];
         if (FP_OFF(g_anim_slots[1]) != 0) {
             slot->pChannel_b2[g_nCurrentChannelSlot]++;
-            *(unsigned short far *far *)&slot->pChannel_alt[g_nCurrentChannelSlot] = saved_pc;
+            *(u16 far *far *)&slot->pChannel_alt[g_nCurrentChannelSlot] = saved_pc;
             script_pc = anim_script_channel_step(script_pc);
             goto null_pc;
         } else {
             slot->pChannel_b2[g_nCurrentChannelSlot] = 0;
-            *(unsigned short far *far *)&slot->pChannel_alt[g_nCurrentChannelSlot] = (unsigned short far *)0;
-            script_pc = (unsigned short far *)anim_script_run_to_opcode_1520((int far *)script_pc) + 1;
+            *(u16 far *far *)&slot->pChannel_alt[g_nCurrentChannelSlot] = (u16 far *)0;
+            script_pc = (u16 far *)anim_script_run_to_opcode_1520((s16 far *)script_pc) + 1;
         }
         break;
 
@@ -1119,11 +1119,11 @@ unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
     return script_pc;
 
 noop:
-    return (unsigned short far *)0;
+    return (u16 far *)0;
 }
 
-unsigned short far *anim_script_channel_step(unsigned short far *script_pc) {
-    while (*(short far *)script_pc != -1) {
+u16 far *anim_script_channel_step(u16 far *script_pc) {
+    while (*(s16 far *)script_pc != -1) {
         script_pc = anim_script_dispatch_opcode(script_pc);
         if (g_wScriptYieldPending != 0) {
             g_wScriptYieldPending = 0;
@@ -1133,25 +1133,25 @@ unsigned short far *anim_script_channel_step(unsigned short far *script_pc) {
             break;
         }
     }
-    return (unsigned short far *)0;
+    return (u16 far *)0;
 }
 
-static int anim_script_channel_advance(ScriptAnimNode *pNode) {
-    int ready;
+static s16 anim_script_channel_advance(ScriptAnimNode *pNode) {
+    s16 ready;
 
     ready = 0;
     if (pNode->wInterval != 0) {
         if (g_dwSysTickCount < pNode->dwTimerExpiry)
             goto LAB_done;
-        pNode->dwTimerExpiry = g_dwSysTickCount + (long)(int)pNode->wInterval;
+        pNode->dwTimerExpiry = g_dwSysTickCount + (s32)(s16)pNode->wInterval;
     }
     ++ready;
 LAB_done:
     if (ready != 0) {
         pNode->wOpCursor = 0;
-        if ((int)pNode->wPcJumpTarget != -1) {
+        if ((s16)pNode->wPcJumpTarget != -1) {
             pNode->wPc = pNode->wPcJumpTarget;
-            pNode->wPcJumpTarget = (unsigned short)-1;
+            pNode->wPcJumpTarget = (u16)-1;
         } else {
             ++pNode->wPc;
         }
@@ -1159,15 +1159,15 @@ LAB_done:
     return ready;
 }
 
-int anim_script_find_channel(int channel_id) {
+s16 anim_script_find_channel(s16 channel_id) {
     Slot far *slot;
-    int i;
-    int id;
+    s16 i;
+    s16 id;
 
     if (g_current_animation_slot >= 0) {
         slot = g_anim_slots[g_current_animation_slot];
         for (i = 0; i < slot->nChannel_count; i++) {
-            id = *((int far *)slot->pChannels[i] - 1);
+            id = *((s16 far *)slot->pChannels[i] - 1);
             if (id == channel_id) {
                 return i;
             }
@@ -1176,17 +1176,17 @@ int anim_script_find_channel(int channel_id) {
     return -1;
 }
 
-int anim_script_has_channel(int channel_id) {
+s16 anim_script_has_channel(s16 channel_id) {
     return anim_script_find_channel(channel_id) != -1;
 }
 
-int anim_script_iter_next_object(unsigned int *out_id) {
+s16 anim_script_iter_next_object(u16 *out_id) {
     Slot far *slot;
 
     if (g_current_animation_slot >= 0) {
         slot = g_anim_slots[g_current_animation_slot];
         if (g_nAnimIterCursor < slot->nChannel_count) {
-            *out_id = *((unsigned int far *)slot->pChannels[g_nAnimIterCursor] - 1);
+            *out_id = *((u16 far *)slot->pChannels[g_nAnimIterCursor] - 1);
             g_nAnimIterCursor++;
             return 0;
         }
@@ -1194,22 +1194,22 @@ int anim_script_iter_next_object(unsigned int *out_id) {
     return 1;
 }
 
-void anim_script_iter_first_object(unsigned int *out_id) {
+void anim_script_iter_first_object(u16 *out_id) {
     g_nAnimIterCursor = 0;
     anim_script_iter_next_object(out_id);
     return;
 }
 
-int anim_script_tick(void) {
+s16 anim_script_tick(void) {
     ScriptAnimNode **op_list;
     Slot far *slot;
-    unsigned long far *channel;
-    int nChannels;
-    int anyRan;
-    int i;
-    unsigned int kind;
-    unsigned short opState;
-    unsigned short mode;
+    u32 far *channel;
+    s16 nChannels;
+    s16 anyRan;
+    s16 i;
+    u16 kind;
+    u16 opState;
+    u16 mode;
 
     anyRan = 0;
     if (g_current_animation_slot < 0) {
@@ -1231,22 +1231,22 @@ int anim_script_tick(void) {
         }
         for (i = 0; i < nChannels; i++) {
             kind = slot->pChannel_state[i];
-            channel = (unsigned long far *)slot->pChannels[i];
+            channel = (u32 far *)slot->pChannels[i];
             if (kind & 8) {
                 kind = kind & 0xfff7;
                 slot->pChannel_state[i] = kind;
             } else {
-                channel = (unsigned long far *)anim_script_advance_to_wait((int far *)channel);
+                channel = (u32 far *)anim_script_advance_to_wait((s16 far *)channel);
             }
             if ((void far *)slot->pChannel_alt[i] != (void far *)0) {
-                channel = (unsigned long far *)slot->pChannel_alt[i];
+                channel = (u32 far *)slot->pChannel_alt[i];
             }
             if ((kind == 3) || (kind == 4)) {
                 kind = slot->pChannel_state[i] = 1;
             }
             g_nCurrentChannelSlot = i;
-            if ((channel != (unsigned long far *)0) && (kind == 1)) {
-                anim_script_channel_step((unsigned short far *)channel);
+            if ((channel != (u32 far *)0) && (kind == 1)) {
+                anim_script_channel_step((u16 far *)channel);
             }
         }
         g_pCurScriptAnimNode = (ScriptAnimNode *)slot->wObjects_head_alt;
@@ -1273,7 +1273,7 @@ int anim_script_tick(void) {
                     if ((g_nScriptTickOverride != -1) &&
                         (g_pCurScriptAnimNode->wInterval != g_nScriptTickOverride)) {
                         g_pCurScriptAnimNode->dwTimerExpiry =
-                            g_dwSysTickCount + (long)g_nScriptTickOverride;
+                            g_dwSysTickCount + (s32)g_nScriptTickOverride;
                         g_pCurScriptAnimNode->wInterval = g_nScriptTickOverride;
                     }
                     if (g_wScriptFrameHoldFlag != 0) {
@@ -1329,7 +1329,7 @@ int anim_script_tick(void) {
 }
 
 void anim_script_rndr_all_objs(void) {
-    unsigned short wSavedOpCursor;
+    u16 wSavedOpCursor;
 
     if (g_current_animation_slot >= 0) {
         g_pCurScriptAnimNode =

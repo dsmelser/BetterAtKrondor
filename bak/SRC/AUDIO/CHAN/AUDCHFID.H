@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern int audio_channel_for_id(int id);
+extern s16 audio_channel_for_id(s16 id);
 
 #endif

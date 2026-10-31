@@ -15,9 +15,9 @@
 ImageRecord **g_tile_sprite;
 ImageRecord **g_pCompassSpriteSheet;
 
-unsigned short g_nSkyHorizonRowCached = 0xffff;
-unsigned short g_bTexturedPolyEnabled = 0x0001;
-short g_nGlyphColorShift = 0;
+u16 g_nSkyHorizonRowCached = 0xffff;
+u16 g_bTexturedPolyEnabled = 0x0001;
+s16 g_nGlyphColorShift = 0;
 
 void uiwidget_tile_sprite_load(void) {
     g_tile_sprite = resblit_load_asset_table("pat.bmp", 0);
@@ -29,11 +29,11 @@ void uiwidget_tile_sprite_free(void) {
     return;
 }
 
-static void uiwidget_tile_sprite_fill_rect(int x, int y, int w, int h, int sprite_index) {
-    int step_x;
-    int step_y;
-    int ix;
-    int iy;
+static void uiwidget_tile_sprite_fill_rect(s16 x, s16 y, s16 w, s16 h, s16 sprite_index) {
+    s16 step_x;
+    s16 step_y;
+    s16 ix;
+    s16 iy;
 
     g_graphics_context.bClip_enabled = 1;
     g_graphics_context.clip.xmin = x;
@@ -48,7 +48,7 @@ static void uiwidget_tile_sprite_fill_rect(int x, int y, int w, int h, int sprit
             iy = 0;
             if (iy < g_graphics_context.clip.ymax) {
                 do {
-                    blit_sprite_indirect((unsigned short)g_tile_sprite[sprite_index], x + ix, y + iy, 0);
+                    blit_sprite_indirect((u16)g_tile_sprite[sprite_index], x + ix, y + iy, 0);
                     iy += step_y;
                 } while (iy < g_graphics_context.clip.ymax);
             }
@@ -58,26 +58,26 @@ static void uiwidget_tile_sprite_fill_rect(int x, int y, int w, int h, int sprit
     g_graphics_context.bClip_enabled = 0;
 }
 
-static unsigned int uiwidget_glyph_blit(unsigned char ch, int x, int y) {
+static u16 uiwidget_glyph_blit(unsigned char ch, s16 x, s16 y) {
     unsigned char far *glyph_data;
-    unsigned int row;
+    u16 row;
     unsigned char mask;
-    unsigned int width;
-    unsigned int height;
+    u16 width;
+    u16 height;
     unsigned char pixel;
-    int glyph_index;
-    unsigned int color;
+    s16 glyph_index;
+    u16 color;
     unsigned char prev_pixel;
-    unsigned int col;
+    u16 col;
 
-    glyph_index = (unsigned int)ch - (unsigned int)g_graphics_context.pFont_base_char[0];
+    glyph_index = (u16)ch - (u16)g_graphics_context.pFont_base_char[0];
     if (g_font_glyph_offset_table[0] != 0) {
-        width = (unsigned int)g_font_width_table[0][glyph_index];
-        height = (unsigned int)g_graphics_context.pFont_height[0];
+        width = (u16)g_font_width_table[0][glyph_index];
+        height = (u16)g_graphics_context.pFont_height[0];
         glyph_data = g_font_bitmap_data[0] + g_font_glyph_offset_table[0][glyph_index];
     } else {
-        width = (unsigned int)g_graphics_context.pFont_glyph_width_bits[0];
-        height = (unsigned int)g_graphics_context.pFont_height[0];
+        width = (u16)g_graphics_context.pFont_glyph_width_bits[0];
+        height = (u16)g_graphics_context.pFont_height[0];
         glyph_data = g_font_bitmap_data[0] + glyph_index * ((width + 7) >> 3) * height;
     }
     row = 0;
@@ -90,7 +90,7 @@ static unsigned int uiwidget_glyph_blit(unsigned char ch, int x, int y) {
                 do {
                     if (!mask) {
                         mask = 0x80;
-                        (*(unsigned *)&glyph_data)++;
+                        (*(u16 *)&glyph_data)++;
                     }
                     pixel = *glyph_data & mask;
                     if ((pixel != 0) ||
@@ -100,7 +100,7 @@ static unsigned int uiwidget_glyph_blit(unsigned char ch, int x, int y) {
                         putpixel(x + col, y, color);
                     } else if (((glyph_index = (char)g_graphics_context.bText_style_flags) & 1) ==
                                0) {
-                        putpixel(x + col, y, (int)(char)g_graphics_context.bText_bg_color);
+                        putpixel(x + col, y, (s16)(char)g_graphics_context.bText_bg_color);
                     }
                     prev_pixel = pixel;
                     col = col + 1;
@@ -109,13 +109,13 @@ static unsigned int uiwidget_glyph_blit(unsigned char ch, int x, int y) {
             }
             row++;
             y = y + 1;
-            (*(unsigned *)&glyph_data)++;
+            (*(u16 *)&glyph_data)++;
         } while (row < height);
     }
     return width;
 }
 
-static void far uiwidget_draw_text_string(unsigned char *str, int x, int y) {
+static void far uiwidget_draw_text_string(unsigned char *str, s16 x, s16 y) {
     while (*str != '\0') {
         x += uiwidget_glyph_blit(*str++, x, y);
         if ((g_graphics_context.bText_style_flags & 2) != 0) {
@@ -125,7 +125,7 @@ static void far uiwidget_draw_text_string(unsigned char *str, int x, int y) {
     return;
 }
 
-void uiwidget_draw_text_shadowed_dflt(char *text, int shadow_color, int color, int x, int y) {
+void uiwidget_draw_text_shadowed_dflt(char *text, s16 shadow_color, s16 color, s16 x, s16 y) {
     if ((color == -1) && (text != (char *)0x0)) {
         g_graphics_context.bText_fg_color = '\t';
         font_draw_text_ds(text, x, y);
@@ -140,7 +140,7 @@ void uiwidget_draw_text_shadowed_dflt(char *text, int shadow_color, int color, i
     return;
 }
 
-void uiwidget_draw_text_shadowed(char *text, int shadow_color, int main_color, int x, int y) {
+void uiwidget_draw_text_shadowed(char *text, s16 shadow_color, s16 main_color, s16 x, s16 y) {
     if (text != (char *)0x0) {
         g_graphics_context.bText_fg_color = shadow_color;
         font_draw_text_ds(text, x, y);
@@ -150,8 +150,8 @@ void uiwidget_draw_text_shadowed(char *text, int shadow_color, int main_color, i
     return;
 }
 
-int uiwidget_midpoint_int(int a, int b) {
-    int r;
+s16 uiwidget_midpoint_int(s16 a, s16 b) {
+    s16 r;
 
     if (b < a) {
         r = b;
@@ -163,8 +163,8 @@ int uiwidget_midpoint_int(int a, int b) {
     return r;
 }
 
-void uiwidget_panel_draw_3edge_bevel(int x, int y, int width, int height, int fill_color,
-                                     int color1, int color2, int color3, int color4) {
+void uiwidget_panel_draw_3edge_bevel(s16 x, s16 y, s16 width, s16 height, s16 fill_color,
+                                     s16 color1, s16 color2, s16 color3, s16 color4) {
     g_graphics_context.bGfx_fill_enabled = '\x01';
     g_graphics_context.bGfx_fill_color = (unsigned char)fill_color;
     g_graphics_context.bGfx_outline_color = (unsigned char)color1;
@@ -182,17 +182,17 @@ void uiwidget_panel_draw_3edge_bevel(int x, int y, int width, int height, int fi
     g_graphics_context.bGfx_fill_enabled = '\x01';
 }
 
-void uiwidget_panel_draw_inset(int x, int y, int width, int height, int color) {
-    int c1 = color;
-    int c2 = color + 2;
-    int c3 = color + 5;
-    int c4 = color + 6;
+void uiwidget_panel_draw_inset(s16 x, s16 y, s16 width, s16 height, s16 color) {
+    s16 c1 = color;
+    s16 c2 = color + 2;
+    s16 c3 = color + 5;
+    s16 c4 = color + 6;
 
     uiwidget_panel_draw_3edge_bevel(x, y, width, height, color, c1, c2, c3, c4);
     return;
 }
 
-void uiwidget_panel_inset_inverted(int x, int y, int width, int height, int color_offset) {
+void uiwidget_panel_inset_inverted(s16 x, s16 y, s16 width, s16 height, s16 color_offset) {
     g_graphics_context.bGfx_fill_enabled = '\0';
     g_graphics_context.bGfx_fill_color = '\0';
     uiwidget_panel_draw_inset(x, y, width, height, 0xa9 - color_offset);
@@ -209,7 +209,7 @@ void uiwidget_compass_free(void) {
 }
 
 void uiwidget_compass_draw(void) {
-    int compassOffset;
+    s16 compassOffset;
 
     compassOffset = g_world_camera->base.orientation.yaw;
     if (compassOffset != 0) {
@@ -227,7 +227,7 @@ void uiwidget_compass_draw(void) {
     return;
 }
 
-void uiwidget_draw_beveled_button(int x, int y, int w, int h) {
+void uiwidget_draw_beveled_button(s16 x, s16 y, s16 w, s16 h) {
     g_graphics_context.bGfx_fill_enabled = '\x01';
     g_graphics_context.bGfx_fill_color = '\x0e';
     g_graphics_context.bGfx_outline_color = '\x04';

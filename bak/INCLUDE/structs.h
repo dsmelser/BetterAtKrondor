@@ -95,13 +95,13 @@ enum VideoMode {
 typedef enum VideoMode VideoMode;
 
 typedef void *__gnuc_va_list;
-typedef unsigned int __mode_t;
-typedef int __ssize_t;
-typedef unsigned short CombatResCacheCol[8][3];
-typedef int intptr_t;
+typedef u16 __mode_t;
+typedef s16 __ssize_t;
+typedef u16 CombatResCacheCol[8][3];
+typedef s16 intptr_t;
 #ifndef _SIZE_T
 #define _SIZE_T
-typedef unsigned short size_t;
+typedef u16 size_t;
 #endif
 typedef __ssize_t ssize_t;
 
@@ -214,102 +214,102 @@ typedef struct ZoneEntryRecord ZoneEntryRecord;
 typedef struct ZoneHotspot ZoneHotspot;
 typedef union StreamDescSrcUnion StreamDescSrcUnion;
 
-typedef unsigned short(far *AudioDriverDispatchFn)(unsigned short cmd, unsigned short data);
-typedef void(far *BlitChunkyFn)(unsigned char *src_off, unsigned short src_seg, int dst_x,
-                                int dst_y, int width_bytes);
-typedef void(far *BlitSpriteFn)(int sprite_desc_offset, int dst_x, int dst_y);
-typedef void(far *BlitSpriteSimpleFn)(ImageRecord *sprite, int x, int y);
-typedef void(far *CirclePlotterFn)(int x, int y);
+typedef u16(far *AudioDriverDispatchFn)(u16 cmd, u16 data);
+typedef void(far *BlitChunkyFn)(unsigned char *src_off, u16 src_seg, s16 dst_x,
+                                s16 dst_y, s16 width_bytes);
+typedef void(far *BlitSpriteFn)(s16 sprite_desc_offset, s16 dst_x, s16 dst_y);
+typedef void(far *BlitSpriteSimpleFn)(ImageRecord *sprite, s16 x, s16 y);
+typedef void(far *CirclePlotterFn)(s16 x, s16 y);
 typedef void(far *CombatAiActionFn)(Combatant far *actor);
 typedef void(far *CrtExitFn)(void);
 typedef void(far *DefaultStubFn)(void);
 typedef void(far *EncounterAiActionFn)(Combatant *actor);
 typedef void(far *EncounterAiTurnFn)(Combatant *actor);
 typedef void(far *FARFN)(void);
-typedef unsigned int(far *GetpixelFn)(int x, int y);
-typedef unsigned long(far *ImageInstallFn)(unsigned short *image_descs_table,
-                                           unsigned short *out_status);
-typedef void(far *PasteRectFn)(void far *src, int x, int y, int width, int height);
-typedef void(far *PresentFn)(int x, int y, int w, int h);
-typedef void(far *PutpixelFn)(int x, int y, int color);
-typedef long(far *RectByteSizeFn)(int width, int height);
-typedef void(far *SetBorderColorFn)(int color);
+typedef u16(far *GetpixelFn)(s16 x, s16 y);
+typedef u32(far *ImageInstallFn)(u16 *image_descs_table,
+                                           u16 *out_status);
+typedef void(far *PasteRectFn)(void far *src, s16 x, s16 y, s16 width, s16 height);
+typedef void(far *PresentFn)(s16 x, s16 y, s16 w, s16 h);
+typedef void(far *PutpixelFn)(s16 x, s16 y, s16 color);
+typedef s32(far *RectByteSizeFn)(s16 width, s16 height);
+typedef void(far *SetBorderColorFn)(s16 color);
 typedef void(far *Slot01Fn)(void);
 typedef void(far *Slot02Fn)(void);
-typedef void(far *Slot04Fn)(unsigned short x_start, unsigned short y_start, unsigned short width,
-                            unsigned short height);
-typedef void(far *Slot05Fn)(void far *dst_buffer, unsigned short x_start, unsigned short y_start,
-                            unsigned short width, unsigned short height);
-typedef void(far *Slot07Fn)(void far *src_buffer, unsigned short x_start, unsigned short y_start,
-                            unsigned short width, unsigned short height);
+typedef void(far *Slot04Fn)(u16 x_start, u16 y_start, u16 width,
+                            u16 height);
+typedef void(far *Slot05Fn)(void far *dst_buffer, u16 x_start, u16 y_start,
+                            u16 width, u16 height);
+typedef void(far *Slot07Fn)(void far *src_buffer, u16 x_start, u16 y_start,
+                            u16 width, u16 height);
 typedef void(far *Slot10Fn)(void);
 typedef void(far *Slot11Fn)(void);
-typedef void(far *Slot14Fn)(unsigned short far *image_descs_table, unsigned short dst_off,
-                            unsigned short dst_seg, unsigned short src_off, unsigned short src_seg);
-typedef void(far *Slot18Fn)(unsigned short src_off, unsigned short src_seg, unsigned short dst_x,
-                            unsigned short dst_y, unsigned short width_bytes,
-                            unsigned short height);
+typedef void(far *Slot14Fn)(u16 far *image_descs_table, u16 dst_off,
+                            u16 dst_seg, u16 src_off, u16 src_seg);
+typedef void(far *Slot18Fn)(u16 src_off, u16 src_seg, u16 dst_x,
+                            u16 dst_y, u16 width_bytes,
+                            u16 height);
 typedef void(far *Slot19Fn)(void);
-typedef void(far *Slot20Fn)(unsigned short palette_off, unsigned short palette_seg);
+typedef void(far *Slot20Fn)(u16 palette_off, u16 palette_seg);
 typedef void(far *Slot23Fn)(void);
-typedef void(far *Slot24Fn)(short x_pixels, short y_row);
+typedef void(far *Slot24Fn)(s16 x_pixels, s16 y_row);
 typedef void(far *Slot25Fn)(void);
 typedef void(far *Slot27Fn)(void);
-typedef void(far *Slot29Fn)(unsigned short sprite_desc_offset, short x, short y,
-                            unsigned short flip_flags);
-typedef void(far *Slot30Fn)(unsigned short src_off, unsigned short src_seg,
-                            unsigned short xy_packed);
-typedef void(far *Slot31Fn)(unsigned short desc_list_offset);
+typedef void(far *Slot29Fn)(u16 sprite_desc_offset, s16 x, s16 y,
+                            u16 flip_flags);
+typedef void(far *Slot30Fn)(u16 src_off, u16 src_seg,
+                            u16 xy_packed);
+typedef void(far *Slot31Fn)(u16 desc_list_offset);
 typedef void(far *Slot32Fn)(void);
-typedef void(far *Slot33Fn)(unsigned short sprite_desc_offset, short x, short y);
-typedef void(far *Slot34Fn)(unsigned short start_idx, unsigned short count, unsigned short dst_idx,
-                            unsigned short weight);
-typedef void(far *Slot35Fn)(unsigned char far *rgb_triplets, unsigned short start_index,
-                            unsigned short count);
+typedef void(far *Slot33Fn)(u16 sprite_desc_offset, s16 x, s16 y);
+typedef void(far *Slot34Fn)(u16 start_idx, u16 count, u16 dst_idx,
+                            u16 weight);
+typedef void(far *Slot35Fn)(unsigned char far *rgb_triplets, u16 start_index,
+                            u16 count);
 typedef void(far *Slot36Fn)(void);
 typedef void(far *Slot37Fn)(void);
 typedef void(far *Slot38Fn)(void);
 typedef void(far *Slot39Fn)(void);
 typedef void(far *Slot40Fn)(void);
-typedef int(far *SpriteRegionSizeFn)(unsigned long sprite_descriptor);
+typedef s16(far *SpriteRegionSizeFn)(u32 sprite_descriptor);
 typedef void(far *UnimplementedSlotFn)(void);
 typedef void(far *UnpackNibblesToPlanesFn)(unsigned char far *src, unsigned char far *dst,
-                                           unsigned short count);
-typedef void(far *VsyncWaitFn)(int wait_flag);
+                                           u16 count);
+typedef void(far *VsyncWaitFn)(s16 wait_flag);
 
 /** Default focal exponent for a full-screen view: 1 << zoom is the view-plane distance in px. */
 #define VIEW_ZOOM_DEFAULT 7
 
 struct EulerAngles {
-    short pitch;
-    short roll;
-    short yaw;
+    s16 pitch;
+    s16 roll;
+    s16 yaw;
 };
 
 /* Screen-space rectangle: origin (x, y) plus extent (width, height). */
 struct Rect {
-    short x;
-    short y;
-    short width;
-    short height;
+    s16 x;
+    s16 y;
+    s16 width;
+    s16 height;
 };
 
 /* Clip rectangle saved/restored around a world-effect draw.  Member order is
    (xmin, xmax, ymax, ymin), not the canonical xmin/xmax/ymin/ymax order. */
 typedef struct SavedClipRect {
-    short xmin;
-    short xmax;
-    short ymax;
-    short ymin;
+    s16 xmin;
+    s16 xmax;
+    s16 ymax;
+    s16 ymin;
 } SavedClipRect;
 
 /* Canonical active clip rectangle (xmin/xmax/ymin/ymax) embedded in the
    graphics context; all four bounds are inclusive screen coordinates. */
 typedef struct ClipRect {
-    short xmin;
-    short xmax;
-    short ymin;
-    short ymax;
+    s16 xmin;
+    s16 xmax;
+    s16 ymin;
+    s16 ymax;
 } ClipRect;
 
 /* Tile-space axis-aligned bounding box (byte coordinates).  Member order
@@ -324,14 +324,14 @@ typedef struct TileBBox {
 
 /* Absolute rectangle: two corners — top-left (x0,y0) and bottom-right (x1,y1), absolute coords, not extents. */
 typedef struct AbsRect {
-    short x0;
-    short y0;
-    short x1;
-    short y1;
+    s16 x0;
+    s16 y0;
+    s16 x1;
+    s16 y1;
 } AbsRect;
 
 struct ViewContext {
-    int zoom;
+    s16 zoom;
     WorldEntity *camera;
     EulerAngles viewRotation;
     Rect viewport;
@@ -341,55 +341,55 @@ struct ViewContext {
 };
 
 struct WorldPos2 {
-    long nWorld_x;
-    long nWorld_y;
+    s32 nWorld_x;
+    s32 nWorld_y;
 };
 
 struct StatModPayload {
-    unsigned short wStatMask;
-    short nValue;
-    unsigned long dwTApply;
-    unsigned long dwTExpiry;
+    u16 wStatMask;
+    s16 nValue;
+    u32 dwTApply;
+    u32 dwTExpiry;
 };
 
 struct ActorStatModifier {
-    unsigned short wMaskFlags;
+    u16 wMaskFlags;
     StatModPayload payload;
 };
 
 struct ActSpriteCache {
-    unsigned short pActorId[6];
-    unsigned short pAssetTable[6];
+    u16 pActorId[6];
+    u16 pAssetTable[6];
     unsigned char far *pChunk[6];
 };
 
 struct AnimSlot {
     ImageRecord ***sprite_header;
-    unsigned int sprite_id;
-    int facing;
-    int current_frame;
-    int end_frame;
-    short done_flag;
-    unsigned int loop_period;
-    unsigned int tick_counter;
+    u16 sprite_id;
+    s16 facing;
+    s16 current_frame;
+    s16 end_frame;
+    s16 done_flag;
+    u16 loop_period;
+    u16 tick_counter;
     unsigned char reverse_flag;
 };
 
 struct AudFragNode {
-    unsigned short wKey;
-    unsigned short wSize;
+    u16 wKey;
+    u16 wSize;
     AudFragNode far *next;
 };
 
 struct AudioListNode {
     AudioListNode far *pNext;
     unsigned char far *pData;
-    unsigned short wSortKey;
-    unsigned short wId;
+    u16 wSortKey;
+    u16 wId;
     unsigned char bPriority;
     unsigned char filler_d;
     AudioTrackHandle far *pHandle;
-    unsigned short wFlags;
+    u16 wFlags;
 };
 
 struct AudioTrackHandle {
@@ -410,31 +410,31 @@ struct AudioTrackHandle {
 };
 
 struct BmxHeader {
-    unsigned short wMagic;
-    unsigned short wCompression;
-    unsigned short wImageCount;
-    unsigned short wCompressedSize;
-    unsigned long dwDecompressedSize;
+    u16 wMagic;
+    u16 wCompression;
+    u16 wImageCount;
+    u16 wCompressedSize;
+    u32 dwDecompressedSize;
 };
 
 struct BookImage {
-    short nX;
-    short nY;
-    unsigned short wImage;
-    unsigned short wMirroring;
+    s16 nX;
+    s16 nY;
+    u16 wImage;
+    u16 wMirroring;
 };
 
 struct BookPage {
     Rect rect;
-    unsigned short wDisplayNumber;
-    unsigned short wPageNumber;
-    unsigned short wPrevPageNumber;
-    unsigned short wNextPageNumber;
-    unsigned short wPagePointer;
-    unsigned short w_pad12;
-    unsigned short wImageCount;
-    unsigned short wReservedCount;
-    unsigned short wShowPageNumber;
+    u16 wDisplayNumber;
+    u16 wPageNumber;
+    u16 wPrevPageNumber;
+    u16 wNextPageNumber;
+    u16 wPagePointer;
+    u16 w_pad12;
+    u16 wImageCount;
+    u16 wReservedCount;
+    u16 wShowPageNumber;
     unsigned char pReserved[30];
 };
 
@@ -443,55 +443,55 @@ struct BookPage {
 typedef AbsRect BookReservedRect;
 
 struct BookViewerState {
-    short nMarginTop;
-    short nMarginBottom;
-    short nLineHeight;
-    short nVStepIndent;
-    short nVStepWrap;
-    short nVStepRetract;
-    short nVStepUndo;
-    unsigned short wAlignment;
-    short nFontSlot;
-    short nBaselineYOff;
-    short nFgColor;
-    short nBgColor;
-    unsigned short wStyleFlags;
-    short nTerminate;
-    short nCursorX;
-    short nLineY1;
-    short nLineYNext;
-    short nLineHeightActual;
-    short nLineWidthCur;
-    short nJustifyOn;
-    short nSpaceExtra;
-    short nSpaceExtraStep;
-    short nSpaceExtraCount;
-    short nCharExtra;
-    short nCharExtraStep;
-    short nCharExtraCount;
+    s16 nMarginTop;
+    s16 nMarginBottom;
+    s16 nLineHeight;
+    s16 nVStepIndent;
+    s16 nVStepWrap;
+    s16 nVStepRetract;
+    s16 nVStepUndo;
+    u16 wAlignment;
+    s16 nFontSlot;
+    s16 nBaselineYOff;
+    s16 nFgColor;
+    s16 nBgColor;
+    u16 wStyleFlags;
+    s16 nTerminate;
+    s16 nCursorX;
+    s16 nLineY1;
+    s16 nLineYNext;
+    s16 nLineHeightActual;
+    s16 nLineWidthCur;
+    s16 nJustifyOn;
+    s16 nSpaceExtra;
+    s16 nSpaceExtraStep;
+    s16 nSpaceExtraCount;
+    s16 nCharExtra;
+    s16 nCharExtraStep;
+    s16 nCharExtraCount;
     unsigned char huge *pCurChar;
     unsigned char huge *pBreakSave;
     unsigned char far *pResumeSave;
-    short pFontSlots[10];
+    s16 pFontSlots[10];
     ImageRecord **pImageRecord;
     unsigned char far *pPalette;
     unsigned char p_pad5a[6];
-    short nEmsPage0;
-    short nEmsPage1;
+    s16 nEmsPage0;
+    s16 nEmsPage1;
 };
 
 struct BorlandFarPtr {
-    unsigned short offset;
-    unsigned short segment;
+    u16 offset;
+    u16 segment;
 };
 
 struct WorldPos {
     WorldPos2 xy;
-    long nWorld_z;
+    s32 nWorld_z;
 };
 
 struct CircObj {
-    short nRadiusSrc;
+    s16 nRadiusSrc;
     unsigned char bVertexIdx;
     unsigned char bDayColor;
     unsigned char bNightColor;
@@ -501,7 +501,7 @@ struct CircObj {
  * worldrender_sprite_billboard, which reads it by raw offset (the +2 word is
  * punned into the yAdjust/xOffset byte pair). */
 struct SpriteBillboard {
-    short spriteIndex;         /* +0 sprite id: paged-array index or sprite-bank index */
+    s16 spriteIndex;         /* +0 sprite id: paged-array index or sprite-bank index */
     unsigned char yAdjust;     /* +2 vertical draw offset (scaled) */
     unsigned char xOffset;     /* +3 horizontal draw offset (scaled, flip-aware) */
     unsigned char scaleFactor; /* +4 per-sprite scale vs projScale (0 = use projScale) */
@@ -509,9 +509,9 @@ struct SpriteBillboard {
 };
 
 struct CodecVtable {
-    unsigned short wBuf_size;
-    unsigned short wScratch_size_read;
-    unsigned short wScratch_size_write;
+    u16 wBuf_size;
+    u16 wScratch_size_read;
+    u16 wScratch_size_write;
     void *pRead_chunk;
     void *pWrite_chunk;
     void *pOpen_write;
@@ -528,7 +528,7 @@ struct StatSlot {
 
 struct Combatant {
     char *name;
-    unsigned short spellsKnown[3];
+    u16 spellsKnown[3];
     StatSlot stats[16];
     char charSlot;
     struct Actor far *actor_record;
@@ -537,14 +537,14 @@ struct Combatant {
 
 struct CombatantState {
     Combatant *target;
-    short creatureType;
+    s16 creatureType;
     char gridX;
     char gridY;
     unsigned char destX;
     unsigned char destY;
     unsigned char flags;
     unsigned char knockbackFrame;
-    short statusHead;
+    s16 statusHead;
     unsigned char pad_c;
     unsigned char knockbackTimer;
     unsigned char morale;
@@ -558,76 +558,76 @@ struct CombatantState {
 };
 
 struct GamePositionAndHeading {
-    long nX;
-    long nY;
-    unsigned short wHeading_raw;
+    s32 nX;
+    s32 nY;
+    u16 wHeading_raw;
 };
 
 struct CombatantData {
-    unsigned short wMonster_index;
-    unsigned short wMovement_type;
+    u16 wMonster_index;
+    u16 wMovement_type;
     GamePositionAndHeading pos;
-    unsigned long dwField0x0e;
-    unsigned long dwField0x12;
+    u32 dwField0x0e;
+    u32 dwField0x12;
     unsigned char pPad0[8];
-    unsigned long dwField0x1e;
-    unsigned long dwField0x22;
+    u32 dwField0x1e;
+    u32 dwField0x22;
     unsigned char pPad1[10];
 };
 
 struct CombatTile {
     Combatant *pOccupant;
-    unsigned short wTerrain;
-    short nEffectTimer;
+    u16 wTerrain;
+    s16 nEffectTimer;
 };
 
 struct ConditionInfo {
     char pName[11];
-    short nStatDelta;
-    short nRegenDelta;
-    short pExtra[4];
+    s16 nStatDelta;
+    s16 nRegenDelta;
+    s16 pExtra[4];
 };
 
 struct CursorState {
-    short nX;
-    short nY;
-    short nHotX;
-    short nHotY;
-    short nWidth;
-    short nHeight;
-    unsigned short shape;
+    s16 nX;
+    s16 nY;
+    s16 nHotX;
+    s16 nHotY;
+    s16 nWidth;
+    s16 nHeight;
+    u16 shape;
 };
 
 struct DdxChoice {
-    unsigned short wCond;
-    unsigned short wRange_min_or_mask;
-    unsigned short wRange_max_or_chapbits;
-    unsigned long dwTarget_key;
+    u16 wCond;
+    u16 wRange_min_or_mask;
+    u16 wRange_max_or_chapbits;
+    u32 dwTarget_key;
 };
 
 struct DdxOp {
-    unsigned short wOp;
-    short nA1;
-    short nA2;
-    short nA3;
-    short nA4;
+    u16 wOp;
+    s16 nA1;
+    s16 nA2;
+    s16 nA3;
+    s16 nA4;
 };
 
 struct DDXRecord {
     unsigned char bStyle;
-    unsigned short wSpeaker_id;
-    unsigned short wFlags;
+    u16 wSpeaker_id;
+    u16 wFlags;
     unsigned char bCnt1;
     unsigned char bCnt2;
-    unsigned short wBody_len;
+    u16 wBody_len;
 };
 
 struct DefTrapRecord {
-    unsigned short wGap0;
-    unsigned long dwCombat_index;
-    unsigned long dwEntry_dialog;
-    unsigned long dwScout_dialog;
-    unsigned long dwZero;
+    u16 wGap0;
+    u32 dwCombat_index;
+    u32 dwEntry_dialog;
+    u32 dwScout_dialog;
+    u32 dwZero;
     GamePositionAndHeading landing_dir1;
     GamePositionAndHeading landing_dir2;
     GamePositionAndHeading landing_dir4;
@@ -635,15 +635,15 @@ struct DefTrapRecord {
     GamePositionAndHeading landing_primary;
     unsigned char bNum_enemies;
     CombatantData pCombatants[7];
-    unsigned short wUnknown_u16;
-    unsigned short wIs_ambush;
+    u16 wUnknown_u16;
+    u16 wIs_ambush;
 };
 
 struct Dialog {
     DialogWidget **pWidgets;
-    short nWidget_capacity;
-    short nWidget_count;
-    short nFocused_idx;
+    s16 nWidget_capacity;
+    s16 nWidget_count;
+    s16 nFocused_idx;
 };
 
 struct DialogStyleDescriptor {
@@ -654,13 +654,13 @@ struct DialogStyleDescriptor {
 struct DialogWidget {
     char *pText_buf;
     char *pLabel;
-    short nCapacity;
-    short nLength;
-    short nCursor;
-    short nFull_length;
+    s16 nCapacity;
+    s16 nLength;
+    s16 nCursor;
+    s16 nFull_length;
     Rect rect;
-    short nLabel_x;
-    short nLabel_y;
+    s16 nLabel_x;
+    s16 nLabel_y;
     unsigned char bBg_color;
     unsigned char bFg_color;
     unsigned char bCursor_color;
@@ -670,43 +670,43 @@ struct DialogWidget {
 };
 
 struct EncounterActorAux {
-    unsigned short wReserved_0;
-    short nRecord_idx;
-    short nSlot_idx;
-    short nEncounter_idx;
-    unsigned short wReserved_8;
+    u16 wReserved_0;
+    s16 nRecord_idx;
+    s16 nSlot_idx;
+    s16 nEncounter_idx;
+    u16 wReserved_8;
 };
 
 struct EncounterActorTemplate {
     unsigned char kind;
-    short nPaged_record_delta;
-    short nVariant;
-    long nWorld_x_local;
-    long nWorld_y_local;
-    unsigned short facing;
-    long pPoly_x[4];
-    long pPoly_y[4];
+    s16 nPaged_record_delta;
+    s16 nVariant;
+    s32 nWorld_x_local;
+    s32 nWorld_y_local;
+    u16 facing;
+    s32 pPoly_x[4];
+    s32 pPoly_y[4];
     unsigned char slack_2f;
 };
 
 struct EncounterAnimScratch {
     unsigned char bSpriteDirFrame;
     unsigned char bSpriteDir;
-    int nRecordTemplateIdx;
-    int nActorSlot;
-    int nEncObjStateIdx;
+    s16 nRecordTemplateIdx;
+    s16 nActorSlot;
+    s16 nEncObjStateIdx;
     unsigned char p_fill[2];
 };
 
 struct EncounterObjectPose {
-    long nWorld_x_offset;
-    long nWorld_y_offset;
-    short nFacing;
+    s32 nWorld_x_offset;
+    s32 nWorld_y_offset;
+    s16 nFacing;
 };
 
 struct EncounterObjectState {
     EncounterObjectPose pose;
-    unsigned short wKind_state;
+    u16 wKind_state;
 };
 
 struct EncounterRecordTemplate {
@@ -741,15 +741,15 @@ typedef ActorStatModRow ActorStatModTable[6];
 struct TimerEventEntry {
     unsigned char bKind;
     unsigned char bMode_at_insert;
-    unsigned short wSub_id;
-    long nValue;
+    u16 wSub_id;
+    s32 nValue;
 };
 
 struct ObjFixedLocationCacheEntry {
-    unsigned short location_id;
+    u16 location_id;
     unsigned char pUnk_2[4];
-    unsigned long temp_gam_offset;
-    unsigned long objfixed_offset;
+    u32 temp_gam_offset;
+    u32 objfixed_offset;
     unsigned char pUnk_14[8];
 };
 
@@ -763,11 +763,11 @@ struct GraphicsContext {
     unsigned char bGfx_fill_color;
     unsigned char bGfx_outline_color;
     unsigned char bGfx_dither_color;
-    unsigned short wVgaPage1Base;
-    unsigned short wVgaPage2Base;
-    unsigned short wVgaFrontPageBase;
-    unsigned short wGfxBlitSrcPage;
-    unsigned short wGfxBlitDstPage;
+    u16 wVgaPage1Base;
+    u16 wVgaPage2Base;
+    u16 wVgaFrontPageBase;
+    u16 wGfxBlitSrcPage;
+    u16 wGfxBlitDstPage;
     unsigned char pReserved_0x1a[2];
     unsigned char bBiosCompatible;
     unsigned char bVideoAdapter;
@@ -781,16 +781,16 @@ struct GraphicsContext {
     unsigned char pFont_base_char[20];
     unsigned char pFont_glyph_count[20];
     unsigned char pReserved_0x84[40];
-    short pPolygonX[20];
-    short pPolygonY[20];
-    short pPolygonXClipped[20];
-    short pPolygonYClipped[20];
-    short pPolygonXSaved[20];
-    short pPolygonYSaved[20];
-    short nPolygonClipVertexCount;
+    s16 pPolygonX[20];
+    s16 pPolygonY[20];
+    s16 pPolygonXClipped[20];
+    s16 pPolygonYClipped[20];
+    s16 pPolygonXSaved[20];
+    s16 pPolygonYSaved[20];
+    s16 nPolygonClipVertexCount;
     unsigned char far *pPaletteScratchBuf;
     unsigned char pDriver_scratch_0x1a2[1306];
-    unsigned short wTextureIdx;
+    u16 wTextureIdx;
     unsigned char pReserved_0x6be[42];
     unsigned char bYResDoubled;
     unsigned char bReserved_0x6e9;
@@ -798,125 +798,125 @@ struct GraphicsContext {
 
 struct GraphicsContextRender {
     unsigned char pReserved_tail[560];
-    unsigned short wSpanTableBufSeg;
+    u16 wSpanTableBufSeg;
     unsigned char bVideoAutoDetectEnabled;
     unsigned char bReserved_0xab5;
 };
 
 struct GridCombatant {
-    short unused;
-    short paged_id;
+    s16 unused;
+    s16 paged_id;
     unsigned char tile_x;
     unsigned char tile_y;
 };
 
 struct IffResLevel {
-    unsigned short wEnd_lo;
-    unsigned short wEnd_hi_flags;
+    u16 wEnd_lo;
+    u16 wEnd_hi_flags;
 };
 
 struct IffResReader {
     struct IoFile *pStream;
     char pChunk_id_stack[25];
     IffResLevel pLevel_cache[7];
-    short nDepth;
-    short nSkip_count;
-    long nCursor;
-    unsigned short wChunk_size_lo;
-    unsigned short wChunk_size_hi_flags;
+    s16 nDepth;
+    s16 nSkip_count;
+    s32 nCursor;
+    u16 wChunk_size_lo;
+    u16 wChunk_size_hi_flags;
 };
 
 struct ImageRecord {
-    unsigned short wImageData;
-    unsigned short wImageOff;
-    unsigned short wUnk4;
-    short nWidth;
-    short nHeight;
+    u16 wImageData;
+    u16 wImageOff;
+    u16 wUnk4;
+    s16 nWidth;
+    s16 nHeight;
 };
 
 struct ItemRecord {
     char pName[32];
-    unsigned short wFlags;
-    unsigned short wName_split_off;
-    unsigned short wDamage_class_threshold;
-    short nBase_price;
-    short nSwing_damage;
-    short nThrust_damage;
-    short nDefense_or_range_close;
-    short nAttack_or_range_long;
-    unsigned short wUnk_30;
-    unsigned short wDefault_qty_or_1;
-    unsigned short wUse_sfx;
+    u16 wFlags;
+    u16 wName_split_off;
+    u16 wDamage_class_threshold;
+    s16 nBase_price;
+    s16 nSwing_damage;
+    s16 nThrust_damage;
+    s16 nDefense_or_range_close;
+    s16 nAttack_or_range_long;
+    u16 wUnk_30;
+    u16 wDefault_qty_or_1;
+    u16 wUse_sfx;
     unsigned char bMax_stack;
     unsigned char bCharges_per_use;
-    unsigned short wRace_mask;
-    unsigned short wSub_flags;
-    unsigned short wCategory;
-    unsigned short wEffect_arg_a;
-    unsigned short wEffect_arg_b;
-    unsigned short wEffect_chance_pct;
-    unsigned short wEffect_stat_value;
-    unsigned short wPlayer_stat_mask;
-    short nStat_value;
-    unsigned short wWeapon_break_chance_pct;
-    short nWeapon_break_amount;
-    unsigned short wCondition_floor;
+    u16 wRace_mask;
+    u16 wSub_flags;
+    u16 wCategory;
+    u16 wEffect_arg_a;
+    u16 wEffect_arg_b;
+    u16 wEffect_chance_pct;
+    u16 wEffect_stat_value;
+    u16 wPlayer_stat_mask;
+    s16 nStat_value;
+    u16 wWeapon_break_chance_pct;
+    s16 nWeapon_break_amount;
+    u16 wCondition_floor;
 };
 
 struct ItemSlot {
     unsigned char item_id;
     unsigned char condition;
-    unsigned short flags;
+    u16 flags;
 };
 
 struct ListWidget {
-    short nX;
-    short nY;
-    short nInner_w;
-    short nPixel_h;
-    short nVisible_rows;
-    short nAnchor_x;
-    short nAnchor_y;
-    unsigned short wCapacity;
-    unsigned short wCount;
-    unsigned short wScroll_offset;
+    s16 nX;
+    s16 nY;
+    s16 nInner_w;
+    s16 nPixel_h;
+    s16 nVisible_rows;
+    s16 nAnchor_x;
+    s16 nAnchor_y;
+    u16 wCapacity;
+    u16 wCount;
+    u16 wScroll_offset;
     char **pLabels;
-    unsigned short *pValues;
+    u16 *pValues;
     MenuEntry *pParent;
 };
 
 struct Mat3x3 {
-    short pM[9];
+    s16 pM[9];
     unsigned char bType;
 };
 
 struct MenuEntry {
-    unsigned short wWidget_type;
-    unsigned short wAction_id;
+    u16 wWidget_type;
+    u16 wAction_id;
     unsigned char bActive_flag;
-    unsigned short wBase_color;
-    unsigned short wEnable_gate;
-    unsigned short wSub_state;
+    u16 wBase_color;
+    u16 wEnable_gate;
+    u16 wSub_state;
     Rect rect;
     char *pLabel;
     char *pPrimary_label;
     char *pAlt_label;
-    unsigned short wSprite_base;
-    unsigned short wCursor_shape;
-    unsigned short wClick_flags;
-    unsigned short wClick_sfx_id;
+    u16 wSprite_base;
+    u16 wCursor_shape;
+    u16 wClick_flags;
+    u16 wClick_sfx_id;
 };
 
 struct MenuPage {
-    unsigned short wWants_screen_save;
-    unsigned short wVisible;
-    unsigned short wBg_color;
+    u16 wWants_screen_save;
+    u16 wVisible;
+    u16 wBg_color;
     Rect rect;
-    unsigned short wEntry_count;
+    u16 wEntry_count;
     MenuEntry *pEntries;
     char *pTitle;
-    short nTitle_x;
-    short nTitle_y;
+    s16 nTitle_x;
+    s16 nTitle_y;
     unsigned char far *pBackdrop_buffer;
 };
 
@@ -925,31 +925,31 @@ struct MeshPartRecord {
     unsigned char bEdgeVtxIdx;
     unsigned char bAnchorVtxIdx;
     unsigned char bVertexCount;
-    unsigned short wVertexPoolOff;
-    short nField6;
-    unsigned short wPolyListOff;
-    short nSub;
-    unsigned short wSubArrOff;
+    u16 wVertexPoolOff;
+    s16 nField6;
+    u16 wPolyListOff;
+    s16 nSub;
+    u16 wSubArrOff;
 };
 
 struct MusicChunkEntry {
-    int nId;
-    long nOffset;
+    s16 nId;
+    s32 nOffset;
 };
 
 struct MusicChunkHeader {
     MusicChunkEntry far *pEntries;
-    int nMagic;
-    int nEntries;
+    s16 nMagic;
+    s16 nEntries;
     unsigned char bFlag;
 };
 
 struct ObjFixedDiskHeader {
     unsigned char kind;
     unsigned char chap_band;
-    unsigned short world_item_id;
-    long nWorld_x;
-    long nWorld_y;
+    u16 world_item_id;
+    s32 nWorld_x;
+    s32 nWorld_y;
     unsigned char container_type;
     unsigned char num_items;
     unsigned char capacity;
@@ -963,45 +963,45 @@ struct ObjFixedTemplateBuffer {
 
 struct OLD_IMAGE_DOS_HEADER {
     char e_magic[2];
-    unsigned short e_cblp;
-    unsigned short e_cp;
-    unsigned short e_crlc;
-    unsigned short e_cparhdr;
-    unsigned short e_minalloc;
-    unsigned short e_maxalloc;
-    unsigned short e_ss;
-    unsigned short e_sp;
-    unsigned short e_csum;
-    unsigned short e_ip;
-    unsigned short e_cs;
-    unsigned short e_lfarlc;
-    unsigned short e_ovno;
+    u16 e_cblp;
+    u16 e_cp;
+    u16 e_crlc;
+    u16 e_cparhdr;
+    u16 e_minalloc;
+    u16 e_maxalloc;
+    u16 e_ss;
+    u16 e_sp;
+    u16 e_csum;
+    u16 e_ip;
+    u16 e_cs;
+    u16 e_lfarlc;
+    u16 e_ovno;
 };
 
 struct OLD_IMAGE_DOS_RELOC {
-    unsigned short offset;
-    unsigned short segment;
+    u16 offset;
+    u16 segment;
 };
 
 struct PagedArrayEntry {
     ImageRecord **imageRecord;
-    int nCount;
+    s16 nCount;
 };
 
 struct PageDirectory {
-    int nCount;
+    s16 nCount;
     BookPage far *pPages[1];
 };
 
 struct PerspDiv2Args {
-    long nNumX;
-    long nDenom;
-    long nNumY;
+    s32 nNumX;
+    s32 nDenom;
+    s32 nNumY;
 };
 
 struct PerspDiv2Result {
-    long nProjX;
-    long nProjY;
+    s32 nProjX;
+    s32 nProjY;
 };
 
 struct PlayerSpawnRecord {
@@ -1010,35 +1010,35 @@ struct PlayerSpawnRecord {
     unsigned char bTileY;
     unsigned char bSubX;
     unsigned char bSubY;
-    unsigned short wCameraHeading;
+    u16 wCameraHeading;
 };
 
 struct PolyEdge {
-    long nAcc;
-    long nStep;
+    s32 nAcc;
+    s32 nStep;
 };
 
 struct PolyRasterState {
-    int nRemapTableOff;
+    s16 nRemapTableOff;
     PolyEdge pEdge[3];
 };
 
 struct ProximityPolygon {
-    unsigned short wVertex_list_offset;
+    u16 wVertex_list_offset;
     unsigned char bVertex_count;
     unsigned char bShift;
-    short nBase_height;
-    unsigned short wReference_vertex_offset;
+    s16 nBase_height;
+    u16 wReference_vertex_offset;
     unsigned char pUnknown_8[2];
 };
 
 struct ProximityRecord {
-    unsigned short wRecord_id;
-    long nWorld_x;
-    long nWorld_y;
-    long nZ_base;
+    u16 wRecord_id;
+    s32 nWorld_x;
+    s32 nWorld_y;
+    s32 nZ_base;
     unsigned char pUnknown_e[4];
-    short nAngle;
+    s16 nAngle;
 };
 
 struct ProximityScanHit {
@@ -1046,22 +1046,22 @@ struct ProximityScanHit {
     ProximityRecord far *pRecord;
     unsigned char bHit_index;
     unsigned char bPad;
-    long nZ_delta;
+    s32 nZ_delta;
 };
 
 struct ProximityVertex {
     unsigned char cCx;
     unsigned char cCy;
-    short nX;
-    short nY;
+    s16 nX;
+    s16 nY;
 };
 
 struct ProximityZone {
-    short nMax_x;
-    short nMax_y;
+    s16 nMax_x;
+    s16 nMax_y;
     unsigned char bFlags;
     unsigned char bVertex_count;
-    unsigned short wVertex_table_offset;
+    u16 wVertex_table_offset;
 };
 
 struct ProximityZoneSettings {
@@ -1071,11 +1071,11 @@ struct ProximityZoneSettings {
 };
 
 struct R3dRendererState {
-    unsigned long dwMeshVertexFarPtrCache;
-    unsigned short wMeshVertexPoolOff;
-    unsigned short wMeshPartVertexCount;
-    unsigned short wMeshScaleShift;
-    unsigned short wMeshScaleResidual;
+    u32 dwMeshVertexFarPtrCache;
+    u16 wMeshVertexPoolOff;
+    u16 wMeshPartVertexCount;
+    u16 wMeshScaleShift;
+    u16 wMeshScaleResidual;
     unsigned char bMeshRenormCount;
     unsigned char _pad_0xd[1];
     unsigned char bCurMeshLod;
@@ -1087,37 +1087,37 @@ struct R3dRendererState {
     Mat3x3 mat3x3ViewRot;
     Mat3x3 mat3x3ActorRot;
     Mat3x3 mat3x3TempOut;
-    long nActorRelX;
-    long nActorRelY;
-    long nActorRelZ;
-    long nActorCamX;
-    long nActorCamZ;
-    long nActorCamY;
-    short nMeshCamOriginX;
-    short nMeshCamOriginY;
-    short nMeshCamOriginZ;
-    short nMeshOriginX;
-    short nMeshOriginY;
-    short nMeshOriginZ;
+    s32 nActorRelX;
+    s32 nActorRelY;
+    s32 nActorRelZ;
+    s32 nActorCamX;
+    s32 nActorCamZ;
+    s32 nActorCamY;
+    s16 nMeshCamOriginX;
+    s16 nMeshCamOriginY;
+    s16 nMeshCamOriginZ;
+    s16 nMeshOriginX;
+    s16 nMeshOriginY;
+    s16 nMeshOriginZ;
     unsigned char _pad_0x71[12];
-    short nCamViewYaw;
-    short nCamViewPitch;
+    s16 nCamViewYaw;
+    s16 nCamViewPitch;
     unsigned char _pad_0x81[2];
-    short nCurModelIdx;
+    s16 nCurModelIdx;
     void far *pCurActorPagedRec;
     unsigned char *pCurMeshPartVisTable;
-    long nMeshBoundHalfExtent;
-    long nActorBoundExtent;
-    long nActorLodZ;
-    unsigned short wActorProjScale;
+    s32 nMeshBoundHalfExtent;
+    s32 nActorBoundExtent;
+    s32 nActorLodZ;
+    u16 wActorProjScale;
     unsigned char _pad_0x99[6];
-    long nActorClampedCamZ;
-    short nMeshNormOriginX;
-    short nActorFarClipThreshold;
+    s32 nActorClampedCamZ;
+    s16 nMeshNormOriginX;
+    s16 nActorFarClipThreshold;
     unsigned char bScreenShift;
     unsigned char _pad_0xa8[1];
-    short nViewportCenterX;
-    short nViewportCenterY;
+    s16 nViewportCenterX;
+    s16 nViewportCenterY;
 };
 
 struct RendererVtable {
@@ -1174,62 +1174,62 @@ struct RendererVtable {
 };
 
 struct ResourceRemapDesc {
-    unsigned short wIdOrSeg;
-    unsigned short wOffset;
-    unsigned short wFlags;
+    u16 wIdOrSeg;
+    u16 wOffset;
+    u16 wFlags;
 };
 
 struct ScriptAnimNode {
-    unsigned short wTag;
-    unsigned short wIdB;
-    unsigned short wPcSaved;
-    unsigned short wPcJumpTarget;
-    unsigned short wPc;
-    unsigned short wDispatchPc;
-    unsigned short wFld_0c;
-    unsigned short wOpCursor;
-    unsigned short wFld_10;
-    unsigned short wFld_12;
-    unsigned short wFld_14;
-    unsigned short wFld_16;
-    unsigned short wFld_18;
-    unsigned short wFld_1a;
-    unsigned short wFld_1c;
+    u16 wTag;
+    u16 wIdB;
+    u16 wPcSaved;
+    u16 wPcJumpTarget;
+    u16 wPc;
+    u16 wDispatchPc;
+    u16 wFld_0c;
+    u16 wOpCursor;
+    u16 wFld_10;
+    u16 wFld_12;
+    u16 wFld_14;
+    u16 wFld_16;
+    u16 wFld_18;
+    u16 wFld_1a;
+    u16 wFld_1c;
     unsigned char bSavedFgColor;
     unsigned char bSavedFillColor;
     unsigned char bSavedClipEnabled;
-    short nSavedClipXmin;
-    short nSavedClipXmax;
-    short nSavedClipYmin;
-    short nSavedClipYmax;
-    unsigned short wInterval;
-    unsigned short wOpState;
-    unsigned short wCounter;
-    unsigned short wMode;
-    unsigned short wCountdown;
-    unsigned long dwDeadline;
-    unsigned long dwTimerExpiry;
+    s16 nSavedClipXmin;
+    s16 nSavedClipXmax;
+    s16 nSavedClipYmin;
+    s16 nSavedClipYmax;
+    u16 wInterval;
+    u16 wOpState;
+    u16 wCounter;
+    u16 wMode;
+    u16 wCountdown;
+    u32 dwDeadline;
+    u32 dwTimerExpiry;
     ScriptAnimNode *pNext;
 };
 
 struct ScriptBlock {
-    unsigned short wOpcode;
-    unsigned short wOperand;
+    u16 wOpcode;
+    u16 wOperand;
 };
 
 struct ScriptObject {
-    unsigned short wResourceId;
-    short nBlockCount;
+    u16 wResourceId;
+    s16 nBlockCount;
     unsigned char far *pTt3_data;
     unsigned char far *pTt3_end;
-    unsigned short pAhPagedImage[6];
-    unsigned short pAhFont[6];
+    u16 pAhPagedImage[6];
+    u16 pAhFont[6];
     unsigned char far *pCachedResource[6];
     unsigned char huge *pFreemem[12];
-    unsigned short pRectSrcX[12];
-    unsigned short pRectSrcY[12];
-    unsigned short pRectDstX[12];
-    unsigned short pRectDstY[12];
+    u16 pRectSrcX[12];
+    u16 pRectSrcY[12];
+    u16 pRectDstX[12];
+    u16 pRectDstY[12];
     unsigned char far *pNext;
     ScriptBlock far *far *pBlocks;
 };
@@ -1247,37 +1247,37 @@ struct SkyStrip {
     unsigned char bYBot;
     unsigned char bBaseRow;
     unsigned char bEndRow;
-    unsigned short wSiBase;
-    short nSiStride;
+    u16 wSiBase;
+    s16 nSiStride;
     unsigned char pPad[2];
 };
 
 struct Slot {
-    short nInitialised;
-    short nChannel_count;
-    unsigned short far *pScript_buf;
-    unsigned short far *pScript_end;
+    s16 nInitialised;
+    s16 nChannel_count;
+    u16 far *pScript_buf;
+    u16 far *pScript_end;
     ScriptObject far *pObjects_head;
-    unsigned short wObjects_head_alt;
-    unsigned short pChannel_state[80];
-    unsigned short pChannel_b2[80];
-    unsigned short far *pChannels[80];
-    unsigned long pChannel_alt[80];
-    unsigned short pOp_lists[80];
+    u16 wObjects_head_alt;
+    u16 pChannel_state[80];
+    u16 pChannel_b2[80];
+    u16 far *pChannels[80];
+    u32 pChannel_alt[80];
+    u16 pOp_lists[80];
 };
 
 struct SpellDef {
     char *pName;
-    short nCost;
-    short nCost_max;
-    short nSchool;
-    short nSpell_kind;
-    short nEffect_sprite_id;
-    short nEffect_kind;
-    short nInv_component_id;
-    short nEffect_subkind;
-    short nEffect_magnitude;
-    short nEffect_param;
+    s16 nCost;
+    s16 nCost_max;
+    s16 nSchool;
+    s16 nSpell_kind;
+    s16 nEffect_sprite_id;
+    s16 nEffect_kind;
+    s16 nInv_component_id;
+    s16 nEffect_subkind;
+    s16 nEffect_magnitude;
+    s16 nEffect_param;
 };
 
 struct SpellDocRow {
@@ -1291,18 +1291,18 @@ struct SpellDocRow {
 };
 
 struct SpellSymbolRecord {
-    unsigned short wSpellId;
-    short nHotspotX;
-    short nHotspotY;
+    u16 wSpellId;
+    s16 nHotspotX;
+    s16 nHotspotY;
     char cHotkeyLetter;
 };
 
 struct StatusEffectSlot {
-    short nType;
-    short nSource;
-    short nDuration_or_hp;
-    short nAge_ticks;
-    short nNext;
+    s16 nType;
+    s16 nSource;
+    s16 nDuration_or_hp;
+    s16 nAge_ticks;
+    s16 nNext;
     unsigned char bFlag;
 };
 
@@ -1315,89 +1315,89 @@ struct StreamDesc {
     unsigned char *pBuf;
     unsigned char huge *pScratch;
     StreamDescSrcUnion src;
-    unsigned long dwInPos;
-    unsigned long dwInSize;
-    unsigned long dwUncompressedSize;
-    unsigned long dwOutPos;
+    u32 dwInPos;
+    u32 dwInSize;
+    u32 dwUncompressedSize;
+    u32 dwOutPos;
     unsigned char bRingHead;
     unsigned char bRingTail;
-    unsigned long dwFileStartOff;
+    u32 dwFileStartOff;
     unsigned char bFlags;
 };
 
 struct TileMoveRecord {
     unsigned char bSubX;
     unsigned char bSubY;
-    short nHeading;
+    s16 nHeading;
 };
 
 struct TimerCallback {
-    unsigned short wOff;
-    unsigned short wSeg;
+    u16 wOff;
+    u16 wSeg;
 };
 
 struct TimerSched {
-    unsigned short wCountdown;
-    unsigned short wReload;
+    u16 wCountdown;
+    u16 wReload;
 };
 
 struct TownSceneActor {
     Rect rect;
-    unsigned short wChapterMask;
-    short nCursorShape;
+    u16 wChapterMask;
+    s16 nCursorShape;
     char cKind;
     char cClickCount;
-    short nNextScene;
-    short nAnimChannel;
-    unsigned long dwAltDialogKey;
-    unsigned long dwDialogKey;
+    s16 nNextScene;
+    s16 nAnimChannel;
+    u32 dwAltDialogKey;
+    u32 dwDialogKey;
     void far *pDdxRecord;
-    short nGateEventId;
-    short nGateMin;
-    short nGateMax;
+    s16 nGateEventId;
+    s16 nGateMin;
+    s16 nGateMax;
 };
 
 struct TownScene {
     char pAnimPrefix[13];
-    unsigned short wFlags;
-    short nExitScene;
-    short nMusicTrack;
-    short nMusicIntensity;
-    short nEntryAnim;
-    short nExitAnim;
-    short nIdleAnim;
-    short nActorCount;
-    unsigned long dwDialogKey;
+    u16 wFlags;
+    s16 nExitScene;
+    s16 nMusicTrack;
+    s16 nMusicIntensity;
+    s16 nEntryAnim;
+    s16 nExitAnim;
+    s16 nIdleAnim;
+    s16 nActorCount;
+    u32 dwDialogKey;
     void far *pDdxRecord;
     void far *pActor;
     TownSceneActor pAActors[1];
 };
 
 struct Vec3Long {
-    long nX;
-    long nY;
-    long nZ;
+    s32 nX;
+    s32 nY;
+    s32 nZ;
 };
 
 struct Vec3Short {
-    short nX;
-    short nY;
-    short nZ;
+    s16 nX;
+    s16 nY;
+    s16 nZ;
 };
 
 struct VfxRec {
-    short nW0;
-    short nW1;
-    short nW2;
+    s16 nW0;
+    s16 nW1;
+    s16 nW2;
 };
 
 struct WorldObject {
-    unsigned short shapeId;
+    u16 shapeId;
     WorldPos pos;
     EulerAngles orientation;
     union {
-        unsigned short stateBits;
-        short animationState;
+        u16 stateBits;
+        s16 animationState;
         EncounterActorAux near *encounterAux;
     } state;
 };
@@ -1407,7 +1407,7 @@ struct VisibleEntryList {
     unsigned char bParty_x;
     unsigned char bParty_y;
     unsigned char bRef_pair_index;
-    unsigned short wEntry_count;
+    u16 wEntry_count;
     WorldObject far *pEntries;
 };
 
@@ -1415,32 +1415,32 @@ struct WorldEntity {
     WorldObject base;
     EulerAngles angularVelocity;
     Vec3Short linearVelocity;
-    short forwardVelocity;
+    s16 forwardVelocity;
 };
 
 struct WorldHotspot {
     WorldObject far *pEntity;
-    unsigned long dwDist;
+    u32 dwDist;
     Rect rect;
 };
 
 struct ZoneEntryRecord {
     unsigned char pHeader[2];
     PlayerSpawnRecord spawn;
-    unsigned long dwPromptDlgKey;
-    unsigned long dwEntryDlgKey;
+    u32 dwPromptDlgKey;
+    u32 dwEntryDlgKey;
     unsigned char pTrailing[2];
 };
 
 struct ZoneHotspot {
-    unsigned short wKind;
+    u16 wKind;
     TileBBox bbox;
-    unsigned long dwDef_record_offset;
+    u32 dwDef_record_offset;
     unsigned char bInhibitChapter;
-    unsigned short wEvent_flag_pre1;
-    unsigned short wEvent_flag_pre2;
-    unsigned short wEvent_key_post;
-    unsigned short wRepeat;
+    u16 wEvent_flag_pre1;
+    u16 wEvent_flag_pre2;
+    u16 wEvent_key_post;
+    u16 wRepeat;
 };
 
 typedef DDXRecord far *PDdxRecord;

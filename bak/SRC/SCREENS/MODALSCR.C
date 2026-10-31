@@ -39,7 +39,7 @@
 #include "SRC/R3D/SCENE/ZONE.H"
 
 
-void modalscreen_teleport_dat_load(int n_index) {
+void modalscreen_teleport_dat_load(s16 n_index) {
     ResFile *file;
 
     file = res_fopen("TELEPORT.DAT", "rb");
@@ -48,10 +48,10 @@ void modalscreen_teleport_dat_load(int n_index) {
     res_fclose(file);
 }
 
-int far modalscreen_pending_scene_trans(void) {
+s16 far modalscreen_pending_scene_trans(void) {
     PlayerSpawnRecord spawn;
-    unsigned short scene_kind;
-    int hadPending;
+    u16 scene_kind;
+    s16 hadPending;
 
     spawn = *(PlayerSpawnRecord *)g_gameState.abTeleportRecord;
     hadPending = 0;
@@ -68,10 +68,10 @@ int far modalscreen_pending_scene_trans(void) {
             g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
             draw_rect_filled(0, 0, 0x140, 200);
         }
-        while (*(unsigned short *)&g_gameState.abTeleportRecord[7] != 0) {
-            scene_kind = *(unsigned short *)&g_gameState.abTeleportRecord[7];
-            *(unsigned short *)&g_gameState.abTeleportRecord[7] = 0;
-            townscene_main_loop(scene_kind, *(unsigned short *)&g_gameState.abTeleportRecord[9]);
+        while (*(u16 *)&g_gameState.abTeleportRecord[7] != 0) {
+            scene_kind = *(u16 *)&g_gameState.abTeleportRecord[7];
+            *(u16 *)&g_gameState.abTeleportRecord[7] = 0;
+            townscene_main_loop(scene_kind, *(u16 *)&g_gameState.abTeleportRecord[9]);
         }
         if (g_gameState.abTeleportRecord[0] != '\0') {
             spawn = *(PlayerSpawnRecord *)g_gameState.abTeleportRecord;
@@ -96,10 +96,10 @@ int far modalscreen_pending_scene_trans(void) {
 }
 
 static void far modalscreen_teleport_dest_sel(MenuPage *page, ImageRecord **asset_tbl,
-                                              int hover_city, int sel_city, int cost) {
-    int i;
-    int x;
-    int y;
+                                              s16 hover_city, s16 sel_city, s16 cost) {
+    s16 i;
+    s16 x;
+    s16 y;
     char buf[20];
     ImageRecord *sprite;
     MenuEntry *entry;
@@ -141,28 +141,28 @@ static void far modalscreen_teleport_dest_sel(MenuPage *page, ImageRecord **asse
     }
 }
 
-int modalscreen_teleport_spell_run(int current_city, long cost_base, int cost_per_unit) {
-    unsigned short savedBlend;
+s16 modalscreen_teleport_spell_run(s16 current_city, s32 cost_base, s16 cost_per_unit) {
+    u16 savedBlend;
     unsigned char far *savedPal;
     unsigned char far *palChunk;
     MenuPage *page;
     MenuEntry *destEntry;
     ImageRecord **assetTbl;
-    unsigned short redraw;
-    int hoverCity;
-    int prevHoverCity;
-    int result;
-    long cost;
-    int abx;
-    int err;
-    int frame;
-    int curX;
-    int curY;
-    unsigned int action;
+    u16 redraw;
+    s16 hoverCity;
+    s16 prevHoverCity;
+    s16 result;
+    s32 cost;
+    s16 abx;
+    s16 err;
+    s16 frame;
+    s16 curX;
+    s16 curY;
+    u16 action;
     MenuEntry *entry;
-    int i;
-    int dx, dy, aby;
-    int tx, ty, sgnx, sgny, adx, ady, sfx_handle;
+    s16 i;
+    s16 dx, dy, aby;
+    s16 tx, ty, sgnx, sgny, adx, ady, sfx_handle;
 
     savedBlend = g_nPalBlendMode;
     savedPal = palette_set((unsigned char far *)0);
@@ -234,15 +234,15 @@ int modalscreen_teleport_spell_run(int current_city, long cost_base, int cost_pe
                 /* Travel cost from the octagonal distance approximation
                  * max + min*3/8. */
                 if (abx < aby) {
-                    cost = (cost_base + (long)(aby + abx * 3 / 8) * (long)cost_per_unit) * 10;
+                    cost = (cost_base + (s32)(aby + abx * 3 / 8) * (s32)cost_per_unit) * 10;
                 } else {
-                    cost = (cost_base + (long)(abx + aby * 3 / 8) * (long)cost_per_unit) * 10;
+                    cost = (cost_base + (s32)(abx + aby * 3 / 8) * (s32)cost_per_unit) * 10;
                 }
                 cost = (cost + 5) / 10;
             } else {
                 cost = 0;
             }
-            modalscreen_teleport_dest_sel(page, assetTbl, current_city, hoverCity, (int)cost);
+            modalscreen_teleport_dest_sel(page, assetTbl, current_city, hoverCity, (s16)cost);
             screen_frame_present();
             screen_frame_sync_buffers_rect(0, 200);
         } else {
@@ -259,11 +259,11 @@ int modalscreen_teleport_spell_run(int current_city, long cost_base, int cost_pe
 
         if (action != 0 &&
             (menupage_state_0e7c() == 2 || key_is_down(0x2a) != 0 || key_is_down(0x36) != 0)) {
-            g_gameState.nEvtArgCount = (short)(action != 1);
+            g_gameState.nEvtArgCount = (s16)(action != 1);
             dialog_play_record(0x13d663L, 0);
             redraw = 1;
         } else {
-            if ((int)action > 0x80 && hoverCity != 0) {
+            if ((s16)action > 0x80 && hoverCity != 0) {
                 result = hoverCity;
             } else {
                 if (action == 1)
@@ -296,9 +296,9 @@ int modalscreen_teleport_spell_run(int current_city, long cost_base, int cost_pe
 
             i = 0;
             while (i <= adx) {
-                int tmp, yoff;
-                tmp = (int)(((long)i << 0xf) / (long)adx);
-                yoff = (int)(((long)r3d_tbl_sin(tmp) * (long)adx) / 6 >> 0xe);
+                s16 tmp, yoff;
+                tmp = (s16)(((s32)i << 0xf) / (s32)adx);
+                yoff = (s16)(((s32)r3d_tbl_sin(tmp) * (s32)adx) / 6 >> 0xe);
                 err += ady;
                 if (err >= adx) {
                     err -= adx;
@@ -316,9 +316,9 @@ int modalscreen_teleport_spell_run(int current_city, long cost_base, int cost_pe
 
             i = 0;
             while (i <= ady) {
-                int tmp, yoff;
-                tmp = (int)(((long)i << 0xf) / (long)ady);
-                yoff = (int)(((long)r3d_tbl_sin(tmp) * (long)ady) / 6 >> 0xe);
+                s16 tmp, yoff;
+                tmp = (s16)(((s32)i << 0xf) / (s32)ady);
+                yoff = (s16)(((s32)r3d_tbl_sin(tmp) * (s32)ady) / 6 >> 0xe);
                 abx += adx;
                 if (abx >= ady) {
                     abx -= ady;
@@ -369,18 +369,18 @@ int modalscreen_teleport_spell_run(int current_city, long cost_base, int cost_pe
 
 #define SLOT_PTR(act, id) (&ACTOR_ITEM((act), (id) - 0x80))
 
-void modalscreen_req_inv_run(int kind_or_id, int tax, int qty_mult, int char_slot) {
-    unsigned short redraw;
-    unsigned int i;
-    unsigned int action;
+void modalscreen_req_inv_run(s16 kind_or_id, s16 tax, s16 qty_mult, s16 char_slot) {
+    u16 redraw;
+    u16 i;
+    u16 action;
     unsigned char far *palChunk;
-    int partySlot;
+    s16 partySlot;
     Actor far *act_rec;
-    unsigned short savedBlend;
+    u16 savedBlend;
     unsigned char far *savedPal;
     register MenuPage *page;
     MenuEntry *entry;
-    register int memberSlot;
+    register s16 memberSlot;
 
     (void)kind_or_id;
 
@@ -459,15 +459,15 @@ void modalscreen_req_inv_run(int kind_or_id, int tax, int qty_mult, int char_slo
                 redraw = 1;
             } else {
                 ItemRecord far *rec;
-                int price;
+                s16 price;
                 slot_ptr = SLOT_PTR(act_rec, action);
                 rec = itemtbl_record_ptr(slot_ptr);
-                price = (int)((long)(unsigned)rec->nBase_price * qty_mult / 100 + (long)tax * 10);
+                price = (s16)((s32)(u16)rec->nBase_price * qty_mult / 100 + (s32)tax * 10);
                 g_gameState.nEvtArgItemId = slot_ptr->item_id;
-                g_gameState.lEvtArgGoldCost = (long)price;
+                g_gameState.lEvtArgGoldCost = (s32)price;
                 if (rec->wCategory == 4 || rec->wCategory == 1) {
                     if ((slot_ptr->flags & 0xe000) == 0 || dialog_play_record(0x13d66f, 0) == 0) {
-                        g_gameState.nEvtArgCount = (short)(rec->wCategory == 4);
+                        g_gameState.nEvtArgCount = (s16)(rec->wCategory == 4);
                         dialog_play_record(0x13d670, 0);
 
                         if (gstate_event_read(0x104) != 0) {
@@ -500,16 +500,16 @@ void modalscreen_req_inv_run(int kind_or_id, int tax, int qty_mult, int char_slo
 
 #define SLOT_PTR(act, id) (&ACTOR_ITEM((act), (id) - 0x80))
 
-void modalscreen_inventory_request(unsigned int category_mask, int discount_pct) {
-    unsigned short redraw;
-    unsigned int i;
-    unsigned int action;
-    int timeFlags;
-    unsigned short allowEventDialog;
+void modalscreen_inventory_request(u16 category_mask, s16 discount_pct) {
+    u16 redraw;
+    u16 i;
+    u16 action;
+    s16 timeFlags;
+    u16 allowEventDialog;
     unsigned char far *palChunk;
-    int party_slot;
+    s16 party_slot;
     Actor far *act_rec;
-    unsigned short savedBlend;
+    u16 savedBlend;
     unsigned char far *savedPal;
     register MenuPage *page;
     MenuEntry *entry;
@@ -560,7 +560,7 @@ void modalscreen_inventory_request(unsigned int category_mask, int discount_pct)
 
         {
             if (action == 2 || action == 3 || action == 4) {
-                int di = action - 2 + 1;
+                s16 di = action - 2 + 1;
                 if (g_gameState.partySize >= di) {
                     if (menupage_state_0e7c() == 2 || key_is_down(0x2a) != 0 ||
                         key_is_down(0x36) != 0) {
@@ -596,11 +596,11 @@ void modalscreen_inventory_request(unsigned int category_mask, int discount_pct)
                     redraw = 1;
                 } else {
 
-                    int sfx_id;
-                    int sfx_rep;
+                    s16 sfx_id;
+                    s16 sfx_rep;
                     ItemSlot far *slot_ptr;
                     ItemRecord far *rec;
-                    int di;
+                    s16 di;
 
                     di = 0;
                     slot_ptr = SLOT_PTR(act_rec, action);
@@ -608,12 +608,12 @@ void modalscreen_inventory_request(unsigned int category_mask, int discount_pct)
                     redraw = 1;
                     g_gameState.nEvtArgCount = rec->wCategory;
                     g_gameState.nEvtArgItemId = slot_ptr->item_id;
-                    g_gameState.lEvtArgValue = (unsigned int)(slot_ptr->flags & 0xff80);
+                    g_gameState.lEvtArgValue = (u16)(slot_ptr->flags & 0xff80);
 
                     switch (rec->wCategory) {
                     case 1:
                         if (category_mask & 1) {
-                            g_gameState.lEvtArgGoldCost = (long)(unsigned)rec->nBase_price *
+                            g_gameState.lEvtArgGoldCost = (s32)(u16)rec->nBase_price *
                                                           discount_pct *
                                                           (100L - slot_ptr->condition) / 10000L;
                             di = 4;
@@ -623,7 +623,7 @@ void modalscreen_inventory_request(unsigned int category_mask, int discount_pct)
                         break;
                     case 4:
                         if (category_mask & 2) {
-                            g_gameState.lEvtArgGoldCost = (long)(unsigned)rec->nBase_price *
+                            g_gameState.lEvtArgGoldCost = (s32)(u16)rec->nBase_price *
                                                           discount_pct *
                                                           (100L - slot_ptr->condition) / 10000L;
                             di = 8;
@@ -636,7 +636,7 @@ void modalscreen_inventory_request(unsigned int category_mask, int discount_pct)
                             ItemRecord far *rec2;
                             rec2 =
                                 itemtbl_record_ptr_by_id(slot_ptr->item_id == 0x20 ? 0x4c : 0x4d);
-                            g_gameState.lEvtArgGoldCost = (long)(unsigned)rec2->nBase_price << 1;
+                            g_gameState.lEvtArgGoldCost = (s32)(u16)rec2->nBase_price << 1;
                             di = 2;
                             sfx_id = 0x16;
                             sfx_rep = 0;
@@ -686,8 +686,8 @@ void modalscreen_inventory_request(unsigned int category_mask, int discount_pct)
 
 static void modalscreen_inv_draw_gold_amount(void) {
     char szAmount[40];
-    register int x;
-    register int y;
+    register s16 x;
+    register s16 y;
 
     x = 139;
     y = 89;
@@ -701,14 +701,14 @@ static void modalscreen_inv_draw_gold_amount(void) {
 }
 
 void modalscreen_rest_until_time(Actor far *pActor) {
-    int done;
-    int firstLoop;
-    unsigned long saved_time;
-    unsigned short saved_blend;
+    s16 done;
+    s16 firstLoop;
+    u32 saved_time;
+    u16 saved_blend;
     unsigned char far *saved_pal;
     unsigned char far *pal_chunk;
     ActorSubrecord far *sub;
-    unsigned int i;
+    u16 i;
 
     done = 0;
     firstLoop = 1;
@@ -753,7 +753,7 @@ void modalscreen_rest_until_time(Actor far *pActor) {
     screen_clear_back_buffer();
 
     while (done == 0) {
-        done = (unsigned long)(g_gameState.game_time % 0xa8c0) / 0x708 * 0x708;
+        done = (u32)(g_gameState.game_time % 0xa8c0) / 0x708 * 0x708;
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
         g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaPage1Base;
         gfx_present_dispatch(0, 0, 0x140, 200);
@@ -766,16 +766,16 @@ void modalscreen_rest_until_time(Actor far *pActor) {
         if (firstLoop) {
             palette_fade_in(0, 0x100, 4, 1);
         }
-        g_gameState.lEvtArgGoldCost = (long)(int)sub->event_state.bRest_gold_cost * 10;
-        g_gameState.lEvtArgValue = (long)(int)sub->event_state.bRest_target_hour;
-        g_gameState.nEvtArgCount = (short)!firstLoop;
+        g_gameState.lEvtArgGoldCost = (s32)(s16)sub->event_state.bRest_gold_cost * 10;
+        g_gameState.lEvtArgValue = (s32)(s16)sub->event_state.bRest_target_hour;
+        g_gameState.nEvtArgCount = (s16)!firstLoop;
         if (dialog_play_record(0x13d672, 0) == 0) {
             g_dialog_in_scene = 0;
             gstate_advance_hours(1, 100, 0x85);
             do {
                 for (i = 0; i < 2; i++) {
-                    done = (int)((unsigned long)(g_gameState.game_time % 0xa8c0) / 0x708 * 0x708) +
-                           (int)((long)(i * 0x708L) / 2);
+                    done = (s16)((u32)(g_gameState.game_time % 0xa8c0) / 0x708 * 0x708) +
+                           (s16)((s32)(i * 0x708L) / 2);
                     g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaPage1Base;
                     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
                     gfx_present_dispatch(0xd, 0xb, 0x125, 99);
@@ -789,17 +789,17 @@ void modalscreen_rest_until_time(Actor far *pActor) {
                 }
                 gstate_advance_hours(1, 100, 0x85);
                 if (g_gameState.game_time - saved_time >= 0x5b68) {
-                    for (i = 0; i < (unsigned)(int)g_gameState.partySize; i++) {
+                    for (i = 0; i < (u16)(s16)g_gameState.partySize; i++) {
                         stat_combatant_apply_condition(gstate_party_member_record(i), 0, -100);
                     }
                 }
-            } while ((unsigned long)(g_gameState.game_time % 0xa8c0) / 0x708 !=
+            } while ((u32)(g_gameState.game_time % 0xa8c0) / 0x708 !=
                      sub->event_state.bRest_target_hour);
             firstLoop = 0;
-            g_gameState.nParty_gold -= (int)(sub->event_state.bRest_gold_cost * 10);
+            g_gameState.nParty_gold -= (s16)(sub->event_state.bRest_gold_cost * 10);
             i = 0;
             done = 1;
-            for (; i < (unsigned)(int)g_gameState.partySize; i++) {
+            for (; i < (u16)(s16)g_gameState.partySize; i++) {
                 if (stat_actor_get(gstate_party_member_record(i), 0x10, 0) !=
                     stat_actor_get(gstate_party_member_record(i), 0x10, 1)) {
                     done = 0;

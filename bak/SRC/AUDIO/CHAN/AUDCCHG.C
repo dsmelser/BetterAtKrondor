@@ -3,7 +3,7 @@
 #include "SRC/AUDIO/CHAN/SFXCHAN.H"
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
-int audio_chan_apply_ctrl_change(int channel, int ctrlNum, int value, int midiChannel) {
+s16 audio_chan_apply_ctrl_change(s16 channel, s16 ctrlNum, s16 value, s16 midiChannel) {
     AudioTrackHandle far *state;
 
     if ((state = sfxchan_apply_to_channels(channel)) != 0) {

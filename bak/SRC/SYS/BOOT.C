@@ -43,16 +43,16 @@
 #include "SRC/GAME/ACTOR/ACTSPAWN.H"
 #include "SRC/SCREENS/MAINMENU.H"
 
-unsigned short g_wTimerTickRegistrySlot;
-short g_nWorldViewYawNormal;
-short g_nWorldViewYawChapter;
-short g_nWorldViewFovNormal;
+u16 g_wTimerTickRegistrySlot;
+s16 g_nWorldViewYawNormal;
+s16 g_nWorldViewYawChapter;
+s16 g_nWorldViewFovNormal;
 unsigned char g_bssgap_4c53;
 unsigned char g_nWorldViewFovChapter;
 
-int g_nEmsInit = 1;
-int g_nEmsResourcesEnabled = 0;
-unsigned short g_wEmmPagesFree = 0x0000;
+s16 g_nEmsInit = 1;
+s16 g_nEmsResourcesEnabled = 0;
+u16 g_wEmmPagesFree = 0x0000;
 char g_szVmcodeOvl[11] = "vmcode.ovl";
 
 #ifdef V102CD
@@ -122,7 +122,7 @@ void boot_sfx_resources_release(void) {
 }
 
 void far boot_party_state_load_from_temp(void) {
-    int i;
+    s16 i;
 
     gstate_temp_file_read_at(&g_gameState, 0L, 0xad7);
     for (i = 0; i < CHARACTER_POOL_SIZE; i++) {
@@ -135,7 +135,7 @@ void far boot_party_state_load_from_temp(void) {
 }
 
 void far boot_party_state_save_to_temp(void) {
-    int i;
+    s16 i;
 
     g_pendingTempWriteRegion = TWR_GAMESTATE;
     gstate_temp_file_write_at((unsigned char far *)&g_gameState, 0L, 0xad7);
@@ -146,11 +146,11 @@ void far boot_party_state_save_to_temp(void) {
     }
 }
 
-void boot_video_init_for_mode(int mode) {
+void boot_video_init_for_mode(s16 mode) {
     g_bPaletteCycleEbActive = 0;
     g_cBusyCursorShown = '\0';
     mouse_set_handler_cb(mode ? (void far *)0 : (void far *)syslowio_mouse_handler_cb_noop);
-    video_init(mode ? (int)VIDEO_MODE_NEW : (int)VIDEO_MODE_VGA, -1, g_szVmcodeOvl);
+    video_init(mode ? (s16)VIDEO_MODE_NEW : (s16)VIDEO_MODE_VGA, -1, g_szVmcodeOvl);
 
     mouse_set_cursor_clip_rect(0, 0, mode ? SCREEN_W_NEW : SCREEN_W_VGA,
                                mode ? SCREEN_H_NEW : SCREEN_H_VGA);
@@ -159,10 +159,10 @@ void boot_video_init_for_mode(int mode) {
 
 void boot_check_memory_or_die(void) {
     ResFile *file;
-    int file_missing;
-    unsigned short emmPagesFree;
-    unsigned long requiredBytes;
-    unsigned long freeBytes;
+    s16 file_missing;
+    u16 emmPagesFree;
+    u32 requiredBytes;
+    u32 freeBytes;
 
     file = res_fopen("mem.dat", "rb");
     if (file != (ResFile *)0x0) {
@@ -174,8 +174,8 @@ void boot_check_memory_or_die(void) {
         file_missing = 1;
     }
     emmPagesFree = ems_get_free_memory();
-    freeBytes = (unsigned long)(long)alloc_far(0xffffffff, 0);
-    if (((int)emmPagesFree < 0x40) || (freeBytes < requiredBytes)) {
+    freeBytes = (u32)(s32)alloc_far(0xffffffff, 0);
+    if (((s16)emmPagesFree < 0x40) || (freeBytes < requiredBytes)) {
         boot_sfx_resources_release();
         if (g_pSfxArchiveStream != (ResFile *)0x0) {
             cached_file_close(g_pSfxArchiveStream);
@@ -247,7 +247,7 @@ void far boot_subsystems_init(void) {
         if (ems_init() == 0) {
             g_nEmsInit = 0;
         } else {
-            if (100 < (int)(g_wEmmPagesFree = ems_get_free_memory())) {
+            if (100 < (s16)(g_wEmmPagesFree = ems_get_free_memory())) {
                 g_nEmsResourcesEnabled = 1;
             }
         }
@@ -271,7 +271,7 @@ void far boot_main_menu_resources_free(void) {
     return;
 }
 
-void boot_engine_exit(int exit_code) {
+void boot_engine_exit(s16 exit_code) {
     boot_sfx_resources_release();
     if (g_pSfxArchiveStream != (ResFile *)0x0) {
         cached_file_close(g_pSfxArchiveStream);

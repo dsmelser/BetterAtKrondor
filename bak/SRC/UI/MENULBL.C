@@ -6,12 +6,12 @@
 #include "SRC/GFX/SPRITE/SPRTHNKS.H"
 #include "SRC/SCRIPT/ADSCRIPT.H"
 
-short g_nCreditsScrollYOffset;
-short g_nCreditsMaxLabelHeight;
+s16 g_nCreditsScrollYOffset;
+s16 g_nCreditsMaxLabelHeight;
 
 void menulbl_calc_max_label_width(void) {
     ImageRecord **table;
-    int i;
+    s16 i;
 
     g_nCreditsMaxLabelHeight = 0;
     g_nCreditsScrollYOffset = 0;
@@ -24,14 +24,14 @@ void menulbl_calc_max_label_width(void) {
     return;
 }
 
-void menulbl_scroll_step_and_draw(int a, int b, int c) {
+void menulbl_scroll_step_and_draw(s16 a, s16 b, s16 c) {
     ImageRecord **table;
-    int count;
-    int dst_y;
-    int h;
-    int adv;
-    int i;
-    unsigned flag;
+    s16 count;
+    s16 dst_y;
+    s16 h;
+    s16 adv;
+    s16 i;
+    u16 flag;
 
     table = (ImageRecord **)g_pCurScriptObject->pAhPagedImage[g_pCurScriptAnimNode->wFld_14];
     if (table != 0) {
@@ -40,13 +40,13 @@ void menulbl_scroll_step_and_draw(int a, int b, int c) {
             dst_y = g_wScreen_height - g_nCreditsScrollYOffset;
             flag = 1;
             for (i = 0; i < count; i++) {
-                if (dst_y > (int)g_wScreen_height) {
+                if (dst_y > (s16)g_wScreen_height) {
                     break;
                 }
                 h = table[i]->nWidth;
                 adv = table[i]->nHeight;
                 if (-g_nCreditsMaxLabelHeight < dst_y) {
-                    blit_sprite_indirect((unsigned short)table[i], c, dst_y, 0);
+                    blit_sprite_indirect((u16)table[i], c, dst_y, 0);
                     adscript_op_noop(c, dst_y, h, adv);
                     flag = 0;
                 }

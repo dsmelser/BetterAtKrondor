@@ -3,8 +3,8 @@
 
 #include "structs.h"
 
-extern void snddrv_patch_farptr(unsigned short offset, unsigned short segment);
-extern unsigned short snddrv_dispatch_cached(int cmd, int data);
-extern void snddrv_dispatch(int cmd, int data);
+extern void snddrv_patch_farptr(u16 offset, u16 segment);
+extern u16 snddrv_dispatch_cached(s16 cmd, s16 data);
+extern void snddrv_dispatch(s16 cmd, s16 data);
 
 #endif

@@ -36,8 +36,8 @@ char *g_cfgResourceDrivePrefix = "x:";
 char g_cfgCdDriveLetter = 'x';
 #endif
 bool16 g_cfgKnockKnock = FALSE;
-int g_cfgCycle = 0;
-int g_cfgTempDrive = 0;
+s16 g_cfgCycle = 0;
+s16 g_cfgTempDrive = 0;
 bool16 g_cfgBookmarkVerify = TRUE;
 #ifdef V102CD
 bool16 g_cfgNonRotatingMap = FALSE;
@@ -46,9 +46,9 @@ bool16 g_cfgNonRotatingMap = FALSE;
 
 void parse_krondor_cfg(void) {
     char token[40];
-    int done;
+    s16 done;
     register FILE *fp;
-    int i;
+    s16 i;
 
     done = 0;
     fp = fopen("resource.cfg", "rb");

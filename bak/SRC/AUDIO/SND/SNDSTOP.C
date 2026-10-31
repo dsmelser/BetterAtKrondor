@@ -6,7 +6,7 @@
 #include "SRC/INPUT/TIMER.H"
 #include "SRC/AUDIO/DRIVER/MIDI.H"
 
-short g_nSpinWaitTicks;
+s16 g_nSpinWaitTicks;
 
 void audioteardown_rel_strm_bufs(void) {
     if (g_pSfxDriver != 0) {
@@ -33,7 +33,7 @@ void audioteardown_rel_strm_bufs(void) {
 }
 
 void audioteardown_spin_wait_drain(void) {
-    int slot;
+    s16 slot;
 
     g_nSpinWaitTicks = 5;
     slot = registry_slot_alloc(audioteardown_drain_sem_dec, 4);

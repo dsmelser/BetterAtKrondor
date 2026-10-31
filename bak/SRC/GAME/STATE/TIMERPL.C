@@ -5,8 +5,8 @@
 #include "SRC/GAME/STATE/GSTATE.H"
 #include "SRC/COMBAT/SPELL/SPELLFX.H"
 
-TimerEventEntry *far timerpool_upsert(unsigned short kind, unsigned short sub_id, unsigned short mode, long value) {
-    int i;
+TimerEventEntry *far timerpool_upsert(u16 kind, u16 sub_id, u16 mode, s32 value) {
+    s16 i;
     TimerEventEntry *p;
 
     if ((mode & 0x80) || (mode & 0x40)) {
@@ -37,14 +37,14 @@ TimerEventEntry *far timerpool_upsert(unsigned short kind, unsigned short sub_id
     return (TimerEventEntry *)0;
 }
 
-void timerpool_tick(int delta_ticks) {
+void timerpool_tick(s16 delta_ticks) {
     TimerEventEntry *entry;
-    int i;
+    s16 i;
 
     entry = g_gameState.aTimerEventPool;
     i = 0;
     while (i < g_gameState.nTimerEventPoolCount) {
-        entry->nValue -= (long)delta_ticks;
+        entry->nValue -= (s32)delta_ticks;
         if (entry->nValue <= 0) {
             entry->nValue = 0;
         }
@@ -71,8 +71,8 @@ void timerpool_tick(int delta_ticks) {
     }
 }
 
-int far timerpool_contains(unsigned short kind, unsigned short sub_id) {
-    int i;
+s16 far timerpool_contains(u16 kind, u16 sub_id) {
+    s16 i;
     TimerEventEntry *p;
 
     i = 0;

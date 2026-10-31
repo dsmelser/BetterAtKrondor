@@ -4,7 +4,7 @@
 #include "SRC/AUDIO/ENGINE/AUDITER.H"
 #include "SRC/AUDIO/ENGINE/AUDSTART.H"
 
-int audio_start_pending(int filter) {
+s16 audio_start_pending(s16 filter) {
     AudioListNode far *node;
 
     if (filter > 0) {

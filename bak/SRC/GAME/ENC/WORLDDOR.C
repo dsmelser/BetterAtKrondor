@@ -8,7 +8,7 @@
 #include "SRC/GAME/ACTOR/ACTORREC.H"
 
 void far worlddoor_pref_slots_clear_all(void) {
-    unsigned int i;
+    u16 i;
 
     i = 0;
     do {
@@ -20,15 +20,15 @@ void far worlddoor_pref_slots_clear_all(void) {
 
 void far worlddoor_load_door_records(VisibleEntryList *list) {
     WorldObject far *cur;
-    register int i;
-    register int count;
+    register s16 i;
+    register s16 count;
     Actor far *actor;
     ActorSubrecord far *sub20;
     ActorSubrecord far *sub1;
-    short door_variant;
-    unsigned int flags_val;
-    unsigned int stateWord;
-    unsigned int event_result;
+    s16 door_variant;
+    u16 flags_val;
+    u16 stateWord;
+    u16 event_result;
 
     cur = list->pEntries;
     count = list->wEntry_count;
@@ -52,7 +52,7 @@ void far worlddoor_load_door_records(VisibleEntryList *list) {
                             cur->shapeId = 0x5c;
                             stateWord = 0;
                         }
-                        stateWord |= (unsigned int)door_variant << 3;
+                        stateWord |= (u16)door_variant << 3;
                         if (event_result != 0) {
                             stateWord |= 0x800;
                         }
@@ -71,8 +71,8 @@ void far worlddoor_load_door_records(VisibleEntryList *list) {
 }
 
 void far worlddoor_rndr_enc_mark_actor(WorldObject far *entry) {
-    short saved_variant;
-    unsigned int state;
+    s16 saved_variant;
+    u16 state;
     unsigned char color_idx;
 
     saved_variant = entry->orientation.pitch;
@@ -85,7 +85,7 @@ void far worlddoor_rndr_enc_mark_actor(WorldObject far *entry) {
             entry->shapeId = 0x5c;
         }
         g_nEncounterMarkerColorIdx = color_idx;
-        entry->state.stateBits = (unsigned short)&g_nEncounterMarkerColorIdx;
+        entry->state.stateBits = (u16)&g_nEncounterMarkerColorIdx;
         entry->orientation.pitch = 0;
         actorrender_entity(entry);
         entry->state.stateBits = state;

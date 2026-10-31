@@ -4,9 +4,9 @@
 #include "SRC/AUDIO/RES/POOL.H"
 #include "SRC/AUDIO/SND/SNDBUFFR.H"
 
-int audio_buffers_alloc_all(void) {
+s16 audio_buffers_alloc_all(void) {
     AudioTrackHandle far *buf;
-    int i;
+    s16 i;
 
     if (g_apSfxSlotPool[0] == 0) {
         for (i = 0; i < 7; i++) {

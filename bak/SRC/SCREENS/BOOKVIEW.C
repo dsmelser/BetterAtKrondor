@@ -5,9 +5,9 @@
 
 BookViewerState *g_pBookViewer;
 
-unsigned short g_wTextWrapXAccum = 0x0000;
-unsigned short g_wTextWrapLinesDrawn = 0x0000;
-unsigned short g_wTextWrapLinesRemaining = 0x0000;
+u16 g_wTextWrapXAccum = 0x0000;
+u16 g_wTextWrapLinesDrawn = 0x0000;
+u16 g_wTextWrapLinesRemaining = 0x0000;
 
 #include <stdlib.h>
 
@@ -33,10 +33,10 @@ unsigned short g_wTextWrapLinesRemaining = 0x0000;
 
 void bookview_init(void) {
     ResFile *file;
-    int stream;
+    s16 stream;
     unsigned char far *p;
-    int row;
-    int stride;
+    s16 row;
+    s16 stride;
 
     g_pBookViewer = (BookViewerState *)calloc(1, 100);
     g_pBookViewer->pFontSlots[1] = font_load("BOOK.FNT");
@@ -72,7 +72,7 @@ void bookview_init(void) {
         p += 0x140;
     }
 
-    stride = (int)rect_byte_size(0x280, 1) + 8;
+    stride = (s16)rect_byte_size(0x280, 1) + 8;
 
     p = ems_map_resource_pages(g_pBookViewer->nEmsPage0);
     row = 0;
@@ -108,9 +108,9 @@ void bookview_shutdown(void) {
 
 static PageDirectory far *bookview_load_page_directory(char *filename) {
     PageDirectory far *dir;
-    unsigned long size;
+    u32 size;
     ResFile *file;
-    int i;
+    s16 i;
 
     file = res_fopen(filename, "rb");
     if (!file) {
@@ -118,23 +118,23 @@ static PageDirectory far *bookview_load_page_directory(char *filename) {
     }
     res_fread(&size, 1, 4, file);
     dir = (PageDirectory far *)alloc_far(size, 0L);
-    res_fread_far(dir, 1L, (long)size, file);
+    res_fread_far(dir, 1L, (s32)size, file);
     res_fclose(file);
     for (i = 0; i < dir->nCount; i++) {
-        dir->pPages[i] = (BookPage far *)((char huge *)dir + (unsigned long)dir->pPages[i]);
+        dir->pPages[i] = (BookPage far *)((char huge *)dir + (u32)dir->pPages[i]);
     }
     return dir;
 }
 
 static void bookview_freemem_if_not_null(unsigned char far *ptr) {
-    if ((unsigned long)ptr != 0) {
+    if ((u32)ptr != 0) {
         _freemem(ptr);
     }
     return;
 }
 
-BookPage far *bookview_find_page_by_number(PageDirectory far *page_directory, int page_number) {
-    int i;
+BookPage far *bookview_find_page_by_number(PageDirectory far *page_directory, s16 page_number) {
+    s16 i;
 
     for (i = 0; page_directory->nCount > i; i++) {
         if (page_directory->pPages[i]->wPageNumber == page_number)
@@ -143,14 +143,14 @@ BookPage far *bookview_find_page_by_number(PageDirectory far *page_directory, in
     return (BookPage far *)0L;
 }
 
-int bookview_show(char *filename, int page_number) {
-    int firstPage;
-    int needRender;
+s16 bookview_show(char *filename, s16 page_number) {
+    s16 firstPage;
+    s16 needRender;
     PageDirectory far *dir;
     BookPage far *page;
     BookPage far *next;
-    register int i;
-    register int rc;
+    register s16 i;
+    register s16 rc;
 
     firstPage = 1;
     needRender = 1;
@@ -211,7 +211,7 @@ int bookview_show(char *filename, int page_number) {
                    (g_bJoystick0Installed != 0 &&
                     (joystick_button_pressed(0) != 0 || joystick_button_pressed(1) != 0))) {
             }
-            if ((short)page->wNextPageNumber == -2 ||
+            if ((s16)page->wNextPageNumber == -2 ||
                 (page->wNextPageNumber == page->wPagePointer && g_pBookViewer->nTerminate != 0)) {
                 goto set_rc_terminate;
             }

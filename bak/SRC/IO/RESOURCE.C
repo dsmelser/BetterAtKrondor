@@ -27,11 +27,11 @@ bool8 g_resInFopen;
 bool8 g_resFopenRetry;
 bool8 g_resArchivesDirty;
 char g_resOpenHandleCount;
-unsigned long g_resLookupHash;
-int g_resCurrentArchive;
-int g_resArchiveCount;
-int g_resHashSeed;
-int g_resHashRotate;
+u32 g_resLookupHash;
+s16 g_resCurrentArchive;
+s16 g_resArchiveCount;
+s16 g_resHashSeed;
+s16 g_resHashRotate;
 FileHandle *g_resFindHandleCacheVal;
 ResFile *g_resFindHandleCacheKey;
 
@@ -41,7 +41,7 @@ static FileHandle *res_resolve_handle(ResFile *file);
 
 ResFile *res_fopen(char *filename, char *mode) {
     char name[14];
-    int count;
+    s16 count;
     register FileHandle *handle;
     register FILE *fp;
 
@@ -116,8 +116,8 @@ ResFile *res_fopen(char *filename, char *mode) {
     return (ResFile *)handle;
 }
 
-int res_fclose(ResFile *file) {
-    int result;
+s16 res_fclose(ResFile *file) {
+    s16 result;
     FileHandle *handle;
 
     result = 0;
@@ -136,10 +136,10 @@ int res_fclose(ResFile *file) {
     return result;
 }
 
-int res_fread(void *ptr, int size, int count, ResFile *file) {
-    int itemsRead;
+s16 res_fread(void *ptr, s16 size, s16 count, ResFile *file) {
+    s16 itemsRead;
     bool16 singleObj;
-    unsigned byteCount;
+    u16 byteCount;
     FileHandle *handle;
 
     singleObj = FALSE;
@@ -172,7 +172,7 @@ int res_fread(void *ptr, int size, int count, ResFile *file) {
     return itemsRead;
 }
 
-int res_fseek(ResFile *file, long offset, int whence) {
+s16 res_fseek(ResFile *file, s32 offset, s16 whence) {
     FileHandle *handle;
 
     if (g_resArchiveCount == 0 || (handle = res_resolve_handle(file)) == NULL)
@@ -182,18 +182,18 @@ int res_fseek(ResFile *file, long offset, int whence) {
     if (whence == SEEK_CUR) {
         offset += handle->curOffset;
     } else if (whence == SEEK_END) {
-        if ((unsigned long)offset >= handle->length)
+        if ((u32)offset >= handle->length)
             offset = 0;
         else
             offset = handle->length - offset;
     }
-    if ((unsigned long)offset > handle->length)
+    if ((u32)offset > handle->length)
         offset = handle->length;
     handle->curOffset = offset;
     return 0;
 }
 
-long res_ftell(ResFile *file) {
+s32 res_ftell(ResFile *file) {
     FileHandle *handle;
 
     if (g_resArchiveCount == 0 || (handle = res_resolve_handle(file)) == NULL)
@@ -204,9 +204,9 @@ long res_ftell(ResFile *file) {
         return handle->curOffset;
 }
 
-long res_filelength(ResFile *file) {
-    long savedPos;
-    long result;
+s32 res_filelength(ResFile *file) {
+    s32 savedPos;
+    s32 result;
     FileHandle *handle;
 
     if (g_resArchiveCount == 0 || (handle = res_resolve_handle(file)) == NULL ||
@@ -225,8 +225,8 @@ void res_rewind(ResFile *file) {
     res_fseek(file, 0L, SEEK_SET);
 }
 
-int res_fgetc(ResFile *file) {
-    int result;
+s16 res_fgetc(ResFile *file) {
+    s16 result;
     FileHandle *handle;
 
     g_resLastFgetcFile = file;
@@ -253,7 +253,7 @@ int res_fgetc(ResFile *file) {
     return result;
 }
 
-int res_feof(ResFile *file) {
+s16 res_feof(ResFile *file) {
     FileHandle *handle;
 
     if (g_resArchiveCount == 0 || (handle = res_resolve_handle(file)) == NULL)
@@ -264,10 +264,10 @@ int res_feof(ResFile *file) {
         return handle->curOffset >= handle->length ? 1 : 0;
 }
 
-int res_fwrite(void *ptr, int size, int count, ResFile *file) {
+s16 res_fwrite(void *ptr, s16 size, s16 count, ResFile *file) {
     void *buf;
     FileHandle *handle;
-    int written;
+    s16 written;
 
     buf = ptr;
     if (g_resArchiveCount == 0 || (handle = res_resolve_handle(file)) == NULL) {
@@ -281,9 +281,9 @@ int res_fwrite(void *ptr, int size, int count, ResFile *file) {
     return written;
 }
 
-int res_putc(int c, ResFile *file) {
+s16 res_putc(s16 c, ResFile *file) {
     FileHandle *handle;
-    int result;
+    s16 result;
 
     if (g_resArchiveCount == 0 || (handle = res_resolve_handle(file)) == NULL) {
         result = fputc(c, (FILE *)file);
@@ -315,10 +315,10 @@ static void interrupt far res_critical_error_handler();
 
 void res_setup(void) {
     RmfEntry far *entry;
-    int archiveIdx;
-    int readCount;
-    unsigned long hashVal;
-    unsigned long offsetVal;
+    s16 archiveIdx;
+    s16 readCount;
+    u32 hashVal;
+    u32 offsetVal;
     char *filenamePtr;
     register FILE *fp;
     register Archive *arc;
@@ -382,7 +382,7 @@ void res_setup(void) {
 }
 
 void res_cleanup(void) {
-    int i;
+    s16 i;
 
     // Free each archive's loaded directory table.
     i = 0;
@@ -410,8 +410,8 @@ void res_invalidate_archives(void) {
 }
 
 
-unsigned long res_filename_hash(char *filename) {
-    unsigned long val;
+u32 res_filename_hash(char *filename) {
+    u32 val;
 
     val = g_resHashSeed;
     if (filename == NULL)
@@ -427,12 +427,12 @@ unsigned long res_filename_hash(char *filename) {
 }
 
 
-int res_lookup(FileHandle *handle) {
+s16 res_lookup(FileHandle *handle) {
     RmfEntry far *entry;
-    unsigned long hash;
-    int above;
-    int below;
-    int i;
+    u32 hash;
+    s16 above;
+    s16 below;
+    s16 i;
 
     hash = g_resLookupHash;
 
@@ -484,7 +484,7 @@ int res_lookup(FileHandle *handle) {
 }
 
 
-void res_select_archive(int archiveIndex) {
+void res_select_archive(s16 archiveIndex) {
     bool16 probeFailed;
     Archive *arc;
 #ifdef V102CD
@@ -533,12 +533,12 @@ void res_select_archive(int archiveIndex) {
 }
 
 
-void res_archive_seek(unsigned long offset) {
+void res_archive_seek(u32 offset) {
     Archive *ar;
 
     ar = &g_resArchives[g_resCurrentArchive];
     if (ar->filePos != offset) {
-        fseek(ar->fp, (long)offset, SEEK_SET);
+        fseek(ar->fp, (s32)offset, SEEK_SET);
         ar->filePos = offset;
     }
 }
@@ -552,7 +552,7 @@ void res_archive_seek(unsigned long offset) {
  */
 static FileHandle *res_resolve_handle(ResFile *file) {
     FileHandle *handle;
-    int count;
+    s16 count;
 
     // A NULL token is a request to flush the one-entry lookup cache.
     if (file == NULL) {
@@ -602,9 +602,9 @@ static FileHandle *res_resolve_handle(ResFile *file) {
  * @param bp,di,si,ds,es,dx,cx,bx  Saved registers; unused (positions @p ax).
  * @param ax  Saved AX; overwritten with the INT 24h return code.
  */
-static void interrupt far res_critical_error_handler(unsigned _bp, unsigned di, unsigned si,
-                                             unsigned ds, unsigned es, unsigned dx,
-                                             unsigned cx, unsigned bx, unsigned ax) {
+static void interrupt far res_critical_error_handler(u16 _bp, u16 di, u16 si,
+                                             u16 ds, u16 es, u16 dx,
+                                             u16 cx, u16 bx, u16 ax) {
     ax = g_resInFopen ? INT24_FAIL : INT24_RETRY;
     g_resFopenRetry = TRUE;
     g_resArchivesDirty = TRUE;

@@ -16,42 +16,42 @@
 unsigned char *g_pSpellWeaTable;
 unsigned char *g_pSpellResTable;
 
-int g_anHexVertexX0[6] = {71, 95, 123, 19, 49, 59};
-int g_anHexVertexY0[6] = {16, 101, 61, 61, 101, 61};
-int g_anHexVertexX2[6] = {124, 71, 40, 104, 71, 19};
-int g_anHexVertexY2[6] = {62, 16, 97, 97, 16, 62};
-int g_anHexVertexX3[6] = {104, 19, 105, 39, 123, 41};
-int g_anHexVertexY3[6] = {98, 62, 26, 26, 61, 98};
-int g_anHexVertexX4[6] = {37, 37, 107, 107, 37, 107};
-int g_anHexVertexY4[6] = {29, 96, 29, 96, 96, 96};
-int g_anHexVertexX5[6] = {75, 114, 75, 75, 31, 75};
-int g_anHexVertexY5[6] = {72, 89, 17, 72, 89, 17};
-int g_anHexVertexX1[6] = {19, 47, 108, 34, 92, 123};
-int g_anHexVertexY1[6] = {70, 22, 93, 93, 20, 70};
-int g_anHexVertexX6[6] = {70, 115, 117, 72, 26, 25};
-int g_anHexVertexY6[6] = {16, 37, 83, 107, 86, 40};
-int *g_apHexVertexX[7] = {(int *)g_anHexVertexX0, (int *)g_anHexVertexX1, (int *)g_anHexVertexX2,
-                          (int *)g_anHexVertexX3, (int *)g_anHexVertexX4, (int *)g_anHexVertexX5,
-                          (int *)g_anHexVertexX6};
-int *g_apHexVertexY[7] = {(int *)g_anHexVertexY0, (int *)g_anHexVertexY1, (int *)g_anHexVertexY2,
-                          (int *)g_anHexVertexY3, (int *)g_anHexVertexY4, (int *)g_anHexVertexY5,
-                          (int *)g_anHexVertexY6};
-short g_aClassGroupModifier[3][4] = {0, -1, -1, -2, -1, 0, -1, -2, -1, -1, 0, -2};
-unsigned short g_aClassCombatGroup[59] = {
+s16 g_anHexVertexX0[6] = {71, 95, 123, 19, 49, 59};
+s16 g_anHexVertexY0[6] = {16, 101, 61, 61, 101, 61};
+s16 g_anHexVertexX2[6] = {124, 71, 40, 104, 71, 19};
+s16 g_anHexVertexY2[6] = {62, 16, 97, 97, 16, 62};
+s16 g_anHexVertexX3[6] = {104, 19, 105, 39, 123, 41};
+s16 g_anHexVertexY3[6] = {98, 62, 26, 26, 61, 98};
+s16 g_anHexVertexX4[6] = {37, 37, 107, 107, 37, 107};
+s16 g_anHexVertexY4[6] = {29, 96, 29, 96, 96, 96};
+s16 g_anHexVertexX5[6] = {75, 114, 75, 75, 31, 75};
+s16 g_anHexVertexY5[6] = {72, 89, 17, 72, 89, 17};
+s16 g_anHexVertexX1[6] = {19, 47, 108, 34, 92, 123};
+s16 g_anHexVertexY1[6] = {70, 22, 93, 93, 20, 70};
+s16 g_anHexVertexX6[6] = {70, 115, 117, 72, 26, 25};
+s16 g_anHexVertexY6[6] = {16, 37, 83, 107, 86, 40};
+s16 *g_apHexVertexX[7] = {(s16 *)g_anHexVertexX0, (s16 *)g_anHexVertexX1, (s16 *)g_anHexVertexX2,
+                          (s16 *)g_anHexVertexX3, (s16 *)g_anHexVertexX4, (s16 *)g_anHexVertexX5,
+                          (s16 *)g_anHexVertexX6};
+s16 *g_apHexVertexY[7] = {(s16 *)g_anHexVertexY0, (s16 *)g_anHexVertexY1, (s16 *)g_anHexVertexY2,
+                          (s16 *)g_anHexVertexY3, (s16 *)g_anHexVertexY4, (s16 *)g_anHexVertexY5,
+                          (s16 *)g_anHexVertexY6};
+s16 g_aClassGroupModifier[3][4] = {0, -1, -1, -2, -1, 0, -1, -2, -1, -1, 0, -2};
+u16 g_aClassCombatGroup[59] = {
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0002, 0x0000, 0x0000, 0x0002, 0x0000, 0x0000, 0x0002, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
 
-unsigned short g_aClassProficiencyMask[64] = {
+u16 g_aClassProficiencyMask[64] = {
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0001, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0010, 0x0200, 0x0000, 0x0002, 0x0000, 0x0100, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0002, 0x000c, 0x0020,
     0x0000, 0x0000, 0x0000, 0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0040, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000};
-unsigned short g_aClassWeaknessMask[64] = {
+u16 g_aClassWeaknessMask[64] = {
     0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
     0x0000, 0x0000, 0x0000, 0x0000, 0x0001, 0x0200, 0x0000, 0x0001, 0x0000, 0x0000, 0x0001,
     0x00c0, 0x0001, 0x0000, 0x0000, 0x00c0, 0x0200, 0x000c, 0x0000, 0x0000, 0x0000, 0x0000,
@@ -59,8 +59,8 @@ unsigned short g_aClassWeaknessMask[64] = {
     0x0001, 0x0200, 0x0000, 0x0200, 0x0100, 0x0300, 0x0001, 0x0001, 0x0000, 0x0000, 0x0000,
     0x0000, 0x00c0, 0x00c0, 0x0000, 0x0000, 0x0000, 0x0300, 0x0000, 0x0000};
 
-int cbstat_item_get_condition(ItemSlot far *slot) {
-    int condition;
+s16 cbstat_item_get_condition(ItemSlot far *slot) {
+    s16 condition;
     ItemRecord far *item_rec;
 
     item_rec = itemtbl_record_ptr(slot);
@@ -71,17 +71,17 @@ int cbstat_item_get_condition(ItemSlot far *slot) {
     return condition;
 }
 
-static int far cbstat_actor_find_equipped_item(Combatant *actor, ItemRecord far *item) {
+static s16 far cbstat_actor_find_equipped_item(Combatant *actor, ItemRecord far *item) {
     Actor far *actor_record;
-    int i;
-    int result;
+    s16 i;
+    s16 result;
 
     actor_record = actor->actor_record;
     result = 100;
     if (actor_record == (Actor far *)0) {
         return 0;
     }
-    for (i = 0; i < (int)(unsigned char)actor_record->itemCount; i++) {
+    for (i = 0; i < (s16)(unsigned char)actor_record->itemCount; i++) {
         if (((ItemSlot far *)(&actor_record[1]))[i].flags & 0x40) {
             if (itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i) == item) {
                 result = cbstat_item_get_condition((ItemSlot far *)(&actor_record[1]) + i);
@@ -93,7 +93,7 @@ static int far cbstat_actor_find_equipped_item(Combatant *actor, ItemRecord far 
 
 void cbstat_spell_tables_load(void) {
     ResFile *file;
-    int count;
+    s16 count;
 
     file = res_fopen("spellwea.dat", "rb");
     res_fread(&count, 2, 1, file);
@@ -112,38 +112,38 @@ void cbstat_spell_tables_free(void) {
     galloc_zfree(g_pSpellWeaTable);
 }
 
-int cbstat_char_bitmap_3w_test(int char_idx, int bit_idx) {
-    int quotient;
-    unsigned int mask;
-    int result;
+s16 cbstat_char_bitmap_3w_test(s16 char_idx, s16 bit_idx) {
+    s16 quotient;
+    u16 mask;
+    s16 result;
 
     quotient = bit_idx / 16;
     mask = 1 << (bit_idx % 16);
-    if ((((unsigned int *)g_pSpellResTable)[char_idx * 3 + quotient] & mask) == 0)
+    if ((((u16 *)g_pSpellResTable)[char_idx * 3 + quotient] & mask) == 0)
         result = 0;
     else
         result = 1;
     return result;
 }
 
-int cbstat_char_bitmap_3w_test_170c(int char_idx, int bit_idx) {
-    int quotient = bit_idx / 16;
-    int mask = 1 << (bit_idx % 16);
-    int result;
+s16 cbstat_char_bitmap_3w_test_170c(s16 char_idx, s16 bit_idx) {
+    s16 quotient = bit_idx / 16;
+    s16 mask = 1 << (bit_idx % 16);
+    s16 result;
 
-    if (!(((unsigned int *)g_pSpellWeaTable)[char_idx * 3 + quotient] & mask))
+    if (!(((u16 *)g_pSpellWeaTable)[char_idx * 3 + quotient] & mask))
         result = 0;
     else
         result = 1;
     return result;
 }
 
-unsigned int cbstat_actor_class_table_1802(Combatant *actor) {
+u16 cbstat_actor_class_table_1802(Combatant *actor) {
     return g_aClassCombatGroup[actor->inner->creatureType];
 }
 
-int far cbstat_apply_proficiency_bonus(Combatant *actor, int value, unsigned int proficiency_mask) {
-    unsigned int entry;
+s16 far cbstat_apply_proficiency_bonus(Combatant *actor, s16 value, u16 proficiency_mask) {
+    u16 entry;
     entry = g_aClassProficiencyMask[actor->inner->creatureType];
     if ((entry & proficiency_mask) != 0) {
         value = value + (value >> 1);
@@ -151,8 +151,8 @@ int far cbstat_apply_proficiency_bonus(Combatant *actor, int value, unsigned int
     return value;
 }
 
-int cbstat_apply_weakness_penalty(Combatant *actor, int value, unsigned int weakness_mask) {
-    unsigned int entry;
+s16 cbstat_apply_weakness_penalty(Combatant *actor, s16 value, u16 weakness_mask) {
+    u16 entry;
     entry = g_aClassWeaknessMask[actor->inner->creatureType];
     if ((entry & weakness_mask) != 0) {
         value = value >> 1;
@@ -169,17 +169,17 @@ void far cbstat_apply_drain_tick(Combatant *actor) {
     }
 }
 
-unsigned int cbstat_armor_coverage_mask(Combatant *combat_actor) {
+u16 cbstat_armor_coverage_mask(Combatant *combat_actor) {
     Actor far *actor_record;
     ItemSlot far *slot;
     ItemRecord far *item_rec;
-    int i;
-    unsigned int mask;
+    s16 i;
+    u16 mask;
 
     mask = 0x580;
     actor_record = combat_actor->actor_record;
     i = 0;
-    while (i < (int)(unsigned char)actor_record->itemCount) {
+    while (i < (s16)(unsigned char)actor_record->itemCount) {
         if (((ItemSlot far *)(&actor_record[1]))[i].flags & 0x40) {
             item_rec = itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i);
             if (item_rec->wCategory == 1) {
@@ -219,21 +219,21 @@ unsigned int cbstat_armor_coverage_mask(Combatant *combat_actor) {
     return mask;
 }
 
-int far cbstat_scale_base_stat_pct(Combatant *actor, int percent) {
-    int result;
-    int base;
+s16 far cbstat_scale_base_stat_pct(Combatant *actor, s16 percent) {
+    s16 result;
+    s16 base;
 
     base = combat_actor_stat_percent(actor, 0);
     result = (percent * base + 90) / 100;
     return result;
 }
 
-int cbstat_apply_equipped_item_mult(Combatant *actor, int value, int category) {
-    int result;
+s16 cbstat_apply_equipped_item_mult(Combatant *actor, s16 value, s16 category) {
+    s16 result;
     Actor far *actor_record;
     ItemSlot far *slot;
     ItemRecord far *item_rec;
-    int i;
+    s16 i;
 
     result = value;
     actor_record = actor->actor_record;
@@ -241,7 +241,7 @@ int cbstat_apply_equipped_item_mult(Combatant *actor, int value, int category) {
         return 0;
     }
     i = 0;
-    while (i < (int)(unsigned char)actor_record->itemCount) {
+    while (i < (s16)(unsigned char)actor_record->itemCount) {
         if (((ItemSlot far *)(&actor_record[1]))[i].flags & 0x40) {
             item_rec = itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i);
             if (item_rec->wCategory == category) {
@@ -263,11 +263,11 @@ int cbstat_apply_equipped_item_mult(Combatant *actor, int value, int category) {
     return result;
 }
 
-static int far cbstat_compute_defense_value(Combatant *actor) {
-    int value;
+static s16 far cbstat_compute_defense_value(Combatant *actor) {
+    s16 value;
 
     if (combatenc_actor_can_act(actor, 0) != 0) {
-        value = (int)stat_actor_get(actor, 4, 0) >> 2;
+        value = (s16)stat_actor_get(actor, 4, 0) >> 2;
     } else {
         value = 0;
     }
@@ -281,17 +281,17 @@ static int far cbstat_compute_defense_value(Combatant *actor) {
     return value;
 }
 
-int cbstat_damage_apply_protection(Combatant *actor, int damage, int damage_type) {
+s16 cbstat_damage_apply_protection(Combatant *actor, s16 damage, s16 damage_type) {
     Actor far *actor_record;
-    int i;
+    s16 i;
     ItemSlot far *slot;
     ItemRecord far *item_rec;
-    int pct;
+    s16 pct;
 
     pct = 0;
     actor_record = actor->actor_record;
     i = 0;
-    while (i < (int)(unsigned char)actor_record->itemCount) {
+    while (i < (s16)(unsigned char)actor_record->itemCount) {
         if (((ItemSlot far *)(&actor_record[1]))[i].flags & 0x40) {
             item_rec = itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i);
             if (item_rec->wCategory == 4) {
@@ -325,21 +325,21 @@ int cbstat_damage_apply_protection(Combatant *actor, int damage, int damage_type
     return damage;
 }
 
-int far cbstat_armor_absorption_by_class(Combatant *attacker, Combatant *defender,
-                                         int attack_type) {
-    int i;
+s16 far cbstat_armor_absorption_by_class(Combatant *attacker, Combatant *defender,
+                                         s16 attack_type) {
+    s16 i;
     Actor far *actor_record;
     ItemSlot far *slot;
     ItemRecord far *item_rec;
-    int base;
-    int damage;
-    int damage_type;
+    s16 base;
+    s16 damage;
+    s16 damage_type;
 
     damage = 0;
     damage_type = 0;
     actor_record = attacker->actor_record;
     i = 0;
-    while (i < (int)(unsigned char)actor_record->itemCount) {
+    while (i < (s16)(unsigned char)actor_record->itemCount) {
         if (((ItemSlot far *)(&actor_record[1]))[i].flags & 0x40) {
             item_rec = itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i);
             if (attack_type != 0) {
@@ -385,10 +385,10 @@ LAB_077a:
     return damage;
 }
 
-int far cbstat_compute_attack_damage(ItemRecord far *weapon, Combatant *attacker,
-                                     Combatant *defender, int attack_type) {
-    int mult;
-    int damage;
+s16 far cbstat_compute_attack_damage(ItemRecord far *weapon, Combatant *attacker,
+                                     Combatant *defender, s16 attack_type) {
+    s16 mult;
+    s16 damage;
 
     damage = stat_actor_get(attacker, 3, 0);
     if (weapon != (ItemRecord far *)0) {
@@ -412,18 +412,18 @@ int far cbstat_compute_attack_damage(ItemRecord far *weapon, Combatant *attacker
     return damage;
 }
 
-ItemRecord far *cbstat_find_intact_equip_cat(Combatant *actor, int category) {
+ItemRecord far *cbstat_find_intact_equip_cat(Combatant *actor, s16 category) {
     Actor far *actor_record;
     ItemRecord far *pItem;
-    int altcategory;
-    int i;
+    s16 altcategory;
+    s16 i;
 
     actor_record = actor->actor_record;
     altcategory = (category == 1) ? 3 : category;
     if (actor_record == (Actor far *)0) {
         return (ItemRecord far *)0;
     }
-    for (i = 0; i < (int)(unsigned char)actor_record->itemCount; i++) {
+    for (i = 0; i < (s16)(unsigned char)actor_record->itemCount; i++) {
         if (((ItemSlot far *)(&actor_record[1]))[i].flags & 0x40) {
             pItem = itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i);
             if (pItem->wCategory == category || pItem->wCategory == altcategory) {
@@ -436,13 +436,13 @@ ItemRecord far *cbstat_find_intact_equip_cat(Combatant *actor, int category) {
     return (ItemRecord far *)0;
 }
 
-void cbstat_damage_equipped_items(Combatant *actor, int category, int severity) {
+void cbstat_damage_equipped_items(Combatant *actor, s16 category, s16 severity) {
     Actor far *actor_record;
     ItemRecord far *item_rec;
-    int altcategory;
-    int break_amount;
-    unsigned int new_condition;
-    int i;
+    s16 altcategory;
+    s16 break_amount;
+    u16 new_condition;
+    s16 i;
 
     actor_record = actor->actor_record;
     altcategory = (category == 1) ? 3 : category;
@@ -450,7 +450,7 @@ void cbstat_damage_equipped_items(Combatant *actor, int category, int severity) 
         return;
     }
     i = 0;
-    while (i < (int)(unsigned char)actor_record->itemCount) {
+    while (i < (s16)(unsigned char)actor_record->itemCount) {
         if (((ItemSlot far *)(&actor_record[1]))[i].flags & 0x40) {
             item_rec = itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i);
             if (((item_rec->wCategory == category) || (item_rec->wCategory == altcategory)) &&
@@ -466,8 +466,8 @@ void cbstat_damage_equipped_items(Combatant *actor, int category, int severity) 
                     break_amount = (item_rec->nWeapon_break_amount > 1)
                                        ? RND(item_rec->nWeapon_break_amount - 1) + 1
                                        : 1;
-                    new_condition = (unsigned int)((ItemSlot far *)(&actor_record[1]))[i].condition -
-                                    (int)((long)(break_amount * severity) / 0x100L);
+                    new_condition = (u16)((ItemSlot far *)(&actor_record[1]))[i].condition -
+                                    (s16)((s32)(break_amount * severity) / 0x100L);
                     if ((item_rec->wCategory == 2) && (new_condition <= RND(0x32))) {
                         audio_play(0x43);
                         new_condition = 0;
@@ -477,10 +477,10 @@ void cbstat_damage_equipped_items(Combatant *actor, int category, int severity) 
 #else
                     ((ItemSlot far *)(&actor_record[1]))[i].flags |= 0x24;
 #endif
-                    if ((int)new_condition < (int)item_rec->wCondition_floor) {
+                    if ((s16)new_condition < (s16)item_rec->wCondition_floor) {
                         new_condition = item_rec->wCondition_floor;
                     }
-                    if ((int)new_condition <= 0) {
+                    if ((s16)new_condition <= 0) {
                         ((ItemSlot far *)(&actor_record[1]))[i].flags |= 0x10;
                     }
                     ((ItemSlot far *)(&actor_record[1]))[i].condition = (unsigned char)new_condition;
@@ -494,17 +494,17 @@ void cbstat_damage_equipped_items(Combatant *actor, int category, int severity) 
     return;
 }
 
-int far cbstat_magic_attack_bonus(Combatant *actor) {
-    int interim;
-    int class_group;
-    int modifier;
+s16 far cbstat_magic_attack_bonus(Combatant *actor) {
+    s16 interim;
+    s16 class_group;
+    s16 modifier;
     ItemRecord far *item_rec;
     Actor far *actor_record;
-    int i;
+    s16 i;
 
     actor_record = actor->actor_record;
     i = 0;
-    while (i < (int)(unsigned char)actor_record->itemCount) {
+    while (i < (s16)(unsigned char)actor_record->itemCount) {
         if (((ItemSlot far *)(&actor_record[1]))[i].flags & 0x40) {
             item_rec = itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i);
             if (item_rec->wCategory & 4) {
@@ -522,21 +522,21 @@ int far cbstat_magic_attack_bonus(Combatant *actor) {
     return 0;
 }
 
-int far cbstat_magic_defense_bonus(Combatant *actor) {
-    int class_group;
-    int modifier;
+s16 far cbstat_magic_defense_bonus(Combatant *actor) {
+    s16 class_group;
+    s16 modifier;
     ItemRecord far *item_rec;
     Actor far *actor_record;
-    int i;
-    int result;
+    s16 i;
+    s16 result;
 
     actor_record = actor->actor_record;
     if (actor_record == (Actor far *)0) {
         return 0;
     }
-    result = (int)stat_actor_get(actor, 4, 0) >> 2;
+    result = (s16)stat_actor_get(actor, 4, 0) >> 2;
     i = 0;
-    while (i < (int)(unsigned char)actor_record->itemCount) {
+    while (i < (s16)(unsigned char)actor_record->itemCount) {
         if (((ItemSlot far *)(&actor_record[1]))[i].flags & 0x40) {
             item_rec = itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i);
             if (item_rec->wCategory & 4) {
@@ -558,15 +558,15 @@ int far cbstat_magic_defense_bonus(Combatant *actor) {
     return result;
 }
 
-int cbstat_to_hit_roll(Combatant *attacker, Combatant *target, int roll,
+s16 cbstat_to_hit_roll(Combatant *attacker, Combatant *target, s16 roll,
                        ItemRecord far *weapon_item) {
-    unsigned int class_idx;
-    int table_acc;
-    unsigned threshold;
-    int defense;
-    int accuracy;
-    int roll_r;
-    int result;
+    u16 class_idx;
+    s16 table_acc;
+    u16 threshold;
+    s16 defense;
+    s16 accuracy;
+    s16 roll_r;
+    s16 result;
 
     roll_r = roll;
     threshold = RND(100);
@@ -593,7 +593,7 @@ int cbstat_to_hit_roll(Combatant *attacker, Combatant *target, int roll,
     if (0x62 < accuracy) {
         accuracy = 0x62;
     }
-    if ((int)threshold < accuracy) {
+    if ((s16)threshold < accuracy) {
         cbstat_damage_equipped_items(target, 4, 0x100);
         result = 1;
     } else {
@@ -602,14 +602,14 @@ int cbstat_to_hit_roll(Combatant *attacker, Combatant *target, int roll,
     return result;
 }
 
-int cbstat_inv_item_condition_rec(ItemRecord far *target_far, Combatant *actor) {
+s16 cbstat_inv_item_condition_rec(ItemRecord far *target_far, Combatant *actor) {
     Actor far *actor_record;
-    int i;
-    int condition;
+    s16 i;
+    s16 condition;
     ItemRecord far *rec;
 
     actor_record = actor->actor_record;
-    for (i = 0; i < (int)(unsigned int)actor_record->itemCount; i++) {
+    for (i = 0; i < (s16)(u16)actor_record->itemCount; i++) {
         rec = itemtbl_record_ptr((ItemSlot far *)(&actor_record[1]) + i);
         if (rec == target_far)
             break;

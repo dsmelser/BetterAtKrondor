@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern void music_handle_stop(AudioTrackHandle far *pRecord, int n);
+extern void music_handle_stop(AudioTrackHandle far *pRecord, s16 n);
 
 #endif

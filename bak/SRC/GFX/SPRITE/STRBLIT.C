@@ -6,7 +6,7 @@
 #include "SRC/GFX/SPRITE/STRBLIT.H"
 #include "SRC/GFX/RASTER/VGARESET.H"
 
-int stretch_step_init(register int *step, register int dest_steps) {
+s16 stretch_step_init(register s16 *step, register s16 dest_steps) {
     char negate = 0;
 
     if (dest_steps <= 0) {
@@ -16,36 +16,36 @@ int stretch_step_init(register int *step, register int dest_steps) {
     }
     *step = 0;
     step[2] = 0;
-    *(long *)&step[2] -= *(long *)&step[0];
-    *(long *)&step[2] = *(long *)&step[2] / (long)dest_steps;
-    if (*(long *)&step[2] < 0) {
-        *(long *)&step[2] = -*(long *)&step[2];
+    *(s32 *)&step[2] -= *(s32 *)&step[0];
+    *(s32 *)&step[2] = *(s32 *)&step[2] / (s32)dest_steps;
+    if (*(s32 *)&step[2] < 0) {
+        *(s32 *)&step[2] = -*(s32 *)&step[2];
         negate = 1;
     }
-    if ((*(unsigned long *)&step[2] & 0xffff8000UL) == 0)
+    if ((*(u32 *)&step[2] & 0xffff8000UL) == 0)
         *step = 0x8000;
     else
         *step = step[2];
     if (negate)
-        *(long *)&step[2] = -*(long *)&step[2];
+        *(s32 *)&step[2] = -*(s32 *)&step[2];
     return 1;
 }
 
-void blit_image_stretched(ImageRecord *image, int dst_x, int dst_y, unsigned int flags, int dst_w,
-                          int dst_h) {
-    unsigned short srcSeg;
-    unsigned short srcOff;
-    int i;
-    int row;
-    int rowStride;
-    int imageBytes;
-    int dstRight;
-    int dstBottom;
-    int srcY;
-    int local_16;
-    int local_18;
-    int dstLeft;
-    int step[4];
+void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s16 dst_w,
+                          s16 dst_h) {
+    u16 srcSeg;
+    u16 srcOff;
+    s16 i;
+    s16 row;
+    s16 rowStride;
+    s16 imageBytes;
+    s16 dstRight;
+    s16 dstBottom;
+    s16 srcY;
+    s16 local_16;
+    s16 local_18;
+    s16 dstLeft;
+    s16 step[4];
 
     if (dst_w < 0) {
 
@@ -78,7 +78,7 @@ void blit_image_stretched(ImageRecord *image, int dst_x, int dst_y, unsigned int
     stretch_step_init(step, dst_w - 1);
     for (i = 0; i < dstRight; i++) {
         g_aStretchXSrcTable[i] = step[1];
-        *(long *)&step[0] += *(long *)&step[2];
+        *(s32 *)&step[0] += *(s32 *)&step[2];
     }
     g_aStretchXSrcTable[i]++;
 
@@ -90,7 +90,7 @@ void blit_image_stretched(ImageRecord *image, int dst_x, int dst_y, unsigned int
     row = local_16 = local_18 = 0;
     for (; row < dstBottom; row++) {
         srcY = step[1];
-        *(long *)&step[0] += *(long *)&step[2];
+        *(s32 *)&step[0] += *(s32 *)&step[2];
         while (srcY > local_16) {
             local_16++;
             local_18 += rowStride;
@@ -119,7 +119,7 @@ void blit_image_stretched(ImageRecord *image, int dst_x, int dst_y, unsigned int
         }
     }
 
-    *(long *)&srcOff = ((long)(short)image->wImageData << 16) | image->wImageOff;
+    *(s32 *)&srcOff = ((s32)(s16)image->wImageData << 16) | image->wImageOff;
     if (0 < dstBottom - local_18 && 1 < dstRight - dstLeft) {
         if (g_graphics_context.bActiveVgaMode == 0x10) {
 
@@ -170,15 +170,15 @@ void blit_image_stretched(ImageRecord *image, int dst_x, int dst_y, unsigned int
     }
 }
 
-void blit_image_scaled_centered(register ImageRecord *image, int cx, int cy, unsigned long scale_q16) {
-    register int scale_hi;
-    int dst_w;
-    int dst_h;
+void blit_image_scaled_centered(register ImageRecord *image, s16 cx, s16 cy, u32 scale_q16) {
+    register s16 scale_hi;
+    s16 dst_w;
+    s16 dst_h;
 
-    scale_hi = (int)(scale_q16 >> 16);
-    dst_w = (int)((long)image->nWidth * (long)scale_hi >> 10);
-    dst_h = (int)((long)image->nHeight * (long)scale_hi >> 10);
-    blit_image_stretched(image, cx - (dst_w >> 1), cy - (dst_h >> 1), (unsigned int)scale_q16, dst_w,
+    scale_hi = (s16)(scale_q16 >> 16);
+    dst_w = (s16)((s32)image->nWidth * (s32)scale_hi >> 10);
+    dst_h = (s16)((s32)image->nHeight * (s32)scale_hi >> 10);
+    blit_image_stretched(image, cx - (dst_w >> 1), cy - (dst_h >> 1), (u16)scale_q16, dst_w,
                          dst_h);
     return;
 }

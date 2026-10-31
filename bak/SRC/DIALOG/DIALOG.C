@@ -67,13 +67,13 @@ unsigned char far g_abStatNames[16][15] = {
 
 char g_speaker_kinds[6];
 char g_speaker_names[6][32];
-short g_nDialogAnchorX;
-short g_nDialogAnchorY;
+s16 g_nDialogAnchorX;
+s16 g_nDialogAnchorY;
 
-int g_nDialogChapterId = -1;
-unsigned long g_dwDialogInputCooldown = 0x00000000UL;
+s16 g_nDialogChapterId = -1;
+u32 g_dwDialogInputCooldown = 0x00000000UL;
 unsigned char g_abTextSpeedScale[3] = {0x64, 0x4b, 0x32};
-int g_nTabWidth = 0;
+s16 g_nTabWidth = 0;
 DialogStyleDescriptor g_dialog_style_table[7] = {
     {{0x00, 0x00, 0x0a, 0x02, 0x00, 0x00, 0x10, 0x05, 0x02, 0x08, 0x08, 0x14},
      {0x08, 0x00, 0x78, 0x00, 0x31, 0x01, 0x4b, 0x00}},
@@ -89,29 +89,29 @@ DialogStyleDescriptor g_dialog_style_table[7] = {
      {0x19, 0x00, 0x15, 0x00, 0x0e, 0x01, 0xa0, 0x00}},
     {{0x00, 0x01, 0x00, 0x00, 0x01, 0x04, 0x10, 0x03, 0x03, 0x0a, 0x0a, 0x14},
      {0x0d, 0x00, 0x0b, 0x00, 0x26, 0x01, 0x79, 0x00}}};
-unsigned short g_bDialogWorldAnchorValid = 0x0000;
+u16 g_bDialogWorldAnchorValid = 0x0000;
 unsigned char g_dialog_running = 0x00;
 
-int dialog_freemem_if_not_null(unsigned char far *ptr) {
-    if ((unsigned long)ptr != 0)
+s16 dialog_freemem_if_not_null(unsigned char far *ptr) {
+    if ((u32)ptr != 0)
         _freemem(ptr);
 }
 
-PDdxRecord dialog_load_record_by_key(unsigned long record_key, int use_offset) {
-    unsigned long file_offset;
-    int record_count;
+PDdxRecord dialog_load_record_by_key(u32 record_key, s16 use_offset) {
+    u32 file_offset;
+    s16 record_count;
     DDXRecord header;
     DDXRecord far *record;
     struct {
-        unsigned long node_id;
-        unsigned long file_off;
+        u32 node_id;
+        u32 file_off;
     } dir_entry;
     unsigned char far *body_ptr;
-    int alloc_size;
+    s16 alloc_size;
     char filename[16];
     ResFile *file;
-    int sub_size;
-    int i;
+    s16 sub_size;
+    s16 i;
 
     record = (DDXRecord far *)0;
     if (record_key == 0) {
@@ -121,7 +121,7 @@ PDdxRecord dialog_load_record_by_key(unsigned long record_key, int use_offset) {
         file_offset = record_key;
     } else {
         file_offset = 0;
-        g_nDialogChapterId = (int)(record_key / 100000);
+        g_nDialogChapterId = (s16)(record_key / 100000);
     }
     strcpy(filename, "DIAL_Z__.DDX");
     filename[6] = g_nDialogChapterId / 10 + '0';
@@ -142,18 +142,18 @@ PDdxRecord dialog_load_record_by_key(unsigned long record_key, int use_offset) {
         res_fread(&header, 9, 1, file);
         sub_size = header.bCnt1 * 10 + header.bCnt2 * 10;
         alloc_size = sub_size + header.wBody_len + 9;
-        record = (DDXRecord far *)alloc_far((long)alloc_size, 0);
+        record = (DDXRecord far *)alloc_far((s32)alloc_size, 0);
         *record = header;
-        res_fread_far((unsigned char far *)record + 9, 1, (long)sub_size, file);
+        res_fread_far((unsigned char far *)record + 9, 1, (s32)sub_size, file);
         body_ptr = (unsigned char far *)record + sub_size + 9;
-        res_fread_far(body_ptr, 1, (unsigned long)header.wBody_len, file);
+        res_fread_far(body_ptr, 1, (u32)header.wBody_len, file);
     }
     res_fclose(file);
     return record;
 }
 
-unsigned int far dialog_poll_arrow_or_button(void) {
-    unsigned int sc;
+u16 far dialog_poll_arrow_or_button(void) {
+    u16 sc;
 
     if ((g_dwDialogInputCooldown != 0) && (g_timer_ticks > g_dwDialogInputCooldown)) {
         g_dwDialogInputCooldown = 0;
@@ -182,7 +182,7 @@ ret0:
     return 0;
 }
 
-void far dialog_input_wait_release(int animate_frames, int check_keyboard) {
+void far dialog_input_wait_release(s16 animate_frames, s16 check_keyboard) {
 again:
     if (animate_frames != 0)
         screen_frame_present();
@@ -200,9 +200,9 @@ again:
     }
 }
 
-int far dialog_wait_for_acknowledge(unsigned int chars, unsigned int flags, int arg3, int arg4) {
-    unsigned int input;
-    unsigned long deadline;
+s16 far dialog_wait_for_acknowledge(u16 chars, u16 flags, s16 arg3, s16 arg4) {
+    u16 input;
+    u32 deadline;
 
     g_dwDialogInputCooldown = 0;
     if (flags & 0x4000) {
@@ -210,11 +210,11 @@ int far dialog_wait_for_acknowledge(unsigned int chars, unsigned int flags, int 
     }
     if (flags & 0x40) {
         g_dwDialogInputCooldown =
-            (unsigned long)(((long)(unsigned)chars * 12 + 150) *
-                            (long)(int)(unsigned)g_abTextSpeedScale[g_engine_prefs->text_speed] /
+            (u32)(((s32)(u16)chars * 12 + 150) *
+                            (s32)(s16)(u16)g_abTextSpeedScale[g_engine_prefs->text_speed] /
                             100);
         g_dwDialogInputCooldown =
-            g_dwDialogInputCooldown / ((unsigned long)((unsigned)g_gameState.nChapter / 5) + 3) +
+            g_dwDialogInputCooldown / ((u32)((u16)g_gameState.nChapter / 5) + 3) +
             g_timer_ticks;
         screen_cursor_show_busy();
         return 1;
@@ -222,8 +222,8 @@ int far dialog_wait_for_acknowledge(unsigned int chars, unsigned int flags, int 
     screen_cursor_restore_shape();
     dialog_input_wait_release(arg4, arg3);
     deadline =
-        (unsigned long)(((long)(unsigned)chars * 12 + 150) *
-                        (long)(int)(unsigned)g_abTextSpeedScale[g_engine_prefs->text_speed] / 100);
+        (u32)(((s32)(u16)chars * 12 + 150) *
+                        (s32)(s16)(u16)g_abTextSpeedScale[g_engine_prefs->text_speed] / 100);
     if (g_engine_prefs->text_speed == 0) {
         if ((flags & 8) == 0) {
             deadline = 0xffffffff;
@@ -232,7 +232,7 @@ int far dialog_wait_for_acknowledge(unsigned int chars, unsigned int flags, int 
         }
     } else {
         if (flags & 8) {
-            deadline = deadline / ((unsigned long)((unsigned)g_gameState.nChapter / 5) + 2);
+            deadline = deadline / ((u32)((u16)g_gameState.nChapter / 5) + 2);
         }
         deadline += g_timer_ticks;
     }
@@ -251,7 +251,7 @@ int far dialog_wait_for_acknowledge(unsigned int chars, unsigned int flags, int 
     return 1;
 }
 
-void far dialog_input_wait_with_cooldown(int mode) {
+void far dialog_input_wait_with_cooldown(s16 mode) {
     screen_cursor_restore_shape();
     if (g_dwDialogInputCooldown != 0) {
         while (g_dwDialogInputCooldown != 0 && dialog_poll_arrow_or_button() == 0) {
@@ -266,13 +266,13 @@ void far dialog_input_wait_with_cooldown(int mode) {
     }
 }
 
-void dialog_cutscene_op_noop(unsigned char far *record, int a, unsigned int flags) {
+void dialog_cutscene_op_noop(unsigned char far *record, s16 a, u16 flags) {
     if (flags & 0x80) {
     }
 }
 
 static DialogStyleDescriptor *dialog_resolve_style(DDXRecord far *record) {
-    unsigned int styleNum;
+    u16 styleNum;
 
     styleNum = 2;
     if (g_inventory_screen_mode != 0) {
@@ -284,7 +284,7 @@ static DialogStyleDescriptor *dialog_resolve_style(DDXRecord far *record) {
         styleNum = 1;
     }
     if (record->bStyle != '\0') {
-        styleNum = (unsigned int)record->bStyle;
+        styleNum = (u16)record->bStyle;
     }
     record->bStyle = (unsigned char)styleNum;
     return &g_dialog_style_table[styleNum] - 1;
@@ -297,7 +297,7 @@ typedef struct {
 void far dialog_apply_style_state(DDXRecord far *record, void far *dest) {
     DdxOp far *sub2;
     DialogStyleDescriptor *desc;
-    int i;
+    s16 i;
 
     sub2 = (DdxOp far *)(record + 1) + record->bCnt1;
     desc = dialog_resolve_style(record);
@@ -309,14 +309,14 @@ void far dialog_apply_style_state(DDXRecord far *record, void far *dest) {
     }
 }
 
-void far dialog_frame_draw(DDXRecord far *record, int far *rect) {
+void far dialog_frame_draw(DDXRecord far *record, s16 far *rect) {
     DialogStyleDescriptor *desc;
-    int inset;
-    int fallbackRect[4];
+    s16 inset;
+    s16 fallbackRect[4];
     Slot27Fn far *savedFillFn;
 
     desc = dialog_resolve_style(record);
-    if (rect == (int far *)0) {
+    if (rect == (s16 far *)0) {
         dialog_apply_style_state(record, fallbackRect);
         rect = fallbackRect;
     }
@@ -331,7 +331,7 @@ void far dialog_frame_draw(DDXRecord far *record, int far *rect) {
         g_graphics_context.bGfx_fill_enabled = 1;
         g_graphics_context.bGfx_fill_color = g_graphics_context.bGfx_outline_color = 0;
 
-        g_vgablit_si_base = (record->wFlags & 0x8000) ? 0x3d40 : (int)RNDR(0x3d40, 0x3da3);
+        g_vgablit_si_base = (record->wFlags & 0x8000) ? 0x3d40 : (s16)RNDR(0x3d40, 0x3da3);
         g_vgablit_si_mask = 0xff7f;
         g_vgablit_si_stride = 0x43;
         g_renderer_vtable.pfn_fill_spans_dithered_modey =
@@ -361,9 +361,9 @@ void far dialog_frame_draw(DDXRecord far *record, int far *rect) {
     }
 }
 
-void far dialog_draw_speech_bubble(char far *text, int y_offset) {
-    int width;
-    int leftX;
+void far dialog_draw_speech_bubble(char far *text, s16 y_offset) {
+    s16 width;
+    s16 leftX;
 
     g_graphics_context.clip.ymin = g_graphics_context.clip.xmin = 0;
     g_graphics_context.clip.xmax = 0x13f;
@@ -397,10 +397,10 @@ void far dialog_draw_speech_bubble(char far *text, int y_offset) {
     }
 }
 
-static void far dialog_assign_rand_cmbt_name(int slot_index, int param_2, int param_3) {
-    int candidate;
-    int retry_ctr;
-    int i;
+static void far dialog_assign_rand_cmbt_name(s16 slot_index, s16 param_2, s16 param_3) {
+    s16 candidate;
+    s16 retry_ctr;
+    s16 i;
 
     retry_ctr = 500;
     if (g_gameState.partySize == 0)
@@ -441,11 +441,11 @@ static void far dialog_assign_rand_cmbt_name(int slot_index, int param_2, int pa
     strcpy(g_speaker_names[slot_index], g_gameState.characters[candidate].name);
 }
 
-void far dialog_cmbt_name_assign_kind(int slot, int kind, int aux, int name_token) {
+void far dialog_cmbt_name_assign_kind(s16 slot, s16 kind, s16 aux, s16 name_token) {
     union {
         char far *fp;
         struct {
-            int lo;
+            s16 lo;
             char *dest;
         } s;
     } nameRef;
@@ -528,9 +528,9 @@ void far dialog_cmbt_name_assign_kind(int slot, int kind, int aux, int name_toke
         break;
 
     case 27:
-        _fstrcpy((char far *)g_speaker_names[0], g_abStatNames[(int)g_gameState.lEvtArgValue]);
+        _fstrcpy((char far *)g_speaker_names[0], g_abStatNames[(s16)g_gameState.lEvtArgValue]);
         itoa(stat_actor_get(&g_gameState.characters[g_gameState.nEvtArgActor0],
-                            (int)g_gameState.lEvtArgValue, 1),
+                            (s16)g_gameState.lEvtArgValue, 1),
              g_speaker_names[1], 10);
         break;
 
@@ -540,7 +540,7 @@ void far dialog_cmbt_name_assign_kind(int slot, int kind, int aux, int name_toke
 
     case 29:
         _fstrcpy((char far *)(g_speaker_names[slot]),
-                 g_abStatNames[(int)g_gameState.lEvtArgAuxValue]);
+                 g_abStatNames[(s16)g_gameState.lEvtArgAuxValue]);
         break;
 
     default:
@@ -548,18 +548,18 @@ void far dialog_cmbt_name_assign_kind(int slot, int kind, int aux, int name_toke
     }
 }
 
-void dialog_render_text_with_tokens(DDXRecord far *record, char far *text, int fg_color, int x_off,
-                                    int y_off, int scroll_start) {
-    int applied[4];
-    int nScratchLen;
+void dialog_render_text_with_tokens(DDXRecord far *record, char far *text, s16 fg_color, s16 x_off,
+                                    s16 y_off, s16 scroll_start) {
+    s16 applied[4];
+    s16 nScratchLen;
     char far *pTitle;
     char buf[50];
 
     DialogStyleDescriptor *pStyle;
-    int idx;
+    s16 idx;
     char *pName;
     char *pEnd;
-    unsigned int flags;
+    u16 flags;
 
     pStyle = dialog_resolve_style(record);
     nScratchLen = 0;
@@ -574,8 +574,8 @@ void dialog_render_text_with_tokens(DDXRecord far *record, char far *text, int f
     g_graphics_context.bClip_enabled = 1;
 
     if (*text == '#') {
-        int centerX = applied[0] + applied[2] / 2;
-        int nTitleY = applied[1] + pStyle->header[7];
+        s16 centerX = applied[0] + applied[2] / 2;
+        s16 nTitleY = applied[1] + pStyle->header[7];
         text++;
         pTitle = text;
         while (*text != '\0' && *text != '#')
@@ -598,8 +598,8 @@ void dialog_render_text_with_tokens(DDXRecord far *record, char far *text, int f
         if (*text == '@') {
             if (isdigit((char)text[1])) {
                 text++;
-                _ES = ((unsigned *)&text)[1];
-                _EBX = *(unsigned long *)&text;
+                _ES = ((u16 *)&text)[1];
+                _EBX = *(u32 *)&text;
                 idx = (char)*(char _es *)_BX - '0';
                 if (g_speaker_kinds[idx] == (char)0xfe) {
                     if ((g_speaker_names[idx][0] == 'A' || g_speaker_names[idx][0] == 'O') &&
@@ -643,30 +643,30 @@ void dialog_render_text_with_tokens(DDXRecord far *record, char far *text, int f
     applied[3] -= pStyle->header[7] + pStyle->header[8];
     if (record->wFlags & 0x200) {
 
-        ((int *)&pTitle)[1] =
-            textwrap_compute_lines((long)g_pMainScratchBuf, applied[2], (int *)0, 999) -
+        ((s16 *)&pTitle)[1] =
+            textwrap_compute_lines((s32)g_pMainScratchBuf, applied[2], (s16 *)0, 999) -
             scroll_start;
         applied[3] -= 0x14;
-        if (applied[3] < ((int *)&pTitle)[1] * (g_graphics_context.pFont_height[0] + 1))
+        if (applied[3] < ((s16 *)&pTitle)[1] * (g_graphics_context.pFont_height[0] + 1))
             applied[1] += 10;
     }
     g_nTabWidth = pStyle->header[11];
     g_graphics_context.bText_style_flags = 1;
     if (pStyle->header[3] != 0) {
         *(char *)&g_graphics_context.bText_fg_color = (char)pStyle->header[3] - 1;
-        textwrap_draw_aligned((long)g_pMainScratchBuf, applied[0] + x_off + 1,
+        textwrap_draw_aligned((s32)g_pMainScratchBuf, applied[0] + x_off + 1,
                               applied[1] + y_off + 1, applied[2], applied[3], 1, flags,
                               scroll_start);
     }
     g_graphics_context.bText_fg_color = fg_color >= 0 ? (unsigned char)fg_color : pStyle->header[2];
-    textwrap_draw_aligned((long)g_pMainScratchBuf, applied[0] + x_off, applied[1] + y_off,
+    textwrap_draw_aligned((s32)g_pMainScratchBuf, applied[0] + x_off, applied[1] + y_off,
                           applied[2], applied[3], 1, flags, scroll_start);
 }
 
-int far dialog_show_by_key(unsigned long key, int interactive) {
-    int rect[4];
+s16 far dialog_show_by_key(u32 key, s16 interactive) {
+    s16 rect[4];
     DDXRecord far *record;
-    int iResult;
+    s16 iResult;
 
     iResult = 1;
     if ((record = dialog_load_record_by_key(key, 0)) != 0) {
@@ -677,7 +677,7 @@ int far dialog_show_by_key(unsigned long key, int interactive) {
         dialog_apply_style_state(record, (void far *)rect);
         if (interactive)
             dialog_cutscene_op_noop((unsigned char far *)rect, 0, record->wFlags);
-        dialog_frame_draw(record, (int far *)rect);
+        dialog_frame_draw(record, (s16 far *)rect);
         dialog_render_text_with_tokens(record, (unsigned char far *)0, -1, 0, 0, 0);
         if (interactive) {
             screen_frame_present();
@@ -695,7 +695,7 @@ int far dialog_show_by_key(unsigned long key, int interactive) {
 }
 
 void dialog_screen_wipe_rect_or_full(DDXRecord far *pRecord) {
-    int rect[4];
+    s16 rect[4];
 
     if (pRecord != 0) {
         dialog_apply_style_state(pRecord, rect);
@@ -705,7 +705,7 @@ void dialog_screen_wipe_rect_or_full(DDXRecord far *pRecord) {
     }
 }
 
-void dialog_viewport_clip_point(int x, int y) {
+void dialog_viewport_clip_point(s16 x, s16 y) {
     if ((x == -1) && (y == -1)) {
         g_bDialogWorldAnchorValid = 0;
     } else {
@@ -728,15 +728,15 @@ void dialog_viewport_clip_point(int x, int y) {
     return;
 }
 
-void far dialog_animate_open(DDXRecord far *dialog, int steps) {
-    int style[4];
-    int anim[4];
-    int far *widget_ptr;
-    int i;
+void far dialog_animate_open(DDXRecord far *dialog, s16 steps) {
+    s16 style[4];
+    s16 anim[4];
+    s16 far *widget_ptr;
+    s16 i;
 
     if (g_bDialogWorldAnchorValid != 0) {
         dialog_apply_style_state(dialog, (void far *)style);
-        widget_ptr = (int far *)((char far *)dialog + (unsigned)dialog->bCnt1 * 10 + 9);
+        widget_ptr = (s16 far *)((char far *)dialog + (u16)dialog->bCnt1 * 10 + 9);
         steps /= 2;
         style[0] = g_nDialogAnchorX - style[2] / 2;
         style[1] = g_nDialogAnchorY - style[3] / 2;
@@ -750,7 +750,7 @@ void far dialog_animate_open(DDXRecord far *dialog, int steps) {
         if (0x6f < style[1] + style[3])
             style[1] = 0x6f - style[3];
         i = 0;
-        while (i < (int)(unsigned)dialog->bCnt2) {
+        while (i < (s16)(u16)dialog->bCnt2) {
             if (widget_ptr[0] == 6) {
                 widget_ptr[1] = style[0];
                 widget_ptr[2] = style[1];
@@ -765,7 +765,7 @@ void far dialog_animate_open(DDXRecord far *dialog, int steps) {
                 anim[1] = (style[1] - g_nDialogAnchorY) * i / steps + g_nDialogAnchorY;
                 anim[2] = style[2] * i / steps;
                 anim[3] = style[3] * i / steps;
-                dialog_frame_draw(dialog, (int far *)anim);
+                dialog_frame_draw(dialog, (s16 far *)anim);
                 screen_frame_present();
                 i++;
             } while (i < steps);
@@ -775,9 +775,9 @@ void far dialog_animate_open(DDXRecord far *dialog, int steps) {
 }
 
 void far dialog_combatant_name_table_init(void) {
-    int i;
+    s16 i;
 #ifdef V102CD
-    int found;
+    s16 found;
 #endif
 
     i = 0;
@@ -801,31 +801,31 @@ void far dialog_combatant_name_table_init(void) {
 #endif
 }
 
-int far dialog_play_record(unsigned long record_key, int modal_flag) {
-    int done;
-    int scrLoaded;
-    int screenDirty;
-    int bFirstOpen;
-    unsigned short partySpeaker;
-    unsigned short npcSpeaker;
-    int nSavedMusic;
-    int nResult;
-    int bNeedImageFree;
-    int bAllowFallback;
-    int bTopicEmpty;
+s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
+    s16 done;
+    s16 scrLoaded;
+    s16 screenDirty;
+    s16 bFirstOpen;
+    u16 partySpeaker;
+    u16 npcSpeaker;
+    s16 nSavedMusic;
+    s16 nResult;
+    s16 bNeedImageFree;
+    s16 bAllowFallback;
+    s16 bTopicEmpty;
     unsigned char styleRect[8];
     DDXRecord far *record;
     DdxOp far *op;
-    unsigned short savedPalBlend;
+    u16 savedPalBlend;
     unsigned char far *pSavedPalette;
     unsigned char *pSpeakerName;
-    int chapterStack[5];
-    int stackDepth;
-    long lTimeAccum;
-    unsigned long keyStack[5];
+    s16 chapterStack[5];
+    s16 stackDepth;
+    s32 lTimeAccum;
+    u32 keyStack[5];
 
-    int i;
-    int j;
+    s16 i;
+    s16 j;
 
     done = 0;
     scrLoaded = 0;
@@ -856,11 +856,11 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
             {
                 j = 0;
                 op = (DdxOp far *)(record + 1) + record->bCnt1;
-                while ((int)(unsigned int)record->bCnt2 > j) {
+                while ((s16)(u16)record->bCnt2 > j) {
                     if (op->wOp == 1) {
                         dialog_cmbt_name_assign_kind(op->nA1, op->nA2, op->nA3, npcSpeaker);
                     } else if ((op->wOp == 0xc) && (op->nA2 == 0)) {
-                        if ((unsigned int)op->nA1 < 1000) {
+                        if ((u16)op->nA1 < 1000) {
                             audio_sfx_play_n_times(op->nA1, 0, 1);
                         } else {
                             audio_music_play(op->nA1);
@@ -885,7 +885,7 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
             } else if (record->wSpeaker_id == 0xfd) {
                 record->wSpeaker_id = npcSpeaker;
             } else if (record->wSpeaker_id >= 0xf0) {
-                int idx = record->wSpeaker_id - 0xf0;
+                s16 idx = record->wSpeaker_id - 0xf0;
                 g_gameState.nEvtArgActor0 = g_speaker_kinds[idx];
                 partySpeaker = record->wSpeaker_id = g_gameState.nEvtArgActor0 + 1;
             } else {
@@ -899,9 +899,9 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
 
             if ((record->wFlags & 0x400) != 0) {
                 DdxChoice far *p = (DdxChoice far *)(record + 1);
-                int j;
+                s16 j;
                 j = i = 0;
-                while ((int)(unsigned int)record->bCnt1 > j) {
+                while ((s16)(u16)record->bCnt1 > j) {
                     if (askabout_dispatch_topic(p->wCond) != 0) {
                         i = i + 1;
                     }
@@ -911,16 +911,16 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                 if (i == 0) {
                     j = 0;
                     op = (DdxOp far *)(record + 1) + record->bCnt1;
-                    while ((int)(unsigned int)record->bCnt2 > j) {
+                    while ((s16)(u16)record->bCnt2 > j) {
                         if (op->wOp == 4) {
                             if (op->nA1 == 0x7534) {
                                 partySpeaker = op->nA4;
                                 g_gameState.nEvtArgActor0 = partySpeaker - 1;
                             } else if (op->nA1 == 0x7538) {
                                 npcSpeaker = op->nA4;
-                            } else if (((unsigned int)op->nA1 >= 56000) && ((unsigned int)op->nA1 % 10 == 0)) {
+                            } else if (((u16)op->nA1 >= 56000) && ((u16)op->nA1 % 10 == 0)) {
 
-                                int bmi = (int)((long)((unsigned long)(unsigned int)op->nA1 + -56000) / 10);
+                                s16 bmi = (s16)((s32)((u32)(u16)op->nA1 + -56000) / 10);
                                 g_gameState.event_bitmap_hi[bmi] &= ((unsigned char far *)op)[4];
                                 g_gameState.event_bitmap_hi[bmi] |= ((unsigned char far *)op)[5];
                                 g_gameState.event_bitmap_hi[bmi] ^= ((unsigned char far *)op)[6];
@@ -978,9 +978,9 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         townscene_anim_channel_play_sync(g_dialog_anim_channel);
                         if ((record->wSpeaker_id <= CHARACTER_POOL_SIZE) &&
                             (g_pCurScriptObject->pAhPagedImage[5] != 0)) {
-                            unsigned int *p = (unsigned int *)g_pCurScriptObject->pAhPagedImage[5];
-                            if (p != (unsigned int *)0) {
-                                emsimg_map_then_call_180c((unsigned int *)*p, 0xf, 0xb, 0);
+                            u16 *p = (u16 *)g_pCurScriptObject->pAhPagedImage[5];
+                            if (p != (u16 *)0) {
+                                emsimg_map_then_call_180c((u16 *)*p, 0xf, 0xb, 0);
                             }
                             askabout_actor_spr_blit_pal_swap(
                                 record->wSpeaker_id & 0xff, 0, record->wSpeaker_id >> 8,
@@ -1011,13 +1011,13 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         g_world_widget->colorRemap = NULL;
                         if (record->wSpeaker_id <= CHARACTER_POOL_SIZE) {
                             if (gstate_is_party_member(record->wSpeaker_id - 1) != 0) {
-                                int m;
+                                s16 m;
                                 g_world_camera->base.orientation.yaw =
                                     camera_save.base.orientation.yaw ^ 0x8400;
                                 j = 0;
                                 m = 0;
                                 for (; j < g_gameState.partySize; j = j + 1) {
-                                    if ((int)g_gameState.activeParty[j] ==
+                                    if ((s16)g_gameState.activeParty[j] ==
                                         record->wSpeaker_id - 1) {
                                         m = j;
                                     }
@@ -1059,7 +1059,7 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                 }
                 if (record->wSpeaker_id != 0) {
                     if (record->wBody_len != 0) {
-                        dialog_frame_draw(record, (int far *)0L);
+                        dialog_frame_draw(record, (s16 far *)0L);
                         dialog_render_text_with_tokens(record, (unsigned char far *)0L, -1, 0, 0, 0);
                     }
                     if (record->wSpeaker_id < 0x46) {
@@ -1069,12 +1069,12 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                     if ((g_bDialogWorldAnchorValid != 0) && (bFirstOpen != 0)) {
                         dialog_animate_open(record, 0x14);
                         if (record->wBody_len != 0) {
-                            dialog_frame_draw(record, (int far *)0L);
+                            dialog_frame_draw(record, (s16 far *)0L);
                             dialog_render_text_with_tokens(record, (unsigned char far *)0L, -1, 0, 0, 0);
                         }
                     } else {
                         if (record->wBody_len != 0) {
-                            dialog_frame_draw(record, (int far *)0L);
+                            dialog_frame_draw(record, (s16 far *)0L);
                             dialog_render_text_with_tokens(record, (unsigned char far *)0L, -1, 0, 0, 0);
                         }
                         if ((record->wFlags & 0x2000) == 0) {
@@ -1092,28 +1092,28 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
             {
                 j = 0;
                 op = (DdxOp far *)(record + 1) + record->bCnt1;
-                while ((int)(unsigned int)record->bCnt2 > j) {
+                while ((s16)(u16)record->bCnt2 > j) {
                     switch (op->wOp) {
                     case 2:
                         if ((char)op->nA1 == '5') {
-                            g_gameState.nParty_gold += (long)(unsigned int)op->nA2 * 10;
+                            g_gameState.nParty_gold += (s32)(u16)op->nA2 * 10;
                         } else if ((char)op->nA1 == '6') {
-                            g_gameState.nParty_gold += (long)(unsigned int)op->nA2;
+                            g_gameState.nParty_gold += (s32)(u16)op->nA2;
                         } else {
                             ItemSlot slot;
-                            int handle;
-                            unsigned int speakerSel;
-                            speakerSel = (unsigned int)((unsigned char far *)&op->nA1)[1] & 0x7f;
+                            s16 handle;
+                            u16 speakerSel;
+                            speakerSel = (u16)((unsigned char far *)&op->nA1)[1] & 0x7f;
                             handle = itemtbl_load();
                             slot.item_id = (unsigned char)op->nA1;
                             slot.condition = (unsigned char)op->nA2;
                             slot.flags = 0;
-                            if ((int)speakerSel > 1) {
+                            if ((s16)speakerSel > 1) {
                                 if (cmbinv_actor_acquire_item(
                                         g_gameState.characters[(g_speaker_kinds - 2)[speakerSel]]
                                             .actor_record,
                                         (ItemSlot far *)&slot) != 0) {
-                                    g_gameState.nParty_gold -= (long)(unsigned int)op->nA3;
+                                    g_gameState.nParty_gold -= (s32)(u16)op->nA3;
                                 }
                             } else {
                                 for (i = 0; i < g_gameState.partySize; i = i + 1) {
@@ -1121,11 +1121,11 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                                             gstate_party_member_record(i)->actor_record,
                                             (ItemSlot far *)&slot) != 0) {
                                         g_gameState.nParty_gold -=
-                                            (unsigned int)op->nA3 / (unsigned int)(int)g_gameState.partySize;
+                                            (u16)op->nA3 / (u16)(s16)g_gameState.partySize;
                                     }
                                 }
                             }
-                            if ((int)handle != 0) {
+                            if ((s16)handle != 0) {
                                 itemtbl_free();
                             }
                             if (g_gameState.nParty_gold < 0) {
@@ -1135,13 +1135,13 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         break;
                     case 3:
                         if (op->nA1 == 0x35) {
-                            g_gameState.nParty_gold -= (long)(unsigned int)op->nA2 * 10;
+                            g_gameState.nParty_gold -= (s32)(u16)op->nA2 * 10;
                         } else if (op->nA1 == 0x36) {
-                            g_gameState.nParty_gold -= (long)(unsigned int)op->nA2;
+                            g_gameState.nParty_gold -= (s32)(u16)op->nA2;
                         } else {
-                            unsigned int tblLoadedHere;
+                            u16 tblLoadedHere;
                             Actor far *pActor;
-                            int slotIdx;
+                            s16 slotIdx;
                             tblLoadedHere = itemtbl_load();
                             for (i = 0; i <= g_gameState.partySize; i = i + 1) {
 
@@ -1152,11 +1152,11 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                                               .actor_record;
                                 for (slotIdx = 0; slotIdx < pActor->itemCount;
                                      slotIdx = slotIdx + 1) {
-                                    if (((unsigned int)ACTOR_ITEM(pActor, slotIdx).item_id ==
-                                         (unsigned int)op->nA1) &&
+                                    if (((u16)ACTOR_ITEM(pActor, slotIdx).item_id ==
+                                         (u16)op->nA1) &&
                                         (ACTOR_ITEM(pActor, slotIdx).item_id != 'x' ||
-                                         (unsigned int)ACTOR_ITEM(pActor, slotIdx).condition ==
-                                             (unsigned int)op->nA2)) {
+                                         (u16)ACTOR_ITEM(pActor, slotIdx).condition ==
+                                             (u16)op->nA2)) {
                                         pActor->needsFlush = TRUE;
                                         ACTOR_ITEM(pActor, slotIdx) = ACTOR_ITEM(
                                             pActor, pActor->itemCount = pActor->itemCount - 1);
@@ -1174,8 +1174,8 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         }
                         break;
                     case 23: {
-                        unsigned int n;
-                        for (n = 0; (n < (unsigned int)op->nA2); n = n + 1) {
+                        u16 n;
+                        for (n = 0; (n < (u16)op->nA2); n = n + 1) {
                             itemtbl_pty_consum_one_kind(op->nA1);
                         }
                     } break;
@@ -1185,9 +1185,9 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                             g_gameState.nEvtArgActor0 = partySpeaker - 1;
                         } else if (op->nA1 == 0x7538) {
                             npcSpeaker = op->nA4;
-                        } else if (((unsigned int)op->nA1 >= 56000) && ((unsigned int)op->nA1 % 10 == 0)) {
+                        } else if (((u16)op->nA1 >= 56000) && ((u16)op->nA1 % 10 == 0)) {
 
-                            int bmi = (int)((long)((unsigned long)(unsigned int)op->nA1 + -56000) / 10);
+                            s16 bmi = (s16)((s32)((u32)(u16)op->nA1 + -56000) / 10);
                             g_gameState.event_bitmap_hi[bmi] &= ((unsigned char far *)op)[4];
                             g_gameState.event_bitmap_hi[bmi] |= ((unsigned char far *)op)[5];
                             g_gameState.event_bitmap_hi[bmi] ^= ((unsigned char far *)op)[6];
@@ -1204,11 +1204,11 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         }
                         break;
                     case 5: {
-                        short far *q = &op->nA1;
+                        s16 far *q = &op->nA1;
                         screen_cursor_show_busy();
                         bNeedImageFree = 1;
                         for (i = 0; *q != 0 && i < 4; i = i + 1, q++) {
-                            askabout_actor_spr_cache_get((unsigned short)*q, 0);
+                            askabout_actor_spr_cache_get((u16)*q, 0);
                         }
                     } break;
                     case 17:
@@ -1219,53 +1219,53 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         worldloop_pty_stat7_flag_cd();
                         break;
                     case 10:
-                        if ((unsigned int)op->nA1 > 1) {
+                        if ((u16)op->nA1 > 1) {
                             g_gameState.nEvtArgDlgResult = stat_actor_get(
-                                &g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
+                                &g_gameState.characters[g_speaker_kinds[(u16)op->nA1 - 2]],
                                 op->nA2, 0);
                         } else {
                             g_gameState.nEvtArgDlgResult =
-                                stat_party_find_extreme(op->nA2, 0, (short *)0);
+                                stat_party_find_extreme(op->nA2, 0, (s16 *)0);
                         }
                         break;
                     case 9: {
-                        unsigned int speakerSel;
-                        int val;
-                        int amt;
-                        unsigned int amt_snap;
-                        unsigned int nA4_snap;
-                        speakerSel = (unsigned int)(unsigned char)op->nA1;
+                        u16 speakerSel;
+                        s16 val;
+                        s16 amt;
+                        u16 amt_snap;
+                        u16 nA4_snap;
+                        speakerSel = (u16)(unsigned char)op->nA1;
                         val = ((unsigned char far *)&op->nA1)[1];
-                        amt = (unsigned short)op->nA3;
-                        amt_snap = (unsigned short)op->nA3;
-                        nA4_snap = (unsigned short)op->nA4;
+                        amt = (u16)op->nA3;
+                        amt_snap = (u16)op->nA3;
+                        nA4_snap = (u16)op->nA4;
                         if (nA4_snap != amt_snap) {
                             amt = amt + RND(nA4_snap - amt_snap);
                         }
                         if (op->nA2 == 0x10) {
                             val = 'd';
                         }
-                        if ((int)speakerSel > 1) {
+                        if ((s16)speakerSel > 1) {
                             stat_combatant_modify(
                                 &g_gameState.characters[(g_speaker_kinds - 2)[speakerSel]],
-                                op->nA2, (long)amt, val);
+                                op->nA2, (s32)amt, val);
                         } else {
-                            stat_party_broadcast_status_op(op->nA2, (long)amt, val);
+                            stat_party_broadcast_status_op(op->nA2, (s32)amt, val);
                         }
                     } break;
                     case 8: {
-                        unsigned int amt;
-                        unsigned int amt_snap;
-                        unsigned int nA4_snap;
-                        amt = (unsigned short)op->nA3;
-                        amt_snap = (unsigned short)op->nA3;
-                        nA4_snap = (unsigned short)op->nA4;
+                        u16 amt;
+                        u16 amt_snap;
+                        u16 nA4_snap;
+                        amt = (u16)op->nA3;
+                        amt_snap = (u16)op->nA3;
+                        nA4_snap = (u16)op->nA4;
                         if (nA4_snap != amt_snap) {
                             amt = amt + RND(nA4_snap - amt_snap);
                         }
-                        if ((unsigned int)op->nA1 > 1) {
+                        if ((u16)op->nA1 > 1) {
                             stat_combatant_apply_condition(
-                                &g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
+                                &g_gameState.characters[g_speaker_kinds[(u16)op->nA1 - 2]],
                                 op->nA2, amt);
                         } else {
                             i = 0;
@@ -1278,9 +1278,9 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         }
                     } break;
                     case 18:
-                        if ((unsigned int)op->nA1 > 1) {
+                        if ((u16)op->nA1 > 1) {
                             stat_combatant_heal(
-                                &g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
+                                &g_gameState.characters[g_speaker_kinds[(u16)op->nA1 - 2]],
                                 op->nA2);
                         } else {
                             stat_party_heal_all(op->nA2);
@@ -1288,7 +1288,7 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         break;
                     case 12:
                         if (op->nA2 == 1) {
-                            if ((unsigned int)op->nA1 < 1000) {
+                            if ((u16)op->nA1 < 1000) {
 
                                 audio_sfx_play_n_times(op->nA1, 0, 1);
                                 break;
@@ -1297,25 +1297,25 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         }
                         break;
                     case 13:
-                        lTimeAccum = lTimeAccum + *(long far *)&op->nA1;
+                        lTimeAccum = lTimeAccum + *(s32 far *)&op->nA1;
                         break;
                     case 15:
                         askabout_free_paged_image_table();
                         break;
                     case 14:
                         gstate_event_write(op->nA1, 1);
-                        timerpool_upsert(4, op->nA1, 0x40, *(unsigned long far *)&op->nA3);
+                        timerpool_upsert(4, op->nA1, 0x40, *(u32 far *)&op->nA3);
                         break;
                     case 22:
-                        timerpool_upsert((unsigned int)(unsigned char)op->nA1, op->nA2,
-                                         (unsigned int)((unsigned char far *)&op->nA1)[1], *(unsigned long far *)&op->nA3);
+                        timerpool_upsert((u16)(unsigned char)op->nA1, op->nA2,
+                                         (u16)((unsigned char far *)&op->nA1)[1], *(u32 far *)&op->nA3);
                         break;
                     case 11:
                         audio_sfx_play_n_times(op->nA1, 0, 1);
                         break;
                     case 19:
                         combat_actor_bitmap_set_bit(
-                            (int)&g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
+                            (s16)&g_gameState.characters[g_speaker_kinds[(u16)op->nA1 - 2]],
                             op->nA2);
                         break;
                     case 20:
@@ -1342,7 +1342,7 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
             } else if ((record->wFlags & 0x200) != 0) {
                 i = 0;
                 while (g_wTextWrapLinesRemaining != 0) {
-                    dialog_frame_draw(record, (int far *)0L);
+                    dialog_frame_draw(record, (s16 far *)0L);
                     dialog_render_text_with_tokens(record, (unsigned char far *)0L, -1, 0, 0, i);
                     if (record->wSpeaker_id < 0x46) {
                         dialog_draw_speech_bubble((unsigned char far *)pSpeakerName, 0);
@@ -1360,7 +1360,7 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                 if (record->wBody_len != 0) {
                     i = 0;
                     if (g_wTextWrapLinesRemaining != 0) {
-                        *(short far *)&record->wFlags &= ~0x40;
+                        *(s16 far *)&record->wFlags &= ~0x40;
                     }
                     do {
                         if (dialog_wait_for_acknowledge(
@@ -1374,7 +1374,7 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                         if ((done != 0) || (g_wTextWrapLinesRemaining == 0))
                             break;
                         i = i + g_wTextWrapLinesDrawn;
-                        dialog_frame_draw(record, (int far *)0L);
+                        dialog_frame_draw(record, (s16 far *)0L);
                         dialog_render_text_with_tokens(record, (unsigned char far *)0L, -1, 0, 0, i);
                         if (record->wSpeaker_id < 0x46) {
                             dialog_draw_speech_bubble((unsigned char far *)pSpeakerName, 0);
@@ -1386,24 +1386,24 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                 if ((record->wFlags & 0x800) != 0) {
 
                     record_key =
-                        ((DdxChoice far *)(record + 1))[(int)RND(record->bCnt1)].dwTarget_key;
+                        ((DdxChoice far *)(record + 1))[(s16)RND(record->bCnt1)].dwTarget_key;
                 } else {
 
                     {
-                        unsigned int bMatched;
+                        u16 bMatched;
                         DdxChoice far *pChoice;
                         pChoice = (DdxChoice far *)(record + 1);
-                        j = (int)(record_key = (unsigned long)(unsigned int)(bMatched = 0));
-                        for (; bMatched == 0 && (int)(unsigned int)record->bCnt1 > j; j++, pChoice++) {
+                        j = (s16)(record_key = (u32)(u16)(bMatched = 0));
+                        for (; bMatched == 0 && (s16)(u16)record->bCnt1 > j; j++, pChoice++) {
                             if (pChoice->wCond != 0) {
                                 if ((pChoice->wCond >= 56000) && (pChoice->wCond % 10 == 0)) {
                                     unsigned char far *pc = (unsigned char far *)pChoice;
                                     unsigned char bMask;
-                                    int bmi;
+                                    s16 bmi;
                                     bMask = (g_gameState.nChapter < 9)
                                                 ? (unsigned char)(1 << (g_gameState.nChapter - 1))
                                                 : 0x80;
-                                    bmi = (int)((long)((unsigned long)pChoice->wCond + -56000) / 10);
+                                    bmi = (s16)((s32)((u32)pChoice->wCond + -56000) / 10);
                                     if (pc[4] != '\0') {
                                         if ((((g_gameState.event_bitmap_hi[bmi] ^ pc[2]) & pc[3]) !=
                                              pc[3]) ||
@@ -1421,7 +1421,7 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                                     continue;
                                 }
                                 {
-                                    unsigned short eventVal;
+                                    u16 eventVal;
                                     eventVal = gstate_event_read(pChoice->wCond);
                                     if ((eventVal < pChoice->wRange_min_or_mask) ||
                                         (pChoice->wRange_max_or_chapbits < eventVal))
@@ -1435,15 +1435,15 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                 }
             }
             {
-                int j = 0;
+                s16 j = 0;
                 op = (DdxOp far *)(record + 1) + record->bCnt1;
-                while ((int)(unsigned int)record->bCnt2 > j) {
+                while ((s16)(u16)record->bCnt2 > j) {
                     if ((op->wOp == 0x10) && (record_key != 0)) {
                         chapterStack[stackDepth] = g_nDialogChapterId;
-                        keyStack[stackDepth] = *(unsigned long far *)&op->nA1;
+                        keyStack[stackDepth] = *(u32 far *)&op->nA1;
                         stackDepth++;
                     } else if ((op->wOp == 0xc) && (op->nA2 == 2)) {
-                        if ((unsigned int)op->nA1 < 1000) {
+                        if ((u16)op->nA1 < 1000) {
                             audio_sfx_play_n_times(op->nA1, 0, 1);
                         } else {
                             audio_music_play(op->nA1);
@@ -1474,7 +1474,7 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
                 }
             }
             if ((record_key != 0) && (done == 0)) {
-                unsigned int useOffset = (unsigned int)((record_key & 0x80000000UL) == 0);
+                u16 useOffset = (u16)((record_key & 0x80000000UL) == 0);
                 record = dialog_load_record_by_key(record_key & 0x7fffffffUL, useOffset);
             }
         }
@@ -1501,9 +1501,9 @@ int far dialog_play_record(unsigned long record_key, int modal_flag) {
         }
         g_dialog_running = 0;
         if (lTimeAccum != 0) {
-            unsigned int recomputeParty;
-            int over = (0x5460 < lTimeAccum);
-            recomputeParty = (unsigned int)(g_dwDialogInputCooldown == 0);
+            u16 recomputeParty;
+            s16 over = (0x5460 < lTimeAccum);
+            recomputeParty = (u16)(g_dwDialogInputCooldown == 0);
             for (; 0 < lTimeAccum; lTimeAccum -= 0x708) {
                 if (over) {
                     g_gameState.dwLastActionTimeSnapshot = g_gameState.game_time;

@@ -5,18 +5,18 @@
 #include "SRC/SYS/MEM.H"
 #include "SRC/GFX/FONT/FONT.H"
 
-int *namedtbl_load(char *filename) {
-    int *ptr;
+s16 *namedtbl_load(char *filename) {
+    s16 *ptr;
     ResFile *file;
     void *strPool;
-    unsigned int poolSize;
-    int i;
+    u16 poolSize;
+    s16 i;
 
     strPool = (void *)0;
     ptr = galloc_safe_zcalloc(4);
     file = res_fopen(filename, "rb");
     res_fread(ptr, 2, 1, file);
-    ptr[1] = (int)galloc_safe_zcalloc(*ptr * 10);
+    ptr[1] = (s16)galloc_safe_zcalloc(*ptr * 10);
     res_fread((void *)ptr[1], 10, *ptr, file);
     res_fread(&poolSize, 2, 1, file);
     if (poolSize != 0) {
@@ -25,26 +25,26 @@ int *namedtbl_load(char *filename) {
     }
     res_fclose(file);
     for (i = 0; i < *ptr; i++) {
-        if (*(int *)(ptr[1] + i * 10) == -1) {
-            *(int *)(ptr[1] + i * 10) = 0;
+        if (*(s16 *)(ptr[1] + i * 10) == -1) {
+            *(s16 *)(ptr[1] + i * 10) = 0;
         } else {
-            *(int *)(ptr[1] + i * 10) += (int)strPool;
+            *(s16 *)(ptr[1] + i * 10) += (s16)strPool;
         }
     }
     return ptr;
 }
 
-int namedtbl_free(int *table) {
+s16 namedtbl_free(s16 *table) {
     void *minPtr;
-    int i;
+    s16 i;
 
-    if (table != (int *)0) {
-        minPtr = (void *)*(unsigned short *)table[1];
+    if (table != (s16 *)0) {
+        minPtr = (void *)*(u16 *)table[1];
         for (i = 1; i < *table; i = i + 1) {
-            if ((*(int *)(table[1] + i * 10) != 0) &&
+            if ((*(s16 *)(table[1] + i * 10) != 0) &&
                 ((minPtr == (void *)0) ||
-                 ((void *)*(unsigned int *)(table[1] + i * 10) < minPtr))) {
-                minPtr = (void *)*(unsigned short *)(table[1] + i * 10);
+                 ((void *)*(u16 *)(table[1] + i * 10) < minPtr))) {
+                minPtr = (void *)*(u16 *)(table[1] + i * 10);
             }
         }
         if (minPtr != (void *)0) {
@@ -57,19 +57,19 @@ int namedtbl_free(int *table) {
     return 0;
 }
 
-void far namedtbl_labels_draw_all(int *table) {
-    int i;
+void far namedtbl_labels_draw_all(s16 *table) {
+    s16 i;
 
-    if (table != (int *)0) {
+    if (table != (s16 *)0) {
         for (i = 0; i < *table; i++) {
-            namedtbl_label_draw((int *)(table[1] + i * 10));
+            namedtbl_label_draw((s16 *)(table[1] + i * 10));
         }
     }
     return;
 }
 
-void far namedtbl_label_draw(int *label) {
-    int x;
+void far namedtbl_label_draw(s16 *label) {
+    s16 x;
 
     g_graphics_context.clip.xmin = 0;
     g_graphics_context.clip.ymin = 0;
@@ -84,7 +84,7 @@ void far namedtbl_label_draw(int *label) {
         x = label[1];
     }
     if ((label[3] & 1U) != 0) {
-        g_graphics_context.bText_fg_color = *(unsigned char *)((int)label + 9);
+        g_graphics_context.bText_fg_color = *(unsigned char *)((s16)label + 9);
         font_draw_text_ds((char *)*label, x, label[2] + 1);
     }
     g_graphics_context.bText_fg_color = (unsigned char)label[4];

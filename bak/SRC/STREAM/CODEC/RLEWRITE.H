@@ -3,6 +3,6 @@
 
 #include "structs.h"
 
-extern void near codec_rle_emit_run(int flush);
+extern void near codec_rle_emit_run(s16 flush);
 
 #endif

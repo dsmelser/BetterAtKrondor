@@ -11,7 +11,7 @@ static char s_iff_form[] = "FORM";
 static char s_iff_ilbm[] = "ILBM";
 static char s_iff_bmhd[] = "BMHD";
 
-static void far ilbmsave_iff_fwrite_be(void *data, int count, int elem_size, FILE *stream) {
+static void far ilbmsave_iff_fwrite_be(void *data, s16 count, s16 elem_size, FILE *stream) {
     register void *p = data;
     register FILE *fp = stream;
     while (count--) {
@@ -31,9 +31,9 @@ static void far ilbmsave_iff_fwrite_be(void *data, int count, int elem_size, FIL
 }
 
 static void ilbmsave_write_cmap_chunk(FILE *stream) {
-    int i;
+    s16 i;
     unsigned char palette[768];
-    long sizeBe;
+    s32 sizeBe;
 
     fwrite("CMAP", 1, 4, stream);
     vga_read_palette(palette, 0, 0x100);
@@ -49,11 +49,11 @@ static void ilbmsave_write_cmap_chunk(FILE *stream) {
 }
 
 static void far ilbmsave_write_body_chunk(FILE *stream) {
-    register unsigned int *src;
-    register int x;
-    int y;
+    register u16 *src;
+    register s16 x;
+    s16 y;
     unsigned char *p;
-    long size_be;
+    s32 size_be;
 
     fwrite("BODY", 4, 1, stream);
     size_be = 64000;
@@ -77,8 +77,8 @@ static void far ilbmsave_write_body_chunk(FILE *stream) {
 
 static void far ilbmsave_screen_save(char *filename) {
     register FILE *fp;
-    unsigned long dwordBe;
-    unsigned short wordBe;
+    u32 dwordBe;
+    u16 wordBe;
 
     if ((fp = fopen(filename, "wb")) != 0) {
         fwrite(s_iff_form, 4, 1, fp);
@@ -109,8 +109,8 @@ static void far ilbmsave_screen_save(char *filename) {
 }
 
 void far ilbmsave_draw_unclipped_alt_buf(char *filename) {
-    unsigned short saved_dst_page;
-    int saved_clip_enabled;
+    u16 saved_dst_page;
+    s16 saved_clip_enabled;
 
     saved_dst_page = g_graphics_context.wGfxBlitDstPage;
     saved_clip_enabled = (char)g_graphics_context.bClip_enabled;

@@ -13,20 +13,20 @@
 #include "SRC/R3D/VIS/VISENTRY.H"
 
 VisibleEntryList *g_apCombat_zone_actor_lists[9];
-short g_nCombat_zone_count;
+s16 g_nCombat_zone_count;
 unsigned char g_abOpenZoneTileX[9];
 unsigned char g_abOpenZoneTileY[9];
-long g_lZoneDefaultZ;
-unsigned short g_wZoneDefaultYaw;
+s32 g_lZoneDefaultZ;
+u16 g_wZoneDefaultYaw;
 
 unsigned char g_nOpenZoneTileCount = 0x00;
 char g_szZoneWldFilename[12] = "Tzzxxyy.WLD";
 
 void far czone_subsystem_init(void) {
-    unsigned long sz;
+    u32 sz;
     WorldObject far *p;
     VisibleEntryList *list;
-    int i;
+    s16 i;
 
     list = galloc_safe_zcalloc(0x5a);
     sz = 0xf308;
@@ -57,7 +57,7 @@ void far czone_subsystem_init(void) {
 }
 
 void far czone_cache_evict_lru_slot(void) {
-    int i;
+    s16 i;
     VisibleEntryList *lowest_list;
 
     lowest_list = g_apCombat_zone_actor_lists[0];
@@ -75,7 +75,7 @@ void far czone_cache_evict_lru_slot(void) {
 }
 
 void far czone_resync_on_world_move(void) {
-    int found_idx;
+    s16 found_idx;
     VisibleEntryList *swap_tmp;
     unsigned char key1;
     unsigned char key2;
@@ -97,17 +97,17 @@ void far czone_resync_on_world_move(void) {
 }
 
 struct ZoneActorRecord {
-    unsigned short wId;
+    u16 wId;
     EulerAngles variant;
     WorldPos worldpos;
 };
 
 void far czone_load_actors(unsigned char zone, unsigned char x, unsigned char y, VisibleEntryList *list) {
-    unsigned short count;
+    u16 count;
     ResFile *fp;
-    int i;
-    int throttle_reset;
-    int throttle;
+    s16 i;
+    s16 throttle_reset;
+    s16 throttle;
     WorldObject far *cur;
     Shape far *prec;
     struct ZoneActorRecord rec;
@@ -120,9 +120,9 @@ void far czone_load_actors(unsigned char zone, unsigned char x, unsigned char y,
     g_szZoneWldFilename[5] = 0x30 | y / 10;
     g_szZoneWldFilename[6] = 0x30 | y % 10;
     fp = res_fopen(g_szZoneWldFilename, "rb");
-    count = (unsigned short)(res_filelength(fp) / 0x14);
+    count = (u16)(res_filelength(fp) / 0x14);
 
-    if (300 < (int)count) {
+    if (300 < (s16)count) {
         count = 300;
     }
     list->bZone = zone;
@@ -132,7 +132,7 @@ void far czone_load_actors(unsigned char zone, unsigned char x, unsigned char y,
     throttle_reset = throttle =
         g_engine_prefs->detail_level > 1 ? 300 : (g_engine_prefs->detail_level != 0 ? 5 : 2);
     i = 0;
-    if (i < (int)count) {
+    if (i < (s16)count) {
         do {
             res_fread(&rec, 0x14, 1, fp);
             prec = ts_get_shape(rec.wId);
@@ -147,7 +147,7 @@ void far czone_load_actors(unsigned char zone, unsigned char x, unsigned char y,
                 list->wEntry_count--;
             }
             i++;
-        } while (i < (int)count);
+        } while (i < (s16)count);
     }
     res_fclose(fp);
     list->bRef_pair_index = zone_ref_find_pair_index(zone, x, y);
@@ -160,14 +160,14 @@ void far czone_load_actors(unsigned char zone, unsigned char x, unsigned char y,
 
 void czone_rebuild_actor_list(void) {
     VisibleEntryList *swap_tmp;
-    int nUpper;
-    register int i;
-    register int next_slot;
+    s16 nUpper;
+    register s16 i;
+    register s16 next_slot;
     unsigned char x[8];
     unsigned char y[8];
-    int found_index;
-    unsigned int open_enabled;
-    int needs_spawn[8];
+    s16 found_index;
+    u16 open_enabled;
+    s16 needs_spawn[8];
     unsigned char partyX;
     unsigned char partyY;
 
@@ -232,10 +232,10 @@ void czone_rebuild_actor_list(void) {
     return;
 }
 
-int czone_find_combat_table_entry(unsigned char key1, unsigned char key2, int *out_index) {
+s16 czone_find_combat_table_entry(unsigned char key1, unsigned char key2, s16 *out_index) {
     VisibleEntryList **list_cursor;
-    int *pOut;
-    int i;
+    s16 *pOut;
+    s16 i;
 
     pOut = out_index;
     list_cursor = g_apCombat_zone_actor_lists;
@@ -270,7 +270,7 @@ void far czone_save_persist_zone_plr(void) {
 }
 
 void far czone_reset_and_reload(void) {
-    int i;
+    s16 i;
 
     g_gameState.nPlayerTileX = g_apCombat_zone_actor_lists[0]->bParty_x;
     g_gameState.nPlayerTileY = g_apCombat_zone_actor_lists[0]->bParty_y;
@@ -296,8 +296,8 @@ void czone_world_pos_to_grid_xy(char *out_tile_x, char *out_tile_y) {
 
 void czone_world_pos_from_tile(unsigned char tile_x, unsigned char tile_y, unsigned char sub_x, unsigned char sub_y,
                                WorldPos2 *out_pos) {
-    out_pos->nWorld_x = (long)tile_x * 64000 + (long)sub_x * 0x640;
-    out_pos->nWorld_y = (long)tile_y * 64000 + (long)sub_y * 0x640;
+    out_pos->nWorld_x = (s32)tile_x * 64000 + (s32)sub_x * 0x640;
+    out_pos->nWorld_y = (s32)tile_y * 64000 + (s32)sub_y * 0x640;
 }
 
 void far czone_world_pos_tile_sub_ctr(unsigned char tile_x, unsigned char tile_y, unsigned char sub_x, unsigned char sub_y,
