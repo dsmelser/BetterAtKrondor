@@ -55,7 +55,17 @@ static void cmd_light(DtIn *in, DtOut *out) {
     dt_put_bytes(out, g_r3d.vec3LightDirWorld, sizeof g_r3d.vec3LightDirWorld);
 }
 
+/* r3d.imul <s16 a, s16 b>... -> u32 each */
+static void cmd_imul(DtIn *in, DtOut *out) {
+    while (dt_remaining(in) != 0) {
+        s16 a = (s16)dt_u16(in);
+        s16 b = (s16)dt_u16(in);
+        dt_put_u32(out, (uint32_t)r3d_imul_full32(a, b));
+    }
+}
+
 const DtEntry dt_r3d_entries[] = {
+    DT_COMMAND("r3d.imul", cmd_imul),
     DT_COMMAND("r3d.build", cmd_build),
     DT_COMMAND("r3d.xform", cmd_xform),
     DT_COMMAND("r3d.light", cmd_light),

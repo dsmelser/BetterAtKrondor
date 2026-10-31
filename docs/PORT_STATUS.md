@@ -29,8 +29,8 @@ party's portraits for EMS, plays the intro to its end and scrolls the credits, s
 or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. Quit To
 DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
 come back, and Start New Game fades into chapter 1, whose opening book pages through with keys or
-clicks; the chapter cutscene after it plays to its end, the new game's state is loaded, and setting up
-the 3D world stops (below).
+clicks; the chapter cutscene after it plays to its end, the new game's state is loaded, the 3D world is
+set up, and rendering its first frame stops in the R3D core (below).
 The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
 `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
@@ -42,8 +42,8 @@ and checks that an incomplete folder is turned down cleanly.
    end (chapter one's map and title); the game then copies `STARTUP.GAM` to `TEMP.GAM` (`savegame_read`,
    byte for byte), reads the party from it and sets up the 3D world: `ts_init` sets the light (M3's R3D
    core starts there), loads the region's encounter shapes and the zone's actors, scans the zone around
-   the party, and checks the zone's ground at its position: `proximity_polygon_contains` calls R3D.ASM's
-   `r3d_imul_full32`.
+   the party, checks the zone's ground at its position, and enters the world's main loop
+   (`world3d_main_loop`): its first frame stops at R3D.ASM's `r3d_camera_setup_view`.
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -145,7 +145,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/VGABLIT.ASM` | `port/asm/vgablit.c` (`vga_planar_fill_rects`, which nothing calls, traps) | `test_vgablit.py`: 360 random span tables through the tiled and untiled copiers with random texture parameters and pages, 150 lines through the line-slot stand-in, on a planar VGA model: display memory, the map mask and the graphics mode left behind |
 | `R3D/CORE/DISTDIR.ASM` | `port/asm/distdir.c`: the octagonal distance from two points and from two deltas (`distdir_vec3_distance_dir_approx` has no caller in the game and traps) | `test_distdir.py`: 3000 random cases each and the edges of the 32-bit range, where the differences, their magnitudes and 3 * min overflow |
 | `R3D/CORE/R3DDATA.ASM` | `port/asm/r3ddata_data.c`, `r3ddata.h`: the state block, as `g_abR3dState` (the part C code reads) and `g_r3d` (R3D.ASM's own, in the original's order, with the words R3D.ASM keeps between its routines); the cosine table is R3DTRIG's | `test_r3d.py`: the lighting ramp |
-| `R3D/CORE/R3D.ASM` | `port/asm/r3d.c`, so far `r3d_light_set_direction`, `r3d_build_rotation_matrix` and `r3d_matrix3x3_transform_vec3` (with its far wrapper); the rest traps | `test_r3d.py`: the rotation matrix of every kind over angles at the cosine table's folds and 600 random ones, the vector transform over every type byte and 1500 random matrices and vectors, with inputs and outputs overlapping (the original reads its inputs again after each store); the light direction for `ts_init`'s angles and 500 pairs |
+| `R3D/CORE/R3D.ASM` | `port/asm/r3d.c`, so far `r3d_light_set_direction`, `r3d_build_rotation_matrix`, `r3d_matrix3x3_transform_vec3` (with its far wrapper) and `r3d_imul_full32`; the rest traps | `test_r3d.py`: the multiply over the 16-bit edges and 2000 random pairs; the rotation matrix of every kind over angles at the cosine table's folds and 600 random ones, the vector transform over every type byte and 1500 random matrices and vectors, with inputs and outputs overlapping (the original reads its inputs again after each store); the light direction for `ts_init`'s angles and 500 pairs |
 | `R3D/CORE/R3DTRIG.ASM` | `port/asm/r3dtrig.c` (with R3DDATA.ASM's cosine table) | `test_r3dtrig.py`: every entry of the cosine, arcsine and arctangent tables through sin, cos, asin and the raw lookup; atan2 over 3000 vectors of three magnitudes, the axes, diagonals and -8000h |
 | `GFX/RASTER/POLYRAST.ASM` | `port/asm/polyrast.c` (quads with slanted sides go on to GOURAUD.ASM, not in C yet) | `test_polyrast.py`: the edge stepper over 3000 start/end/step cases; scaled sprites, plain and RLE, at random places, scales, flips, modes (copy, fill, outline, remap through the fog and cursor tables), clip rectangles and pages, on a planar VGA model: display memory, the steppers, the map mask and the RLE scratch after each. Reaches all 40 of the routine's checkpoints. The textured quad blit (the intro's page turn) over 360 quads with vertical sides, either way round, clipped or not: the same, and the corners it swaps |
 

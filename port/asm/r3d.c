@@ -46,6 +46,12 @@ static s16 hsin(int angle) {
     return (s16)(r3d_tbl_sin((s16)angle) >> 1);
 }
 
+/* ---- arithmetic -------------------------------------------------------------------- */
+
+s32 r3d_imul_full32(s16 a, s16 b) {
+    return (s32)a * b;
+}
+
 /* ---- matrices ---------------------------------------------------------------------- */
 
 /*
@@ -243,12 +249,6 @@ PerspDiv2Result *r3d_vec2_perspective_divide(PerspDiv2Args *args, PerspDiv2Resul
 s32 r3d_actor_proj_scale_compute(PerspDiv2Args *args) {
     (void)args;
     BAK_UNIMPLEMENTED("R3D.ASM: r3d_actor_proj_scale_compute");
-}
-
-s32 r3d_imul_full32(s16 a, s16 b) {
-    (void)a;
-    (void)b;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_imul_full32");
 }
 
 s32 r3d_dot3_coeff16_vec32(void) {

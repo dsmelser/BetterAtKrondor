@@ -140,3 +140,15 @@ def test_light_direction(krondor, native):
         krondor.call_far("r3d_light_set_direction", elevation & 0xFFFF, azimuth & 0xFFFF)
         got = native.call("r3d.light", words(elevation, azimuth))
         assert got == light_state(krondor), (elevation, azimuth)
+
+
+def test_imul_full32(krondor, native):
+    # Frameless: it reads its arguments through DS, which is SS here as in the game.
+    rng = random.Random(4)
+    edges = [0, 1, -1, 0x7FFF, -0x8000, 0x4000, -0x4000, 0x00FF, 0x0100]
+    pairs = [(a, b) for a in edges for b in edges]
+    pairs += [(rng.randrange(-0x8000, 0x8000), rng.randrange(-0x8000, 0x8000)) for _ in range(2000)]
+    want = [krondor.call_far("r3d_imul_full32", a & 0xFFFF, b & 0xFFFF).dx_ax for a, b in pairs]
+    payload = b"".join(struct.pack("<hh", a, b) for a, b in pairs)
+    got = list(struct.unpack(f"<{len(pairs)}I", native.call("r3d.imul", payload)))
+    assert got == want
