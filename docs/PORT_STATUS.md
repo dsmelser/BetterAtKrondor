@@ -26,8 +26,8 @@ drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank'
 through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
 party's portraits for EMS, plays the intro to its end and scrolls the credits, starting over until a key
 or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. Its
-Quit To DOS button opens the confirmation dialog with its Yes and No answers. The MIDI the game sends is not
-played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+Quit To DOS asks for confirmation (Yes quits cleanly, No returns) and Preferences opens its screen. The MIDI
+the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
@@ -36,8 +36,8 @@ and checks that an incomplete folder is turned down cleanly.
 1. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
    for saves. A common case: a table
-   of 16-bit string offsets read over a pointer table and rebased with `+= (s16)blob` (`CREDITS.C` is done;
-   `DLGWIDG.C`, `NAMEDTBL.C`, `CSPELL.C`, `CBENC.C`, `CACTOR.C` remain).
+   of 16-bit string offsets read over a pointer table and rebased with `+= (s16)blob` (`CREDITS.C`,
+   `NAMEDTBL.C` and `ASKABOUT.C` are done; `DLGWIDG.C`, `CSPELL.C`, `CBENC.C`, `CACTOR.C` remain).
 2. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s: the ASan
    preset reports them at the first write.
 
@@ -59,6 +59,7 @@ null) that expand to the original under Borland.
 | `STREAM/RESLOAD/IMGLOAD.C` | `free_image_record` frees the image block through `MK_FP` (the original builds the far pointer as segment << 16) and reads the table's records pointer at native width. The file's own loader, which only the book viewer uses (M2), still keeps its pointers in 16-bit fields |
 | `DIALOG/ASKABOUT.C` | KEYWORD.DAT's 16-bit string offsets stay offsets and are resolved where a keyword is read (`KEYWORD`); the scratch menu's page and entries are cleared and sized at native size (`RECORD_SIZE`); a party member's name is read by its field, not by its offset in the game state; the dialog box comes back in a real four-word block (below) |
 | `SCREENS/CREDITS.C` | `credits_load` reads CRED.DAT's 16-bit string offsets aside and builds the pointer table from them |
+| `UI/NAMEDTBL.C` | label tables (`LBL_*.DAT`) are loaded into a handle with the string pool and the labels' pointers; the original rebases the records' 16-bit offsets in place and frees the pool as the lowest of them |
 | `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |
