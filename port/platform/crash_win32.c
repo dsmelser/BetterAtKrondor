@@ -70,7 +70,21 @@ static LONG WINAPI on_crash(EXCEPTION_POINTERS *ep) {
 void crash_reporter_install(void) {
     SetUnhandledExceptionFilter(on_crash);
 }
+
+void crash_print_stack(void) {
+    void *frames[32];
+    HANDLE proc = GetCurrentProcess();
+    USHORT n = CaptureStackBackTrace(1, 32, frames, NULL);
+    SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
+    SymInitialize(proc, NULL, TRUE);
+    for (USHORT i = 0; i < n; i++)
+        print_frame(proc, (DWORD64)(uintptr_t)frames[i] - 1);
+    fflush(stderr);
+}
 #else
 void crash_reporter_install(void) {
+}
+
+void crash_print_stack(void) {
 }
 #endif

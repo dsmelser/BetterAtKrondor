@@ -151,6 +151,9 @@ bool platform_pump_events(void) {
 _Noreturn void bak_unimplemented(const char *what, const char *file, int line) {
     char msg[512];
     snprintf(msg, sizeof msg, "Not implemented yet: %s\n(%s:%d)", what, file, line);
-    report_error(msg);
+    fprintf(stderr, "%s\n", msg);
+    crash_print_stack();
+    if (SDL_getenv("BAK_HEADLESS") == NULL)
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "BetterAtKrondor", msg, NULL);
     exit(3);
 }

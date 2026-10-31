@@ -18,6 +18,8 @@ extern bool g_platformFreeRunning;
 
 /* Print crashes (exception + symbolized call stack) to stderr (crash_win32.c). */
 void crash_reporter_install(void);
+/* Print the caller's call stack, symbolized, to stderr (nothing elsewhere than Windows). */
+void crash_print_stack(void);
 void platform_shutdown(void);
 
 /* Pump host events; returns false once the user asked to quit. */
