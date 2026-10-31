@@ -13,7 +13,7 @@ Where the native port stands. Update this file in the same commit as the work it
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
 | SDL3 platform layer | ✅ window + present, VGA registers + 70 Hz retrace, chunky VRAM, segment table, DOS paths, INT 33h mouse, keyboard, timer, BIOS data area, MPU-401 (MIDI bytes not played yet) |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, `POLYRAST`, `DRAWLINE`, `DRAWRECT`, `R3DTRIG`, the vtable and sprite thunks |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, `POLYRAST`, `DRAWLINE`, `DRAWRECT`, `R3DTRIG`, `VGABLIT` (span copiers), the vtable and sprite thunks |
 | Native sound driver bound to the loaded SX.OVL chunk | ✅ MT-32 (`port/drivers/m32.c`); the others stop with the driver's name |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
@@ -25,8 +25,10 @@ and timer, loads the game font, shows the "Loading Betrayal at Krondor... please
 drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
 through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
 party's portraits for EMS, plays the intro to its end and scrolls the credits, starting over until a key
-or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. The
-MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. Its
+Quit To DOS button opens the confirmation dialog, which crashes laying out its answers (`ASKABOUT.C`, pointer
+width). The MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development
+runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
@@ -98,6 +100,7 @@ that runs the original routines from the reference build against the translation
 | `AUDIO/DRIVER/MUSDISP.ASM`, `DISP35E0.ASM` | `port/asm/musdisp.c`, `disp35e0.c` | `test_snddrv.py`: each stub's command, the start command's arguments and result |
 | `GFX/RASTER/DRAWLINE.ASM` | `port/asm/drawline.c` | `test_drawline.py`: 1500 lines against random clip rectangles and 600 far-flung ones whose clipping overflows IDIV, with probes in the line and span slots: what reaches the driver |
 | `GFX/SPRITE/DRAWRECT.ASM` | `port/asm/drawrect.c` | `test_drawline.py`: 1000 rectangles, filled or not, clipped or not: the span table and the outline's lines |
+| `GFX/RASTER/VGABLIT.ASM` | `port/asm/vgablit.c` (`vga_planar_fill_rects`, which nothing calls, traps) | `test_vgablit.py`: 360 random span tables through the tiled and untiled copiers with random texture parameters and pages, 150 lines through the line-slot stand-in, on a planar VGA model: display memory, the map mask and the graphics mode left behind |
 | `R3D/CORE/R3DTRIG.ASM` | `port/asm/r3dtrig.c` (with R3DDATA.ASM's cosine table) | `test_r3dtrig.py`: every entry of the cosine, arcsine and arctangent tables through sin, cos, asin and the raw lookup; atan2 over 3000 vectors of three magnitudes, the axes, diagonals and -8000h |
 | `GFX/RASTER/POLYRAST.ASM` | `port/asm/polyrast.c` (quads with slanted sides go on to GOURAUD.ASM, not in C yet) | `test_polyrast.py`: the edge stepper over 3000 start/end/step cases; scaled sprites, plain and RLE, at random places, scales, flips, modes (copy, fill, outline, remap through the fog and cursor tables), clip rectangles and pages, on a planar VGA model: display memory, the steppers, the map mask and the RLE scratch after each. Reaches all 40 of the routine's checkpoints. The textured quad blit (the intro's page turn) over 360 quads with vertical sides, either way round, clipped or not: the same, and the corners it swaps |
 
@@ -117,8 +120,8 @@ address and the palette cache after every call.
 | 9, 12, 16, 25, 26, 28, 41-48 | empty in the original: no-ops |
 
 Slots the game calls with register arguments have native signatures in `port/drivers/vga.h` (`DrawLineFn`,
-`FillSpansFn`). The routines the game swaps into slot 27 (VGABLIT.ASM's `vgablit_planar_runs_untiled` for
-dialog backgrounds, slot 39 for textured polygons) must take the same form when they are ported.
+`FillSpansFn`). The routines the game swaps into them take the same form: VGABLIT.ASM's texture copiers
+(dialog backgrounds and the sky), and slot 39 for textured polygons when it is ported.
 
 The other adapters' chunks are not ported; the books' 640x350 HEG driver is the next one needed (M2).
 

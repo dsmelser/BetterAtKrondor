@@ -27,6 +27,10 @@ const RendererVtable *vga_driver_init(void);
 void vga_write_latches(u16 seg, u16 off, unsigned mapMask);
 void vga_read_latches(u16 seg, u16 off);
 
+/* Row y's offset in a page, read from the graphics context's row-offset LUT as the
+ * original reads it (16-bit addressing: rows past the table read its neighbours). */
+u16 vga_row_offset(s16 y);
+
 void vga_blit_glyph_row(s16 y, s16 x, s16 rows, const unsigned char *glyph); /* 1: BP DX CX SI */
 /* The native forms of register-convention slots that game code calls through the vtable
  * (any driver's, and the replacements the game swaps in): */

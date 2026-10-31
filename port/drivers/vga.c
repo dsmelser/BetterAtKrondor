@@ -79,6 +79,10 @@ static u16 row_offset(s16 y) {
     return (u16)(b[0] | b[1] << 8);
 }
 
+u16 vga_row_offset(s16 y) {
+    return row_offset(y);
+}
+
 /* ---- init ----------------------------------------------------------------------- */
 
 /* INT 10h mode 13h, then Mode Y: chain-4 and odd/even off, byte addressing, all four
