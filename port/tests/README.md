@@ -51,3 +51,13 @@ Without the reference artifacts or the executable, the tests skip.
   session; `fresh_native` gives a test its own process when it needs initial values.
 - Compare whole outputs and the module's state afterwards, over fixed inputs and over
   seeded random ones.
+- Near pointer arguments point into DS. To give a routine data in a segment of its own,
+  pass `ds=` to `call_far`; a frameless routine (`MOV BX,SP`, then `[BX+4]`) also reads
+  its stack arguments through DS, so pass the same segment as `ss=`, as the game has DS
+  equal to SS.
+- A routine that calls game C code (`res_fread`, say) can be served from Python: write
+  `INT F1h` + `RETF` over the callee's entry and install a handler for 0F1h that reads the
+  arguments at SS:SP+4 and sets AX. Natively, give the translation a function pointer the
+  C side points at a twin of the same model (`dosrw.c`, `decomp.c`).
+- Keep word accesses away from offset FFFFh of a segment: a 286 and later fault there, an
+  8086 wraps, and Unicorn reads on past the segment, so no answer is the original's.
