@@ -28,7 +28,8 @@ gh workflow run reference.yml -f ref=<ref>         # Borland build of <ref>: byt
 ```
 
 Environment: `BAK_HEADLESS=1` (no dialogs; errors to stderr), `BAK_TRACE=1` (platform milestones),
-`SDL_VIDEO_DRIVER=dummy` (no window). Crashes print a symbolized stack on Windows.
+`SDL_VIDEO_DRIVER=dummy` (no window), `BAK_DUMP_FRAME=<file.bmp>` (each presented frame),
+`BAK_DUMP_MIDI=<file>` (the MIDI bytes sent to the MPU-401). Crashes print a symbolized stack on Windows.
 
 ## Rules
 

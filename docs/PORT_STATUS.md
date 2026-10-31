@@ -12,8 +12,9 @@ Where the native port stands. Update this file in the same commit as the work it
 | Native build skeleton: CMake presets, `bak_native.h`, Borland RTL shims, generated ASM stubs | ✅ all 188 C modules compile (clang-cl x86) and link |
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
-| SDL3 platform layer | ✅ window + present, VGA registers + 70 Hz retrace, chunky VRAM, segment table, DOS paths, INT 33h mouse, keyboard, timer, BIOS data area (sound ⬜) |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, the vtable thunks; **next: the audio stack (`MIDI.ASM` and a native driver)** |
+| SDL3 platform layer | ✅ window + present, VGA registers + 70 Hz retrace, chunky VRAM, segment table, DOS paths, INT 33h mouse, keyboard, timer, BIOS data area, MPU-401 (MIDI bytes not played yet) |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, the vtable thunks |
+| Native sound driver bound to the loaded SX.OVL chunk | ✅ MT-32 (`port/drivers/m32.c`); the others stop with the driver's name |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
 
@@ -21,21 +22,20 @@ Where the native port stands. Update this file in the same commit as the work it
 must be a resource index and the archive it names must be present, since the game uses whatever it failed to
 load. Then it parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs mouse, keyboard
 and timer, loads the game font, shows the "Loading Betrayal at Krondor... please wait." screen, finds no CD
-drive (MSCDEX is absent) and stops at the sound-driver install (`MIDI.ASM`) with "Not implemented yet".
-Every sound setting, "none" included, loads a driver from SX.OVL and runs the sequencer, so audio is next.
-Development runs against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash); CI has no game
-data and checks that an incomplete folder is turned down cleanly.
+drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
+through the emulated MPU-401), and stops in `menupage_load`, which reads `REQ_*.DAT` records into structs
+with pointers (without AddressSanitizer the damage surfaces later, as a crash in `resblit_load_resource_set_1ec`).
+The MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
+and checks that an incomplete folder is turned down cleanly.
 
 **Between here and the main menu** (found by skipping audio init in a local experiment):
 
-1. **The audio stack.** Every sound setting loads an SX.OVL driver and runs the `MIDI.ASM` sequencer
-   (4800 lines, 73 routines) from the timer. With no driver loaded the original dereferences null pool
-   pointers, so the port needs the sequencer and at least a silent native driver behind the 18-slot synth ABI.
-2. **Records read straight into structs with pointers.** `menupage_load` reads `REQ_*.DAT` menu pages
+1. **Records read straight into structs with pointers.** `menupage_load` reads `REQ_*.DAT` menu pages
    with `res_fread` into `MenuPage`/`MenuEntry`, whose pointer fields are 16-bit blob offsets on disk;
    natively the layouts differ. These loaders need explicit deserialization (a `BAK_NATIVE` branch per
    format), as the plan foresaw for saves.
-3. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s: the ASan
+2. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s: the ASan
    preset reports them at the first write.
 
 ## Native-only code in the game sources
@@ -83,6 +83,9 @@ that runs the original routines from the reference build against the translation
 | `AUDIO/CDAUDIO.ASM` | `port/asm/cdaudio.c` | `test_cdaudio.py`: random detect/track/play/stop sequences with MSCDEX absent and with drives at D: and E:, against the same MSCDEX model |
 | `INPUT/INT00.ASM` | `port/asm/int00.c` | `test_int00.py`: the handler's retry rule on 2000+ overflowing DIV/IDIV, against `bak_div8`/`bak_idiv8`; install/restore |
 | `STREAM/CODEC/LZWDEC.ASM` | `port/asm/lzwdec.c` | `test_lzw.py`: memory streams read through `stream_read` in random chunk sizes (suspend and resume mid-string), random, text-like, run-heavy and image-like data, resets, truncated input; the output must also equal the encoded input |
+| `AUDIO/DRIVER/MIDI.ASM` | `port/asm/midi.c`, `midiseq.h` | `test_midi.py`: generated scripts (every event kind, running status, loop points, meta events, long waits, digital streams) played by up to 17 tracks under random sessions of every command, against fake drivers: the driver calls, the state block, every track record and script after each step. Reaches 312 of the module's 314 branch targets; the other two are dead (see below) |
+| `AUDIO/DRIVER/SNDDRV.ASM` | `port/asm/snddrv.c` | `test_midi.py`'s digital streams (its only caller) |
+| `AUDIO/DRIVER/MUSDISP.ASM`, `DISP35E0.ASM` | `port/asm/musdisp.c`, `disp35e0.c` | `test_snddrv.py`: each stub's command, the start command's arguments and result |
 
 ## Video drivers (VMCODE.OVL)
 
@@ -100,6 +103,21 @@ address and the palette cache after every call.
 | 9, 12, 16, 25, 26, 28, 41-48 | empty in the original: no-ops |
 
 The other adapters' chunks are not ported; the books' 640x350 HEG driver is the next one needed (M2).
+
+## Sound drivers (SX.OVL)
+
+The game still loads the driver chunk the configuration names (every setting loads one: "none" is `NLD`, a
+debug MT-32 driver that skips the patch upload). The sequencer recognises the chunk by the device name in its
+DUDE header and calls the port's C code for it (`port/drivers/dude.h`), which works on the chunk's own data at
+the original's offsets: the driver's state and power-on values are the original's.
+
+| Driver | Status |
+|---|---|
+| `M32` Roland MT-32 | ✅ `port/drivers/m32.c`; `test_m32.py`: `M32.EXE` and the translation on the same MPU-401 model, a generated bank, then thousands of random slot calls: registers, MIDI bytes and the whole chunk after each |
+| `NLD`, `ADL`, `SBP`, `GMD`, `PRO`, `PS1`, `STD`; digital `ASB`, `APA`, `ADS` | ⬜ stop with "Not implemented yet: the SX.OVL sound driver \"<device name>\"" |
+
+The MIDI the MT-32 driver sends goes to the emulated MPU-401 and no further yet: playing it (host MIDI, or Munt
+with user-supplied ROMs) comes after M1, behind a toggle.
 
 ## What the port has taught us about the original
 
@@ -123,6 +141,26 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
   equals tail, which is when it already holds one key: there is no typeahead. The translation keeps it.
 - **File opens are unchecked.** A missing `drive.cfg` (1.02) or `resource.cfg` passes a NULL `FILE *` to
   `fscanf`; natively the C runtime's invalid-parameter handler reports it.
+- **The sequencer's priority change re-sorts with a MOV where a CMP was meant.** `midi_chord_propagate_setting`
+  takes the track out of the registry and walks it to re-insert it in order, but its test writes
+  (`MOV ES:[BX+15Ch],DL`): every track ahead of the first empty slot gets the new priority too, the track goes
+  last, and the insertion loop is dead code.
+- **The sequencer's command chain falls through.** In `midi_dispatch_command` (never called by the game)
+  0Fh, 11h and 12h do not return, and the tests after them run on what they leave in CL: 0Fh its argument
+  (MIDI.ASM's comment says CL stays 0Fh, but CX is loaded from the slot before the call), 11h the track's
+  mark count, 12h a part of its clock. A value of 13h-17h then runs that command too.
+- **A seek hangs the next tick.** `midi_seek_with_volume_preserve` (unused) restarts the track through
+  `midi_track_init`, which releases it first (state FFh) and, while seeking, does not reset its state. The
+  scheduler then takes it for a track that stopped during its tick and plays it again, forever.
+- **The MT-32 driver's slot 1 result is used.** M32.ASM's comment calls AX = 0961h, CL = 1, CH = 8 leftover
+  scratch; the sequencer keeps CL..CH as the voices its arbiter may give out (1-8: the MT-32's parts).
+- **Without a digital driver `snddrv_dispatch_cached` returns DGROUP's segment** (it loads it for DS
+  before testing the driver flag), so the result depends on where DOS loaded the game. Only a poll of a
+  digital stream looks at it, and the game never polls one without a digital driver: every synth driver
+  reports no digital capability.
+- **The sequencer reads its own code.** After a driver call `midi_apply_vel_change_active` indexes its voice
+  table with CH:CL, CH being what the driver left (7 from the MT-32's volume controller): the bytes at
+  2E2h + 7xxh are instructions. None of those it can reach is FFh, so the channel is passed over.
 
 ## Platform services
 
@@ -133,6 +171,7 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
 | Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
 | BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |
 | MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless a drive is attached; drive check, IOCTL audio-track info, play, stop. Playing the GOG release's OGG tracks comes with the audio work |
+| MPU-401 | `port/platform/mpu401.c`, ports 330h/331h: UART mode, always ready, every command acknowledged. MIDI bytes go to a sink (`bak_midi_set_sink`); without one they are dropped, or written to the file `BAK_DUMP_MIDI` names |
 
 ## Known divergences from the original
 
@@ -149,6 +188,13 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
 - **Division the divide-error handler cannot resolve.** Where the original hangs (DIV by zero, or an
   unsigned overflow its arithmetic shift cannot shrink), the translated code stops with a message.
 - **Memory past the VGA window** (A000:0000 + 64 KB) reads as FFh and ignores writes, as on a VGA-only PC.
+- **MPU-401 acknowledgements.** Every command is acknowledged, UART mode or not; cards and clones differ.
+  The drivers only wait for a reply with a bounded poll, so nothing they send changes.
+- **The sequencer's limits.** Where the original would write past its tables (more than 16 streams in a
+  script's track table; no free voice left for a new owner, which `test_midi.py`'s sessions never reach),
+  the translation stops with a message. Scripts are read with linear pointers, where the original's 16-bit
+  offsets into a script would wrap at the end of its segment.
+- **DGROUP's segment** (see above) is 29DDh natively, DGROUP's paragraph in the 1.02 image.
 
 Placeholder values to revisit: the remaining ASM data tables (zero), the emulated DOS free memory
 (640 KB) and EMS size (8 MB).

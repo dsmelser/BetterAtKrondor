@@ -89,6 +89,15 @@ uint16_t bak_mscdex_drive_check(uint16_t drive, uint16_t *bx);
 void bak_mscdex_request(uint16_t drive, unsigned char *header);
 void bak_cdrom_attach(int drive, int firstTrack, int lastTrack, const unsigned char (*starts)[3]);
 
+/*
+ * The MPU-401 MIDI interface (ports 330h/331h, port/platform/mpu401.c), UART mode: the
+ * MIDI bytes the drivers send go to the sink, in order (none set: dropped, or written to
+ * the file BAK_DUMP_MIDI names). Reset puts the interface back in its power-on state.
+ */
+typedef void BakMidiSink(uint8_t byte);
+void bak_midi_set_sink(BakMidiSink *sink);
+void bak_mpu401_reset(void);
+
 /* I/O ports (VGA sequencer/CRTC/attribute registers, ...), emulated by the platform. */
 uint8_t bak_port_in8(uint16_t port);
 void bak_port_out8(uint16_t port, uint8_t value);

@@ -42,4 +42,8 @@ bool machine_port_in8(uint16_t port, uint8_t *value);
 bool machine_port_out8(uint16_t port, uint8_t value);
 void bak_keyboard_irq(uint8_t scancode);
 
+/* mpu401.c: the MPU-401's ports (false: not 330h or 331h). */
+bool mpu401_port_in8(uint16_t port, uint8_t *value);
+bool mpu401_port_out8(uint16_t port, uint8_t value);
+
 #endif

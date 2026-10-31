@@ -72,7 +72,7 @@ void bak_vga_wait_retrace(int next) {
 
 uint8_t bak_port_in8(uint16_t port) {
     uint8_t value;
-    if (machine_port_in8(port, &value))
+    if (machine_port_in8(port, &value) || mpu401_port_in8(port, &value))
         return value;
     switch (port) {
     case 0x3DA:
@@ -114,7 +114,7 @@ uint8_t bak_port_in8(uint16_t port) {
 }
 
 void bak_port_out8(uint16_t port, uint8_t value) {
-    if (machine_port_out8(port, value))
+    if (machine_port_out8(port, value) || mpu401_port_out8(port, value))
         return;
     switch (port) {
     case 0x3C4:
