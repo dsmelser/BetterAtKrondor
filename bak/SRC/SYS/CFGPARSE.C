@@ -32,7 +32,14 @@ SoundDriverId g_soundDrvIds[5] = {SNDDRV_ADL, SNDDRV_M32, SNDDRV_SBP, SNDDRV_STD
 
 
 #ifdef V102CD
+#ifdef BAK_NATIVE
+/* parse_krondor_cfg overwrites the drive letter in place, which the original could do
+ * to a string literal; natively literals are read-only. */
+static char s_cfgResourceDrivePrefix[] = "x:";
+char *g_cfgResourceDrivePrefix = s_cfgResourceDrivePrefix;
+#else
 char *g_cfgResourceDrivePrefix = "x:";
+#endif
 char g_cfgCdDriveLetter = 'x';
 #endif
 bool16 g_cfgKnockKnock = FALSE;

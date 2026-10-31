@@ -23,6 +23,11 @@
 #include "structs.h"
 #include "SRC/GFX/SPRITE/RECTSPR.H"
 
+#ifdef BAK_NATIVE
+void blit_sprite_flipped_clipped(void *sprite, s16 x, s16 y, s16 flags) {
+    BAK_UNIMPLEMENTED("blit_sprite_flipped_clipped: native VGA driver sprite slots");
+}
+#else
 void blit_sprite_flipped_clipped(void *sprite, s16 x, s16 y, s16 flags) {
     char op;              /* [bp-1]  current stream opcode / run counter */
     char cnt;             /* [bp-2]  pixel-run length for the dispatch  */
@@ -292,3 +297,4 @@ void blit_sprite_flipped_clipped(void *sprite, s16 x, s16 y, s16 flags) {
         }
     }
 }
+#endif

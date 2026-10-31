@@ -598,9 +598,13 @@ void dialog_render_text_with_tokens(DDXRecord far *record, char far *text, s16 f
         if (*text == '@') {
             if (isdigit((char)text[1])) {
                 text++;
+#ifdef BAK_NATIVE
+                idx = (char)*text - '0';
+#else
                 _ES = ((u16 *)&text)[1];
                 _EBX = *(u32 *)&text;
                 idx = (char)*(char _es *)_BX - '0';
+#endif
                 if (g_speaker_kinds[idx] == (char)0xfe) {
                     if ((g_speaker_names[idx][0] == 'A' || g_speaker_names[idx][0] == 'O') &&
                         tolower((char)g_pMainScratchBuf[nScratchLen - 2]) == 'a') {

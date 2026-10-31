@@ -15,6 +15,19 @@
 #include "SRC/SYS/DOSMEM.H"
 #include "SRC/SYS/FARPTR.H" /* memset_far — referenced only in inline asm below */
 
+#ifdef BAK_NATIVE
+/* Host-backed DOS memory (port/platform/dosmem.c). alloc_far(0xFFFFFFFF) is the
+ * original's query: its "pointer" result is the largest free block size in bytes. */
+void far *alloc_far(u32 size, s32 flags) {
+    if (size == 0xFFFFFFFFUL)
+        return (void far *)(uintptr_t)bak_dos_largest_free_block();
+    return bak_dos_alloc(size, (flags & ALLOC_FAR_ZERO_FILL) != 0);
+}
+
+s16 _freemem(void far *block) {
+    return bak_dos_free(block);
+}
+#else
 void far *alloc_far(u32 size, s32 flags) {
     asm mov ax, word ptr size + 2;
     asm mov bx, word ptr size;
@@ -87,3 +100,4 @@ s16 _freemem(void far *block) {
     asm pop es;
     return _AX;
 }
+#endif

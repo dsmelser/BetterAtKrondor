@@ -30,7 +30,7 @@ s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
                                  0xa0 - ((ImageRecord *)*(u16 *)img)->nWidth / 2,
                                  0x70 - ((ImageRecord *)*(u16 *)img)->nHeight,
                                  g_pCurScriptObject->pCachedResource[0]);
-        return;
+        RETURN_AX;
     }
     if (arg == 0) {
         s16 xs[4];
@@ -49,13 +49,13 @@ s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
                 cga_rect_paste_from_buffer((unsigned char far *)buf, 0xf, row, 0x121, 1);
             }
             adscript_blit_full_other_page();
-            return;
+            RETURN_AX;
         }
         arg = (s16)((u32)mode * 0x333);
         if ((s16)mode > 0x14)
-            return;
+            RETURN_AX;
         if (!img)
-            return;
+            RETURN_AX;
 
         xs[0] = xs[3] = 0;
         xs[1] = xs[2] = (s16)((s32)r3d_tbl_cos(arg) * 0x13f >> 0xe);
@@ -70,7 +70,7 @@ s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
             xs[1] = xs[2] = tmp;
         }
         emsimg_gouraud_blit_paged((u16 *)*(u16 *)img, xs, ys);
-        return;
+        RETURN_AX;
     }
 
     switch (mode) {

@@ -372,14 +372,14 @@ s16 ttmscript_interpret_loop(s16 block_index) {
         if (low == 0xf) {
             if (g_nScriptCurOpcode == 0xaf1f || g_nScriptCurOpcode == 0xaf2f) {
                 scratchStr = ttmscript_strcpy_to_scratch(p0 << 2, (char far *)(w + 1));
-                FP_OFF(w) += p0 * 4 + 2;
+                FP_OFF_ADD(w, p0 * 4 + 2);
             } else {
                 scratchStr = ttmscript_strcpy_to_scratch(0, (char far *)w);
                 w = (unsigned short far *)adscript_skip_aligned_cstring((char far *)w);
             }
         } else {
             scratchStr = (char *)0;
-            FP_OFF(w) += low * 2;
+            FP_OFF_ADD(w, low * 2);
         }
 
         if (g_nScriptEnhancedOpcodeDispatchEnabled != 0 && g_nScriptCurOpcode >= 0xa000 &&
@@ -855,7 +855,9 @@ s16 ttmscript_find_block_by_tag(s16 tag_arg) {
 char *ttmscript_strcpy_to_scratch(s16 param_1, char far *param_2) {
     s16 i;
 
+#ifndef BAK_NATIVE
     (void)_SI;
+#endif
     i = 0;
     if (param_1 < (short)g_wScreen_height) {
         if (param_1 == 0) {

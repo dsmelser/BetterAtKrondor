@@ -6,7 +6,7 @@
 
 extern void huge *g_pVideoDriverTemplate;
 extern char g_szDrvSuffix_BAD[3];
-extern unsigned short g_apVideoDriverChunkNames[13];
+extern NearPtr g_apVideoDriverChunkNames[13];
 extern char g_szVideoChunkName[10];
 extern char g_szDrvSuffix_CGA[5];
 extern char g_szDrvSuffix_EGA[5];

@@ -23,15 +23,15 @@ char g_szPalVgaChunkTag[9] = "PAL:VGA:";
 char g_szPalEgaChunkTag[9] = "PAL:EGA:";
 char g_szPalCgaChunkTag[9] = "PAL:CGA:";
 char g_szPalEmptyChunkTag[1] = {0x00};
-unsigned short g_apszPalChunkTagByAdapter[16] = {
-    (unsigned short)g_szPalEmptyChunkTag, (unsigned short)g_szPalCgaChunkTag,
-    (unsigned short)g_szPalEgaChunkTag,   (unsigned short)g_szPalEgaChunkTag,
-    (unsigned short)g_szPalCgaChunkTag,   (unsigned short)g_szPalVgaChunkTag,
-    (unsigned short)g_szPalEmptyChunkTag, (unsigned short)g_szPalVgaChunkTag,
-    (unsigned short)g_szPalVgaChunkTag,   (unsigned short)g_szPalVgaChunkTag,
-    (unsigned short)g_szPalVgaChunkTag,   (unsigned short)g_szPalEgaChunkTag,
-    (unsigned short)g_szPalVgaChunkTag,   (unsigned short)g_szPalVgaChunkTag,
-    (unsigned short)g_szPalVgaChunkTag,   (unsigned short)g_szPalVgaChunkTag};
+NearPtr g_apszPalChunkTagByAdapter[16] = {
+    (NearPtr)g_szPalEmptyChunkTag, (NearPtr)g_szPalCgaChunkTag,
+    (NearPtr)g_szPalEgaChunkTag,   (NearPtr)g_szPalEgaChunkTag,
+    (NearPtr)g_szPalCgaChunkTag,   (NearPtr)g_szPalVgaChunkTag,
+    (NearPtr)g_szPalEmptyChunkTag, (NearPtr)g_szPalVgaChunkTag,
+    (NearPtr)g_szPalVgaChunkTag,   (NearPtr)g_szPalVgaChunkTag,
+    (NearPtr)g_szPalVgaChunkTag,   (NearPtr)g_szPalEgaChunkTag,
+    (NearPtr)g_szPalVgaChunkTag,   (NearPtr)g_szPalVgaChunkTag,
+    (NearPtr)g_szPalVgaChunkTag,   (NearPtr)g_szPalVgaChunkTag};
 unsigned char far *g_pCurPalette = {0};
 
 unsigned char far *chunk_load_into_slot(FileRef *file) {

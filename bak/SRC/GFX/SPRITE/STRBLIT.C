@@ -31,6 +31,12 @@ s16 stretch_step_init(register s16 *step, register s16 dest_steps) {
     return 1;
 }
 
+#ifdef BAK_NATIVE
+void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s16 dst_w,
+                          s16 dst_h) {
+    BAK_UNIMPLEMENTED("blit_image_stretched: native VGA driver stretch blit");
+}
+#else
 void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s16 dst_w,
                           s16 dst_h) {
     unsigned short srcSeg;
@@ -169,6 +175,7 @@ void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s
         vga_reset_gc_default();
     }
 }
+#endif
 
 void blit_image_scaled_centered(register ImageRecord *image, s16 cx, s16 cy, u32 scale_q16) {
     register s16 scale_hi;

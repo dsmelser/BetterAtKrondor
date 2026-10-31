@@ -13,7 +13,7 @@ extern char g_szPalVgaChunkTag[9];
 extern char g_szPalEgaChunkTag[9];
 extern char g_szPalCgaChunkTag[9];
 extern char g_szPalEmptyChunkTag[1];
-extern unsigned short g_apszPalChunkTagByAdapter[16];
+extern NearPtr g_apszPalChunkTagByAdapter[16];
 extern unsigned char far *g_pCurPalette;
 extern short g_palette_cycle_end[10];
 extern short g_palette_cycle_start[10];

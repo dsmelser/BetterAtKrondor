@@ -44,6 +44,11 @@ unsigned char g_bSavedBiosVideoMode = 0xff; /* DG+0x2ea8 */
 unsigned char g_bRequestedVideoMode = 0xff; /* DG+0x2ea9 */
 void far *g_pfnVideoDriverInit = 0;         /* DG+0x2eaa */
 
+#ifdef BAK_NATIVE
+s16 video_init(s16 mode, s16 b, char *driver_name) {
+    BAK_UNIMPLEMENTED("video_init: bind the native VGA driver (port/drivers)");
+}
+#else
 s16 video_init(s16 mode, s16 b, char *driver_name) {
     g_bRequestedVideoMode = (unsigned char)mode;
     _AX ^= _AX;
@@ -145,3 +150,4 @@ done:
     asm pop ax;
     return _AX;
 }
+#endif

@@ -22,8 +22,8 @@
 
 extern char g_aTtmTextBuf0[41];
 extern char g_aTtmTextBuf1[41];
-unsigned short g_aTtmTextStringOffsets[9] = {(unsigned short)g_aTtmTextBuf0,
-                                             (unsigned short)g_aTtmTextBuf1,
+NearPtr g_aTtmTextStringOffsets[9] = {(NearPtr)g_aTtmTextBuf0,
+                                             (NearPtr)g_aTtmTextBuf1,
                                              0x0000,
                                              0x0000,
                                              0x0000,
@@ -198,7 +198,7 @@ short adscript_channel_dispatch_loop(unsigned short script_obj_id) {
             for (;;) {
                 if (FP_OFF(g_pCurScriptObject->pTt3_end) <= FP_OFF(cur))
                     return 0;
-                FP_OFF(cur) += 2;
+                FP_OFF_ADD(cur, 2);
                 cx = *(unsigned short far *)saved;
 
                 if (cx == 0xff0) {
@@ -216,7 +216,7 @@ short adscript_channel_dispatch_loop(unsigned short script_obj_id) {
                         dx = *(unsigned short far *)cur;
                         dx <<= 1;
                         do {
-                            FP_OFF(cur) += 2;
+                            FP_OFF_ADD(cur, 2);
                         } while (dx--);
                     } else {
                         cur = (unsigned char far *)adscript_skip_aligned_cstring((char far *)cur);
@@ -226,7 +226,7 @@ short adscript_channel_dispatch_loop(unsigned short script_obj_id) {
                 case 1:
 
                     dx = *(unsigned short far *)cur;
-                    FP_OFF(cur) += 2;
+                    FP_OFF_ADD(cur, 2);
                     if (cx == 0x1111)
                         adscript_object_chain_append(id_a, script_obj_id, dx);
                     break;
@@ -238,7 +238,7 @@ short adscript_channel_dispatch_loop(unsigned short script_obj_id) {
                 case 6:
                 case 7:
 
-                    FP_OFF(cur) += dx * 2;
+                    FP_OFF_ADD(cur, dx * 2);
                     break;
 
                 default:

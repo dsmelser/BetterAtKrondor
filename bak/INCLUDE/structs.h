@@ -4,6 +4,9 @@
  */
 #ifndef BAK_STRUCTS_H
 #define BAK_STRUCTS_H
+#if defined(BAK_NATIVE) && !defined(BAK_PACK_ACTIVE)
+#error "game headers need Borland's byte packing: include them via bak_game_begin.h"
+#endif
 #include "gtypes.h"
 #include <stdio.h>
 
@@ -94,16 +97,19 @@ enum VideoMode {
 };
 typedef enum VideoMode VideoMode;
 
+typedef unsigned short CombatResCacheCol[8][3];
+#ifndef BAK_NATIVE
+/* Library type names the reconstruction declared for itself; the host libc owns them natively. */
 typedef void *__gnuc_va_list;
 typedef u16 __mode_t;
 typedef s16 __ssize_t;
-typedef unsigned short CombatResCacheCol[8][3];
 typedef s16 intptr_t;
 #ifndef _SIZE_T
 #define _SIZE_T
 typedef unsigned short size_t;
 #endif
 typedef __ssize_t ssize_t;
+#endif
 
 typedef struct ActSpriteCache ActSpriteCache;
 typedef struct Rect Rect;

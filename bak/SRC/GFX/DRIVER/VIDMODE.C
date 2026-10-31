@@ -16,6 +16,19 @@
 #include "structs.h"
 #include "SRC/GFX/DRIVER/VIDMODE.H"
 
+#ifdef BAK_NATIVE
+/* The BIOS equipment-word video field, emulated. A VGA machine boots in 80x25 colour (2);
+ * the INT 10h text-mode reset that accompanies a write has no native counterpart. */
+static s16 s_equipmentVideoBits = 2;
+
+void bios_set_video_mode_bits(s16 mode_bits) {
+    s_equipmentVideoBits = mode_bits & 3;
+}
+
+s16 bios_get_video_mode_bits(void) {
+    return s_equipmentVideoBits;
+}
+#else
 void near bios_set_video_mode_bits(mode_bits)
 s16 mode_bits;
 {
@@ -39,3 +52,4 @@ s16 near bios_get_video_mode_bits(void) {
     _AH ^= _AH;
     return _AX;
 }
+#endif

@@ -25,6 +25,30 @@ typedef long s32;
 typedef unsigned long u32;
 #endif
 
+/*
+ * Idioms of the 16-bit original spelled so they compile both ways. Under Borland
+ * each expands to exactly the original code.
+ *
+ * NearPtr: a near (DGROUP) data pointer held in an integer - a 16-bit offset in
+ * the original, a full pointer natively. Users cast it back, e.g. (char *)p.
+ *
+ * FP_OFF_ADD(p, n): advance far pointer p by n bytes within its segment (the
+ * original's FP_OFF(p) += n).
+ *
+ * RETURN_AX: a bare `return;` in a function declared to return a value; the
+ * original returned whatever AX happened to hold. Used only where no caller
+ * reads the value.
+ */
+#ifdef BAK_NATIVE
+typedef uintptr_t NearPtr;
+#define FP_OFF_ADD(p, n) ((p) = (void *)((char *)(p) + (n)))
+#define RETURN_AX return 0
+#else
+typedef unsigned short NearPtr;
+#define FP_OFF_ADD(p, n) (FP_OFF(p) += (n))
+#define RETURN_AX return
+#endif
+
 /** @brief Boolean true value (1). */
 #define TRUE 1
 /** @brief Boolean false value (0). */

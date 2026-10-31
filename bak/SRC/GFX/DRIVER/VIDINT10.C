@@ -15,6 +15,11 @@
 #include "structs.h"
 #include "SRC/GFX/DRIVER/VIDMODE.H"
 
+#ifdef BAK_NATIVE
+/* Forcing 80x25 colour text mode has no native counterpart. */
+void bios_video_int10_helper(void) {
+}
+#else
 void near bios_video_int10_helper(void) {
     asm mov bx, 0x10;
     asm and byte ptr es : [bx], 0xcf;
@@ -23,3 +28,4 @@ void near bios_video_int10_helper(void) {
     asm mov bx, 3;
     asm int 0x10;
 }
+#endif

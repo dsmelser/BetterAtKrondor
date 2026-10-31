@@ -271,6 +271,9 @@ s16 font_render_glyph_or_ctrl(char ch, s16 x, s16 y) {
             glyph_size = ((width + 7) >> 3) * height;
             glyph_ptr = g_font_bitmap_data[0] + i * glyph_size;
         }
+#ifdef BAK_NATIVE
+        BAK_UNIMPLEMENTED("font fast glyph path: native VGA driver slot 1");
+#else
         asm {
             push bp
             push si
@@ -286,6 +289,7 @@ s16 font_render_glyph_or_ctrl(char ch, s16 x, s16 y) {
             pop si
             pop bp
         }
+#endif
     } else {
         width = font_draw_char((unsigned char)c, x, y);
         if (g_graphics_context.bText_style_flags & 2)

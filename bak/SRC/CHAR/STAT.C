@@ -379,7 +379,7 @@ u16 stat_combatant_apply_condition(Combatant *actor, s16 stat_idx, s16 amount) {
             }
         }
         if (stat_idx != 6)
-            return;
+            RETURN_AX;
         for (stat_idx = 0, g_gameState.bCombatExitRequest = 1; stat_idx < g_gameState.partySize;
              stat_idx++) {
             if (!(signed char)

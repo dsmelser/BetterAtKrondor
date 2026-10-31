@@ -4,7 +4,7 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
-extern unsigned short g_aTtmTextStringOffsets[9];
+extern NearPtr g_aTtmTextStringOffsets[9];
 extern ScriptObject far *g_pScriptObjectListHead;
 extern ScriptObject far *g_pCurScriptObject;
 extern ScriptAnimNode *g_pScriptObjectChainHead;
