@@ -397,12 +397,35 @@ void bakrtl_setvect(int intno, BakIsrFn isr) {
 
 /* ---- ctype.h ------------------------------------------------------------------------------- */
 
-/* Borland's classification table, indexed by c + 1 (entry 0 is EOF); bits as in bak_rtl.h. */
-unsigned char bakrtl_ctype[257] = {
+/*
+ * Borland's classification table, indexed by c + 1 (entry 0 is EOF; bits as in bak_rtl.h),
+ * behind the 128 bytes the original's DGROUP holds before it, the same in 1.00 and 1.02.
+ * The game's isalpha and isdigit index it with plain chars, so a byte from 80h up reads those.
+ * The dialogs' style codes do: F1h-F7h land on the EMS driver's signature, letters. The
+ * bytes are as the image starts; in the game most of them are variables that change (the
+ * audio state, the EMS counters), which only text with such a byte after an ellipsis or an
+ * '@' could tell, and the game's has none (see docs/PORT_STATUS.md).
+ */
+unsigned char bakrtl_ctype_block[128 + 257] = {
+    /* From _ctype - 128: the audio drivers' tags from the end of "M32:" to "ADS:"; at -74 the
+     * audio state from g_nSfxResourceId on (g_nAudioFilterMode -4 at -44, g_nAudioStreamCodec
+     * 1 at -32, g_nSfxDriverMode and g_nAudioDefaultSfxMode -2 at -30 and -28,
+     * g_nAudioDefaultSampleRate 11025 at -26); at -24 a word of the next module's; at -22 the
+     * EMS globals; at -14 their driver's signature "EMMXXXX0"; at -6 Borland's __ovrsize and
+     * at -2 __atexitcnt. */
+     '3', '2', ':',   0, 'S', 'B', 'P', ':',   0, 'P', 'S', '1', ':',   0, 'P', 'R',
+     'O', ':',   0, 'G', 'M', 'D', ':',   0, 'N', 'L', 'D', ':',   0, 'A', 'S', 'B',
+     ':',   0, 'A', 'P', 'S', ':',   0, 'A', 'T', 'D', ':',   0, 'A', 'P', 'A', ':',
+       0, 'A', 'D', 'S', ':',   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+       0,   0,   0,   0,0xfc,0xff,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+    0x01,   0,0xfe,0xff,0xfe,0xff,0x11,0x2b,0x72,   0,   0,   0,   0,   0,   0,   0,
+       0,   0, 'E', 'M', 'M', 'X', 'X', 'X', 'X', '0',   0,   0,   0,   0,   0,   0,
+    /* _ctype */
      0, 32, 32, 32, 32, 32, 32, 32, 32, 32, 33, 33, 33, 33, 33, 32,
     32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
     32,  1, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 64, 64, 64, 64, 64,
+    64,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2, 64, 64, 64, 64, 64,
     64, 64, 20, 20, 20, 20, 20, 20,  4,  4,  4,  4,  4,  4,  4,  4,
      4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 64, 64, 64, 64,
     64, 64, 24, 24, 24, 24, 24, 24,  8,  8,  8,  8,  8,  8,  8,  8,
@@ -417,6 +440,22 @@ unsigned char bakrtl_ctype[257] = {
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
      0,
 };
+
+/* Borland's toupper and tolower: EOF comes back as it is, anything else as its low byte,
+ * converted when the table holds a letter of the other case there. */
+int bakrtl_toupper(int c) {
+    if ((int16_t)c == -1)
+        return -1;
+    c &= 0xff;
+    return (_ctype[c + 1] & _IS_LOW) ? c - ('a' - 'A') : c;
+}
+
+int bakrtl_tolower(int c) {
+    if ((int16_t)c == -1)
+        return -1;
+    c &= 0xff;
+    return (_ctype[c + 1] & _IS_UPP) ? c + ('a' - 'A') : c;
+}
 
 /* ---- stdlib.h / string.h / mem.h ----------------------------------------------------------- */
 

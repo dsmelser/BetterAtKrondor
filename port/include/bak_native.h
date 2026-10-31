@@ -51,6 +51,21 @@
 #define rand bak_rand
 
 /*
+ * Borland's ctype.h, as the game was compiled with it. isalpha and isdigit are macros that
+ * index the classification table with the argument as given, and the game passes plain
+ * chars: a byte from 80h up reads before the table (bak_rtl.h). toupper and tolower are
+ * Borland's functions, which return the byte unsigned.
+ */
+#undef isalpha
+#undef isdigit
+#undef toupper
+#undef tolower
+#define isalpha(c) (_ctype[(c) + 1] & (_IS_UPP | _IS_LOW))
+#define isdigit(c) (_ctype[(c) + 1] & _IS_DIG)
+#define toupper(c) bakrtl_toupper(c)
+#define tolower(c) bakrtl_tolower(c)
+
+/*
  * Borland's default structure alignment is one byte (the original build never
  * passes -a). Game file formats and hand-computed offsets depend on it.
  */

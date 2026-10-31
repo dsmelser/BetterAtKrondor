@@ -227,6 +227,14 @@ with user-supplied ROMs) comes after M1, behind a toggle.
 - **Four locals filled through the address of one.** The ask-about menu builders pass `&nX` to
   `dialog_apply_style_state`, which writes eight bytes: x, y, width and height land in `nX`, `nY`, `nWidth`
   and `nHeight` because Borland lays those locals out in a row. Natively the write hit the stack guard.
+- **The text wrapper takes most style codes for letters.** The font's style codes (E0h-F5h in the
+  dialogs' text) are plain chars, negative, and Borland's `isalpha` indexes `_ctype` with them: it reads
+  the bytes DGROUP holds before the table, the same in 1.00 and 1.02. F1h-F7h land on the EMS driver's
+  signature "EMMXXXX", so `textwrap_is_break_point` takes them for letters and a line may break between
+  an ellipsis and the code after it (`...` then F1h or F3h, 18 places in the dialogs; F0h reads a zero).
+  E1h-E4h read the audio state, and no ellipsis precedes them in the game's text. Natively the game's
+  `isalpha`, `isdigit`, `toupper` and `tolower` are Borland's (`bak_native.h`), over a copy of the table
+  and the 128 bytes before it (`bakrtl_ctype_block`); `test_rtl.py` checks them against the original.
 - **File opens are unchecked.** A missing `drive.cfg` (1.02) or `resource.cfg` passes a NULL `FILE *` to
   `fscanf`; natively the C runtime's invalid-parameter handler reports it.
 - **The sequencer's priority change re-sorts with a MOV where a CMP was meant.** `midi_chord_propagate_setting`
@@ -341,6 +349,9 @@ modes.
   its block) give 0, a transparent pixel: the original reads whatever DOS memory lies there.
 - **A filled rectangle taller than the span table** (203 rows) stops with a message; the original writes
   its spans past the table's block. Clipped to the screen, a rectangle has at most 200 rows.
+- **The bytes before the ctype table** keep the values the original's image starts with; in the game
+  most of them are variables (the audio state, the EMS counters). Only text with a byte from 80h up
+  after an ellipsis or an '@' could tell, and the game's has none.
 - **Trig tables read out of range.** `r3d_tbl_asin` of a value past +-1.0 (beyond 401Fh) and
   `r3d_tbl_atan_lookup_raw` past index 1FFh stop with a message; the original reads the code after the table.
 

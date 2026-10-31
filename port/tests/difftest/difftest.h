@@ -83,5 +83,6 @@ extern const DtEntry dt_r3dtrig_entries[];
 extern const DtEntry dt_vgablit_entries[];
 extern const DtEntry dt_heg_entries[];
 extern const DtEntry dt_gstate_entries[];
+extern const DtEntry dt_rtl_entries[];
 
 #endif

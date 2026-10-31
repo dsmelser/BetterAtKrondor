@@ -121,7 +121,10 @@ void bakrtl_movedata(unsigned srcseg, unsigned srcoff, unsigned dstseg, unsigned
 /*
  * ctype.h internals. Decompiled code indexes Borland's classification table
  * directly - ((unsigned char *)_ctype)[c + 1] & _IS_DIG - so provide it with
- * Borland's bit values (entry 0 is EOF).
+ * Borland's bit values (entry 0 is EOF). Its macros index it with plain chars,
+ * signed, so a byte from 80h up reads the 128 bytes before it: the block keeps
+ * them as the original's DGROUP holds them (bakrtl.c). toupper and tolower are
+ * Borland's functions; bak_native.h maps the game's calls to them.
  */
 #define _IS_SP 1
 #define _IS_DIG 2
@@ -130,8 +133,10 @@ void bakrtl_movedata(unsigned srcseg, unsigned srcoff, unsigned dstseg, unsigned
 #define _IS_HEX 16
 #define _IS_CTL 32
 #define _IS_PUN 64
-extern unsigned char bakrtl_ctype[257];
-#define _ctype bakrtl_ctype
+extern unsigned char bakrtl_ctype_block[128 + 257];
+#define _ctype (bakrtl_ctype_block + 128)
+int bakrtl_toupper(int c);
+int bakrtl_tolower(int c);
 
 #ifdef __cplusplus
 }
