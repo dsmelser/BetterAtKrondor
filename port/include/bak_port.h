@@ -79,6 +79,16 @@ void bak_int33_set_ratio(int16_t horizontal, int16_t vertical);
 /* Tests: called with AX, CX, DX for every service call. */
 extern void (*g_int33Trace)(uint16_t ax, uint16_t cx, uint16_t dx);
 
+/*
+ * MSCDEX (INT 2Fh AH=15h, port/platform/cdrom.c): absent unless a CD drive is attached.
+ * 150Bh drive check (AX result, BX = ADADh) and 1510h device request on a request
+ * header; attaching gives a drive letter and its audio tracks' start positions.
+ */
+int bak_mscdex_installed(void);
+uint16_t bak_mscdex_drive_check(uint16_t drive, uint16_t *bx);
+void bak_mscdex_request(uint16_t drive, unsigned char *header);
+void bak_cdrom_attach(int drive, int firstTrack, int lastTrack, const unsigned char (*starts)[3]);
+
 /* I/O ports (VGA sequencer/CRTC/attribute registers, ...), emulated by the platform. */
 uint8_t bak_port_in8(uint16_t port);
 void bak_port_out8(uint16_t port, uint8_t value);

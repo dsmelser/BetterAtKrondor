@@ -13,14 +13,15 @@ Where the native port stands. Update this file in the same commit as the work it
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
 | SDL3 platform layer | ✅ window + present, VGA registers + 70 Hz retrace, chunky VRAM, segment table, DOS paths, INT 33h mouse, keyboard, timer, BIOS data area (sound ⬜) |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, the vtable thunks; **next: `CDAUDIO.ASM`** |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, the vtable thunks; **next: the audio stack (`MIDI.ASM` and a native driver)** |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
 
 **Current behaviour.** With the game files present, `betterkrondor --data <dir>` opens its window, enters the
 game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs mouse, keyboard and timer, loads the game font and shows the
-"Loading Betrayal at Krondor... please wait." screen, then stops at the 1.02 CD-drive check
-(`CDAUDIO.ASM`) with "Not implemented yet". Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
+"Loading Betrayal at Krondor... please wait." screen, checks for a CD drive (none: MSCDEX is absent) and
+stops at the sound-driver install (`MIDI.ASM`) with "Not implemented yet". Every sound setting, "none"
+included, loads a driver from SX.OVL and runs the sequencer, so audio is next. Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
 against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash).
 
 ## Native-only code in the game sources
@@ -65,6 +66,7 @@ that runs the original routines from the reference build against the translation
 | `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
 | `INPUT/KEYBOARD.ASM` | `port/asm/keyboard.c`, `keyboard_data.c` | `test_keyboard.py`: the tables; 1500-byte random key sequences through the INT 9 handler (BIOS shift state and buffer, key states, channels) with and without the Tandy paths; `kbhit_read`; queries; the INT 1Ch axis tick; install/restore |
 | `INPUT/TIMER.ASM` | `port/asm/timer.c`, `timer_data.c` | `test_timer.py`: registry alloc/free; the order of callbacks over runs of IRQ 0 ticks and the BIOS chaining; install/restore |
+| `AUDIO/CDAUDIO.ASM` | `port/asm/cdaudio.c` | `test_cdaudio.py`: random detect/track/play/stop sequences with MSCDEX absent and with drives at D: and E:, against the same MSCDEX model |
 | `INPUT/INT00.ASM` | `port/asm/int00.c` | `test_int00.py`: the handler's retry rule on 2000+ overflowing DIV/IDIV, against `bak_div8`/`bak_idiv8`; install/restore |
 | `STREAM/CODEC/LZWDEC.ASM` | `port/asm/lzwdec.c` | `test_lzw.py`: memory streams read through `stream_read` in random chunk sizes (suspend and resume mid-string), random, text-like, run-heavy and image-like data, resets, truncated input; the output must also equal the encoded input |
 
@@ -114,6 +116,7 @@ The other adapters' chunks are not ported; the books' 640x350 HEG driver is the 
 | INT 33h mouse | `port/platform/mouse.c`: the host pointer's position over the picture, in the ranges the game sets (four units per pixel); the driver calls the game's handler as an interrupt |
 | Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
 | BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |
+| MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless a drive is attached; drive check, IOCTL audio-track info, play, stop. Playing the GOG release's OGG tracks comes with the audio work |
 
 ## Known divergences from the original
 

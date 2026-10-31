@@ -73,5 +73,6 @@ extern const DtEntry dt_lzw_entries[];
 extern const DtEntry dt_timer_entries[];
 extern const DtEntry dt_keyboard_entries[];
 extern const DtEntry dt_int00_entries[];
+extern const DtEntry dt_cdaudio_entries[];
 
 #endif
