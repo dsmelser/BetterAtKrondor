@@ -27,6 +27,12 @@ uint16_t bak_ptr_off(const void *p);
 /* The segment of p as a normalized far pointer (offset under 16): the paragraph it is in,
  * where FP_SEG gives its block's. */
 uint16_t bak_ptr_seg_norm(const void *p);
+
+/* base plus a normalized far pointer's distance from it, paragraphs in the high word and
+ * bytes in the low one: what the original gets adding it to a block's seg:0000 as a long. */
+static inline void *bak_far_add(void *base, uint32_t distance) {
+    return (char *)base + (distance >> 16) * 16 + (uint16_t)distance;
+}
 uint16_t bak_seg_register(void *base, uint32_t size);
 /* The bytes from seg:0000 to the end of its block: 0 for an unmapped segment. */
 uint32_t bak_seg_extent(uint16_t seg);

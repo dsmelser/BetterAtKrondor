@@ -42,7 +42,8 @@ and checks that an incomplete folder is turned down cleanly.
    end (chapter one's map and title); the game then copies `STARTUP.GAM` to `TEMP.GAM` (`savegame_read`,
    byte for byte), reads the party from it and sets up the 3D world: `ts_init` sets the light (M3's R3D
    core starts there), loads the region's encounter shapes and the zone's actors, scans the zone around
-   the party, and faults in the proximity checks (`proximity_check_index`, PROXIM.C).
+   the party, and checks the zone's ground at its position: `proximity_polygon_contains` calls R3D.ASM's
+   `r3d_imul_full32`.
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -96,6 +97,7 @@ under Borland.
 | `COMBAT/ACTOR/CACTOR.C` | `combat_actor_bnames_load_cached` reads BNAMES.DAT's records at their 16-bit offsets into the blob (the original rebases the offsets in place), and its `nameChars` holds the whole 8-byte record with `nameMeta` pointing at the second half (below) |
 | `GFX/SPRITE/DECOMP.H`, `RESBLIT.C` | `decomp_rle`'s buffer is a `NearPtr` (the original passes it as a 16-bit int) |
 | `R3D/TBLSTORE/SHAPETBL.C`, `SHAPETBL.H`, `SHAPEBLD.C`, `R3D/ACTOR/ACTRENDR.C`, `R3D/SPRITE/WORLDRND.C` | a TBL's record table holds normalized far pointers from its DAT chunk's start (paragraphs in the high word, under 16 bytes in the low one: so in all 3065 records of the game's TBLs, whose chunks are under 64 KB), which the original adds to the chunk's seg:0000; natively each becomes the record's address. A `Shape` is file data, so its near pointers stay 16-bit offsets, and the offsets inside a record count from its own segment: `FP_SEG_NORM(record)`, the paragraph it is in |
+| `R3D/SCENE/PROXIM.C` | the zone table of a TBL's GID chunk holds normalized far pointers too, rebased the same way (`bak_far_add`); a zone's offsets count from its own segment (`FP_SEG_NORM`), and so do its polygons', whose pointers keep the zone's segment in the original: natively the zone under test keeps it for them |
 | `INCLUDE/r3d.h` | the names of the renderer's state words (labels on its state block in the original) are `g_abR3dState`'s fields, so both reach the same storage; `g_pColorRemapTable`, past the struct, is a global |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |

@@ -11,6 +11,13 @@ ProximityZoneSettings far *g_pCurProximityZoneRec;
 unsigned short g_nProximityTableCount;
 ProximityZone far *far *g_pProximityTable;
 
+#ifdef BAK_NATIVE
+/* A zone's polygons hold offsets from the zone's segment, which the original's polygon
+ * pointers keep (the zone's segment and an offset). Natively the zone under test keeps
+ * it: proximity_point_test hands its polygons to the two routines that resolve them. */
+static u16 s_zoneSeg;
+#endif
+
 void far proximity_table_load(char *file) {
     ProximityZone far *far *cursor;
 
@@ -23,7 +30,13 @@ void far proximity_table_load(char *file) {
     cursor = g_pProximityTable;
     g_nProximityTableCount = 0;
     for (; *cursor != (ProximityZone far *)0; cursor++) {
+#ifdef BAK_NATIVE
+        /* An entry is the zone's place as a normalized far pointer from the chunk's start,
+         * which the original adds to the chunk's seg:0000 as a long. */
+        *cursor = bak_far_add(g_pProximityTable, (u32)(uintptr_t)*cursor);
+#else
         *cursor = (ProximityZone far *)((s32)g_pProximityTable + (s32)*cursor);
+#endif
         g_nProximityTableCount++;
     }
 }
@@ -86,7 +99,7 @@ unsigned char far *proximity_record_vertex_ptr(ProximityZone far *zone, s16 vert
     unsigned char far *result;
     s16 stride;
 
-    result = (unsigned char far *)MK_FP(FP_SEG(zone), zone->wVertex_table_offset);
+    result = (unsigned char far *)MK_FP(FP_SEG_NORM(zone), zone->wVertex_table_offset);
     stride = (zone->bFlags & 2) ? 10 : 6;
     result = result + vertex_idx * stride;
     return result;
@@ -103,6 +116,9 @@ unsigned char far proximity_point_test(ProximityScanHit *out_hit, WorldPos2 *pos
     s16 stride;
     s32 vec[3];
 
+#ifdef BAK_NATIVE
+    s_zoneSeg = FP_SEG_NORM(zone);
+#endif
     vec[0] = (pos->nWorld_x - pRecord->nWorld_x) >> g_pCurProximityZoneRec->bResolution_shift;
     vec[1] = (pos->nWorld_y - pRecord->nWorld_y) >> g_pCurProximityZoneRec->bResolution_shift;
     proximity_vec2_long_rotate_q14(vec, -pRecord->nAngle);
@@ -118,7 +134,7 @@ unsigned char far proximity_point_test(ProximityScanHit *out_hit, WorldPos2 *pos
         return '\0';
     }
     idx = 0;
-    polyIter = MK_FP(FP_SEG(zone), zone->wVertex_table_offset);
+    polyIter = MK_FP(FP_SEG_NORM(zone), zone->wVertex_table_offset);
     stride = (zone->bFlags & 2) ? 10 : 6;
     if (!(zone->bFlags & 1)) {
         if (check_first_vertex != '\0') {
@@ -128,7 +144,7 @@ unsigned char far proximity_point_test(ProximityScanHit *out_hit, WorldPos2 *pos
                 idx = (u16)out_hit->bHit_index;
                 goto hit_found;
             }
-            polyIter = MK_FP(FP_SEG(zone), zone->wVertex_table_offset);
+            polyIter = MK_FP(FP_SEG_NORM(zone), zone->wVertex_table_offset);
         }
         while ((s16)idx < (s16)(u16)zone->bVertex_count) {
             if ((char)proximity_polygon_contains(polyIter, xi, yi) != '\0') {
@@ -179,7 +195,11 @@ unsigned char proximity_polygon_contains(ProximityPolygon far *poly, s16 point_x
     if (count > 0x20)
         panic("too many edges");
 
+#ifdef BAK_NATIVE
+    v = (ProximityVertex far *)MK_FP(s_zoneSeg, poly->wVertex_list_offset);
+#else
     v = (ProximityVertex far *)MK_FP(FP_SEG(poly), poly->wVertex_list_offset);
+#endif
     for (i = 0; i < count; i++) {
         side = 0;
         if ((cy = (s16)(signed char)v->cCy) != 0 && (dy = point_y - v->nY) != 0) {
@@ -215,7 +235,11 @@ s16 far proximity_interp_height(ProximityPolygon far *poly, s16 point_x, s16 poi
     if (g_pProximityTable == (ProximityZone far *far *)0)
         return 0;
 
+#ifdef BAK_NATIVE
+    ref = (ProximityVertex far *)MK_FP(s_zoneSeg, poly->wReference_vertex_offset);
+#else
     ref = (ProximityVertex far *)MK_FP(FP_SEG(poly), poly->wReference_vertex_offset);
+#endif
     accum = 0;
     if ((cx = (s16)(signed char)ref->cCx) != 0) {
         accum = r3d_imul_full32(cx, ref->nX - point_x);
