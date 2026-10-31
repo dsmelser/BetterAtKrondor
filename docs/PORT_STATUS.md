@@ -17,14 +17,14 @@ Where the native port stands. Update this file in the same commit as the work it
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
 
-**Current behaviour.** With the game files present, `betterkrondor --data <dir>` opens its window, enters the
-game, parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs mouse, keyboard and timer, loads the game font and shows the
-"Loading Betrayal at Krondor... please wait." screen, checks for a CD drive (none: MSCDEX is absent) and
-stops at the sound-driver install (`MIDI.ASM`) with "Not implemented yet". Every sound setting, "none"
-included, loads a driver from SX.OVL and runs the sequencer, so audio is next. Without them it says where it looked. Development runs
-against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash). The platform first checks that
-`KRONDOR.RMF` is a resource index and that its archive is present, since the game uses whatever it failed to
-load; CI, which has no game data, checks that an incomplete folder is turned down cleanly.
+**Current behaviour.** `betterkrondor --data <dir>` first checks that the folder holds the game: `KRONDOR.RMF`
+must be a resource index and the archive it names must be present, since the game uses whatever it failed to
+load. Then it parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs mouse, keyboard
+and timer, loads the game font, shows the "Loading Betrayal at Krondor... please wait." screen, finds no CD
+drive (MSCDEX is absent) and stops at the sound-driver install (`MIDI.ASM`) with "Not implemented yet".
+Every sound setting, "none" included, loads a driver from SX.OVL and runs the sequencer, so audio is next.
+Development runs against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash); CI has no game
+data and checks that an incomplete folder is turned down cleanly.
 
 **Between here and the main menu** (found by skipping audio init in a local experiment):
 
