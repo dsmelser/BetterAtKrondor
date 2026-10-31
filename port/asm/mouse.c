@@ -131,10 +131,13 @@ s16 mouse_restore_handler(void) {
 }
 
 /* Pixels from the latched position (four units per pixel), when a mouse is installed.
- * The original returns nothing in particular: AX is the last value it moved. */
+ * The original returns nothing in particular: AX is the last value it moved. The driver's
+ * interrupt, which latches the position and the buttons, runs natively when the game polls,
+ * so the queries poll first: the game waits on them in bare loops. */
 u16 mouse_get_position(u16 *out_x, u16 *out_y) {
     if (g_mouse_installed == 0)
         return 0;
+    bak_poll();
     *out_x = (u16)(g_mouse_x_mickeys >> 2);
     *out_y = (u16)(g_mouse_y_mickeys >> 2);
     return *out_y;
@@ -154,6 +157,7 @@ s16 mouse_button_pressed(s16 button) {
     u16 mask;
     if (g_mouse_installed == 0)
         return 0;
+    bak_poll();
     mask = g_mouse_buttons;
     if (button != 0)
         mask >>= 1;

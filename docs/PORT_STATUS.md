@@ -36,10 +36,9 @@ and checks that an incomplete folder is turned down cleanly.
 
 **Beyond the main menu** (M2):
 
-1. **After the book**: a click on a page hangs (`mouse_button_pressed` does not poll host events); with
-   keys the book pages through, then the chapter cutscene stops in `draw_circle_bresenham` (CIRCLE.C
-   builds its span buffer's pointer as `seg << 16`). ASan also reports `bookview_init`'s 100-byte
-   `BookViewerState`, too small natively.
+1. **After the book**: the book pages through with keys or clicks, then the chapter cutscene stops in
+   `draw_circle_bresenham` (CIRCLE.C builds its span buffer's pointer as `seg << 16`). ASan also reports
+   `bookview_init`'s 100-byte `BookViewerState`, too small natively.
 2. **The game state**: done, see `TEMP.GAM` below; not yet exercised by the game, which stops before it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -304,7 +303,7 @@ modes.
 
 | Service | Implementation |
 |---|---|
-| Interrupts | `port/platform/machine.c`: host events and a virtual 8253 become interrupts when the game polls (`bak_poll`: its wait loops, input and timer reads, retrace waits). Vectors 08h/09h/1Ch are a table the install routines replace and chain through; the BIOS INT 8 handler counts time and calls 1Ch. Reading the variables the timer advances (`g_nFrameTickCountdown`, `g_timer_ticks`, `g_dwSysTickCount`) polls first, so bare spins on them work |
+| Interrupts | `port/platform/machine.c`: host events and a virtual 8253 become interrupts when the game polls (`bak_poll`: its wait loops, input and timer reads, retrace waits). Vectors 08h/09h/1Ch are a table the install routines replace and chain through; the BIOS INT 8 handler counts time and calls 1Ch. Reading the variables the timer advances (`g_nFrameTickCountdown`, `g_timer_ticks`, `g_dwSysTickCount`) polls first, so bare spins on them work, and so do the mouse queries (`mouse_button_pressed`, `mouse_get_position`): the book waits in a bare loop for the buttons' release |
 | INT 33h mouse | `port/platform/mouse.c`: the host pointer's position over the picture, in the ranges the game sets (four units per pixel); the driver calls the game's handler as an interrupt |
 | Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
 | BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |
