@@ -13,6 +13,10 @@ endif()
 
 option(BAK_BUILD_PORT "Build the SDL3 executable (OFF: only compile the game sources)" ON)
 option(BAK_FETCH_SDL "Download and build SDL3 instead of using an installed package" ON)
+# Finds what the compiler cannot: buffers sized for 16-bit pointers and other out-of-bounds
+# accesses the original got away with in DOS. Port code that emulates DOS memory keeps its
+# overruns inside its own allocations, so reports point at the game code.
+option(BAK_ASAN "Build with AddressSanitizer" OFF)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(WARNING "64-bit targets are not supported yet: the game still stores pointers in "
@@ -54,6 +58,25 @@ else()
     set(BAK_C_WARNINGS -Wall)
     set(BAK_C_SEMANTICS -fwrapv -fno-strict-aliasing -fsigned-char)
     set(BAK_FORCE_INCLUDE -include)
+endif()
+
+if(BAK_ASAN)
+    if(MSVC)
+        add_compile_options(/fsanitize=address)
+        # CMake links with lld-link/link directly, which does not add the runtime itself.
+        get_filename_component(BAK_LLVM_BIN "${CMAKE_C_COMPILER}" DIRECTORY)
+        file(GLOB BAK_ASAN_DLL "${BAK_LLVM_BIN}/../lib/clang/*/lib/windows/clang_rt.asan_dynamic-i386.dll")
+        if(NOT BAK_ASAN_DLL)
+            message(FATAL_ERROR "BAK_ASAN: clang_rt.asan_dynamic-i386.dll not found next to ${CMAKE_C_COMPILER}")
+        endif()
+        list(GET BAK_ASAN_DLL 0 BAK_ASAN_DLL)
+        get_filename_component(BAK_ASAN_DIR "${BAK_ASAN_DLL}" DIRECTORY)
+        link_directories("${BAK_ASAN_DIR}")
+        link_libraries(clang_rt.asan_dynamic-i386 clang_rt.asan_dynamic_runtime_thunk-i386)
+    else()
+        add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=address)
+    endif()
 endif()
 
 # --- The reconstructed game ------------------------------------------------------------
@@ -142,6 +165,11 @@ target_link_libraries(bakport PUBLIC SDL3::SDL3)
 
 add_executable(betterkrondor "${CMAKE_SOURCE_DIR}/port/platform/main.c")
 target_link_libraries(betterkrondor PRIVATE bakport bakgame SDL3::SDL3)
+if(BAK_ASAN AND MSVC)
+    add_custom_command(TARGET betterkrondor POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${BAK_ASAN_DLL}"
+                "$<TARGET_FILE_DIR:betterkrondor>")
+endif()
 
 # --- Tests -------------------------------------------------------------------------------
 #

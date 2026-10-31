@@ -42,6 +42,15 @@
       }
     },
     {
+      "name": "win-x86-clangcl-asan",
+      "displayName": "Windows x86 (clang-cl) with AddressSanitizer",
+      "inherits": "win-x86-clangcl",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "BAK_ASAN": "ON"
+      }
+    },
+    {
       "name": "win-x86-msvc",
       "displayName": "Windows x86 (MSVC cl)",
       "inherits": "base",
@@ -84,6 +93,10 @@
     {
       "name": "win-x86-clangcl",
       "configurePreset": "win-x86-clangcl"
+    },
+    {
+      "name": "win-x86-clangcl-asan",
+      "configurePreset": "win-x86-clangcl-asan"
     },
     {
       "name": "win-x86-msvc",

@@ -95,7 +95,11 @@ extract: {
         ch += 8;
         bl -= 8;
     }
-    ax = (u16)(g_lzwExtractMask[(bits & 0xff00) | bl] & *p);
+    /* A code ending on a byte boundary leaves a zero mask; the original still reads the
+     * byte past the buffer (the mask table follows it in DGROUP), which cannot matter. */
+    ax = g_lzwExtractMask[(bits & 0xff00) | bl];
+    if (ax != 0)
+        ax &= *p;
     return (u16)((u16)(ax << ch) | dx);
 }
 }
