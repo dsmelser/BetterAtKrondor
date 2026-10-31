@@ -295,8 +295,10 @@ plane in turn while the API reads A000h. Captures and diffs go to `work/golden/<
 | Scenario | Result |
 |---|---|
 | `main-menu`: Escape during the intro | ✅ identical (the original shows the page at 4000h) |
+| `book`: N (Start New Game) after the intro, chapter 1's first page | ✅ identical, 640x350 in 16 colours (the original shows the page at 8000h) |
 
-The decoder handles the unchained 256-colour modes only; the books' 640x350 mode comes with the HEG driver.
+The capture also reads the attribute controller, and the decoder handles Mode Y and the 16-colour planar
+modes.
 
 ## Platform services
 
