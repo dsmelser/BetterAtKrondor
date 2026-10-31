@@ -25,6 +25,8 @@ void *bak_seg_ptr(uint16_t seg);
 uint16_t bak_ptr_seg(const void *p);
 uint16_t bak_ptr_off(const void *p);
 uint16_t bak_seg_register(void *base, uint32_t size);
+/* The bytes from seg:0000 to the end of its block: 0 for an unmapped segment. */
+uint32_t bak_seg_extent(uint16_t seg);
 void bak_seg_register_at(uint16_t seg, void *base, uint32_t size);
 void bak_seg_unregister(uint16_t seg);
 

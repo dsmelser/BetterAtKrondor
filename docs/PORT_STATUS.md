@@ -13,7 +13,7 @@ Where the native port stands. Update this file in the same commit as the work it
 | DOS code on the boot path rewritten natively (BIOS checks, DOS memory, EMS, config) | ✅ |
 | Native VGA driver bound by `video_init` | ✅ `port/drivers/vga.c`; slots ported as the boot path reaches them (below) |
 | SDL3 platform layer | ✅ window + present, VGA registers + 70 Hz retrace, chunky VRAM, segment table, DOS paths, INT 33h mouse, keyboard, timer, BIOS data area, MPU-401 (MIDI bytes not played yet) |
-| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, the vtable thunks |
+| Boot-path ASM in C (codecs, `FARPTR`, `RAND`, `DOSRW`, `PALDAC`, ...) | 🚧 `RAND`, `VIDDET`, `PIXEL`, `MOUSE`, `FARPTR`, `LZWDEC`, `KEYBOARD`, `TIMER`, `INT00`, `CDAUDIO`, `MIDI`, `SNDDRV`, `MUSDISP`, `DISP35E0`, `POLYRAST` (scaled sprites), the vtable thunks |
 | Native sound driver bound to the loaded SX.OVL chunk | ✅ MT-32 (`port/drivers/m32.c`); the others stop with the driver's name |
 | Differential test harness (Unicorn, `port/tests`) | ✅ originals run from the reference EXE + map; CI runs it |
 | Boots the user's data to the main menu | ⬜ |
@@ -23,9 +23,9 @@ must be a resource index and the archive it names must be present, since the gam
 load. Then it parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs mouse, keyboard
 and timer, loads the game font, shows the "Loading Betrayal at Krondor... please wait." screen, finds no CD
 drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
-through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), and stops where it composes the frame
-screens with the party's portraits for EMS (`resblit_load_resource_set_1ec`): the scaled sprite blit,
-POLYRAST.ASM's `polyrast_spr_scaled_blit_planar`, is not in C yet. The MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
+through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
+party's portraits for EMS, and starts the intro: loading its first animation script (`anim_script_open`), it
+overruns a record in `adscript_object_chain_append` (ADSCRIPT.C:149). The MIDI the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
 and checks that an incomplete folder is turned down cleanly.
 
@@ -51,6 +51,7 @@ Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or on
 | `UI/MENUPAGE.C` | `menupage_load` reads each field of the 1Ch-byte page and 21h-byte entry records from its place on disk; their 16-bit string offsets (-1: none) become pointers into the string blob. Checked against all 24 menu files the game loads: offsets inside their blob, none without one |
 | `GFX/DRIVER/VIDMODE.C`, `VIDINT10.C` | BIOS equipment-word video bits emulated; text-mode reset is a no-op |
 | `GFX/SCREEN/SCREEN.C` | VGA latch copy as a page-to-page row copy |
+| `INCLUDE/gfx169d.h` | the fog and cursor remap tables are views into one block, laid out as in POLYRAST.ASM's code segment from `FOG_REMAP_TAB_OFF`: the scaled blit reads them by those offsets and the combat code fills four more tables past the cursor one |
 | `IO/RESOURCE.C` | prototype for the INT 24h handler (never raised natively) |
 | `STREAM/RESLOAD/FONTLOAD.C`, `STREAM/BUFLOAD/CHUNKRD.C`, `DIALOG/DIALOG.C`, `SCRIPT/TTM.C` | small asm sequences in C |
 | `GFX/DRIVER/VIDINIT.C` `video_init`, `VIDDRV.C` `video_driver_bind` | the built-in driver replaces loading the VMCODE.OVL chunk; same mode remapping and context setup |
@@ -86,6 +87,7 @@ that runs the original routines from the reference build against the translation
 | `AUDIO/DRIVER/MIDI.ASM` | `port/asm/midi.c`, `midiseq.h` | `test_midi.py`: generated scripts (every event kind, running status, loop points, meta events, long waits, digital streams) played by up to 17 tracks under random sessions of every command, against fake drivers: the driver calls, the state block, every track record and script after each step. Reaches 312 of the module's 314 branch targets; the other two are dead (see below) |
 | `AUDIO/DRIVER/SNDDRV.ASM` | `port/asm/snddrv.c` | `test_midi.py`'s digital streams (its only caller) |
 | `AUDIO/DRIVER/MUSDISP.ASM`, `DISP35E0.ASM` | `port/asm/musdisp.c`, `disp35e0.c` | `test_snddrv.py`: each stub's command, the start command's arguments and result |
+| `GFX/RASTER/POLYRAST.ASM` | `port/asm/polyrast.c` (the Gouraud quad blit still traps) | `test_polyrast.py`: the edge stepper over 3000 start/end/step cases; scaled sprites, plain and RLE, at random places, scales, flips, modes (copy, fill, outline, remap through the fog and cursor tables), clip rectangles and pages, on a planar VGA model: display memory, the steppers, the map mask and the RLE scratch after each. Reaches all 40 of the routine's checkpoints |
 
 ## Video drivers (VMCODE.OVL)
 
@@ -161,6 +163,11 @@ with user-supplied ROMs) comes after M1, behind a toggle.
 - **The sequencer reads its own code.** After a driver call `midi_apply_vel_change_active` indexes its voice
   table with CH:CL, CH being what the driver left (7 from the MT-32's volume controller): the bytes at
   2E2h + 7xxh are instructions. None of those it can reach is FFh, so the channel is passed over.
+- **The scaled sprite blit starts each column's row fraction from the wrong byte.** It loads the y
+  stepper's top byte (`prs_e1_acc + 3`) where its fraction was meant, so the sub-row start the stepper
+  computed is dropped, and a flipped column can end a byte before its first row: before the data, at the
+  end of the source's segment. Its edge stepper tests the quotient's sign with JNS after IDIV, whose flags
+  are those of an earlier `AND ECX,0FFFFh`: it always takes the path meant for positive quotients.
 
 ## Platform services
 
@@ -195,6 +202,8 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   the translation stops with a message. Scripts are read with linear pointers, where the original's 16-bit
   offsets into a script would wrap at the end of its segment.
 - **DGROUP's segment** (see above) is 29DDh natively, DGROUP's paragraph in the 1.02 image.
+- **Reads past a sprite's memory** (a flipped column's last row, see above) give 0, a transparent pixel:
+  the original reads whatever DOS memory lies at the end of the source's segment.
 
 Placeholder values to revisit: the remaining ASM data tables (zero), the emulated DOS free memory
 (640 KB) and EMS size (8 MB).

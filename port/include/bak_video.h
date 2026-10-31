@@ -42,4 +42,13 @@ static inline uint8_t *bak_vram_planar(uint16_t seg, uint16_t off, unsigned plan
     return &g_bakVram[((o * 4u) + plane) & (BAK_VRAM_SIZE - 1)];
 }
 
+/* The same where the CPU reaches it: NULL past the 64 KB VGA window at A000:0000, where
+ * a VGA-only PC has nothing (a page segment plus an offset can point there). */
+static inline uint8_t *bak_vram_window(uint16_t seg, uint16_t off, unsigned plane) {
+    uint32_t linear = ((uint32_t)seg << 4) + off;
+    if (linear - 0xA0000u >= 0x10000u)
+        return (uint8_t *)0;
+    return &g_bakVram[(linear - 0xA0000u) * 4u + plane];
+}
+
 #endif

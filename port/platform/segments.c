@@ -104,6 +104,14 @@ void bak_seg_unregister(uint16_t seg) {
     }
 }
 
+uint32_t bak_seg_extent(uint16_t seg) {
+    SegBlock *b = seg != 0 ? find_by_seg(seg) : NULL;
+    if (b == NULL)
+        return 0;
+    uint32_t skipped = (uint32_t)(seg - b->seg) * 16;
+    return b->size > skipped ? b->size - skipped : 0;
+}
+
 void *bak_seg_ptr(uint16_t seg) {
     if (seg == 0)
         return NULL; /* MK_FP(0, n) is used for sentinels and null pointers */
