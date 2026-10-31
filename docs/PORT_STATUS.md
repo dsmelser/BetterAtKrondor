@@ -24,6 +24,18 @@ stops at the sound-driver install (`MIDI.ASM`) with "Not implemented yet". Every
 included, loads a driver from SX.OVL and runs the sequencer, so audio is next. Without them it says where it looked. CI runs exactly this smoke test against placeholder files. Development runs
 against a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash).
 
+**Between here and the main menu** (found by skipping audio init in a local experiment):
+
+1. **The audio stack.** Every sound setting loads an SX.OVL driver and runs the `MIDI.ASM` sequencer
+   (4800 lines, 73 routines) from the timer. With no driver loaded the original dereferences null pool
+   pointers, so the port needs the sequencer and at least a silent native driver behind the 18-slot synth ABI.
+2. **Records read straight into structs with pointers.** `menupage_load` reads `REQ_*.DAT` menu pages
+   with `res_fread` into `MenuPage`/`MenuEntry`, whose pointer fields are 16-bit blob offsets on disk;
+   natively the layouts differ. These loaders need explicit deserialization (a `BAK_NATIVE` branch per
+   format), as the plan foresaw for saves.
+3. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s: the ASan
+   preset reports them at the first write.
+
 ## Native-only code in the game sources
 
 Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or one of the idioms in
