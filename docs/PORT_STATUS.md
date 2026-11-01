@@ -99,8 +99,7 @@ has no GAMES) it first makes the Save Game dialog's first one, `GAMES\SAVES.G01`
 the game does at its start (`mainmenu_save_quick`). F9 loads that folder's Bookmark as Restore Game
 loads a save (the world loop ends with mode 3): the full map with the chapter's caption, then the
 world where the party was; without a Bookmark F9 does nothing. Neither key meant anything in the
-world. Saving takes no draw from the game's random generator (the Bookmark's question and notice,
-which F5 skips, are dialogs, and each dialog box draws its parchment's offset from it). Autosaves
+world. Saving takes no draw from the game's random generator. Autosaves
 are not done yet: a save snapshots the party's place into the game state (`zoneDefaultCameraPos`),
 which `zone_load` reads after every fight, so a save the player did not ask for must leave the live
 state alone.
@@ -281,7 +280,10 @@ The game's rules stay the original's (CLAUDE.md); these change how it runs.
   - the ground pattern's offset after each step and turn (WORLDMOV.C, read by SKY.C);
   - sprite flips picked while drawing (WORLDHIT.C);
   - ambient sound (AUDIO.C) and the credits' colours;
-  - the animation scripts' random timing and branches (TTM.C, ANIMSCR.C).
+  - the animation scripts' random timing and branches (TTM.C, ANIMSCR.C);
+  - where a dialog box's parchment pattern starts (DIALOG.C; since 2026-11-01, missed by the first sweep:
+    every dialog box drawn moved the game's sequence, so a Bookmark's question or a load's caption shifted
+    the next fight's rolls).
 
   The original drew these from the one generator its combat, encounters and dialogs use, so how many
   frames were drawn moved that sequence; the ambient roll alone drew once per world-loop pass. Now the
@@ -760,7 +762,7 @@ detail 3, CD music off unless the scenario wants it), so the game folder's own f
 | `main-menu`, `book`, `world` (the golden scenarios' scripts) | ✅ two runs give identical logs; each ends on its golden capture. The world tour takes about 19 s, against 90 s on the host's clock, because computing costs no game time |
 | `walk`: the world, then three steps, a turn left, a step, two turns right, a step | ✅ identical logs; the state log shows each 400-unit step and each 1024-unit turn |
 | `walk-instant`: the walk with `video.step_time=0`, compared with `walk`'s states alone (times set aside) | ✅ the same states: smooth steps are a picture only. When they came (2026-11-01) every scenario kept its states, times aside; in `hold-key` and `hold-button` the held key's next press waits during a step's frames, so the pass after a step takes the next one too, and the state between them (the step's time added) is no longer logged: their states are an ordered part of the earlier ones, the same steps to the same end |
-| `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state at 128 s. Since the fixes of the AI's healing, Owyn takes the Gift of Sung action on his turns and reaches the healer's choice three times (lowest ally health 55, rolls 77, 11 and 36: Gift of Sung once), but Locklear, whom the assassin attacks, keeps all his health: nothing is cast and the logs are unchanged |
+| `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, Space for the victory's dialog, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state after it. The AI's healing choices (Gift of Sung for a hurt ally) are checked by `test_cbtai.c`: in chapter 1's first fights damage takes stamina first, and no replay reaches a cast |
 | `spawns`: the world, then a teleport into zone 4 (tile 10,14) among the sixteen stones chapter 1 spawns there, and a full turn about | ✅ identical logs, the ASan build's too; the stones live in the visible pool, past the zone pool's first 64 KB natively, and did not show before the visible list held pointers |
 | `riddle`: the world, then the map (M) and its hidden riddle chest: the grave key held with the right Shift and the left Alt shows the Moredhel lock vision, whose dialog plays a sound and waits for its end, then the chest's word lock: its dialogs, the first dial turned, Exit, the two dialogs after it, back on the map | ✅ identical logs, the ASan build's too. Before the waits for a sound polled, the run stopped at the vision: the sound never ended |
 | `music`: the world's script with CD music on | ✅ identical logs, the ASan build's too: tracks 24, 16, 11, 31 and 36 play, each from 39 frames before its start, and the sound renders the same every run. The world comes at 38 s, 3 s sooner than with the MT-32's music, whose changes of track wait for a fade |
@@ -771,6 +773,13 @@ detail 3, CD music off unless the scenario wants it), so the game folder's own f
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
 41 s of game time), since decoding and drawing take no game time; the golden scripts still work.
+
+When the dialogs' parchment moved to the cosmetic stream (2026-11-01) the scenarios without a
+dialog before their game logic kept their states, the times too, and their pictures shifted where
+the cosmetic stream's next draws did (the ground's pattern after a step). The quickloads' random
+state after the load changed (its caption is a dialog), and `combat` fights with other rolls: the
+assassin still falls, and its victory's dialog now waits for a key (dialogs leave the arrows alone),
+so the script presses Space before the two steps past the corpse.
 
 Since the Sound Blaster became the default (2026-11-01) the replays run on it. Every scenario kept
 its states, the world's even their times, and its pictures in their order: only the first came a

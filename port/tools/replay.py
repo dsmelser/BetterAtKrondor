@@ -90,14 +90,14 @@ SCENARIOS["hold-key"] = world_then("90000:key:W,1450;", 93000)
 SCENARIOS["hold-button"] = world_then("90000:hold:167,117,1450;", 93000)
 # Chapter 1's first fight (DEF_COMB record 0, the box of cells 24-33 x 4-10 of zone 1's tile
 # 10,14): the party is teleported two cells north of it, facing 8400h, turns south, steps in
-# with Space for the dialog's pages, and A plays the fight out (auto-combat). Then two steps
-# past the corpse. (The heading dates from the original's teleport test, which skipped this
+# with Space for the dialog's pages, and A plays the fight out (auto-combat). Then Space for the
+# victory's dialog (dialogs leave the arrows alone) and two steps past the corpse. (The heading dates from the original's teleport test, which skipped this
 # teleport at the zone's kept heading, 8000h: see the teleport scenario.)
 SCENARIOS["combat"] = world_then(
     "90000:teleport:1,10,14,28,12,8400;91000:key:Right;"
     + "".join(f"{92000 + 400 * i}:key:Up;{92200 + 400 * i}:key:Space;" for i in range(8))
     + "".join(f"{95400 + 400 * i}:key:Space;" for i in range(9))
-    + "100000:key:A;130000:key:Up;131000:key:Up;", 135000)
+    + "100000:key:A;128000:key:Space;130000:key:Up;131000:key:Up;", 135000)
 # The zone pool's last entries, past its first 64 KB natively: zone 4's sixteen stones (shape
 # D4h) that chapter 1 spawns around tile 10,14 sit in the visible pool. The party is teleported
 # among them, looks north, then turns about.
