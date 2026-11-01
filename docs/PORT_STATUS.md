@@ -114,6 +114,11 @@ checks the native fields against the original's offsets and the round trip.
 | Key | Meaning |
 |---|---|
 | `paths.data` | the game folder last used |
+| `video.fullscreen` | borderless full screen; Alt+Enter and F11 switch it, and the game sees neither key |
+| `video.scaling` | `pixelart` (the default: sharp pixels without nearest's uneven rows and columns at scales that are not whole), `nearest`, `linear` |
+| `video.integer` | scale by whole multiples only |
+| `video.aspect` | `4:3` (the default: the picture stretched as a VGA monitor showed it) or `square` pixels |
+| `window.width`, `window.height`, `window.x`, `window.y`, `window.maximized` | the window as it was when it closed; a place no display shows is dropped for the centre |
 
 ## Where the game sources depart from the original
 
@@ -624,6 +629,7 @@ On the virtual clock the game reaches the world sooner than on the host's (its l
 | MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless a drive is attached; drive check, IOCTL audio-track info, play, stop. Playing the GOG release's OGG tracks comes with the audio work |
 | Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses, pointer moves and clicks (in picture pixels), teleports and a quit, for runs without a user; times are on the platform's clock. A teleport fills in the game's own pending teleport (`port/platform/teleport.c`), which the world loop carries out at its next pass, as for TELEPORT.DAT's destinations: the zone's actors and encounters are loaded around the new place |
 | Clock | `port/platform/clock.c`: the host's monotonic clock, or (`BAK_CLOCK=virtual`) one that moves only as the game runs, for replays (below) |
+| Window | `port/platform/video.c`: SDL's renderer (Direct3D 11 on Windows) shows the picture the CRTC scans out, scaled as the settings say (pixel art by default); Alt+Enter and F11 switch the borderless full screen. The window's place, size and state are saved when it closes. `BAK_TRACE` names the video driver, the renderer and the scale mode it got |
 | Files | `port/compat/bakrtl.c`: the game's DOS paths (any case, backslashes, a drive letter) are looked up in the user folder, then in the game folder; writes go to the user folder (see "Settings and folders"). `chdir` tells whether the folder is there, looked for as reads are: the game asks it whether `GAMES` exists and makes one, with a first `SAVES.G01`, when not (`mainmenu_save_games_dir_exists`). Until 2026-11-01 it answered yes to everything, so a first save failed in a user folder without `GAMES`. Host paths are UTF-8, SDL's and the C runtime's alike: on Windows the executable's manifest (`port/platform/betterkrondor.manifest`) makes UTF-8 the process code page (Windows 10 1903 on) |
 | MPU-401 | `port/platform/mpu401.c`, ports 330h/331h: UART mode, always ready, every command acknowledged. MIDI bytes go to a sink (`bak_midi_set_sink`); without one they are dropped, or written to the file `BAK_DUMP_MIDI` names |
 

@@ -18,6 +18,9 @@
     X(settings_set_rewrites_its_own_line)                                                          \
     X(settings_override_for_the_run_only)                                                          \
     X(settings_are_written_back_whole)                                                             \
+    X(settings_read_their_types)                                                                   \
+    X(settings_refuse_what_their_types_do_not_take)                                                \
+    X(settings_held_are_written_once)                                                              \
     X(folders_know_the_game_by_its_resources)                                                      \
     X(folders_remember_the_game_folder)                                                            \
     X(folders_copy_the_dos_saves_once)

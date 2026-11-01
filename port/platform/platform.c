@@ -136,7 +136,12 @@ bool platform_pump_events(void) {
             break;
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP:
-            keyboard_handle_event(&e);
+            if (!video_handle_key(&e))
+                keyboard_handle_event(&e);
+            break;
+        case SDL_EVENT_WINDOW_MOVED:
+        case SDL_EVENT_WINDOW_RESIZED:
+            video_handle_window_event(&e);
             break;
         default:
             break;

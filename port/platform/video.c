@@ -5,7 +5,9 @@
  * picture the CRTC scans out, as the registers describe it: 256 colours with four
  * pixels to a planar byte (Mode Y), or 16 colours with eight pixels to a byte across the
  * four planes, mapped through the attribute controller's palette. It goes through the
- * emulated DAC and is shown scaled to a 4:3 picture, as on a VGA monitor.
+ * emulated DAC and is shown scaled to a 4:3 picture, as on a VGA monitor (or with square
+ * pixels), the scaling as the settings ask. The window keeps its place and size between runs;
+ * Alt+Enter and F11 switch it to and from the full screen.
  */
 #include <inttypes.h>
 #include <stdio.h>
@@ -28,8 +30,12 @@ static SDL_Window *s_window;
 static SDL_Renderer *s_renderer;
 static SDL_Texture *s_texture;
 static int s_width = BAK_VGA_WIDTH, s_height = BAK_VGA_HEIGHT; /* the picture's pixels */
+static int s_shownHeight; /* the height the picture is shown at, in its pixels' widths */
 static uint32_t s_picture[MAX_WIDTH * MAX_HEIGHT];
 static bool s_offscreen; /* SDL's dummy video driver: nobody sees the window */
+static SDL_Rect s_windowed; /* the window's place and size when last neither full nor maximized */
+static bool s_placed;       /* s_windowed's place is known */
+static bool s_keyEaten[SDL_SCANCODE_COUNT]; /* pressed for the window: its release is too */
 
 uint8_t *bak_video_page(uint16_t pageSeg) {
     if (pageSeg < 0xA000) {
@@ -40,7 +46,19 @@ uint8_t *bak_video_page(uint16_t pageSeg) {
     return &g_bakVram[(uint32_t)(pageSeg - 0xA000u) * 64u];
 }
 
-/* A texture and logical size for a w x h picture shown at 4:3. */
+static SDL_ScaleMode scale_mode(void) {
+    switch (settings_get_choice(SETTING_VIDEO_SCALING)) {
+    case SCALING_NEAREST:
+        return SDL_SCALEMODE_NEAREST;
+    case SCALING_LINEAR:
+        return SDL_SCALEMODE_LINEAR;
+    default:
+        return SDL_SCALEMODE_PIXELART;
+    }
+}
+
+/* A texture and logical size for a w x h picture: at 4:3 the logical size is w x 3w/4, the
+ * picture stretched vertically; with square pixels it is w x h. */
 static bool set_picture_size(int w, int h) {
     SDL_DestroyTexture(s_texture);
     s_texture = SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_XRGB8888,
@@ -49,16 +67,112 @@ static bool set_picture_size(int w, int h) {
         fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
         return false;
     }
-    SDL_SetTextureScaleMode(s_texture, SDL_SCALEMODE_NEAREST);
-    /* w x h pixels shown as a 4:3 picture: logical size w x 3w/4, stretched vertically. */
-    SDL_SetRenderLogicalPresentation(s_renderer, w, w * 3 / 4, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    if (!SDL_SetTextureScaleMode(s_texture, scale_mode())) /* a renderer without pixel art */
+        SDL_SetTextureScaleMode(s_texture, SDL_SCALEMODE_NEAREST);
     s_width = w;
     s_height = h;
+    s_shownHeight = settings_get_choice(SETTING_VIDEO_ASPECT) == ASPECT_SQUARE ? h : w * 3 / 4;
+    SDL_SetRenderLogicalPresentation(s_renderer, w, s_shownHeight,
+                                     settings_get_bool(SETTING_VIDEO_INTEGER)
+                                         ? SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
+                                         : SDL_LOGICAL_PRESENTATION_LETTERBOX);
     return true;
 }
 
+/* Whether a window there would show on a display: a good part of its top on one. */
+static bool on_a_display(int x, int y, int w) {
+    int count = 0;
+    SDL_DisplayID *displays = SDL_GetDisplays(&count);
+    bool seen = false;
+    for (int i = 0; i < count && !seen; i++) {
+        SDL_Rect bounds, top = {x, y, w, 32}, both;
+        seen = SDL_GetDisplayUsableBounds(displays[i], &bounds) &&
+               SDL_GetRectIntersection(&top, &bounds, &both) && both.w >= 100 && both.h >= 16;
+    }
+    SDL_free(displays);
+    return seen;
+}
+
+/* Where the window is when it is neither in the full screen nor maximized. */
+static void note_windowed(void) {
+    SDL_WindowFlags flags = SDL_GetWindowFlags(s_window);
+    if (flags & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_MINIMIZED))
+        return;
+    SDL_GetWindowSize(s_window, &s_windowed.w, &s_windowed.h);
+    s_placed = SDL_GetWindowPosition(s_window, &s_windowed.x, &s_windowed.y);
+}
+
+/* The window as it is, for the next run (not under the dummy driver: there is none). */
+static void save_window(void) {
+    if (s_offscreen)
+        return;
+    note_windowed();
+    settings_hold();
+    settings_set_int(SETTING_WINDOW_WIDTH, s_windowed.w);
+    settings_set_int(SETTING_WINDOW_HEIGHT, s_windowed.h);
+    if (s_placed) {
+        settings_set_int(SETTING_WINDOW_X, s_windowed.x);
+        settings_set_int(SETTING_WINDOW_Y, s_windowed.y);
+    }
+    settings_set_bool(SETTING_WINDOW_MAXIMIZED,
+                      (SDL_GetWindowFlags(s_window) & SDL_WINDOW_MAXIMIZED) != 0);
+    settings_release();
+}
+
+void video_toggle_fullscreen(void) {
+    bool full = (SDL_GetWindowFlags(s_window) & SDL_WINDOW_FULLSCREEN) == 0;
+    note_windowed();
+    if (SDL_SetWindowFullscreen(s_window, full))
+        settings_set_bool(SETTING_VIDEO_FULLSCREEN, full);
+}
+
+bool video_handle_key(const SDL_Event *e) {
+    SDL_Scancode sc = e->key.scancode;
+    if (sc >= SDL_SCANCODE_COUNT)
+        return false;
+    if (e->type == SDL_EVENT_KEY_UP) {
+        bool eaten = s_keyEaten[sc];
+        s_keyEaten[sc] = false;
+        return eaten;
+    }
+    bool toggle = sc == SDL_SCANCODE_F11 ||
+                  ((sc == SDL_SCANCODE_RETURN || sc == SDL_SCANCODE_KP_ENTER) &&
+                   (e->key.mod & SDL_KMOD_ALT) != 0);
+    if (!toggle)
+        return false;
+    s_keyEaten[sc] = true;
+    if (!e->key.repeat)
+        video_toggle_fullscreen();
+    return true;
+}
+
+void video_handle_window_event(const SDL_Event *e) {
+    if (e->type == SDL_EVENT_WINDOW_MOVED || e->type == SDL_EVENT_WINDOW_RESIZED)
+        note_windowed();
+}
+
 bool video_open(void) {
-    s_window = SDL_CreateWindow("BetterAtKrondor", 960, 720, SDL_WINDOW_RESIZABLE);
+    s_windowed = (SDL_Rect){0, 0, 960, 720};
+    settings_get_int(SETTING_WINDOW_WIDTH, &s_windowed.w);
+    settings_get_int(SETTING_WINDOW_HEIGHT, &s_windowed.h);
+    s_placed = settings_get_int(SETTING_WINDOW_X, &s_windowed.x) &&
+               settings_get_int(SETTING_WINDOW_Y, &s_windowed.y) &&
+               on_a_display(s_windowed.x, s_windowed.y, s_windowed.w);
+    SDL_PropertiesID props = SDL_CreateProperties();
+    SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "BetterAtKrondor");
+    SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, s_windowed.w);
+    SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, s_windowed.h);
+    if (s_placed) {
+        SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_X_NUMBER, s_windowed.x);
+        SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, s_windowed.y);
+    }
+    SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+    SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_MAXIMIZED_BOOLEAN,
+                           settings_get_bool(SETTING_WINDOW_MAXIMIZED));
+    SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN,
+                           settings_get_bool(SETTING_VIDEO_FULLSCREEN));
+    s_window = SDL_CreateWindowWithProperties(props);
+    SDL_DestroyProperties(props);
     if (s_window == NULL) {
         fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
         return false;
@@ -73,6 +187,13 @@ bool video_open(void) {
     SDL_HideCursor(); /* the game draws its own */
     const char *driver = SDL_GetCurrentVideoDriver();
     s_offscreen = driver != NULL && SDL_strcmp(driver, "dummy") == 0;
+    if (SDL_getenv("BAK_TRACE") != NULL) {
+        SDL_ScaleMode mode = SDL_SCALEMODE_INVALID;
+        SDL_GetTextureScaleMode(s_texture, &mode);
+        fprintf(stderr, "trace: video driver %s, renderer %s, scale mode %d (asked %d)\n",
+                driver != NULL ? driver : "?", SDL_GetRendererName(s_renderer), (int)mode,
+                (int)scale_mode());
+    }
     return true;
 }
 
@@ -80,13 +201,15 @@ bool video_window_to_picture(float wx, float wy, float *px, float *py) {
     float lx, ly;
     if (s_renderer == NULL || !SDL_RenderCoordinatesFromWindow(s_renderer, wx, wy, &lx, &ly))
         return false;
-    /* The logical w x 3w/4 back to the w x h the 4:3 picture stretches. */
+    /* The logical height back to the picture's (at 4:3, 3w/4 stretched from h). */
     *px = lx;
-    *py = ly * (float)s_height / (float)(s_width * 3 / 4);
+    *py = ly * (float)s_height / (float)s_shownHeight;
     return true;
 }
 
 void video_close(void) {
+    if (s_window != NULL)
+        save_window();
     SDL_DestroyTexture(s_texture);
     SDL_DestroyRenderer(s_renderer);
     SDL_DestroyWindow(s_window);

@@ -6,6 +6,7 @@
  * KRONDOR.CFG, the game's own settings (its sound choices), stays the game's.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <SDL3/SDL.h>
@@ -15,20 +16,49 @@
 #define SETTINGS_FILE "betterkrondor.ini"
 
 typedef enum SettingType {
-    SETTING_TEXT, /* any one line */
+    SETTING_TEXT,   /* any one line */
+    SETTING_BOOL,   /* true or false (yes/no, on/off, 1/0 read too) */
+    SETTING_INT,    /* min to max, or nothing when optional */
+    SETTING_CHOICE, /* one of choices */
 } SettingType;
 
 typedef struct SettingDef {
     const char *section;
     const char *key;
     SettingType type;
-    const char *defaultValue;
+    const char *defaultValue; /* as the file spells it */
     const char *help;
+    int min, max;               /* SETTING_INT */
+    bool optional;              /* SETTING_INT: may be empty */
+    const char *const *choices; /* SETTING_CHOICE: NULL-terminated */
 } SettingDef;
+
+static const char *const s_scalings[] = {"pixelart", "nearest", "linear", NULL};
+static const char *const s_aspects[] = {"4:3", "square", NULL};
 
 static const SettingDef s_defs[SETTING_COUNT] = {
     [SETTING_PATHS_DATA] = {"paths", "data", SETTING_TEXT, "",
                             "the game folder, remembered once it held the game"},
+    [SETTING_VIDEO_FULLSCREEN] = {"video", "fullscreen", SETTING_BOOL, "false",
+                                  "fill the screen (Alt+Enter or F11 switches)"},
+    [SETTING_VIDEO_SCALING] = {"video", "scaling", SETTING_CHOICE, "pixelart",
+                               "how the picture is scaled up", .choices = s_scalings},
+    [SETTING_VIDEO_INTEGER] = {"video", "integer", SETTING_BOOL, "false",
+                               "scale by whole multiples only"},
+    [SETTING_VIDEO_ASPECT] = {"video", "aspect", SETTING_CHOICE, "4:3",
+                              "the picture's shape: a 4:3 screen's, or square pixels",
+                              .choices = s_aspects},
+    [SETTING_WINDOW_WIDTH] = {"window", "width", SETTING_INT, "960", "the window's width",
+                              .min = 320, .max = 16384},
+    [SETTING_WINDOW_HEIGHT] = {"window", "height", SETTING_INT, "720", "the window's height",
+                               .min = 200, .max = 16384},
+    [SETTING_WINDOW_X] = {"window", "x", SETTING_INT, "",
+                          "the window's place on the desktop, with window.y (none: centred)",
+                          .min = -32768, .max = 32767, .optional = true},
+    [SETTING_WINDOW_Y] = {"window", "y", SETTING_INT, "", "see window.x", .min = -32768,
+                          .max = 32767, .optional = true},
+    [SETTING_WINDOW_MAXIMIZED] = {"window", "maximized", SETTING_BOOL, "false",
+                                  "the window fills the desktop"},
 };
 
 static char *s_values[SETTING_COUNT];
@@ -38,6 +68,8 @@ static int s_lineCount;
 static bool s_crlf;  /* the file's line breaks */
 static bool s_bom;   /* it starts with UTF-8's byte order mark */
 static char *s_path; /* where changes are written; NULL: nowhere */
+static int s_held;   /* settings_hold calls not yet released */
+static bool s_unsaved;
 
 typedef struct Span {
     const char *at;
@@ -92,20 +124,70 @@ static int find_def(Span section, Span key) {
     return -1;
 }
 
-/* Whether value suits the setting's type; why says what is wrong when it does not. */
-static bool check_value(int id, const char *value, char *why, size_t whySize) {
-    (void)value;
-    switch (s_defs[id].type) {
-    case SETTING_TEXT:
-        return true;
-    }
-    SDL_snprintf(why, whySize, "unknown type");
-    return false;
-}
-
 static void set_value(int id, const char *value, size_t len) {
     SDL_free(s_values[id]);
     s_values[id] = SDL_strndup(value, len);
+}
+
+/* A value for the setting, as its type reads it, in the spelling it is kept in; false, with
+ * why, for a value its type does not take. */
+static bool take_value(int id, Span value, char *why, size_t whySize) {
+    const SettingDef *d = &s_defs[id];
+    switch (d->type) {
+    case SETTING_TEXT:
+        set_value(id, value.at, value.len);
+        return true;
+    case SETTING_BOOL: {
+        static const char *const yes[] = {"true", "yes", "on", "1"};
+        static const char *const no[] = {"false", "no", "off", "0"};
+        for (size_t i = 0; i < SDL_arraysize(yes); i++) {
+            if (span_is(value, yes[i]) || span_is(value, no[i])) {
+                const char *kept = span_is(value, yes[i]) ? "true" : "false";
+                set_value(id, kept, strlen(kept));
+                return true;
+            }
+        }
+        SDL_snprintf(why, whySize, "not true or false");
+        return false;
+    }
+    case SETTING_INT: {
+        if (value.len == 0 && d->optional) {
+            set_value(id, "", 0);
+            return true;
+        }
+        char digits[16];
+        char *end = NULL;
+        long n = 0;
+        if (value.len < sizeof digits) {
+            memcpy(digits, value.at, value.len);
+            digits[value.len] = '\0';
+            n = strtol(digits, &end, 10);
+        }
+        if (value.len == 0 || value.len >= sizeof digits || *end != '\0' || n < d->min ||
+            n > d->max) {
+            SDL_snprintf(why, whySize, "not a whole number from %d to %d", d->min, d->max);
+            return false;
+        }
+        SDL_snprintf(digits, sizeof digits, "%ld", n);
+        set_value(id, digits, strlen(digits));
+        return true;
+    }
+    case SETTING_CHOICE:
+        for (int i = 0; d->choices[i] != NULL; i++) {
+            if (span_is(value, d->choices[i])) {
+                set_value(id, d->choices[i], strlen(d->choices[i]));
+                return true;
+            }
+        }
+        SDL_snprintf(why, whySize, "not one of");
+        for (int i = 0; d->choices[i] != NULL; i++) {
+            size_t used = strlen(why);
+            SDL_snprintf(why + used, whySize - used, "%s %s", i == 0 ? "" : ",", d->choices[i]);
+        }
+        return false;
+    }
+    SDL_snprintf(why, whySize, "unknown type");
+    return false;
 }
 
 static void reset(void) {
@@ -124,6 +206,7 @@ static void reset(void) {
     s_crlf = false;
 #endif
     s_bom = false;
+    s_unsaved = false;
     SDL_free(s_path);
     s_path = NULL;
 }
@@ -171,14 +254,10 @@ static void parse(const char *text, size_t size, const char *where) {
         if (id < 0)
             continue;
         s_lineOf[id] = i;
-        char *v = SDL_strndup(value.at, value.len);
         char why[200];
-        if (check_value(id, v, why, sizeof why))
-            set_value(id, v, value.len);
-        else
+        if (!take_value(id, value, why, sizeof why))
             fprintf(stderr, "%s:%d: %s.%s: %s; ignored\n", where, i + 1, s_defs[id].section,
                     s_defs[id].key, why);
-        SDL_free(v);
     }
 }
 
@@ -222,17 +301,29 @@ bool settings_override(const char *assignment, char *why, size_t whySize) {
         SDL_snprintf(why, whySize, "no such setting (--help lists them)");
         return false;
     }
-    Span value = trimmed(eq + 1, eq + 1 + strlen(eq + 1));
-    char *v = SDL_strndup(value.at, value.len);
-    bool ok = check_value(id, v, why, whySize);
-    if (ok)
-        set_value(id, v, value.len);
-    SDL_free(v);
-    return ok;
+    return take_value(id, trimmed(eq + 1, eq + 1 + strlen(eq + 1)), why, whySize);
 }
 
 const char *settings_get_string(SettingId id) {
     return s_values[id];
+}
+
+bool settings_get_bool(SettingId id) {
+    return strcmp(s_values[id], "true") == 0;
+}
+
+bool settings_get_int(SettingId id, int *value) {
+    if (s_values[id][0] == '\0')
+        return false;
+    *value = (int)strtol(s_values[id], NULL, 10);
+    return true;
+}
+
+int settings_get_choice(SettingId id) {
+    for (int i = 0; s_defs[id].choices[i] != NULL; i++)
+        if (strcmp(s_values[id], s_defs[id].choices[i]) == 0)
+            return i;
+    return 0;
 }
 
 char *settings_text(size_t *size) {
@@ -310,6 +401,8 @@ static int add_line(int id) {
 
 bool settings_set_string(SettingId id, const char *value) {
     size_t len = strcspn(value, "\r\n"); /* one line */
+    if (strlen(s_values[id]) == len && memcmp(s_values[id], value, len) == 0)
+        return true; /* nothing changes */
     set_value(id, value, len);
     if (s_lineOf[id] < 0)
         s_lineOf[id] = add_line(id);
@@ -317,16 +410,49 @@ bool settings_set_string(SettingId id, const char *value) {
     SDL_asprintf(&line, "%s = %s", s_defs[id].key, s_values[id]);
     SDL_free(s_lines[s_lineOf[id]]);
     s_lines[s_lineOf[id]] = line;
+    if (s_held != 0) {
+        s_unsaved = true;
+        return true;
+    }
     return s_path == NULL || write_back();
+}
+
+void settings_hold(void) {
+    s_held++;
+}
+
+bool settings_release(void) {
+    if (--s_held != 0 || !s_unsaved)
+        return true;
+    s_unsaved = false;
+    return s_path == NULL || write_back();
+}
+
+bool settings_set_bool(SettingId id, bool value) {
+    return settings_set_string(id, value ? "true" : "false");
+}
+
+bool settings_set_int(SettingId id, int value) {
+    char text[16];
+    SDL_snprintf(text, sizeof text, "%d", value);
+    return settings_set_string(id, text);
 }
 
 void settings_print_help(void) {
     for (int id = 0; id < SETTING_COUNT; id++) {
         const SettingDef *d = &s_defs[id];
-        char name[64];
+        char name[64], what[300];
         SDL_snprintf(name, sizeof name, "%s.%s", d->section, d->key);
-        fprintf(stderr, "  %-14s %s%s%s%s\n", name, d->help,
-                d->defaultValue[0] ? " (default: " : "", d->defaultValue,
-                d->defaultValue[0] ? ")" : "");
+        SDL_snprintf(what, sizeof what, "%s", d->help);
+        for (int i = 0; d->type == SETTING_CHOICE && d->choices[i] != NULL; i++) {
+            size_t used = strlen(what);
+            SDL_snprintf(what + used, sizeof what - used, "%s%s", i == 0 ? ": " : ", ",
+                         d->choices[i]);
+        }
+        if (d->defaultValue[0] != '\0') {
+            size_t used = strlen(what);
+            SDL_snprintf(what + used, sizeof what - used, " (default: %s)", d->defaultValue);
+        }
+        fprintf(stderr, "  %-17s %s\n", name, what);
     }
 }

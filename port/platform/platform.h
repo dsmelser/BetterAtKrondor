@@ -31,9 +31,20 @@ void platform_report_error(const char *msg);
  * a default; a changed one is written back at once, and lines the port does not know stay.
  */
 typedef enum SettingId {
-    SETTING_PATHS_DATA, /* [paths] data: the game folder */
+    SETTING_PATHS_DATA,       /* [paths] data: the game folder */
+    SETTING_VIDEO_FULLSCREEN, /* [video] fullscreen */
+    SETTING_VIDEO_SCALING,    /* [video] scaling: SCALING_* */
+    SETTING_VIDEO_INTEGER,    /* [video] integer: whole multiples only */
+    SETTING_VIDEO_ASPECT,     /* [video] aspect: ASPECT_* */
+    SETTING_WINDOW_WIDTH,     /* [window] width, height, x, y (optional), maximized */
+    SETTING_WINDOW_HEIGHT,
+    SETTING_WINDOW_X,
+    SETTING_WINDOW_Y,
+    SETTING_WINDOW_MAXIMIZED,
     SETTING_COUNT
 } SettingId;
+enum { SCALING_PIXELART, SCALING_NEAREST, SCALING_LINEAR };
+enum { ASPECT_4_3, ASPECT_SQUARE };
 /* Read <dir>/betterkrondor.ini (none: the defaults), where changes then go. False, with a
  * message, when it exists but cannot be read; then nothing is written back. */
 bool settings_load(const char *dir);
@@ -43,8 +54,19 @@ void settings_load_text(const char *text, size_t size);
  * or a bad value. */
 bool settings_override(const char *assignment, char *why, size_t whySize);
 const char *settings_get_string(SettingId id);
-/* A new value, written back at once; false, with a message, if writing failed. */
+bool settings_get_bool(SettingId id);
+/* False, leaving value, when an optional integer is not set. */
+bool settings_get_int(SettingId id, int *value);
+/* The choice's index (SCALING_*, ASPECT_*). */
+int settings_get_choice(SettingId id);
+/* A new value, written back at once unless it is the value already; false, with a message, if
+ * writing failed. */
 bool settings_set_string(SettingId id, const char *value);
+bool settings_set_bool(SettingId id, bool value);
+bool settings_set_int(SettingId id, int value);
+/* Changes between these are written back once, at the release. */
+void settings_hold(void);
+bool settings_release(void);
 /* The file as written (SDL_free it). */
 char *settings_text(size_t *size);
 /* The settings, their meaning and defaults, on stderr (--help). */
@@ -95,12 +117,20 @@ void platform_shutdown(void);
 /* Pump host events; returns false once the user asked to quit. */
 bool platform_pump_events(void);
 
-/* The game window (video.c). */
+/* The game window (video.c): made as the settings say, its place and size saved on closing. */
 bool video_open(void);
 void video_close(void);
 void video_present(void);
 /* A window position as a position on the 320x200 picture; false outside any window. */
 bool video_window_to_picture(float wx, float wy, float *px, float *py);
+/* To and from the full screen, remembered. */
+void video_toggle_fullscreen(void);
+/* A key for the window (Alt+Enter, F11, and their releases): true when it took it, so the
+ * game does not see it. */
+union SDL_Event;
+bool video_handle_key(const union SDL_Event *e);
+/* The window moved or was resized. */
+void video_handle_window_event(const union SDL_Event *e);
 
 /* Feed a host mouse event to the emulated INT 33h driver (mouse.c), a key to the
  * keyboard (scancode.c). */
