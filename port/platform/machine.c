@@ -28,7 +28,7 @@ static uint16_t s_pitDivisor; /* 0 counts 65536 */
 static int s_pitLowByteNext = 1;
 static uint64_t s_tickNs;
 static uint64_t s_nextTickNs;
-static uint64_t s_tickDueNs; /* while the timer interrupt runs: when its tick was due */
+static uint64_t s_dueNs; /* while a scheduled interrupt runs (a tick, a device's): when due */
 static uint64_t s_lastPumpNs;
 static uint64_t s_lastFrame;
 static unsigned s_idlePolls;
@@ -162,6 +162,15 @@ void bak_keyboard_irq(uint8_t scancode) {
         bak_run_isr(s_vectors[0x09]);
 }
 
+void machine_raise_irq(int irq, uint64_t dueNs) {
+    if (irq < 0 || irq > 7 || (s_picMask >> irq & 1) != 0 || s_vectors[8 + irq] == NULL)
+        return;
+    uint64_t outer = s_dueNs;
+    s_dueNs = dueNs;
+    bak_run_isr(s_vectors[8 + irq]);
+    s_dueNs = outer;
+}
+
 /* Runs the timer interrupts that are due, pumps host events now and then, and shows a
  * frame at the display's refresh rate. Returns whether anything happened. */
 static bool poll(void) {
@@ -182,13 +191,15 @@ static bool poll(void) {
             s_nextTickNs = now + s_tickNs;
             break;
         }
-        s_tickDueNs = s_nextTickNs;
+        s_dueNs = s_nextTickNs;
         s_nextTickNs += s_tickNs;
         if ((s_picMask & 0x01) == 0 && s_vectors[0x08] != NULL)
             bak_run_isr(s_vectors[0x08]);
-        s_tickDueNs = 0;
+        s_dueNs = 0;
         busy = true;
     }
+    if (sbdsp_poll(now)) /* a block ended: the Sound Blaster's interrupt */
+        busy = true;
     uint64_t frame = now / REFRESH_NS;
     if (frame != s_lastFrame) {
         s_lastFrame = frame;
@@ -201,17 +212,27 @@ static bool poll(void) {
 }
 
 uint64_t machine_event_ns(void) {
-    return s_tickDueNs != 0 ? s_tickDueNs : clock_now_ns();
+    return s_dueNs != 0 ? s_dueNs : clock_now_ns();
 }
 
 uint64_t machine_next_due_ns(void) {
-    uint64_t pump = s_lastPumpNs + PUMP_NS;
-    return s_tickNs != 0 && s_nextTickNs < pump ? s_nextTickNs : pump;
+    uint64_t next = s_lastPumpNs + PUMP_NS;
+    uint64_t sb = sbdsp_next_due_ns();
+    if (s_tickNs != 0 && s_nextTickNs < next)
+        next = s_nextTickNs;
+    return sb != 0 && sb < next ? sb : next;
 }
 
+void (*g_platformFreeRunningPoll)(void);
+
 void bak_poll(void) {
-    if (s_inIsr || g_platformFreeRunning)
+    if (s_inIsr)
         return;
+    if (g_platformFreeRunning) {
+        if (g_platformFreeRunningPoll != NULL)
+            g_platformFreeRunningPoll();
+        return;
+    }
     clock_spend(CLOCK_POLL_NS);
     /* A loop that only polls (a bare wait on a timer variable) yields the CPU. */
     if (poll())
@@ -221,8 +242,13 @@ void bak_poll(void) {
 }
 
 void bak_idle(void) {
-    if (s_inIsr || g_platformFreeRunning)
+    if (s_inIsr)
         return;
+    if (g_platformFreeRunning) {
+        if (g_platformFreeRunningPoll != NULL)
+            g_platformFreeRunningPoll();
+        return;
+    }
     clock_spend(CLOCK_POLL_NS);
     if (!poll())
         clock_idle(250000, machine_next_due_ns());

@@ -117,10 +117,16 @@ void bak_vga_wait_retrace(int next) {
     video_present();
 }
 
-uint8_t bak_port_in8(uint16_t port) {
+static BakPortTrace *s_portTrace;
+
+void bak_port_set_trace(BakPortTrace *trace) {
+    s_portTrace = trace;
+}
+
+static uint8_t port_in8(uint16_t port) {
     uint8_t value;
     if (machine_port_in8(port, &value) || mpu401_port_in8(port, &value) ||
-        opl_port_in8(port, &value))
+        opl_port_in8(port, &value) || sbdsp_port_in8(port, &value))
         return value;
     switch (port) {
     case 0x3DA:
@@ -163,9 +169,18 @@ uint8_t bak_port_in8(uint16_t port) {
     }
 }
 
+uint8_t bak_port_in8(uint16_t port) {
+    uint8_t value = port_in8(port);
+    if (s_portTrace != NULL)
+        s_portTrace(port, value, 0);
+    return value;
+}
+
 void bak_port_out8(uint16_t port, uint8_t value) {
+    if (s_portTrace != NULL)
+        s_portTrace(port, value, 1);
     if (machine_port_out8(port, value) || mpu401_port_out8(port, value) ||
-        opl_port_out8(port, value))
+        opl_port_out8(port, value) || sbdsp_port_out8(port, value))
         return;
     switch (port) {
     case 0x3C4:

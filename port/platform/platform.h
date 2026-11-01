@@ -104,6 +104,9 @@ bool folders_import_saves(const char *dataDir, const char *userDir);
 /* Set by the test runner: no real-time waits and no presenting (vertical retrace is
  * always under way). */
 extern bool g_platformFreeRunning;
+/* Called where the game polls while the platform is free-running: the runner's stand-in for
+ * time passing (it may deliver a device's interrupt there). */
+extern void (*g_platformFreeRunningPoll)(void);
 
 /*
  * The clock everything time-driven follows (clock.c): the host's, or with BAK_CLOCK=virtual
@@ -213,8 +216,12 @@ void bak_keyboard_irq(uint8_t scancode);
 /* The next moment a poll has work: the timer's next tick or the next look at host events. */
 uint64_t machine_next_due_ns(void);
 /* The moment of what the game does now, on the platform's clock: in the timer interrupt, when
- * its tick was due (the platform runs late ticks in a burst); elsewhere the present. */
+ * its tick was due (the platform runs late ticks in a burst), in a device's interrupt when it was
+ * due; elsewhere the present. */
 uint64_t machine_event_ns(void);
+/* A device's interrupt on IRQ irq (0-7, the 8259's) due at dueNs: its vector runs now unless
+ * the line is masked or has no handler (then it is lost). */
+void machine_raise_irq(int irq, uint64_t dueNs);
 
 /*
  * The CD drive (cdrom.c). It appears when the game folder holds the CD's audio tracks as
@@ -237,5 +244,32 @@ bool mpu401_port_out8(uint16_t port, uint8_t value);
 bool opl_port_in8(uint16_t port, uint8_t *value);
 bool opl_port_out8(uint16_t port, uint8_t value);
 void opl_close(void);
+
+/*
+ * sbdsp.c: the Sound Blaster's DSP (base 220h), the 8237 DMA controller's channel 1 (ports 02h,
+ * 03h, 0Ah, 0Bh, 0Ch, 83h) and the interrupt (IRQ 7) the DSP raises when a block ends.
+ * sbdsp_poll delivers it once due (machine.c's poll; true when it did), sbdsp_next_due_ns is
+ * when (0: nothing due). The tests configure the card (sbdsp_configure: absent, another base,
+ * IRQ or DSP version), end a block at once (sbdsp_complete_now: the free-running stand-in for
+ * its time) and read its state; sbdsp_close drops the audio source (after audio_close).
+ */
+bool sbdsp_port_in8(uint16_t port, uint8_t *value);
+bool sbdsp_port_out8(uint16_t port, uint8_t value);
+bool sbdsp_poll(uint64_t nowNs);
+uint64_t sbdsp_next_due_ns(void);
+void sbdsp_configure(bool present, uint16_t base, int irq, uint16_t version);
+bool sbdsp_complete_now(void);
+typedef struct SbdspState {
+    uint8_t timeConstant;
+    bool speaker;
+    bool active;     /* a block is under way */
+    bool halted;     /* by command D0h */
+    uint32_t length; /* the block's samples */
+    uint8_t dmaMode, dmaPage;
+    uint16_t dmaAddress, dmaCount; /* as programmed */
+    bool dmaMasked;
+} SbdspState;
+void sbdsp_state(SbdspState *out);
+void sbdsp_close(void);
 
 #endif

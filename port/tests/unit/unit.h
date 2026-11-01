@@ -48,7 +48,14 @@
     X(cdrom_lays_out_the_disc_from_the_music)                                                      \
     X(cdrom_plays_a_stretch_of_a_track)                                                            \
     X(opl_ports_reach_the_sink)                                                                    \
-    X(opl_notes_sound_at_their_moment)
+    X(opl_notes_sound_at_their_moment)                                                             \
+    X(sbdsp_resets_and_identifies)                                                                 \
+    X(sbdsp_block_interrupt_comes_on_time)                                                         \
+    X(sbdsp_block_reaches_the_mix)                                                                 \
+    X(sbdsp_held_block_is_silent)                                                                  \
+    X(sbdsp_hold_and_go_on)                                                                        \
+    X(sbdsp_dma_wraps_within_its_page)                                                             \
+    X(sbdsp_free_running_polls_end_blocks)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

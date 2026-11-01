@@ -142,6 +142,9 @@ void bak_mpu401_reset(void);
 uint8_t bak_port_in8(uint16_t port);
 void bak_port_out8(uint16_t port, uint8_t value);
 void bak_port_out16(uint16_t port, uint16_t value);
+/* Every port access, in order (the tests'): a value read (isWrite 0) or written (1). */
+typedef void BakPortTrace(uint16_t port, uint8_t value, int isWrite);
+void bak_port_set_trace(BakPortTrace *trace);
 
 /*
  * Interrupts (port/platform/machine.c). Host events and the virtual timer become the
