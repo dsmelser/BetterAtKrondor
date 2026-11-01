@@ -12,7 +12,7 @@ identical; a change to the presentation only leaves the state log identical.
 
 `record` keeps a run's logs as the scenario's baseline, `check` runs again and compares with it.
 Runs go to work/replay/<scenario>/, never committed: the logs and the last frame come from the
-game's art. The scenarios are the golden screenshots' (dosbox_golden.py) and a walk.
+game's art. The scenarios are the golden screenshots' (dosbox_golden.py), a walk and a fight.
 """
 
 from __future__ import annotations
@@ -49,6 +49,16 @@ SCENARIOS = {name: s.port_input for name, s in GOLDEN.items()}
 SCENARIOS["walk"] = world_then(
     "90000:key:Up;91000:key:Up;92000:key:Up;93000:key:Left;94000:key:Up;"
     "95000:key:Right;96000:key:Right;97000:key:Up;", 100000)
+# Chapter 1's first fight (DEF_COMB record 0, the box of cells 24-33 x 4-10 of zone 1's tile
+# 10,14): the party is teleported two cells north of it, facing 8400h (the game skips a teleport
+# at the zone's kept heading, 8000h, onto another row of the party's tile column), turns south,
+# steps in with Space for the dialog's pages, and A plays the fight out (auto-combat). Then two
+# steps past the corpse.
+SCENARIOS["combat"] = world_then(
+    "90000:teleport:1,10,14,28,12,8400;91000:key:Right;"
+    + "".join(f"{92000 + 400 * i}:key:Up;{92200 + 400 * i}:key:Space;" for i in range(8))
+    + "".join(f"{95400 + 400 * i}:key:Space;" for i in range(9))
+    + "100000:key:A;130000:key:Up;131000:key:Up;", 135000)
 
 
 def run(scenario: str, data: Path, exe: Path, out: Path) -> None:
