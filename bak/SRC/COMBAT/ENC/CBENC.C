@@ -169,8 +169,7 @@ void far combatenc_mnames_lookup_dest(s16 index, char **p_dest) {
     blob = galloc_safe_zcalloc(blob_size);
     res_fread(blob, 1, blob_size, file);
     res_fclose(file);
-    offsets[index] += (s16)blob;
-    strcpy(*p_dest, (char *)offsets[index]);
+    strcpy(*p_dest, blob + (u16)offsets[index]);
     galloc_zfree(blob);
     galloc_zfree(offsets);
     return;
@@ -365,7 +364,7 @@ void combatenc_clear_pty_grid_occ(void) {
 
     for (i = 0; i < g_combat_count_B; i++) {
         combatgrid_tile_set_word(g_combat_actors_B[i].inner->gridX,
-                                 g_combat_actors_B[i].inner->gridY, 0);
+                                 g_combat_actors_B[i].inner->gridY, NULL);
     }
     return;
 }
@@ -775,10 +774,10 @@ void far combatenc_ai_suicide_on_arrival(Combatant *actor) {
     combataipath_actor_walk_path(actor, 0);
     if ((actor->inner->gridX == actor->inner->destX) &&
         (actor->inner->gridY == actor->inner->destY)) {
-        combatgrid_tile_set_word(actor->inner->gridX, actor->inner->gridY, 0);
+        combatgrid_tile_set_word(actor->inner->gridX, actor->inner->gridY, NULL);
         tmpActor.inner = &tmpInner;
         tmpActor.actor_record = (Actor far *)0x0;
-        tmpInner = *(CombatantState far *)MK_FP(FP_SEG(g_pMapIconsTable), (u16)actor->inner);
+        tmpInner = *actor->inner;
         world_rndr_ranged_attack_anim(actor, &tmpActor, &hit, tmpInner.creatureType, 0x96, -1);
         combat_arena_actor_die(actor, 0);
     }
@@ -802,13 +801,14 @@ void far combatenc_actor_enter_defense(Combatant *actor) {
     if (healAmt < 1) {
         healAmt = 1;
     }
-    if (!actor->charSlot ||
-        ((!*(char *)((s16)g_gameState.aSkillTrainRate + 5 + actor->charSlot * 7) &&
-          !*(char *)((s16)g_gameState.aSkillTrainRate + 6 + actor->charSlot * 7)) &&
-         (!*(char *)((s16)g_gameState.aSkillTrainRate + 7 + actor->charSlot * 7) &&
-          ((!*(char *)((s16)g_gameState.aSkillTrainRate + 8 + actor->charSlot * 7) &&
-            !*(char *)((s16)g_gameState.aSkillTrainRate + 10 + actor->charSlot * 7)) &&
-           !*(char *)((s16)g_gameState.aSkillTrainRate + 0xb + actor->charSlot * 7))))) {
+    /* The original reads the ranks at aSkillTrainRate + 5 + charSlot * 7: the table after it,
+       at charSlot - 1 (the character's id). */
+    if (!actor->charSlot || (!g_gameState.abActorStatusRanks[actor->charSlot - 1][0] &&
+                             !g_gameState.abActorStatusRanks[actor->charSlot - 1][1] &&
+                             !g_gameState.abActorStatusRanks[actor->charSlot - 1][2] &&
+                             !g_gameState.abActorStatusRanks[actor->charSlot - 1][3] &&
+                             !g_gameState.abActorStatusRanks[actor->charSlot - 1][5] &&
+                             !g_gameState.abActorStatusRanks[actor->charSlot - 1][6])) {
         stat_combatant_modify(actor, 0x10, (s32)(s16)(healAmt << 8), 0x50);
     }
     g_acting_actor_speed = 0;

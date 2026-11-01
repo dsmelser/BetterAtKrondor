@@ -241,7 +241,7 @@ void far combat_arena_actor_die(Combatant *actor, s16 play_anim) {
             slot = cspell_status_effect_add(actor, 0x20, 0, 0, '\0');
             cspell_vfx_run_and_wait();
             cspell_status_effect_remove(actor, slot);
-            combatgrid_tile_set_word(actor->inner->gridX, actor->inner->gridY, 0);
+            combatgrid_tile_set_word(actor->inner->gridX, actor->inner->gridY, NULL);
             if ((actor->inner->flags & CAF_AI_SUMMON) != 0) {
 #ifdef V102CD
                 actor = combat_actor_remove(actor);
@@ -255,7 +255,7 @@ void far combat_arena_actor_die(Combatant *actor, s16 play_anim) {
         case 49:
 
             combat_actor_grid_remove(actor);
-            combatgrid_tile_set_word(actor->inner->gridX, actor->inner->gridY, 0);
+            combatgrid_tile_set_word(actor->inner->gridX, actor->inner->gridY, NULL);
             removed = 1;
             goto LAB_600f_0468;
         case 22:
@@ -742,7 +742,7 @@ static void far combat_arena_burn_terr_cutsc(void) {
         }
     }
 
-    world_render_with_overlay(MK_FP(0, 0xffff));
+    world_render_with_overlay(-1, NULL);
     screen_frame_present();
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
     g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaFrontPageBase;
@@ -772,7 +772,7 @@ static void far combat_arena_burn_terr_cutsc(void) {
             y++;
         } while (y < 8);
 
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
         bDone = 1;
 
@@ -816,7 +816,7 @@ static void far combat_arena_burn_terr_cutsc(void) {
 static void far combat_arena_burn_type31_cutsc(void) {
     s16 bDone;
     s16 y, x, i;
-    u16 tile;
+    Combatant *tile;
     Combatant *saved_actor;
 
     bDone = 0;
@@ -826,13 +826,13 @@ static void far combat_arena_burn_type31_cutsc(void) {
     for (y = 0; y < 8; y++) {
         for (x = 0; x < 13; x++) {
             tile = combatgrid_tile_terrain((char)y, (char)x);
-            if (tile != 0 && ((Combatant *)tile)->inner->creatureType == 0x31) {
+            if (tile != NULL && tile->inner->creatureType == 0x31) {
                 combatgrid_set_tile_effect((char)y, (char)x, 9, 500);
             }
         }
     }
 
-    world_render_with_overlay(MK_FP(0, 0xffff));
+    world_render_with_overlay(-1, NULL);
     screen_frame_present();
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
     g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaFrontPageBase;
@@ -843,7 +843,7 @@ static void far combat_arena_burn_type31_cutsc(void) {
         for (i = 0; i < 15; i++) {
             cspell_tick_damage_terrain();
         }
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
         bDone = 1;
         for (y = 0; y < 8; y++) {
@@ -858,7 +858,7 @@ static void far combat_arena_burn_type31_cutsc(void) {
     for (y = 0; y < 8; y++) {
         for (x = 0; x < 13; x++) {
             tile = combatgrid_tile_terrain((char)y, (char)x);
-            if (tile != 0 && ((Combatant *)tile)->inner->creatureType == 0x31) {
+            if (tile != NULL && tile->inner->creatureType == 0x31) {
                 combatgrid_set_tile_effect((char)y, (char)x, 0, -1);
             }
         }
@@ -887,7 +887,7 @@ void far combat_arena_round_trans_show(s16 param_1) {
     if ((g_encounter_id == 0x221) && (param_1 != 0)) {
         combat_arena_burn_type31_cutsc();
     } else {
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
         g_graphics_context.wGfxBlitSrcPage = g_graphics_context.wVgaFrontPageBase;
@@ -1170,7 +1170,7 @@ void far combat_arena_draw_tgt_info_panel(void) {
     quarrelRec = combat_actor_qrl_rec_kind(kindIdx);
     combat_arena_shootmenu_init();
     combat_arena_shootmenu_rebuild();
-    target = (Combatant *)combat_actor_terr_under_cur();
+    target = combat_actor_terr_under_cur();
     if ((target != (Combatant *)0x0) && ((target->inner->flags & CAF_DEAD) != 0)) {
         target = (Combatant *)0x0;
     }
@@ -1240,7 +1240,7 @@ void far combat_arena_hud_melee_panel(void) {
     char *pStr;
     s16 hideSwing;
     ItemRecord far *weapon;
-    s16 target;
+    Combatant *target;
     s16 n;
     s16 y;
     register s16 x;
@@ -1251,7 +1251,7 @@ void far combat_arena_hud_melee_panel(void) {
     g_graphics_context.bClip_enabled = 0;
     target = combat_actor_terr_under_cur();
     blit_sprite_indirect((NearPtr)*g_parch_bmx, 0x49, 0x81, 0);
-    if ((combatgrid_actors_ortho_adj(g_current_actor, (Combatant *)target) != 0) &&
+    if ((combatgrid_actors_ortho_adj(g_current_actor, target) != 0) &&
         ((s16)stat_actor_get(g_current_actor, 0x10, 0) > 1)) {
         hideSwing = 0;
     } else {
@@ -1280,7 +1280,7 @@ void far combat_arena_hud_melee_panel(void) {
     font_draw_text_ds(pStr, x, y);
     weapon = cbstat_find_intact_equip_cat(g_current_actor, 1);
     x = weapon->nSwing_damage + stat_actor_get(g_current_actor, 3, 0);
-    x += cbstat_armor_absorption_by_class(g_current_actor, (Combatant *)target, 0);
+    x += cbstat_armor_absorption_by_class(g_current_actor, target, 0);
     if (x < 1)
         x = 1;
     itoa(x, numBuf, 10);
@@ -1289,7 +1289,7 @@ void far combat_arena_hud_melee_panel(void) {
         font_draw_text_ds(numBuf, x, y);
     }
     x = weapon->nThrust_damage + stat_actor_get(g_current_actor, 3, 0);
-    x += cbstat_armor_absorption_by_class(g_current_actor, (Combatant *)target, 1);
+    x += cbstat_armor_absorption_by_class(g_current_actor, target, 1);
     if (x < 1)
         x = 1;
     itoa(x, numBuf, 10);
@@ -1364,7 +1364,7 @@ static void far combat_arena_redraw_hud_bufs(s16 draw_world, s16 draw_stats) {
     i = 0;
     do {
         if (draw_world != 0) {
-            world_render_with_overlay(MK_FP(0, 0xffff));
+            world_render_with_overlay(-1, NULL);
         }
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
         g_graphics_context.bGfx_fill_enabled = '\x01';
@@ -1599,7 +1599,7 @@ static void far combat_arena_turn_loop(void) {
     combat_actor_draw_stats_panel(g_current_actor);
     menupage_draw_entries(g_shoot_menu->pEntries, g_shoot_menu->wEntry_count, g_shoot_menu->rect.x,
                           g_shoot_menu->rect.y);
-    world_render_with_overlay(MK_FP(0, 0xffff));
+    world_render_with_overlay(-1, NULL);
     screen_frame_present();
     combat_actor_draw_stats_panel(g_current_actor);
     menupage_draw_entries(g_shoot_menu->pEntries, g_shoot_menu->wEntry_count, g_shoot_menu->rect.x,
@@ -1625,7 +1625,7 @@ static void far combat_arena_turn_loop(void) {
                 combat_actor_draw_stats_panel(g_current_actor);
                 menupage_draw_entries(g_shoot_menu->pEntries, g_shoot_menu->wEntry_count,
                                       g_shoot_menu->rect.x, g_shoot_menu->rect.y);
-                world_render_with_overlay(MK_FP(0, 0xffff));
+                world_render_with_overlay(-1, NULL);
                 screen_frame_present();
                 combat_actor_draw_stats_panel(g_current_actor);
                 menupage_draw_entries(g_shoot_menu->pEntries, g_shoot_menu->wEntry_count,
@@ -1647,7 +1647,7 @@ static void far combat_arena_turn_loop(void) {
                 combatenc_refr_actor_flags_far();
             }
         }
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         menupage_draw_entries(g_shoot_menu->pEntries, g_shoot_menu->wEntry_count,
                               g_shoot_menu->rect.x, g_shoot_menu->rect.y);
         screen_frame_present();
@@ -1706,7 +1706,7 @@ static void far combat_arena_view_rstr_disp(s16 param) {
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
         gfx_present_dispatch(13, 11, 296, 102);
         screen_cursor_show_busy();
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         cspell_gfx_wipe_horizontal_split(13, 11, 296, 102);
         screen_cursor_restore_shape();
     }
@@ -1734,7 +1734,7 @@ static u16 far combat_arena_pick_target_actor(s16 requires_action_pred) {
     while (!done) {
         combatgrid_cur_tile_world();
         menuResult = menupage_run(g_combat_menu, &menuRedraw);
-        target = (Combatant *)combat_actor_terr_under_cur();
+        target = combat_actor_terr_under_cur();
         if (requires_action_pred != 0) {
             adjacent = combatgrid_actors_ortho_adj(g_current_actor, target);
         } else {
@@ -1744,9 +1744,9 @@ static u16 far combat_arena_pick_target_actor(s16 requires_action_pred) {
             target = (Combatant *)0x0;
         }
         if (target != (Combatant *)0x0) {
-            world_render_with_overlay(MK_FP(0, 4));
+            world_render_with_overlay(4, NULL);
         } else {
-            world_render_with_overlay(MK_FP(0, 0xffff));
+            world_render_with_overlay(-1, NULL);
         }
         combat_arena_draw_tgt_info_hud((Combatant *)0x0, -1, 0, 0);
         screen_frame_present();
@@ -2160,7 +2160,7 @@ Combatant *combat_arena_disp_spell_action(s16 *param_1, s16 *param_2, s16 *param
     GridCombatant *combatant;
 
     invalid = 0;
-    actor = (Combatant *)combat_actor_terr_under_cur();
+    actor = combat_actor_terr_under_cur();
     if ((*param_3 == 1 ||
          (*param_3 == 2 &&
           combatgrid_is_pure_diagonal(g_current_actor, g_cursor_tile_x, g_cursor_tile_y) != 0)) &&
@@ -2275,7 +2275,9 @@ void far combat_arena_turn_actor_inact(u16 *p_far_offset, s16 *p_turn_done, s16 
     combat_arena_menu_refr_avail(g_current_actor);
     combat_arena_redraw_hud_bufs(1, 1);
     *p_hud_state = 2;
-    if (((g_current_actor)->inner->flags & CAF_AI_SUMMON) != 0) {
+    /* Once the fight is over there is no current actor, and the original reads the flags
+       through the null pointer (DGROUP's opening strings); natively no actor takes a turn. */
+    if (g_current_actor != NULL && ((g_current_actor)->inner->flags & CAF_AI_SUMMON) != 0) {
         combat_arena_swap_tgt_state();
         combatenc_ai_run_turn();
         combat_arena_swap_tgt_state();
@@ -2302,7 +2304,7 @@ void far combat_arena_resolve_menu_action(s16 *p_state_a, s16 *p_move_cost, s16 
         } else {
             if (combat_arena_wait_confirm_cancel() != 0) {
                 if (b_input_locked == 0) {
-                    *pp_cursor_target = (Combatant *)combat_actor_terr_under_cur();
+                    *pp_cursor_target = combat_actor_terr_under_cur();
                     if (*pp_cursor_target != (Combatant *)0x0) {
                         if (combatenc_is_encounter_actor(*pp_cursor_target) != 0) {
                             (g_current_actor)->inner->flags &= ~CAF_READY;
@@ -2484,7 +2486,7 @@ void far combat_arena_actor_turn_loop(s16 encounter_id, s16 *p_status, s16 b_has
     menu = g_combat_menu;
     g_combat_menu_selected_item = 0;
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage2Base;
-    world_render_with_overlay((void far *)0xffff);
+    world_render_with_overlay(-1, NULL);
     g_current_actor = 0;
     combat_actor_pick_next();
     combat_arena_round_trans_show(1);
@@ -2521,7 +2523,7 @@ void far combat_arena_actor_turn_loop(s16 encounter_id, s16 *p_status, s16 b_has
             castArg = -1;
             stateA = stateB = 0xffff;
             while (combat_arena_wait_confirm_cancel() != 0) {
-                world_render_with_overlay((void far *)0xffff);
+                world_render_with_overlay(-1, NULL);
                 screen_frame_present();
             }
         }
@@ -2531,7 +2533,7 @@ void far combat_arena_actor_turn_loop(s16 encounter_id, s16 *p_status, s16 b_has
                                          allowed, &hudState, &cursorTarget,
                                          g_combat_menu_selected_item, spellRecId, castArg, &menu);
         if (g_combat_cancelled == 0) {
-            world_render_with_overlay(MK_FP(0, stateA));
+            world_render_with_overlay((s16)stateA, NULL);
         }
         if ((prevTileX != g_cursor_tile_x) || (prevTileY != g_cursor_tile_y)) {
             hudState = 2;

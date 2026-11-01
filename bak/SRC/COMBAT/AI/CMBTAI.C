@@ -42,7 +42,7 @@ static void far combataipath_rng_atk_tmp_tile(Combatant *actor, s16 x, s16 y) {
     s16 direction;
 
     hit = 1;
-    animBuf = *(AnimBuf10 far *)MK_FP(FP_SEG(__dat_1492), (u16)__dat_1492);
+    animBuf = *(AnimBuf10 *)__dat_1492;
     savedActor.inner = &savedInner;
     savedInner.gridX = actor->inner->gridX;
     savedInner.gridY = actor->inner->gridY;
@@ -50,7 +50,7 @@ static void far combataipath_rng_atk_tmp_tile(Combatant *actor, s16 x, s16 y) {
     actor->inner->gridY = y;
     action_id = actor->inner->creatureType;
     savedInner.creatureType = action_id;
-    combatgrid_tile_set_word(x, y, 0);
+    combatgrid_tile_set_word(x, y, NULL);
     if (cspell_stat_effect_find_type(actor, 0x10) != -1) {
         direction = -1;
     } else {
@@ -61,7 +61,7 @@ static void far combataipath_rng_atk_tmp_tile(Combatant *actor, s16 x, s16 y) {
     world_rndr_ranged_attack_anim(actor, &savedActor, &hit, action_id, 100, animBuf.b[0]);
     actor->inner->gridX = savedInner.gridX;
     actor->inner->gridY = savedInner.gridY;
-    combatgrid_tile_set_word(savedInner.gridX, savedInner.gridY, (u16)actor);
+    combatgrid_tile_set_word(savedInner.gridX, savedInner.gridY, actor);
     return;
 }
 
@@ -221,7 +221,7 @@ s16 far combataipath_actor_walk_path(Combatant *actor, s16 ranged) {
                 switch (uTerrain) {
                 case 3:
                     combatgrid_spread_tile_fx_line(actor->inner->gridX, actor->inner->gridY);
-                    combat_actor_play_short_cine(actor, 0);
+                    combat_actor_play_short_cine(actor, NULL);
                     combatgrid_line_effect_propagate(actor->inner->gridX, actor->inner->gridY);
                     combat_arena_apply_damage(actor, 100, 0, 3, 0x200, 0);
                     break;
@@ -489,9 +489,12 @@ s16 far combataipath_action_40064(Combatant *actor) {
     return r;
 }
 
-#define AI_ACTION_FN ((CombatAiActionFn far *)(g_combat_ai_action_table - 1))
-
-#define AI_ACTION_INDEX ((short (*)[8])(g_combat_ai_action_table + 7))
+/* The actions, numbered from 1, and the order in which a path profile (1-8) tries them: the
+   table after __dat_1492's ten-byte animation template. The original reaches the rows from
+   g_combat_ai_action_table + 7, which DGROUP follows with g_bActorAdjacentToTarget and
+   __dat_1492. */
+#define AI_ACTION_FN(n) (g_combat_ai_action_table[(n) - 1])
+#define AI_ACTION_INDEX(profile, i) (((short *)(__dat_1492 + 10))[((profile) - 1) * 8 + (i)])
 
 void far combataipath_select_action(Combatant *actor) {
     s16(far * fn)(Combatant *);
@@ -499,8 +502,8 @@ void far combataipath_select_action(Combatant *actor) {
     s16 i = 0;
     s16 ret = 0;
     while (ret == 0 && i < 8 && actor->inner->aiPathProfile != 0) {
-        fn = (s16(far *)(
-            Combatant *))AI_ACTION_FN[AI_ACTION_INDEX[(signed char)actor->inner->aiPathProfile][i]];
+        fn = (s16(far *)(Combatant *))AI_ACTION_FN(
+            AI_ACTION_INDEX((signed char)actor->inner->aiPathProfile, i));
         ret = fn(actor);
         i++;
     }

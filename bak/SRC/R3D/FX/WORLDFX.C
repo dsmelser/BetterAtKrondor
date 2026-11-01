@@ -99,7 +99,7 @@ void far worldfx_render_particle_blast(Combatant *actor, s16 color) {
     actor->inner->statusHead = 0x13;
     i = RNDR_FX(10, 24);
     while (i != 0) {
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
         i--;
     }
@@ -127,7 +127,7 @@ void far worldfx_render_particle_blast(Combatant *actor, s16 color) {
             g_pVfxParticlePool[i].nW0 = radius + 0x4b;
             i++;
         } while (i < VFX_PARTICLE_COUNT);
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
     }
     galloc_zfree(g_pVfxParticlePool);
@@ -162,7 +162,7 @@ void worldfx_flux_vortex_play(s16 color) {
 
             worldfx_flux_vortex_step_particle(i, RNDR_FX(1300, 1599));
         }
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
     }
 
@@ -273,7 +273,7 @@ void far worldfx_render_world_100_frames(void) {
     s16 i;
 
     for (i = 0; i < 100; i++) {
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
     }
 }
@@ -300,7 +300,7 @@ void far worldfx_combat_damage_ptcl_burst(Combatant *actor, s16 spread) {
     g_wVfxActiveParticleCount = 1;
     while (g_wVfxActiveParticleCount != 0) {
         g_wVfxActiveParticleCount = 0;
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
     }
     galloc_zfree(g_pVfxVelocityPool);

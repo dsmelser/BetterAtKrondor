@@ -71,11 +71,33 @@ SpellSymbolRecord *g_pSpellSymbolRecords;
 short *g_pSpellSymbolX;
 short *g_pSpellSymbolY;
 
+static s16 spell_word(const unsigned char *p) {
+    return (s16)(p[0] | (p[1] << 8));
+}
+
+/* A SPELLS.DAT record (SPELL_RECORD_SIZE bytes on disk: the name's 16-bit offset in the string
+   blob, then ten words) as a SpellDef. The original reads the records over the table and adds
+   the blob's near address to each name's offset; natively the name is a pointer. */
+void cspell_spelldef_unpack(SpellDef *def, const unsigned char *record, char *names) {
+    def->pName = names + (u16)spell_word(record);
+    def->nCost = spell_word(record + 2);
+    def->nCost_max = spell_word(record + 4);
+    def->nSchool = spell_word(record + 6);
+    def->nSpell_kind = spell_word(record + 8);
+    def->nEffect_sprite_id = spell_word(record + 10);
+    def->nEffect_kind = spell_word(record + 12);
+    def->nInv_component_id = spell_word(record + 14);
+    def->nEffect_subkind = spell_word(record + 16);
+    def->nEffect_magnitude = spell_word(record + 18);
+    def->nEffect_param = spell_word(record + 20);
+}
+
 void cspell_subsystem_load(void) {
     ResFile *f;
     s16 i;
     u16 blobLen;
     s16 docCount;
+    unsigned char *records;
 
     if (g_wInCombatMode == 0) {
         audio_sfx_stop_scene_sounds();
@@ -85,18 +107,17 @@ void cspell_subsystem_load(void) {
     res_fread(&g_nSpellCount, 2, 1, f);
     g_pSpellDefs = galloc_safe_zcalloc(g_nSpellCount * sizeof(SpellDef));
     g_pSpellCastableScratch = galloc_safe_zcalloc(g_nSpellCount << 1);
-    res_fread(g_pSpellDefs, sizeof(SpellDef), g_nSpellCount, f);
+    records = galloc_safe_zcalloc(g_nSpellCount * SPELL_RECORD_SIZE);
+    res_fread(records, SPELL_RECORD_SIZE, g_nSpellCount, f);
     res_fread(&blobLen, 2, 1, f);
     g_szSpellNameBlob = galloc_safe_zcalloc(blobLen);
     res_fread(g_szSpellNameBlob, 1, blobLen, f);
     res_fclose(f);
-    i = 0;
-    if (i < g_nSpellCount) {
-        do {
-            g_pSpellDefs[i].pName += (s16)g_szSpellNameBlob;
-            i = i + 1;
-        } while (i < g_nSpellCount);
+    for (i = 0; i < g_nSpellCount; i++) {
+        cspell_spelldef_unpack(&g_pSpellDefs[i], records + i * SPELL_RECORD_SIZE,
+                               g_szSpellNameBlob);
     }
+    galloc_zfree(records);
     audio_sfx_register(g_pSfxArchiveStream, 0x1b);
     f = res_fopen("spelldoc.dat", "rb");
     res_fread(&docCount, 2, 1, f);
@@ -339,7 +360,7 @@ static void far cspell_play_palette_flash(Combatant *actor, s16 color_level) {
     s16 intensity;
 
     combat_arena_actor_set_anim_pose(actor, '\x01');
-    world_render_with_overlay(MK_FP(0, 0xffff));
+    world_render_with_overlay(-1, NULL);
     screen_frame_present();
     palette_set_scaled(0x70, 0x8f, color_level, 0x32);
     palette_set_scaled(0x70, 0x8f, color_level, 0x1e);
@@ -349,10 +370,10 @@ static void far cspell_play_palette_flash(Combatant *actor, s16 color_level) {
     for (intensity = 0x1f; intensity < 0x40; intensity = intensity + 2) {
         palette_set_scaled(0x70, 0x8f, color_level, intensity);
         screen_frame_present();
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
     }
     screen_frame_present();
-    world_render_with_overlay(MK_FP(0, 0xffff));
+    world_render_with_overlay(-1, NULL);
     return;
 }
 
@@ -473,12 +494,12 @@ static void far cspell_play_burst_animation(Combatant *caster, Combatant *target
         target->inner->flags |= CAF_KNOCKBACK;
         target->inner->knockbackFrame = 3;
         target->inner->knockbackTimer = 0x64;
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
         target->inner->flags |= CAF_KNOCKBACK;
         target->inner->knockbackFrame = 1;
         target->inner->knockbackTimer = 0x64;
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
         i++;
     } while (i < 2);
@@ -615,7 +636,7 @@ static void far cspell_storm_flash_sequence(Combatant *actor) {
     audio_play(0x11);
     i = 0;
     do {
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         audio_play(0x15);
         g_nFrameTickCountdown = RND(0x28);
         screen_frame_present();
@@ -630,7 +651,7 @@ static void far cspell_storm_flash_sequence(Combatant *actor) {
 void far cspell_vfx_run_and_wait(void) {
     worldfx_state_arm_minus2();
     while (g_nVfxTickCountdown != 0) {
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
     }
     return;
@@ -686,10 +707,10 @@ void far cspell_select_target_tile(void) {
         if (tile_in_range) {
             if (combatgrid_tile_is_blocked((char)g_cursor_tile_x, (char)g_cursor_tile_y) != 0)
                 goto show_invalid_overlay;
-            world_render_with_overlay(MK_FP(0, 3));
+            world_render_with_overlay(3, NULL);
         } else {
         show_invalid_overlay:
-            world_render_with_overlay(MK_FP(0, 0xffff));
+            world_render_with_overlay(-1, NULL);
         }
 #ifdef V102CD
         screen_frame_present();
@@ -737,7 +758,7 @@ void far cspell_summon_monster(s16 monster_type, s16 prompt_for_tile) {
         actor->spellsKnown[1] = 0;
         actor->spellsKnown[2] = 0;
         monstat_roll_stats_from_file(actor);
-        combatgrid_tile_set_word(in->gridX, in->gridY, (u16)actor);
+        combatgrid_tile_set_word(in->gridX, in->gridY, actor);
         combat_actor_anim0_if_not_dead(actor, 0);
     }
 }
@@ -772,7 +793,7 @@ static void far cspell_summon_actor(Combatant *param_1, s16 param_2) {
     actor->stats[0].base = '\x01';
     actor->stats[1].base = '\x01';
     combat_actor_anim0_if_not_dead(actor, 0);
-    combatgrid_tile_set_word(tmpInner.gridX, tmpInner.gridY, (u16)actor);
+    combatgrid_tile_set_word(tmpInner.gridX, tmpInner.gridY, actor);
 }
 
 void cspell_actor_walk_with_sound(Combatant *actor, Combatant *target) {
@@ -907,7 +928,7 @@ static void far cspell_aoe_storm_damage_all(Combatant *caster, Combatant *target
     si = 0;
     if (si < frames) {
         do {
-            world_render_with_overlay(MK_FP(0, 0xffff));
+            world_render_with_overlay(-1, NULL);
             screen_frame_present();
             di = 0;
             if (di < g_nCombatOtherCount) {
@@ -941,7 +962,7 @@ static void far cspell_aoe_storm_damage_all(Combatant *caster, Combatant *target
     }
 
     while (stableFlag == 0 && combat_actor_stat_percent(caster, 1) != 0) {
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         stableFlag = 1;
 
         si = 0;
@@ -1045,7 +1066,7 @@ void far cspell_flash_actor_status_effect(Combatant *actor, s16 effect_type) {
     slot = cspell_status_effect_add(actor, effect_type, 0, 0, '\0');
     i = 0;
     do {
-        world_render_with_overlay(MK_FP(0, 0xffff));
+        world_render_with_overlay(-1, NULL);
         screen_frame_present();
         i = i + 1;
     } while (i < 10);
@@ -1467,16 +1488,16 @@ void cspell_resolve_cast(Combatant *caster, Combatant *target, s16 spell_id, s16
             case 0x20:
 #ifdef V102CD
                 combat_actor_grid_remove(target);
-                if ((Combatant *)combatgrid_tile_terrain(target->inner->gridX,
+                if (combatgrid_tile_terrain(target->inner->gridX,
                                                            target->inner->gridY) == target) {
-                    combatgrid_tile_set_word(target->inner->gridX, target->inner->gridY, 0);
+                    combatgrid_tile_set_word(target->inner->gridX, target->inner->gridY, NULL);
                 }
                 target->inner->gridX = target->inner->gridY = -1;
                 combat_arena_actor_die(target, 0);
                 break;
 #else
                 combat_actor_grid_remove(target);
-                combatgrid_tile_set_word(target->inner->gridX, target->inner->gridY, 0);
+                combatgrid_tile_set_word(target->inner->gridX, target->inner->gridY, NULL);
                 target->inner->gridX = target->inner->gridY = -1;
                 combat_arena_actor_die(target, 0);
                 break;
@@ -2429,7 +2450,7 @@ close:
 void cspell_tick_damage_terrain(void) {
     s16 x, y;
     register u16 field;
-    register u16 actor;
+    Combatant *actor;
 
     for (x = 0; x < 8; x++) {
         for (y = 0; y < 13; y++) {
@@ -2438,12 +2459,12 @@ void cspell_tick_damage_terrain(void) {
                 combatgrid_tick_tile_effect((char)x, (char)y);
             }
             actor = combatgrid_tile_terrain((char)x, (char)y);
-            if (field != 0 && actor != 0) {
+            if (field != 0 && actor != NULL) {
                 switch (field) {
                 case 1:
-                    if (cbstat_char_bitmap_3w_test(((Combatant *)actor)->inner->creatureType, 0x13) ==
+                    if (cbstat_char_bitmap_3w_test(actor->inner->creatureType, 0x13) ==
                         0) {
-                        combat_arena_apply_damage((Combatant *)actor, (s16)RNDR(10, 19), 0, 1,
+                        combat_arena_apply_damage(actor, (s16)RNDR(10, 19), 0, 1,
                                                   0x200, 0);
                     }
                 }
@@ -2470,7 +2491,7 @@ static void far cspell_actor_tick_status_effects(Combatant *actor) {
             switch (type) {
             case 1:
                 cspell_invoke_effect(actor, &actor, 0x20, &chainFlag, 0);
-                combatgrid_tile_set_word(actor->inner->gridX, actor->inner->gridY, 0);
+                combatgrid_tile_set_word(actor->inner->gridX, actor->inner->gridY, NULL);
 #ifdef V102CD
                 actor = combat_actor_remove(actor);
 #else

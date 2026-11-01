@@ -436,8 +436,7 @@ void far world_render_actor_at_tile(s16 actor_id, s16 tile_x, s16 tile_y, s16 z,
     Shape far *pShape;
     WorldObject entry;
 
-    animBuf = *(ActorAnimBuf far *)MK_FP(FP_SEG(g_pMapIconsTable),
-                                         (u16)g_abActorAnimTemplateDefault);
+    animBuf = *(ActorAnimBuf *)g_abActorAnimTemplateDefault;
     pShape = ts_get_shape(actor_id);
     entry.shapeId = actor_id;
     entry.orientation.pitch = entry.orientation.roll = 0;
@@ -472,7 +471,11 @@ void far world_render_actor_swap_textures(s16 actor_id, s16 nGrid_x, s16 nGrid_y
     worldrender_table_swap(0, pSavedTable);
 }
 
-void far world_render_with_overlay(void far *overlay_target) {
+/* The combat view: the cursor's marker (shape 0, cursor_kind its first part variant) at the
+   cursor's tile, then the grid with focus (a projectile in flight, or NULL) at its tile. The
+   original packs both into one far pointer: cursor_kind as the offset, focus's near address as
+   the segment. */
+void far world_render_with_overlay(s16 cursor_kind, WorldObject *focus) {
     g_bTexturedPolyEnabled = 1;
     combatgrid_cur_tile_world();
     g_nFrameTickCountdown = 0xe;
@@ -487,8 +490,8 @@ void far world_render_with_overlay(void far *overlay_target) {
     g_render_camera_scratch->base.orientation.yaw = 0;
     g_render_camera_scratch->base.orientation.roll = 0;
     r3d_camera_setup_view(g_active_window);
-    world_render_actor_at_position(FP_OFF(overlay_target), g_cursor_tile_x, g_cursor_tile_y);
-    combat_actor_grid_render((WorldObject *)FP_SEG(overlay_target));
+    world_render_actor_at_position(cursor_kind, g_cursor_tile_x, g_cursor_tile_y);
+    combat_actor_grid_render(focus);
     combat_arena_tick_status_timers();
     do {
     } while (g_nFrameTickCountdown != 0);
@@ -609,8 +612,7 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
     tgt = target;
     hit = 0;
 
-    *(AnimBuf10 *)animBuf =
-        *(AnimBuf10 far *)MK_FP(FP_SEG(g_pMapIconsTable), (u16)g_abActorAnimTemplateRanged);
+    *(AnimBuf10 *)animBuf = *(AnimBuf10 *)g_abActorAnimTemplateRanged;
     targetIsActionClass = (u16)(tgt->inner->creatureType == (short)action_id);
 
     /* No random deflection once the shot already hit, or when the target has
@@ -693,11 +695,11 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
             }
             arcDelta -= 6;
         }
-        world_render_with_overlay(MK_FP((u16)&projectile, -1));
+        world_render_with_overlay(-1, &projectile.base);
         screen_frame_present();
         tileX = (projectile.base.pos.xy.nWorld_x + 0x4b0) / g_grid_tile_size;
         tileY = (projectile.base.pos.xy.nWorld_y + (-0xc80)) / g_grid_tile_size;
-        hit = (Combatant *)combatgrid_tile_terrain((char)tileX, (char)tileY);
+        hit = combatgrid_tile_terrain((char)tileX, (char)tileY);
         if ((hit == attacker) || (hit == tgt) || (canHitOthers == 0) ||
             (hit != 0 && (hit->inner->flags & CAF_DEAD) != 0) || (*p_hit_out != 0)) {
             hit = 0;

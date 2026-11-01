@@ -3,6 +3,9 @@
 
 #include "structs.h"
 
+/* A SPELLS.DAT record's size on disk (a SpellDef with a 16-bit name offset). */
+#define SPELL_RECORD_SIZE 22
+
 extern unsigned short g_nSpellSymbolAnimFrame;
 extern unsigned char g_bssgap_5154[6];
 extern short g_nSpellCount;
@@ -78,5 +81,6 @@ extern void cspell_draw_panel_text_list(MenuPage *panel, char **strings, s16 cou
 extern s16 cspell_paged_record_lookup_by_id(s16 slot);
 extern void cspell_scroll_clamp_cursor(s16 *cursor, s16 *scroll, s16 visible_rows, s16 total_rows);
 extern void cspell_symbol_resources_load(s16 chapter);
+extern void cspell_spelldef_unpack(SpellDef *def, const unsigned char *record, char *names);
 
 #endif

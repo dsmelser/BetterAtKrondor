@@ -682,7 +682,6 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
     s16 i;
     s16 facing_delta;
     s16 out_target;
-    s16 nTemplate_off;
     EncounterObjectState *pState;
     s16 out_dir;
     WorldPos pos_buf;
@@ -695,8 +694,7 @@ void far rgnenc_corpse_tbl_iterate_22byte(void) {
         nSlot_idx = slot->state.encounterAux->nSlot_idx;
         nEncounter_idx = slot->state.encounterAux->nEncounter_idx;
 
-        nTemplate_off = (s16)(g_pEncounterRecordTemplates + nRecord_idx);
-        pActorPoly = (char *)nTemplate_off + nSlot_idx * 48 + 1;
+        pActorPoly = (char *)&g_pEncounterRecordTemplates[nRecord_idx].pActors[nSlot_idx] + 1;
 
         pState = g_pEncounterObjectState + nEncounter_idx;
 

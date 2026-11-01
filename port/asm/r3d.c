@@ -501,12 +501,12 @@ void r3d_mat3_xform_vec3_ll(void) {
 /*
  * An actor into the camera's space: its angles go to g_matXIn for the matrix, its position
  * less the camera's through the view matrix, and its depth, no nearer than the view plane,
- * to g_lActorClampedCamZ. (The segment is the far pointer's other half.)
+ * to g_lActorClampedCamZ. The original takes the entry as a far pointer; natively the
+ * pointer is the whole address.
  */
-void r3d_setup_actor_in_camera_space(WorldObject *entry, unsigned short entry_seg) {
+void r3d_setup_actor_in_camera_space(WorldObject *entry) {
     R3dRendererState *st = &g_abR3dState;
     s32 z, plane;
-    (void)entry_seg;
     g_r3d.matIn[0] = entry->orientation.pitch;
     g_r3d.matIn[1] = entry->orientation.roll;
     g_r3d.matIn[2] = entry->orientation.yaw;

@@ -347,12 +347,13 @@ void far combataiturn_take_actor_turn(Combatant *actor) {
     while (result == 0 && action_index < 8 && actor->inner->aiEncounterProfile != 0) {
         rand_pct = RND(100);
         if (rand_pct < 0x5b) {
+            /* The order of the actions, numbered from 1, for an encounter profile (1-8):
+               __dat_15dc, which the original reaches past the end of the actions' table. */
             fn = *(u16(far **)(Combatant *)) &
-                 g_encounter_ai_action_table[*(short *)((char *)g_encounter_ai_action_table +
-                                                        ((s16)(signed char)actor->inner->aiEncounterProfile
-                                                         << 4) +
-                                                        (action_index << 1) + 0x10) -
-                                             1];
+                 g_encounter_ai_action_table
+                     [((short *)__dat_15dc)
+                          [((s16)(signed char)actor->inner->aiEncounterProfile - 1) * 8 + action_index] -
+                      1];
             result = fn(actor);
         }
         action_index++;

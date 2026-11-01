@@ -22,7 +22,7 @@ extern void world_render_actor_at_position(s16 actor_kind, s16 gridX, s16 gridY)
 extern void world_render_actor_at_tile(s16 actor_id, s16 tile_x, s16 tile_y, s16 z, u16 yaw,
                                        Combatant *override_actor);
 extern void world_render_actor_swap_textures(s16 actor_id, s16 nGrid_x, s16 nGrid_y);
-extern void world_render_with_overlay(void far *overlay_target);
+extern void world_render_with_overlay(s16 cursor_kind, WorldObject *focus);
 extern void world_render_view(s16 force_overlay, s16 chapter_split);
 extern s16 world_rndr_actor_angle_actor(Combatant *from, Combatant *to);
 extern Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,

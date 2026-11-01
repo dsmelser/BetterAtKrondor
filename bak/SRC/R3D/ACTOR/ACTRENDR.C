@@ -302,7 +302,7 @@ void actorrender_entity(WorldObject far *entry) {
     g_abR3dState.wMeshScaleShift = pRec->shift;
     g_abR3dState.nMeshBoundHalfExtent = (s32)(short)pRec->radius << g_abR3dState.wMeshScaleShift;
 
-    r3d_setup_actor_in_camera_space((WorldObject *)entry, FP_SEG(entry));
+    r3d_setup_actor_in_camera_space((WorldObject *)entry);
     if (actorrender_frustum_cull() != 0) {
         return;
     }

@@ -29,7 +29,7 @@ void actormotion_xzfree(void *ptr) {
 WorldEntity *actormotion_vec_alloc(unsigned short type_tag) {
     WorldEntity *entity;
 
-    entity = actormotion_xzmalloc(0x24);
+    entity = actormotion_xzmalloc(sizeof(WorldEntity));
     entity->base.shapeId = type_tag;
     return entity;
 }

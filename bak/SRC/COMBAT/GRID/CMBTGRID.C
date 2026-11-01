@@ -93,11 +93,11 @@ void combatgrid_kill_cmbt_at_tile(s16 tile_x, s16 tile_y) {
     return;
 }
 
-u16 combatgrid_tile_terrain(char tile_x, char tile_y) {
+Combatant *combatgrid_tile_terrain(char tile_x, char tile_y) {
     if (combatgrid_coord_valid((s16)tile_x, (s16)tile_y) != 0) {
-        return (u16)g_combat_tile_grid[tile_x][tile_y].pOccupant;
+        return g_combat_tile_grid[tile_x][tile_y].pOccupant;
     }
-    return 0;
+    return NULL;
 }
 
 GridCombatant *combatgrid_find_cmbt_at_tile(char tile_x, char tile_y) {
@@ -113,7 +113,7 @@ GridCombatant *combatgrid_find_cmbt_at_tile(char tile_x, char tile_y) {
 
 u16 combatgrid_tile_blockd_cmbt(char tile_x, char tile_y) {
     Combatant *actor;
-    actor = (Combatant *)combatgrid_tile_terrain(tile_x, tile_y);
+    actor = combatgrid_tile_terrain(tile_x, tile_y);
     if (actor == (Combatant *)0 || (actor->inner->flags & CAF_DEAD) != 0)
         return 0;
     return 1;
@@ -128,16 +128,16 @@ u16 combatgrid_tile_is_blocked(char tile_x, char tile_y) {
     if (combatgrid_coord_valid((s16)tile_x, (s16)tile_y) == 0 || terrain == 2 || terrain == 7) {
         blocked = 1;
     }
-    if (combatgrid_tile_terrain(tile_x, tile_y) != 0 ||
+    if (combatgrid_tile_terrain(tile_x, tile_y) != NULL ||
         combatgrid_find_cmbt_at_tile(tile_x, tile_y) != (GridCombatant *)0 || blocked) {
         return 1;
     }
     return 0;
 }
 
-void combatgrid_tile_set_word(char x, char y, u16 value) {
+void combatgrid_tile_set_word(char x, char y, Combatant *value) {
     if (combatgrid_coord_valid((s16)x, (s16)y) != 0) {
-        g_combat_tile_grid[x][y].pOccupant = (Combatant *)value;
+        g_combat_tile_grid[x][y].pOccupant = value;
     }
     return;
 }
@@ -505,7 +505,7 @@ void combatgrid_tile_to_world_rotated(WorldPos2 *p_out, s16 tile_x, s16 tile_y) 
 
 void far combatgrid_actor_set_grid_pos(s16 actor_idx, s16 new_x, s16 new_y) {
     combatgrid_tile_set_word((g_combat_actors_A[actor_idx].inner)->gridX,
-                             (g_combat_actors_A[actor_idx].inner)->gridY, 0);
+                             (g_combat_actors_A[actor_idx].inner)->gridY, NULL);
     (g_combat_actors_A[actor_idx].inner)->gridX = (unsigned char)new_x;
     (g_combat_actors_A[actor_idx].inner)->gridY = (unsigned char)new_y;
     combat_actor_place_on_free_tile(&g_combat_actors_A[actor_idx]);
@@ -798,7 +798,7 @@ void far combatgrid_apply_tile_status_fx(s16 tile_x, s16 tile_y, s16 target_acto
     CombatantState tempInner;
 
     if (target_actor != 0) {
-        combatgrid_tile_set_word(tile_x, tile_y, (u16)&tempActor);
+        combatgrid_tile_set_word(tile_x, tile_y, &tempActor);
     }
     tempInner.gridX = tile_x;
     tempInner.gridY = tile_y;
@@ -814,7 +814,7 @@ void far combatgrid_apply_tile_status_fx(s16 tile_x, s16 tile_y, s16 target_acto
     worldfx_combat_damage_ptcl_burst(&tempActor, 0x19);
     if (target_actor != 0) {
         cspell_status_effect_remove(&tempActor, effect_slot);
-        combatgrid_tile_set_word(tile_x, tile_y, 0);
+        combatgrid_tile_set_word(tile_x, tile_y, NULL);
     }
     return;
 }
@@ -878,7 +878,7 @@ s16 far combatgrid_place_actor_on_tile(s16 tile_x, s16 tile_y, s16 new_tile_x, s
     combatgrid_set_tile_effect((unsigned char)tile_x, (unsigned char)tile_y, 0, -1);
     if (combatgrid_tile_terrain_field((unsigned char)new_tile_x, (unsigned char)new_tile_y) == 3) {
         combatgrid_spread_tile_fx_line(new_tile_x, new_tile_y);
-        combat_actor_play_short_cine((Combatant *)0, 0);
+        combat_actor_play_short_cine((Combatant *)0, NULL);
         combatgrid_line_effect_propagate(new_tile_x, new_tile_y);
         combatgrid_apply_tile_status_fx(new_tile_x, new_tile_y, 1);
         cmbt->tile_x = 0xff;
@@ -1429,7 +1429,7 @@ void far combatgrid_build_move_attack_map(Combatant *actor) {
             if (combatgrid_actor_try_step_tile(actor, col, row) != 0) {
                 g_combat_move_map[col][row] |= 1;
             }
-            target = (Combatant *)combatgrid_tile_terrain((char)col, (char)row);
+            target = combatgrid_tile_terrain((char)col, (char)row);
             if (target != (Combatant *)0x0) {
                 if (combat_actor_trace_proj_path(actor, target, 0) != 0) {
                     g_combat_move_map[col][row] |= 2;
@@ -1474,9 +1474,9 @@ void far combatgrid_pathfind_from_tile(s16 tx, s16 ty, s16 dest) {
     tempInner.gridX = (unsigned char)tx;
     tempInner.gridY = (unsigned char)ty;
     tempInner.statusHead = -1;
-    combatgrid_tile_set_word((unsigned char)tx, (unsigned char)ty, (u16)&tempActor);
+    combatgrid_tile_set_word((unsigned char)tx, (unsigned char)ty, &tempActor);
     combatgrid_step_search(&tempActor, dest);
-    combatgrid_tile_set_word((unsigned char)tx, (unsigned char)ty, 0);
+    combatgrid_tile_set_word((unsigned char)tx, (unsigned char)ty, NULL);
     return;
 }
 

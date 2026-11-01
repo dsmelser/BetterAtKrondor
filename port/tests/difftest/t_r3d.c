@@ -244,7 +244,7 @@ static void cmd_actor(DtIn *in, DtOut *out) {
     g_abR3dState.pCurActorPagedRec = record;
     g_abR3dState.pCurMeshPartVisTable = NULL;
     if (step == 0)
-        r3d_setup_actor_in_camera_space(&entry, 0);
+        r3d_setup_actor_in_camera_space(&entry);
     else if (step == 1)
         r3d_compose_actor_camera_matrix();
     else

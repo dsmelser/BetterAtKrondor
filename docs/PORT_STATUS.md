@@ -54,8 +54,8 @@ and checks that an incomplete folder is turned down cleanly.
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
    for saves. A common case: a table
    of 16-bit string offsets read over a pointer table and rebased with `+= (s16)blob` (`CREDITS.C`,
-   `NAMEDTBL.C`, `ASKABOUT.C` and `CACTOR.C` are done; `DLGWIDG.C`, `CSPELL.C`, `CBENC.C` remain). The
-   TBL shape records are done (`SHAPETBL.C`, below).
+   `NAMEDTBL.C`, `ASKABOUT.C`, `CACTOR.C`, `CBENC.C` and `CSPELL.C` are done; `DLGWIDG.C` remains). The
+   TBL shape records and SPELLS.DAT are done (`SHAPETBL.C`, `CSPELL.C`, below).
 4. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s (the sky's,
    the camp's and the dialog portraits' copies of it were 16-bit words; they are pointer tables now): the
    ASan preset reports them at the first write.
@@ -122,6 +122,16 @@ at the `upstream-snapshot` tag.
 | `GFX/DRIVER/VIDINIT.C` `video_init`, `VIDDRV.C` `video_driver_bind` | the built-in driver replaces loading the VMCODE.OVL chunk; same mode remapping and context setup |
 | `GFX/FONT/FONT.C` fast path | slot 1 called with its registers as arguments |
 | `GEN/GFXCTX.H`, `GEN/RNDVTBL.H` | the original's labels inside the graphics-context block and the vtable name the same storage |
+| `COMBAT/GRID/CMBTGRID.C`, `CMBTGRID.H`, `COMBAT/ACTOR/CACTOR.C`, `CACTOR.H`, `COMBAT/ARENA/COMBAT.C`, `COMBAT/SPELL/CSPELL.C`, `COMBAT/AI/CMBTAI.C`, `COMBAT/ENC/CBENC.C`, `R3D/SCENE/WORLDHIT.C` | the combat grid's occupant accessors (`combatgrid_tile_terrain`, `combatgrid_tile_set_word`, `combat_actor_terr_under_cur`) give and take a `Combatant *`, and the locals that hold one are pointers; the original passes the near pointer as a word |
+| `R3D/SCENE/WORLDHIT.C`, `WORLDHIT.H`, `COMBAT/ACTOR/CACTOR.C`, `CACTOR.H` and the combat views | `world_render_with_overlay(cursor_kind, focus)` takes two arguments, which the original packs into one far pointer: the cursor marker's part variant as the offset, the near address of the object in flight as the segment. `combat_actor_play_short_cine` takes that object, where the original takes its address as a word (below) |
+| `COMBAT/AI/CBTAI.C`, `CMBTAI.C`, `CBTAITRN.C` | the AI's three dispatchers index their own tables of actions and of each profile's order; the original reaches them from neighbouring DGROUP addresses (below) |
+| `R3D/SCENE/WORLDHIT.C`, `COMBAT/AI/CMBTAI.C`, `COMBAT/ENC/CBENC.C` | near data the original reads as DS:offset through `MK_FP(FP_SEG(near pointer), offset)` (the animation templates, an actor's state) is read directly; a party member's conditions are `abActorStatusRanks[charSlot - 1]`, which the original addresses from `aSkillTrainRate` (below) |
+| `COMBAT/SPELL/CSPELL.C`, `CSPELL.H` | SPELLS.DAT's 22-byte records are read field by field (`cspell_spelldef_unpack`), the name's 16-bit offset made a pointer into the string blob; `test_spells.py` checks each field's place |
+| `COMBAT/ENC/CBENC.C` | MNAMES.DAT's 16-bit string offsets index the blob, where the original rebases them in place |
+| `GAME/ENC/RGNENC.C` | the corpse table's walk keeps an actor template's address whole; the original keeps it as a 16-bit offset |
+| `R3D/ACTOR/ACTMOTN.C` | a `WorldEntity` (the two cameras) is allocated with `sizeof`: 38 bytes natively, 24h in the original |
+| `R3D/ACTOR/ACTRENDR.C`, `R3D/CORE/R3D.H` | `r3d_setup_actor_in_camera_space` takes the entry's pointer alone; the original takes it far, offset and segment (an entry on the stack has no segment natively) |
+| `COMBAT/ACTOR/CACTOR.C`, `COMBAT/ARENA/COMBAT.C`, `COMBAT/AI/CBTAI.C` | three reads through pointers the original leaves unset or null (below): the speed contest's sentinel gets a zeroed state of its own, and the summon test after the last turn and the AI's support cast test their pointer first |
 | `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
 
 ## Changes from the original
@@ -328,6 +338,29 @@ only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
     runtime rejects them and the port stopped.
   - Natively these are `%s` and `%%`. A replay showed it: the debug and ASan builds drew that title plate
     differently.
+- **The combat AI finds its tables through their neighbours.** Three dispatchers number their actions
+  from 1 and read a profile's order of actions from rows past the end of another table.
+  `combat_ai_take_turn` reads `__dat_1492 + 9Ah`, `combataipath_select_action` reads
+  `g_combat_ai_action_table + 7` and the encounter AI's turn in CBTAITRN.C reads
+  `g_encounter_ai_action_table + 10h`. In DGROUP these land on `__dat_153c`, on the rows that follow
+  `__dat_1492`'s ten-byte animation template, and on `__dat_15dc`. The monsters' profiles in MONSTnn.DAT
+  run from 0 (none) to 8, inside the tables.
+- **The AI never casts its support spell.** `combat_ai_try_aoe_cast_spell_7` would cast spell 7 (Gift of
+  Sung) on an ally an opponent is attacking, but it tests `!flags & 2`, which is 0 whatever the flags
+  (`!` binds first). On its way it reads the flags through the opponent's target before testing that
+  target for NULL. Not fixed: enemies would fight differently.
+- **Pointers left unset or null are read.** `combat_actor_pick_next`'s sentinel combatant never gets a
+  state block, and its speed test reads the sentinel's flags through whatever the stack held (charSlot 0
+  decides the test either way). After a fight's last turn `combat_arena_turn_actor_inact` tests the
+  current actor's flags with no actor left: a near NULL, so DGROUP's opening strings, and the bytes a
+  word of them points at.
+- **A projectile is its tile effect's status word.** `combat_actor_tile_entry_effect` takes an `s16 *`
+  status that both callers point at a projectile's `WorldObject`. The status is its first word, the
+  shape, set to -1 to stop the shot. The grid render passes the projectile it draws, and the tile effect
+  hands that address on to `world_render_with_overlay` as a far pointer's segment.
+- **A party member's conditions are read through the training table.** `combatenc_actor_enter_defense`
+  reads bytes at `aSkillTrainRate + 5 + charSlot * 7`. Past the 12-byte table they are
+  `abActorStatusRanks[charSlot - 1]` (charSlot is the character's id plus 1): conditions 0-3, 5 and 6.
 - **A teleport within the zone can be skipped.** `modalscreen_pending_scene_trans` moves the party
   when the destination's zone or tile x differs from the party's, or its heading from the one kept
   at the zone's entry, or when its tile *y* is the party's (`==` where `!=` was meant). So a

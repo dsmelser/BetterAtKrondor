@@ -309,7 +309,10 @@ s16 far combat_ai_try_aoe_cast_spell_7(Combatant *actor) {
         i = 0;
         while (i < g_nCombatOtherCount) {
             if (g_pCombatOtherActors[i].inner->target != actor) {
-                if (!((char)g_pCombatOtherActors[i].inner->target->inner->flags) & 2) {
+                /* !flags & 2 is 0 whatever the flags, so the original never casts here; it reads
+                   the flags through a target that may be NULL, which natively is tested first. */
+                if (g_pCombatOtherActors[i].inner->target != NULL &&
+                    (!((char)g_pCombatOtherActors[i].inner->target->inner->flags) & 2)) {
                     if (g_pCombatOtherActors[i].inner->target != NULL) {
                         target_actor = g_pCombatOtherActors[i].inner->target;
                         stat = combat_actor_stat_percent(target_actor, 0);
@@ -337,9 +340,11 @@ s16 far combat_ai_try_aoe_cast_spell_7(Combatant *actor) {
     return result;
 }
 
-#define AI_TURN_INDEX (*(short (*)[8][8])((char *)&__dat_1492 + (0x152c - 0x1492)))
-
-#define AI_TURN_FN ((EncounterAiTurnFn far *)((char *)&__dat_1492 + (0x1518 - 0x1492)))
+/* The order in which a turn profile (1-8) tries the turn actions, and the actions, numbered
+   from 1. The original reaches both from __dat_1492 at 152Ch and 1518h: the rows and the
+   entries before 1 are its DGROUP neighbours __dat_153c and g_encounter_ai_turn_table. */
+#define AI_TURN_INDEX(profile, i) (((short *)__dat_153c)[((profile) - 1) * 8 + (i)])
+#define AI_TURN_FN(n) (g_encounter_ai_turn_table[(n) - 1])
 
 typedef s16(far *AiTurnFn)(Combatant *actor);
 
@@ -363,8 +368,8 @@ void far combat_ai_take_turn(Combatant *actor) {
     while (result == 0 && spell_attempt < 8 && actor->inner->aiTurnProfile != '\0') {
         rand_mod = RND(100);
         if (rand_mod < 0x5b) {
-            fn = (AiTurnFn)
-                AI_TURN_FN[AI_TURN_INDEX[(s16)(signed char)actor->inner->aiTurnProfile][spell_attempt]];
+            fn = (AiTurnFn)AI_TURN_FN(
+                AI_TURN_INDEX((s16)(signed char)actor->inner->aiTurnProfile, spell_attempt));
             result = fn(actor);
         }
         spell_attempt++;

@@ -93,5 +93,6 @@ extern const DtEntry dt_r3dclip_entries[];
 extern const DtEntry dt_r3dmesh_entries[];
 extern const DtEntry dt_polygon_entries[];
 extern const DtEntry dt_palblend_entries[];
+extern const DtEntry dt_cspell_entries[];
 
 #endif

@@ -161,7 +161,7 @@ void far combataiact_actor_melee_attack(Combatant *actor) {
             target->inner->flags |= CAF_KNOCKBACK;
             target->inner->knockbackFrame = (unsigned char)i + 1;
             target->inner->knockbackTimer = 0x64;
-            world_render_with_overlay((void far *)0xffff);
+            world_render_with_overlay(-1, NULL);
             screen_frame_present();
             ++i;
         } while (i < 4);
@@ -308,7 +308,7 @@ void far combataiact_bhood_revive_cycle(Combatant *actor) {
                 cspell_tick_damage_terrain();
                 i = i + 1;
             } while (i < 0xf);
-            world_render_with_overlay(MK_FP(0, 0xffff));
+            world_render_with_overlay(-1, NULL);
             screen_frame_present();
             if (combatgrid_tile_terrain_field(actor->inner->gridX, actor->inner->gridY) != 9) {
                 done = 1;
