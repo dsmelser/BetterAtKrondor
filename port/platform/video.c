@@ -378,7 +378,8 @@ void video_flush(void) {
 
 void video_warp_pointer(float px, float py) {
     float wx, wy;
-    if (s_offscreen || s_renderer == NULL || !cursor_shown() || SDL_GetMouseFocus() != s_window)
+    if (s_offscreen || s_renderer == NULL || !cursor_shown() ||
+        (SDL_GetMouseFocus() != s_window && SDL_GetKeyboardFocus() != s_window))
         return;
     /* The middle of the pixel, so the pointer maps back to it. */
     if (SDL_RenderCoordinatesToWindow(s_renderer, px + 0.5f,

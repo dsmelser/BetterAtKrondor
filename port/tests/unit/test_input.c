@@ -156,3 +156,102 @@ void unit_input_held_buttons_step_at_the_keys_rate(void) {
     UNIT_CHECK(bak_input_hold_step());
     finish();
 }
+
+static void wheel(int notches) {
+    SDL_Event e = {0};
+    e.type = SDL_EVENT_MOUSE_WHEEL;
+    e.wheel.integer_y = notches;
+    input_handle_wheel(&e);
+}
+
+static void pad(SDL_Event e) {
+    input_handle_gamepad(&e);
+}
+
+static SDL_Event pad_button(SDL_GamepadButton button, bool down) {
+    SDL_Event e = {0};
+    e.type = down ? SDL_EVENT_GAMEPAD_BUTTON_DOWN : SDL_EVENT_GAMEPAD_BUTTON_UP;
+    e.gbutton.button = (Uint8)button;
+    return e;
+}
+
+static SDL_Event pad_axis(SDL_GamepadAxis axis, int16_t value) {
+    SDL_Event e = {0};
+    e.type = SDL_EVENT_GAMEPAD_AXIS_MOTION;
+    e.gaxis.axis = (Uint8)axis;
+    e.gaxis.value = value;
+    return e;
+}
+
+void unit_input_the_wheel_presses_its_keys(void) {
+    start(BAK_PAGE_OTHER);
+    wheel(2);
+    wheel(-1);
+    UNIT_CHECK(sent(
+        (const uint8_t[]){0xE0, 0x48, 0xE0, 0xC8, 0xE0, 0x48, 0xE0, 0xC8, 0xE0, 0x50, 0xE0, 0xD0},
+        12));
+    char why[100];
+    UNIT_CHECK(settings_override("controls.wheel_up=", why, sizeof why));
+    wheel(1);
+    UNIT_CHECK(sent(NULL, 0));
+    finish();
+}
+
+void unit_input_the_gamepad_is_keys(void) {
+    start(BAK_PAGE_WORLD);
+    pad(pad_button(SDL_GAMEPAD_BUTTON_DPAD_LEFT, true));
+    pad(pad_button(SDL_GAMEPAD_BUTTON_DPAD_LEFT, false));
+    pad(pad_button(SDL_GAMEPAD_BUTTON_EAST, true));
+    pad(pad_button(SDL_GAMEPAD_BUTTON_NORTH, true));
+    UNIT_CHECK(sent((const uint8_t[]){0xE0, 0x4B, 0xE0, 0xCB, 0x01, 0x1C}, 6));
+    /* The left stick: pressed past half way, let go under three eighths. */
+    pad(pad_axis(SDL_GAMEPAD_AXIS_LEFTY, -16000));
+    UNIT_CHECK(sent(NULL, 0));
+    pad(pad_axis(SDL_GAMEPAD_AXIS_LEFTY, -32768)); /* all the way */
+    UNIT_CHECK(sent((const uint8_t[]){0xE0, 0x48}, 2));
+    pad(pad_axis(SDL_GAMEPAD_AXIS_LEFTY, -13000));
+    UNIT_CHECK(sent(NULL, 0));
+    pad(pad_axis(SDL_GAMEPAD_AXIS_LEFTY, -12000));
+    UNIT_CHECK(sent((const uint8_t[]){0xE0, 0xC8}, 2));
+    pad(pad_axis(SDL_GAMEPAD_AXIS_LEFTX, 20000));
+    UNIT_CHECK(sent((const uint8_t[]){0xE0, 0x4D}, 2));
+    finish();
+}
+
+static uint16_t s_mouseX, s_mouseY, s_buttons;
+
+static void record_mouse(uint16_t x, uint16_t y, uint16_t buttons) {
+    s_mouseX = x;
+    s_mouseY = y;
+    s_buttons = buttons;
+}
+
+/* The right stick moves the game's pointer; A and X are its buttons. */
+void unit_input_the_gamepad_points(void) {
+    start(BAK_PAGE_OTHER);
+    bak_int33_reset();
+    bak_int33_set_x_range(0, 1279);
+    bak_int33_set_y_range(0, 799);
+    bak_int33_set_position(400, 400);
+    bak_int33_set_handler(0x1F, record_mouse);
+    input_poll(); /* the stick's clock starts */
+    pad(pad_axis(SDL_GAMEPAD_AXIS_RIGHTX, 32767));
+    pad(pad_axis(SDL_GAMEPAD_AXIS_RIGHTY, -16384));
+    clock_spend(100 * MS); /* 200 pixels a second: 20 right, 10 up, in units of a quarter */
+    input_poll();
+    UNIT_CHECK(s_mouseX == 480 && s_mouseY == 360);
+    pad(pad_axis(SDL_GAMEPAD_AXIS_RIGHTX, 3000)); /* inside the dead zone */
+    pad(pad_axis(SDL_GAMEPAD_AXIS_RIGHTY, 0));
+    clock_spend(100 * MS);
+    input_poll();
+    UNIT_CHECK(s_mouseX == 480);
+    pad(pad_button(SDL_GAMEPAD_BUTTON_SOUTH, true));
+    UNIT_CHECK(s_buttons == 1);
+    pad(pad_button(SDL_GAMEPAD_BUTTON_WEST, true));
+    UNIT_CHECK(s_buttons == 3);
+    pad(pad_button(SDL_GAMEPAD_BUTTON_SOUTH, false));
+    pad(pad_button(SDL_GAMEPAD_BUTTON_WEST, false));
+    UNIT_CHECK(s_buttons == 0);
+    bak_int33_set_handler(0, NULL);
+    finish();
+}

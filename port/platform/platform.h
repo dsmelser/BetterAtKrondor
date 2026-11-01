@@ -48,6 +48,9 @@ typedef enum SettingId {
     SETTING_CONTROLS_RIGHT,
     SETTING_CONTROLS_REPEAT_DELAY, /* [controls] repeat_delay: ms */
     SETTING_CONTROLS_REPEAT_RATE,  /* [controls] repeat_rate: a second */
+    SETTING_CONTROLS_WHEEL_UP,     /* [controls] wheel_up, wheel_down: a key's name */
+    SETTING_CONTROLS_WHEEL_DOWN,
+    SETTING_CONTROLS_POINTER_SPEED, /* [controls] pointer_speed: picture pixels a second */
     SETTING_COUNT
 } SettingId;
 enum { SCALING_PIXELART, SCALING_NEAREST, SCALING_LINEAR };
@@ -175,12 +178,21 @@ bool keyboard_buffer_empty(void);
  * platform polls), the host's own repeats left out.
  */
 void input_handle_key(const union SDL_Event *e);
+/* The wheel: a key press a notch (controls.wheel_up, wheel_down). */
+void input_handle_wheel(const union SDL_Event *e);
+/* Gamepads: connected and gone, buttons and sticks. The d-pad and the left stick are the
+ * arrows (as keys, through the bindings), the right stick moves the pointer, A and X are the
+ * left and right buttons, B is Escape and Y Return. */
+void input_handle_gamepad(const union SDL_Event *e);
 void input_poll(void);
 /* Back to no keys held and no page known (the unit tests). */
 void input_reset(void);
 /* Scripted pointer input: a position on the 320x200 picture, the left button. */
 void mouse_script_move(float px, float py);
 void mouse_script_left(bool down);
+/* The pointer moved by (dx, dy) picture pixels; a button (1 left, 2 right) pressed or let go. */
+void mouse_nudge(float dx, float dy);
+void mouse_button(uint16_t bit, bool down);
 
 /* Run the BAK_INPUT steps that are due (inputscript.c); false once one asks to quit. */
 bool input_script_poll(void);

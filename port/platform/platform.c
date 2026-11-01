@@ -94,6 +94,13 @@ bool platform_init(const PlatformOptions *options) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
+#ifndef BAK_ASAN
+    /* (ASan on Windows takes SDL's string moves in its gamepad mappings for overlapping copies,
+     * the C runtime's memmove being its memcpy: ASan builds go without gamepads. Scripted ones
+     * need no subsystem.) */
+    if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) /* the game plays without one */
+        fprintf(stderr, "no gamepads: %s\n", SDL_GetError());
+#endif
     /* The game assumes it runs from its install folder and does not survive missing
      * resources (it uses what it failed to load); check before it trips over that. */
     char report[3000];
@@ -133,6 +140,16 @@ bool platform_pump_events(void) {
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
         case SDL_EVENT_MOUSE_BUTTON_UP:
             mouse_handle_event(&e);
+            break;
+        case SDL_EVENT_MOUSE_WHEEL:
+            input_handle_wheel(&e);
+            break;
+        case SDL_EVENT_GAMEPAD_ADDED:
+        case SDL_EVENT_GAMEPAD_REMOVED:
+        case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+        case SDL_EVENT_GAMEPAD_BUTTON_UP:
+        case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+            input_handle_gamepad(&e);
             break;
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP:

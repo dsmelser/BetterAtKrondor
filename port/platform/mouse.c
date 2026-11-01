@@ -108,11 +108,10 @@ static void dispatch(uint16_t events) {
         bak_run_isr(call_handler);
 }
 
-/* The host pointer over the 320x200 picture, as a position in the driver's ranges: the
- * game sets them to four units per pixel. */
-static void move_to(float px, float py) {
-    int16_t x = (int16_t)SDL_clamp((int)(px * 4.0f), 0, 0x7FFF);
-    int16_t y = (int16_t)SDL_clamp((int)(py * 4.0f), 0, 0x7FFF);
+/* A position in the driver's ranges, kept within them; the game hears of a move. */
+static void move_units(int ux, int uy) {
+    int16_t x = (int16_t)SDL_clamp(ux, 0, 0x7FFF);
+    int16_t y = (int16_t)SDL_clamp(uy, 0, 0x7FFF);
     x = clamp(x, s_mouse.xmin, s_mouse.xmax);
     y = clamp(y, s_mouse.ymin, s_mouse.ymax);
     if (x != s_mouse.x || y != s_mouse.y) {
@@ -120,6 +119,12 @@ static void move_to(float px, float py) {
         s_mouse.y = y;
         dispatch(EVENT_MOVED);
     }
+}
+
+/* The host pointer over the 320x200 picture, as a position in the driver's ranges: the
+ * game sets them to four units per pixel. */
+static void move_to(float px, float py) {
+    move_units((int)(px * 4.0f), (int)(py * 4.0f));
 }
 
 /* bit 1 is the left button, 2 the right one. */
@@ -162,4 +167,14 @@ void mouse_script_move(float px, float py) {
 
 void mouse_script_left(bool down) {
     press(1, down);
+}
+
+/* The gamepad's pointer: from where the game has it, the host's pointer going along. */
+void mouse_nudge(float dx, float dy) {
+    move_units(s_mouse.x + (int)SDL_lroundf(dx * 4.0f), s_mouse.y + (int)SDL_lroundf(dy * 4.0f));
+    video_warp_pointer((float)s_mouse.x / 4.0f, (float)s_mouse.y / 4.0f);
+}
+
+void mouse_button(uint16_t bit, bool down) {
+    press(bit, down);
 }

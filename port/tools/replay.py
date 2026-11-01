@@ -56,6 +56,11 @@ SCENARIOS["walk"] = world_then(WALK, 100000)
 SCENARIOS["walk-wasd"] = world_then(
     WALK.replace(":Up;", ":W;").replace(":Left;", ":A;").replace(":Right;", ":D;"), 100000)
 SAME_AS["walk-wasd"] = "walk"
+# And on a gamepad's d-pad.
+SCENARIOS["walk-pad"] = world_then(
+    WALK.replace("key:Up;", "pad:dpup;").replace("key:Left;", "pad:dpleft;")
+    .replace("key:Right;", "pad:dpright;"), 100000)
+SAME_AS["walk-pad"] = "walk"
 # Movement held: W for 1.45 s, which steps on its press and then repeats on the clock; and the
 # view's Up button held with the mouse as long, which steps at the same rate once the delay is
 # over (REQ_MAIN.DAT's entry for 48h is 151,113, 32x8).

@@ -61,6 +61,7 @@ else()
 endif()
 
 if(BAK_ASAN)
+    add_compile_definitions(BAK_ASAN=1)
     if(MSVC)
         add_compile_options(/fsanitize=address)
         # CMake links with lld-link/link directly, which does not add the runtime itself.

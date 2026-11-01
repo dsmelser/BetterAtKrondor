@@ -78,6 +78,14 @@ static const SettingDef s_defs[SETTING_COUNT] = {
                                        .min = 0, .max = 2000},
     [SETTING_CONTROLS_REPEAT_RATE] = {"controls", "repeat_rate", SETTING_INT, "10",
                                       "steps a second while it is held", .min = 1, .max = 60},
+    [SETTING_CONTROLS_WHEEL_UP] = {"controls", "wheel_up", SETTING_KEY, "Up",
+                                   "the key a notch of the wheel away from you presses"},
+    [SETTING_CONTROLS_WHEEL_DOWN] = {"controls", "wheel_down", SETTING_KEY, "Down",
+                                     "the key a notch towards you presses"},
+    [SETTING_CONTROLS_POINTER_SPEED] = {"controls", "pointer_speed", SETTING_INT, "200",
+                                        "pixels a second the gamepad's right stick moves the "
+                                        "pointer at full tilt",
+                                        .min = 10, .max = 2000},
 };
 
 static char *s_values[SETTING_COUNT];

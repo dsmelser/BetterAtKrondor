@@ -36,8 +36,13 @@ void bak_input_page_polled(int16_t kind) {
     s_page = kind;
 }
 
+static int16_t s_stick[SDL_GAMEPAD_AXIS_COUNT]; /* the gamepads' sticks, as they are */
+static bool s_stickDir[4]; /* the left stick's up, down, left, right, as keys */
+
 void input_reset(void) {
     SDL_memset(s_held, 0, sizeof s_held);
+    SDL_memset(s_stick, 0, sizeof s_stick);
+    SDL_memset(s_stickDir, 0, sizeof s_stickDir);
     s_page = BAK_PAGE_OTHER;
 }
 
@@ -96,10 +101,13 @@ static bool repeat_due(uint64_t now, uint64_t since, uint64_t last) {
            now - last >= 1000000000u / (uint64_t)rate;
 }
 
+static void right_stick(uint64_t now);
+
 void input_poll(void) {
+    uint64_t now = clock_now_ns();
+    right_stick(now);
     if (!party_moves())
         return;
-    uint64_t now = clock_now_ns();
     for (int k = 0; k < SDL_SCANCODE_COUNT; k++) {
         Held *h = &s_held[k];
         if (!h->down || !is_movement(h->sends) || !repeat_due(now, h->sinceNs, h->lastNs) ||
@@ -107,6 +115,112 @@ void input_poll(void) {
             continue;
         keyboard_send(h->sends, true);
         h->lastNs = now;
+    }
+}
+
+/* ---- the wheel ---------------------------------------------------------------------------- */
+
+void input_handle_wheel(const SDL_Event *e) {
+    int notches = e->wheel.integer_y;
+    if (e->wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
+        notches = -notches;
+    SettingId id = notches > 0 ? SETTING_CONTROLS_WHEEL_UP : SETTING_CONTROLS_WHEEL_DOWN;
+    const char *name = settings_get_string(id);
+    SDL_Scancode key = name[0] != '\0' ? SDL_GetScancodeFromName(name) : SDL_SCANCODE_UNKNOWN;
+    for (int i = 0; i < SDL_abs(notches) && key != SDL_SCANCODE_UNKNOWN; i++) {
+        keyboard_send(key, true);
+        keyboard_send(key, false);
+    }
+}
+
+/* ---- gamepads ----------------------------------------------------------------------------- */
+
+#define STICK_ON 16384  /* a tilt this far is a direction pressed */
+#define STICK_OFF 12288 /* and back under this one, let go */
+#define POINTER_DEAD 6000
+
+static const struct {
+    SDL_GamepadButton button;
+    SDL_Scancode key;
+} s_padKeys[] = {
+    {SDL_GAMEPAD_BUTTON_DPAD_UP, SDL_SCANCODE_UP},
+    {SDL_GAMEPAD_BUTTON_DPAD_DOWN, SDL_SCANCODE_DOWN},
+    {SDL_GAMEPAD_BUTTON_DPAD_LEFT, SDL_SCANCODE_LEFT},
+    {SDL_GAMEPAD_BUTTON_DPAD_RIGHT, SDL_SCANCODE_RIGHT},
+    {SDL_GAMEPAD_BUTTON_EAST, SDL_SCANCODE_ESCAPE},
+    {SDL_GAMEPAD_BUTTON_NORTH, SDL_SCANCODE_RETURN},
+};
+
+static float s_pointerX, s_pointerY; /* the right stick's motion not yet passed on */
+static uint64_t s_pointerNs;
+
+/* A key as the keyboard's would go: the bindings and the clock's repeats apply. */
+static void pad_key(SDL_Scancode key, bool down) {
+    SDL_Event k = {0};
+    k.type = down ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
+    k.key.scancode = key;
+    input_handle_key(&k);
+}
+
+/* The left stick as the arrows, with a margin so a tilt on the edge does not flicker. */
+static void left_stick(void) {
+    int x = s_stick[SDL_GAMEPAD_AXIS_LEFTX], y = s_stick[SDL_GAMEPAD_AXIS_LEFTY];
+    const int along[4] = {-y, y, -x, x};
+    for (int i = 0; i < 4; i++) {
+        bool on = s_stickDir[i] ? along[i] > STICK_OFF : along[i] > STICK_ON;
+        if (on != s_stickDir[i]) {
+            s_stickDir[i] = on;
+            pad_key(s_arrows[i], on);
+        }
+    }
+}
+
+void input_handle_gamepad(const SDL_Event *e) {
+    switch (e->type) {
+    case SDL_EVENT_GAMEPAD_ADDED:
+        SDL_OpenGamepad(e->gdevice.which);
+        break;
+    case SDL_EVENT_GAMEPAD_REMOVED:
+        SDL_CloseGamepad(SDL_GetGamepadFromID(e->gdevice.which));
+        break;
+    case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+    case SDL_EVENT_GAMEPAD_BUTTON_UP: {
+        bool down = e->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+        if (e->gbutton.button == SDL_GAMEPAD_BUTTON_SOUTH)
+            mouse_button(1, down);
+        else if (e->gbutton.button == SDL_GAMEPAD_BUTTON_WEST)
+            mouse_button(2, down);
+        for (size_t i = 0; i < SDL_arraysize(s_padKeys); i++)
+            if (s_padKeys[i].button == e->gbutton.button)
+                pad_key(s_padKeys[i].key, down);
+        break;
+    }
+    case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+        if (e->gaxis.axis < SDL_GAMEPAD_AXIS_COUNT)
+            s_stick[e->gaxis.axis] = e->gaxis.value;
+        if (e->gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX || e->gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY)
+            left_stick();
+        break;
+    default:
+        break;
+    }
+}
+
+/* The right stick moves the pointer, faster the further it tilts. */
+static void right_stick(uint64_t now) {
+    float x = s_stick[SDL_GAMEPAD_AXIS_RIGHTX], y = s_stick[SDL_GAMEPAD_AXIS_RIGHTY];
+    uint64_t since = s_pointerNs != 0 ? now - s_pointerNs : 0;
+    s_pointerNs = now;
+    if (SDL_fabsf(x) < POINTER_DEAD && SDL_fabsf(y) < POINTER_DEAD)
+        return;
+    int speed = 200;
+    settings_get_int(SETTING_CONTROLS_POINTER_SPEED, &speed);
+    float scale = (float)speed * (float)since / 1e9f / 32767.0f;
+    s_pointerX += x * scale;
+    s_pointerY += y * scale;
+    if (SDL_fabsf(s_pointerX) >= 0.25f || SDL_fabsf(s_pointerY) >= 0.25f) {
+        mouse_nudge(s_pointerX, s_pointerY);
+        s_pointerX = s_pointerY = 0.0f;
     }
 }
 

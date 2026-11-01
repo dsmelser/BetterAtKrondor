@@ -7,6 +7,9 @@
  *   move:<x>,<y>   move the pointer to pixel (x, y) of the 320x200 picture
  *   click:<x>,<y>  move there and press the left button, releasing it 100 ms later
  *   hold:<x>,<y>,<ms>  the same, held for ms
+ *   wheel:<n>      turn the mouse wheel n notches (away from you when positive)
+ *   pad:<button>   press a gamepad button (SDL's name: a, b, dpup, dpleft, start, ...) and
+ *                  release it 100 ms later; pad:<button>,<ms> holds it for ms
  *   teleport:<zone>,<tile x>,<tile y>,<cell x>,<cell y>,<heading in hex>
  *                  move the party there, as the game's own teleports do (teleport.c)
  *   quit           what closing the window does
@@ -32,6 +35,9 @@ typedef enum {
     STEP_LEFT_DOWN,
     STEP_LEFT_UP,
     STEP_TELEPORT,
+    STEP_WHEEL,
+    STEP_PAD_DOWN,
+    STEP_PAD_UP,
     STEP_QUIT
 } Kind;
 
@@ -43,6 +49,8 @@ typedef struct {
     float x, y;
     unsigned place[5]; /* teleport: zone, tile x and y, cell x and y */
     unsigned heading;
+    int notches;               /* wheel */
+    SDL_GamepadButton button; /* pad */
 } Step;
 
 static Step s_steps[MAX_STEPS];
@@ -103,6 +111,27 @@ static void parse(const char *text) {
                 s.holdNs = held * 1000000ull;
             }
             s.kind = STEP_KEY_DOWN;
+        } else if (SDL_sscanf(rest, "wheel:%d", &s.notches) == 1) {
+            s.kind = STEP_WHEEL;
+        } else if (SDL_strncmp(rest, "pad:", 4) == 0) {
+            char name[40];
+            const char *comma = SDL_strchr(rest + 4, ',');
+            size_t n = comma != NULL ? (size_t)(comma - (rest + 4)) : SDL_strlen(rest + 4);
+            if (n >= sizeof name)
+                bad("cannot read the step", step);
+            SDL_memcpy(name, rest + 4, n);
+            name[n] = '\0';
+            s.button = SDL_GetGamepadButtonFromString(name);
+            if (s.button == SDL_GAMEPAD_BUTTON_INVALID)
+                bad("cannot read the step", step);
+            if (comma != NULL) {
+                char *end;
+                held = SDL_strtoul(comma + 1, &end, 10);
+                if (end == comma + 1 || *end != '\0')
+                    bad("cannot read the step", step);
+                s.holdNs = held * 1000000ull;
+            }
+            s.kind = STEP_PAD_DOWN;
         } else if (SDL_sscanf(rest, "hold:%f,%f,%lu", &x, &y, &held) == 3) {
             s.kind = STEP_LEFT_DOWN;
             s.x = x;
@@ -172,6 +201,24 @@ bool input_script_poll(void) {
         case STEP_TELEPORT:
             game_request_teleport((uint8_t)s.place[0], (uint8_t)s.place[1], (uint8_t)s.place[2],
                                   (uint8_t)s.place[3], (uint8_t)s.place[4], (uint16_t)s.heading);
+            break;
+        case STEP_WHEEL:
+            e.type = SDL_EVENT_MOUSE_WHEEL;
+            e.wheel.integer_y = s.notches;
+            e.wheel.direction = SDL_MOUSEWHEEL_NORMAL;
+            input_handle_wheel(&e);
+            break;
+        case STEP_PAD_DOWN:
+        case STEP_PAD_UP:
+            e.type = s.kind == STEP_PAD_DOWN ? SDL_EVENT_GAMEPAD_BUTTON_DOWN
+                                             : SDL_EVENT_GAMEPAD_BUTTON_UP;
+            e.gbutton.button = (Uint8)s.button;
+            input_handle_gamepad(&e);
+            if (s.kind == STEP_PAD_DOWN) {
+                s.atNs = now + s.holdNs;
+                s.kind = STEP_PAD_UP;
+                add(s, "pad release");
+            }
             break;
         case STEP_QUIT:
             return false;

@@ -32,7 +32,10 @@
     X(input_arrows_repeat_on_the_clock)                                                            \
     X(input_bindings_come_from_the_settings)                                                       \
     X(input_held_buttons_step_at_the_keys_rate)                                                    \
-    X(clock_ms_for_the_game)
+    X(clock_ms_for_the_game)                                                                       \
+    X(input_the_wheel_presses_its_keys)                                                            \
+    X(input_the_gamepad_is_keys)                                                                   \
+    X(input_the_gamepad_points)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)
