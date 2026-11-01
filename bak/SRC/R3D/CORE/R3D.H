@@ -414,7 +414,7 @@ extern void near r3d_mat3_xform_vec3_ll();
  * @note Register convention: no arguments; polygon arrays and
  *       g_graphics_context clip bounds in, arrays + count out.
  */
-extern void near r3d_polygon_scissor_2d();
+extern void r3d_polygon_scissor_2d(void);
 
 /**
  * Interpolates the edge between two camera-space vertices onto the depth
@@ -424,10 +424,11 @@ extern void near r3d_polygon_scissor_2d();
  * depth span that reaches the clip threshold. This is the 16-bit variant;
  * r3d_interp_vertex_at_zclip_long does the same over the 32-bit arrays.
  *
- * @note Register convention: SI = other-endpoint offset, BX = offset of the
- *       vertex to clip (both index*2); writes g_aVertexScrX/Y[BX].
+ * @note Register convention: BX = clipped, the offset of the vertex to clip,
+ *       SI = other, the other endpoint's (both index*2); writes
+ *       g_aVertexScrX/Y[BX].
  */
-extern void near r3d_interp_vertex_at_zclip(void);
+extern void r3d_interp_vertex_at_zclip(u16 clipped, u16 other);
 
 /**
  * Clips the current mesh polygon against the near depth plane using a
@@ -441,7 +442,7 @@ extern void near r3d_interp_vertex_at_zclip(void);
  * @note Register convention: no arguments; operates on the module's polygon
  *       ring, clip-state, and screen-coordinate globals.
  */
-extern void near r3d_polygon_clip_near_z(void);
+extern void r3d_polygon_clip_near_z(void);
 
 /**
  * Biases the current polygon's projected screen vertices into viewport
@@ -453,7 +454,7 @@ extern void near r3d_polygon_clip_near_z(void);
  *
  * @note Register convention: no arguments.
  */
-extern void near r3d_apply_viewport_offset();
+extern void r3d_apply_viewport_offset(void);
 
 /**
  * Clips one polygon edge against a vertical viewport boundary (left or
@@ -463,11 +464,12 @@ extern void near r3d_apply_viewport_offset();
  * split-word fixed point with 16-bit intersection math. Emits nothing when
  * neither X bit is set.
  *
- * @note Register convention: CL = outcode (bit0 xmin, bit1 xmax),
- *       BP = inside-vertex offset, SI = outside-vertex offset, DI = output
- *       slot offset (advanced by 2 on emit).
+ * @note Register convention: CL = side (outcode bit0 xmin, bit1 xmax),
+ *       SI = other, BP = origin (the vertex outside, which the interpolation
+ *       starts from), DI = out, the output slot; all byte offsets. Returns DI
+ *       advanced by 2 on emit.
  */
-extern void near r3d_clip_interp_x_edge(void);
+extern u16 r3d_clip_interp_x_edge(unsigned char side, u16 other, u16 out, u16 origin);
 
 /**
  * Clips one polygon edge against a horizontal viewport boundary (top or
@@ -476,11 +478,11 @@ extern void near r3d_clip_interp_x_edge(void);
  * along the edge in 32-bit split-word fixed point. Emits nothing when
  * neither Y bit is set.
  *
- * @note Register convention: CL = outcode (bit3 ymin, bit2 ymax),
- *       BP = inside-vertex offset, SI = outside-vertex offset, DI = output
- *       slot offset (advanced by 2 on emit).
+ * @note Register convention: CL = side (outcode bit3 ymin, bit2 ymax),
+ *       SI = other, BP = origin (the vertex outside), DI = out; returns DI
+ *       advanced by 2 on emit.
  */
-extern void near r3d_clip_interp_y_edge();
+extern u16 r3d_clip_interp_y_edge(unsigned char side, u16 other, u16 out, u16 origin);
 
 /**
  * Clips the current mesh polygon against the four viewport edges by running
@@ -495,7 +497,7 @@ extern void near r3d_clip_interp_y_edge();
  * @note Register convention: no arguments; same clip bounds
  *       (g_graphics_context.nClip_*) as the other viewport clippers.
  */
-extern void near r3d_clip_polygon_to_viewport(void);
+extern void r3d_clip_polygon_to_viewport(void);
 
 /**
  * Interpolates one vertex of a mesh polygon onto the depth clip plane using
@@ -505,10 +507,10 @@ extern void near r3d_clip_polygon_to_viewport(void);
  * screen slots. Long-precision counterpart of r3d_interp_vertex_at_zclip,
  * called by the LOD-1 near-plane clipper on crossing edges.
  *
- * @note Register convention: BP = anchor vertex offset (receives the
- *       result), SI = far vertex offset.
+ * @note Register convention: SI = other, the far vertex's offset,
+ *       BP = clipped, the anchor vertex's (receives the result).
  */
-extern void near r3d_interp_vertex_at_zclip_long(void);
+extern void r3d_interp_vertex_at_zclip_long(u16 other, u16 clipped);
 
 /**
  * Clips the current mesh polygon against the near depth plane for the
@@ -521,7 +523,7 @@ extern void near r3d_interp_vertex_at_zclip_long(void);
  *
  * @note Register convention: no arguments.
  */
-extern void near r3d_polygon_clip_against_zplane();
+extern void r3d_polygon_clip_against_zplane(void);
 
 /**
  * Intersects one polygon edge with a vertical viewport clip line inside
@@ -531,10 +533,12 @@ extern void near r3d_polygon_clip_against_zplane();
  * directly, and its Y is interpolated along the edge through the 32-bit
  * muldiv helper, stored as split low/high words.
  *
- * @note Register convention: CL = clip flags, BP = origin-endpoint offset,
- *       SI = other-endpoint offset, DI = output cursor (advanced by 2).
+ * @note Register convention: CL = side (clip flags), SI = other,
+ *       BP = origin (the endpoint the deltas count from), DI = out; returns DI
+ *       advanced by 2 on emit.
  */
-extern void near r3d_polygon_clip_edge_intersect(void);
+extern u16 r3d_polygon_clip_edge_intersect(unsigned char side, u16 other, u16 out,
+                                           u16 origin);
 
 /**
  * Clips one polygon edge against the top or bottom viewport clip line
@@ -544,10 +548,10 @@ extern void near r3d_polygon_clip_edge_intersect(void);
  * the 32-bit muldiv helper, and the pair is appended to the output buffer
  * as split low/high words.
  *
- * @note Register convention: CL = clip flags, BP = prev-vertex offset,
- *       SI = cur-vertex offset, DI = output cursor (advanced by 2).
+ * @note Register convention: CL = side (clip flags), SI = other,
+ *       BP = origin, DI = out; returns DI advanced by 2 on emit.
  */
-extern void near r3d_clip_polygon_edge_y(void);
+extern u16 r3d_clip_polygon_edge_y(unsigned char side, u16 other, u16 out, u16 origin);
 
 /**
  * Clips the working polygon to the 2D screen clip rectangle with two-pass
@@ -561,7 +565,7 @@ extern void near r3d_clip_polygon_edge_y(void);
  *
  * @note Register convention: no arguments.
  */
-extern void near r3d_polygon_clip_rect_2d(void);
+extern void r3d_polygon_clip_rect_2d(void);
 
 /**
  * Computes the near-clip-plane intersection of one polygon edge in the
@@ -573,10 +577,10 @@ extern void near r3d_polygon_clip_rect_2d(void);
  * Used only by the LOD-2 near-plane clip pass, whose two call sites swap
  * the register roles to steer which endpoint receives the result.
  *
- * @note Register convention: BP = reference-vertex offset (receives the
- *       result), SI = other-endpoint offset.
+ * @note Register convention: SI = other, the other endpoint's offset,
+ *       BP = clipped, the reference vertex's (receives the result).
  */
-extern void near r3d_poly_clip_calc_isect(void);
+extern void r3d_poly_clip_calc_isect(u16 other, u16 clipped);
 
 /**
  * Performs the in-place near-plane clip pass over the current mesh
@@ -591,7 +595,7 @@ extern void near r3d_poly_clip_calc_isect(void);
  *
  * @note Register convention: no arguments.
  */
-extern void near r3d_polygon_clip_near_z_lod2(void);
+extern void r3d_polygon_clip_near_z_lod2(void);
 
 /**
  * Applies the viewport center to every projected screen vertex of the
@@ -603,7 +607,7 @@ extern void near r3d_polygon_clip_near_z_lod2(void);
  *
  * @note Register convention: no arguments.
  */
-extern void near r3d_apply_viewport_offset_long(void);
+extern void r3d_apply_viewport_offset_long(void);
 
 /**
  * Returns the sine of a 16-bit binary angle as a Q14 short (0x4000 == 1.0),
