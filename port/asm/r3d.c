@@ -53,6 +53,116 @@ s32 r3d_imul_full32(s16 a, s16 b) {
     return (s32)a * b;
 }
 
+/* NEG32ADC: the 32-bit negation of hi:lo, in place. */
+static void neg32(u16 *lo, u16 *hi) {
+    u32 v = 0u - ((u32)*hi << 16 | *lo);
+    *lo = (u16)v;
+    *hi = (u16)(v >> 16);
+}
+
+/*
+ * One scaled value of r3d_ldiv_helper: |v| times the fraction q1:q2 (0.32 fixed point),
+ * keeping what the original's partial products keep, then v's sign. A zero high word of
+ * |v| or of the fraction drops the products below the result's integer part.
+ */
+static s32 ldiv_scale(s32 v, u16 q1, u16 q2, u16 sign) {
+    u16 lo = (u16)v, hi = (u16)((u32)v >> 16);
+    u16 vhi = hi;
+    u32 r = 0;
+    if (hi != 0 || lo != 0) {
+        if ((s16)hi < 0)
+            neg32(&lo, &hi);
+        if (q1 != 0 && hi != 0) {
+            u32 p1 = (u32)lo * q1, p2 = (u32)hi * q2;
+            u32 carry = ((p1 & 0xffff) + (p2 & 0xffff)) >> 16;
+            r = (u32)hi * q1 + ((p1 >> 16) + (p2 >> 16) + carry);
+        } else if (hi != 0) {
+            r = ((u32)hi * q2) >> 16;
+        } else {
+            r = ((u32)q1 * lo) >> 16;
+        }
+    }
+    if ((s16)(vhi ^ sign) < 0)
+        r = 0u - r;
+    return (s32)r;
+}
+
+/*
+ * *a and *b times num / den. The magnitudes are shifted left together until den's top bit
+ * is set (from a den under 64K: its low word is the divisor and num's halves swap, right
+ * only for a num under 64K; a byte shift first keeps the old low bytes instead of zeros),
+ * and num over den's high word gives the fraction q1:q2. A num at or above den (by the
+ * high words) leaves both values as they are. The ratio's sign is lost: the sign word is
+ * the XOR of the magnitudes' high words, set only when one of them is 80000000h.
+ */
+void r3d_ldiv_helper(s32 *pScaledA, s32 *pScaledB, s32 den, s32 num) {
+    u16 ax = (u16)den, dx = (u16)((u32)den >> 16);
+    u16 bx = (u16)num, cx = (u16)((u32)num >> 16);
+    u16 sign, t;
+    if ((s16)dx < 0)
+        neg32(&ax, &dx);
+    if ((s16)cx < 0)
+        neg32(&bx, &cx);
+    sign = (u16)(dx ^ cx);
+    if (ax == bx && cx == dx)
+        return; /* the sign word is 0 then: the negating path after it is dead */
+    if (dx == 0) {
+        t = ax, ax = dx, dx = t; /* XCHG AX,DX; XCHG BX,CX */
+        t = bx, bx = cx, cx = t;
+    } else {
+        if ((dx >> 8) == 0) {
+            cx = (u16)(cx << 8 | bx >> 8);
+            bx = (u16)(bx << 8 | (bx & 0xff));
+            dx = (u16)(dx << 8 | ax >> 8);
+            ax = (u16)(ax << 8 | (ax & 0xff));
+        }
+        while ((s16)dx >= 0) {
+            cx = (u16)(cx << 1 | bx >> 15);
+            bx = (u16)(bx << 1);
+            dx = (u16)(dx << 1 | ax >> 15);
+            ax = (u16)(ax << 1);
+        }
+    }
+    /* MOV AX,BX; XCHG DX,CX: num's words over the divisor */
+    if (dx <= cx)
+        return;
+    u32 n = (u32)cx << 16 | bx;
+    u16 q1 = (u16)(n / dx);
+    u16 q2 = (u16)(((n % dx) << 16) / dx);
+    *pScaledA = ldiv_scale(*pScaledA, q1, q2, sign);
+    *pScaledB = ldiv_scale(*pScaledB, q1, q2, sign);
+}
+
+/* ---- projection -------------------------------------------------------------------- */
+
+/* The view-plane distance as the original pushes it: a word, zero-extended. */
+static s32 view_dist(void) {
+    return (s32)(u16)g_abR3dState.nActorFarClipThreshold;
+}
+
+/* (x, y) at depth nDenom onto the screen: each times the view distance over the depth. */
+PerspDiv2Result *r3d_vec2_perspective_divide(PerspDiv2Args *args, PerspDiv2Result *out) {
+    s32 x = args->nNumX, y = args->nNumY;
+    r3d_ldiv_helper(&x, &y, args->nDenom, view_dist());
+    out->nProjX = x;
+    out->nProjY = y;
+    return out;
+}
+
+/* nNumX times the view distance over the depth (the actor's projected size). */
+s32 r3d_actor_proj_scale_compute(PerspDiv2Args *args) {
+    s32 x = args->nNumX, unused = 0;
+    r3d_ldiv_helper(&x, &unused, args->nDenom, view_dist());
+    return x;
+}
+
+/* A projected point to the screen: x from the viewport's centre, y up from it. */
+s32 *r3d_vec2_long_translate_yflip(s32 *pt) {
+    pt[0] = (s32)((u32)pt[0] + (u32)(s32)g_abR3dState.nViewportCenterX);
+    pt[1] = (s32)((u32)(s32)g_abR3dState.nViewportCenterY - (u32)pt[1]);
+    return pt;
+}
+
 /* ---- matrices ---------------------------------------------------------------------- */
 
 /*
@@ -342,10 +452,6 @@ void r3d_polygon_submit_textured_quad(void) {
     BAK_UNIMPLEMENTED("R3D.ASM: r3d_polygon_submit_textured_quad");
 }
 
-void r3d_ldiv_helper(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_ldiv_helper");
-}
-
 void r3d_mat3_xform_vec3_long(s16 *vec, Mat3x3 *matrix, s32 *out) {
     (void)vec;
     (void)matrix;
@@ -361,22 +467,6 @@ void r3d_mesh_polygons(unsigned char *part_header) {
 void r3d_mesh_part_polygons_lod3(unsigned short *part_header) {
     (void)part_header;
     BAK_UNIMPLEMENTED("R3D.ASM: r3d_mesh_part_polygons_lod3");
-}
-
-s32 *r3d_vec2_long_translate_yflip(s32 *pt) {
-    (void)pt;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_vec2_long_translate_yflip");
-}
-
-PerspDiv2Result *r3d_vec2_perspective_divide(PerspDiv2Args *args, PerspDiv2Result *out) {
-    (void)args;
-    (void)out;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_vec2_perspective_divide");
-}
-
-s32 r3d_actor_proj_scale_compute(PerspDiv2Args *args) {
-    (void)args;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_actor_proj_scale_compute");
 }
 
 s32 r3d_dot3_coeff16_vec32(void) {

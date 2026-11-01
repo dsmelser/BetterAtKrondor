@@ -286,14 +286,13 @@ extern void near r3d_polygon_submit_textured_quad(void);
  * callers use it to project camera-space coordinates to the screen, to
  * compute an actor's projection scale, and to find clip-edge intersections.
  *
- * @note Non-C ABI, called via hand-written push/pop marshaling only (hence
- *       the empty parens — do not "fix" to (void) or call from C). Stack
- *       frame: [BP+4]=long A, [BP+8]=long B (both value-result, scaled in
- *       place), [BP+12]=long P, [BP+16]=long Q; computes A*=Q/P, B*=Q/P.
- *       When |Q| >= |P| (by high-word compare) A and B are left UNTOUCHED;
- *       |Q| == |P| applies sign only.
+ * @note The original takes four longs on the stack: [BP+4]=A, [BP+8]=B (both
+ *       value-result, scaled in place), [BP+12]=den, [BP+16]=num; natively A
+ *       and B are pointers. When |num| >= |den| (by high-word compare after
+ *       normalizing) A and B are left untouched; the ratio's sign is lost (see
+ *       port/asm/r3d.c).
  */
-extern void near r3d_ldiv_helper();
+extern void r3d_ldiv_helper(s32 *pScaledA, s32 *pScaledB, s32 den, s32 num);
 
 /**
  * Rotates one mesh vertex from object space into actor space using the

@@ -33,11 +33,13 @@ ANGLES = [
 MAT3T = [0, 1, 2, 3, 4, 0x7F, 0x80, 0x81, 0xFE, 0xFF]
 
 
-def original(m, routine, mem: bytes, *offsets):
+def original(m, routine, mem: bytes, *offsets, stack_too: bool = False):
+    """The routine on mem at DS:0; stack_too puts SS there as well (the game has SS = DS,
+    and some routines write their results through BP)."""
     m.free_all()
     seg = m.alloc(MEM)
     m.write((seg, 0), mem)
-    regs = m.call_far(routine, *offsets, ds=seg)
+    regs = m.call_far(routine, *offsets, ds=seg, ss=seg if stack_too else None)
     return m.read((seg, 0), MEM), regs.ax
 
 
@@ -302,3 +304,108 @@ def test_imul_full32(krondor, native):
     payload = b"".join(struct.pack("<hh", a, b) for a, b in pairs)
     got = list(struct.unpack(f"<{len(pairs)}I", native.call("r3d.imul", payload)))
     assert got == want
+
+
+def s32(v: int) -> int:
+    v &= 0xFFFFFFFF
+    return v - (1 << 32) if v & 0x80000000 else v
+
+
+EDGES32 = [0, 1, -1, 0x7F, 0xFF, 0x100, 0x7FFF, 0x8000, 0xFFFF, 0x10000, 0x00FFFFFF, 0x01000000]
+EDGES32 += [0x7FFFFFFF, -0x80000000, -0x10000, -0x8000, 0x12345678, -0x12345678]
+VIEW_DISTS = [0x80, 0x100, 0x200]  # 1 << zoom
+
+
+def test_ldiv(krondor, native):
+    # The game's ratios (the view distance over a depth at or beyond it), then every path:
+    # a depth under 64K (the divisor unnormalized, a numerator over 64K swapped), with a
+    # zero top byte, ratios of 1 and above, signs, 80000000h, and values with a zero high
+    # word or fraction.
+    rng = random.Random(9)
+    cases = []
+    for _ in range(600):
+        num = rng.choice(VIEW_DISTS)
+        den = rng.choice(
+            (num, num + 1, rng.randrange(num, 0x10000), rng.randrange(0x10000, 1 << 31))
+        )
+        cases.append(
+            (
+                rng.choice(EDGES32 + [rng.randrange(-(1 << 31), 1 << 31)] * 4),
+                rng.randrange(-0x20000, 0x20000),
+                den,
+                num,
+            )
+        )
+    for den in EDGES32:
+        for num in EDGES32:
+            cases.append((rng.choice(EDGES32), rng.randrange(-(1 << 31), 1 << 31), den, num))
+    for _ in range(1500):
+        den = rng.choice(
+            (
+                rng.randrange(-(1 << 31), 1 << 31),
+                rng.randrange(0x10000),
+                rng.randrange(0x10000, 0x1000000),
+            )
+        )
+        num = rng.choice(
+            (
+                rng.randrange(-(1 << 31), 1 << 31),
+                rng.randrange(0x10000),
+                rng.randrange(abs(den) + 1) if den else 0,
+            )
+        )
+        cases.append(
+            (rng.randrange(-(1 << 31), 1 << 31), rng.choice((0, rng.randrange(0x10000))), den, num)
+        )
+    want = []
+    for a, b, den, num in cases:
+        stack = struct.pack("<4i", a, b, s32(den), s32(num))
+        krondor.call_near("r3d_ldiv_helper", *struct.unpack("<8H", stack))
+        want.append(krondor.read((krondor.data_seg, 0xFFF0 - 16), 8))
+    payload = b"".join(struct.pack("<4i", a, b, s32(den), s32(num)) for a, b, den, num in cases)
+    reply = native.call("r3d.ldiv", payload)
+    got = [reply[k : k + 8] for k in range(0, len(reply), 8)]
+    for case, g, w in zip(cases, got, want):
+        assert g == w, [hex(v & 0xFFFFFFFF) for v in case]
+
+
+def test_projection(krondor, native):
+    # The perspective divide and the projected scale (the view distance over nDenom, the
+    # result over the arguments too) and the screen translation, over the game's view
+    # distances and any.
+    rng = random.Random(10)
+    for i in range(600):
+        dist = rng.choice(VIEW_DISTS) if i % 3 else rng.randrange(0x10000)
+        mem = bytearray(rng.randbytes(MEM))
+        args = 0x40
+        nums = [rng.choice(EDGES32 + [rng.randrange(-(1 << 31), 1 << 31)] * 3) for _ in range(3)]
+        if i % 2:
+            nums[1] = rng.randrange(dist, 0x100000)  # nDenom: a depth beyond the view plane
+        mem[args : args + 12] = struct.pack("<3i", *(s32(v) for v in nums))
+        out = rng.choice((0xA0, args, args + 4, args - 4, args + 8))
+        krondor.write("g_nViewPlaneDist", words(dist))
+        want = original(
+            krondor, "r3d_vec2_perspective_divide", bytes(mem), args, out, stack_too=True
+        )
+        got = native.call("r3d.persp", words(dist) + bytes((args, out)) + bytes(mem))
+        assert (got[:MEM], struct.unpack_from("<H", got, MEM)[0]) == want, (dist, nums)
+
+        krondor.free_all()
+        seg = krondor.alloc(MEM)
+        krondor.write((seg, 0), bytes(mem))
+        scale = krondor.call_far("r3d_actor_proj_scale_compute", args, ds=seg).dx_ax
+        got = native.call("r3d.projscale", words(dist) + bytes((args,)) + bytes(mem))
+        assert struct.unpack("<I", got)[0] == scale, (dist, nums)
+
+        cx, cy = (
+            rng.choice((160, 159, rng.randrange(0x10000))),
+            rng.choice((60, rng.randrange(0x10000))),
+        )
+        krondor.write("g_nViewportCenterX", words(cx, cy))
+        pt = rng.randrange(0, MEM - 8, 2)
+        krondor.free_all()
+        seg = krondor.alloc(MEM)
+        krondor.write((seg, 0), bytes(mem))
+        ax = krondor.call_far("r3d_vec2_long_translate_yflip", pt, ds=seg).ax
+        got = native.call("r3d.yflip", words(cx, cy) + bytes((pt,)) + bytes(mem))
+        assert got == krondor.read((seg, 0), MEM) + words(ax), (cx, cy, pt)

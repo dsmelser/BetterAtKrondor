@@ -145,6 +145,45 @@ static void cmd_light(DtIn *in, DtOut *out) {
     dt_put_bytes(out, g_r3d.vec3LightDirWorld, sizeof g_r3d.vec3LightDirWorld);
 }
 
+/* r3d.ldiv <s32 a, s32 b, s32 den, s32 num>... -> s32 a, s32 b after each */
+static void cmd_ldiv(DtIn *in, DtOut *out) {
+    while (dt_remaining(in) != 0) {
+        s32 a = (s32)dt_u32(in), b = (s32)dt_u32(in);
+        s32 den = (s32)dt_u32(in), num = (s32)dt_u32(in);
+        r3d_ldiv_helper(&a, &b, den, num);
+        dt_put_u32(out, (uint32_t)a);
+        dt_put_u32(out, (uint32_t)b);
+    }
+}
+
+/* r3d.persp <u16 view distance> <u8 args> <u8 out> <MEM bytes> -> the memory, u16 the
+ * result's offset */
+static void cmd_persp(DtIn *in, DtOut *out) {
+    g_abR3dState.nActorFarClipThreshold = (s16)dt_u16(in);
+    PerspDiv2Args *args = at(in);
+    PerspDiv2Result *result = at(in);
+    memcpy(s_mem, dt_bytes(in, MEM), MEM);
+    put_result(out, r3d_vec2_perspective_divide(args, result));
+}
+
+/* r3d.projscale <u16 view distance> <u8 args> <MEM bytes> -> u32 the scale */
+static void cmd_projscale(DtIn *in, DtOut *out) {
+    g_abR3dState.nActorFarClipThreshold = (s16)dt_u16(in);
+    PerspDiv2Args *args = at(in);
+    memcpy(s_mem, dt_bytes(in, MEM), MEM);
+    dt_put_u32(out, (uint32_t)r3d_actor_proj_scale_compute(args));
+}
+
+/* r3d.yflip <s16 centre x> <s16 centre y> <u8 point> <MEM bytes> -> the memory, u16 the
+ * result's offset */
+static void cmd_yflip(DtIn *in, DtOut *out) {
+    g_abR3dState.nViewportCenterX = (s16)dt_u16(in);
+    g_abR3dState.nViewportCenterY = (s16)dt_u16(in);
+    s32 *pt = at(in);
+    memcpy(s_mem, dt_bytes(in, MEM), MEM);
+    put_result(out, r3d_vec2_long_translate_yflip(pt));
+}
+
 /* r3d.imul <s16 a, s16 b>... -> u32 each */
 static void cmd_imul(DtIn *in, DtOut *out) {
     while (dt_remaining(in) != 0) {
@@ -163,6 +202,10 @@ const DtEntry dt_r3d_entries[] = {
     DT_COMMAND("r3d.transpose", cmd_transpose),
     DT_COMMAND("r3d.euler", cmd_euler),
     DT_COMMAND("r3d.camera", cmd_camera),
+    DT_COMMAND("r3d.ldiv", cmd_ldiv),
+    DT_COMMAND("r3d.persp", cmd_persp),
+    DT_COMMAND("r3d.projscale", cmd_projscale),
+    DT_COMMAND("r3d.yflip", cmd_yflip),
     {"g_abLightingLut", NULL, g_r3d.abLightingLut, sizeof g_r3d.abLightingLut},
     DT_END,
 };
