@@ -114,7 +114,7 @@ extern GameState g_gameState;
 extern unsigned short g_bPaletteCycleEbActive;
 extern unsigned short g_wVgaScratchPageBase;
 extern unsigned short g_wGameFontSlot;
-extern unsigned short *g_pSkyPanoAssetTable;
+extern ImageRecord **g_pSkyPanoAssetTable;
 #ifdef V102CD
 extern s16 g_cd_present;
 #endif

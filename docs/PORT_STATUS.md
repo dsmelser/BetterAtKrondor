@@ -45,7 +45,7 @@ and checks that an incomplete folder is turned down cleanly.
    core starts there), loads the region's encounter shapes and the zone's actors, scans the zone around
    the party, checks the zone's ground at its position, and enters the world's main loop
    (`world3d_main_loop`): its first frame sets up the camera (`r3d_camera_setup_view`), fills the
-   sky's flat bands (VGAFILL.ASM) and stops drawing the sky's panorama (`emsimg_putsprite_ems_swap`).
+   sky's flat bands (VGAFILL.ASM) and stops at the sky's panorama, in the VGA driver's slot 33.
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -53,9 +53,9 @@ and checks that an incomplete folder is turned down cleanly.
    of 16-bit string offsets read over a pointer table and rebased with `+= (s16)blob` (`CREDITS.C`,
    `NAMEDTBL.C`, `ASKABOUT.C` and `CACTOR.C` are done; `DLGWIDG.C`, `CSPELL.C`, `CBENC.C` remain). The
    TBL shape records are done (`SHAPETBL.C`, below).
-4. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s (the dialog
-   sprite cache in `ASKABOUT.C` still keeps them in 16 bits): the ASan preset reports them at the first
-   write.
+4. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s (the sky's,
+   the camp's and the dialog portraits' copies of it were 16-bit words; they are pointer tables now): the
+   ASan preset reports them at the first write.
 
 ## TEMP.GAM and saves
 
@@ -101,6 +101,7 @@ source.
 | `GFX/RASTER/CIRCLE.C` | `draw_circle_bresenham` builds the span table's far pointer with `MK_FP` (the original builds it as segment << 16) |
 | `COMBAT/ACTOR/CACTOR.C` | `combat_actor_bnames_load_cached` reads BNAMES.DAT's records at their 16-bit offsets into the blob (the original rebases the offsets in place), and its `nameChars` holds the whole 8-byte record with `nameMeta` pointing at the second half (below) |
 | `GFX/SPRITE/DECOMP.H`, `RESBLIT.C` | `decomp_rle`'s buffer is a `NearPtr` (the original passes it as a 16-bit int) |
+| `GAME/GMAIN.C`, `R3D/SCENE/ZONE.C`, `SCREENS/ENCAMP.C`, `DIALOG/ASKABOUT.C`, `INCLUDE/structs.h` | the sky's panorama, the camp's pictures and the dialog's portraits keep the table `resblit_load_asset_table` returns as `ImageRecord **` (the portrait cache, `ActSpriteCache`, sized with `sizeof`); the original holds the near pointer in a 16-bit word |
 | `R3D/TBLSTORE/SHAPETBL.C`, `SHAPETBL.H`, `SHAPEBLD.C`, `R3D/ACTOR/ACTRENDR.C`, `R3D/SPRITE/WORLDRND.C` | a TBL's record table holds normalized far pointers from its DAT chunk's start (paragraphs in the high word, under 16 bytes in the low one: so in all 3065 records of the game's TBLs, whose chunks are under 64 KB), which the original adds to the chunk's seg:0000; natively each becomes the record's address. A `Shape` is file data, so its near pointers stay 16-bit offsets, and the offsets inside a record count from its own segment: `FP_SEG_NORM(record)`, the paragraph it is in |
 | `R3D/SCENE/PROXIM.C` | the zone table of a TBL's GID chunk holds normalized far pointers too, rebased the same way (`bak_far_add`); a zone's offsets count from its own segment (`FP_SEG_NORM`), and so do its polygons', whose pointers keep the zone's segment in the original: natively the zone under test keeps it for them |
 | `INCLUDE/r3d.h` | the names of the renderer's state words (labels on its state block in the original) are `g_abR3dState`'s fields, so both reach the same storage; `g_pColorRemapTable`, past the struct, is a global |

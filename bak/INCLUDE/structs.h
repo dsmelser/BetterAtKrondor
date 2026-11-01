@@ -365,7 +365,7 @@ struct ActorStatModifier {
 
 struct ActSpriteCache {
     unsigned short pActorId[6];
-    unsigned short pAssetTable[6];
+    ImageRecord **pAssetTable[6];
     unsigned char far *pChunk[6];
 };
 

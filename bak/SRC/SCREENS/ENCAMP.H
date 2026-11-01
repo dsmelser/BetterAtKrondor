@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern unsigned short *g_pEncampBmpAssetTable;
+extern ImageRecord **g_pEncampBmpAssetTable;
 extern unsigned short *g_pEncampHotspotX;
 extern unsigned short *g_pEncampHotspotY;
 extern unsigned short *g_pClockHandVertsX;

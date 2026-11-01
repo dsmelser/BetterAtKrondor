@@ -42,7 +42,7 @@ GameState g_gameState;
 unsigned short g_bPaletteCycleEbActive;
 unsigned short g_wVgaScratchPageBase;
 unsigned short g_wGameFontSlot;
-unsigned short *g_pSkyPanoAssetTable;
+ImageRecord **g_pSkyPanoAssetTable;
 #ifdef V102CD
 s16 g_cd_present;
 #endif

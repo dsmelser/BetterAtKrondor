@@ -106,8 +106,8 @@ void askabout_free_paged_image_table(void) {
     if (g_pActSpriteCache != (ActSpriteCache *)0) {
         i = 0;
         do {
-            if (g_pActSpriteCache->pAssetTable[i] != 0) {
-                emsimg_free_paged((void *)g_pActSpriteCache->pAssetTable[i]);
+            if (g_pActSpriteCache->pAssetTable[i] != NULL) {
+                emsimg_free_paged(g_pActSpriteCache->pAssetTable[i]);
             }
             if (g_pActSpriteCache->pChunk[i] != (unsigned char far *)0) {
                 cache_release(g_pActSpriteCache->pChunk[i]);
@@ -126,8 +126,8 @@ s16 far askabout_actor_spr_cache_get(unsigned short actor_id, s16 pal_shift) {
     char fname[16];
 
     if (g_pActSpriteCache == (ActSpriteCache *)0) {
-        g_pActSpriteCache = galloc_safe_zcalloc(0x30);
-        memset(g_pActSpriteCache, 0, 0x30);
+        g_pActSpriteCache = galloc_safe_zcalloc(sizeof(ActSpriteCache));
+        memset(g_pActSpriteCache, 0, sizeof(ActSpriteCache));
     }
     slot = 0;
     free_slot = -1;
@@ -141,12 +141,12 @@ s16 far askabout_actor_spr_cache_get(unsigned short actor_id, s16 pal_shift) {
     if ((s16)actor_id < 0x31) {
         sprintf(fname, "ACT%03d%s", (s16)actor_id, (pal_shift < 0) ? "A.BMP" : ".BMP");
         g_pActSpriteCache->pActorId[free_slot] = actor_id;
-        g_pActSpriteCache->pAssetTable[free_slot] = (unsigned short)resblit_load_asset_table(fname, 2);
+        g_pActSpriteCache->pAssetTable[free_slot] = resblit_load_asset_table(fname, 2);
         sprintf(fname, "ACT%03d.PAL", (s16)actor_id);
         g_pActSpriteCache->pChunk[free_slot] = chunk_load_into_slot(fname);
         *g_pActSpriteCache->pChunk[free_slot] = 0x3f;
     } else {
-        g_pActSpriteCache->pAssetTable[free_slot] = 0;
+        g_pActSpriteCache->pAssetTable[free_slot] = NULL;
         g_pActSpriteCache->pChunk[free_slot] = (unsigned char far *)0;
     }
     return free_slot;
@@ -170,7 +170,7 @@ void far askabout_actor_spr_blit_pal_swap(unsigned short actor_id, s16 pal_shift
 
     local_pal = pal_buf;
     idx = askabout_actor_spr_cache_get(actor_id, pal_shift);
-    table = (ImageRecord **)g_pActSpriteCache->pAssetTable[idx];
+    table = g_pActSpriteCache->pAssetTable[idx];
     g_pPalQueuedForFlip = g_pActSpriteCache->pChunk[idx];
     g_nPalBlendMode = g_dialog_in_scene ? 0 : 2;
     chunk_pal = g_pPalQueuedForFlip;

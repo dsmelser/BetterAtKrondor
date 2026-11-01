@@ -30,7 +30,7 @@ unsigned short g_wEncampHotspotBoxH;
 unsigned short g_wEncampHotspotCount;
 unsigned short g_wEncampClockVertexCount;
 
-unsigned short *g_pEncampBmpAssetTable = {0};
+ImageRecord **g_pEncampBmpAssetTable = NULL;
 unsigned short *g_pEncampHotspotX = {0};
 unsigned short *g_pEncampHotspotY = {0};
 unsigned short *g_pClockHandVertsX = {0};
@@ -265,7 +265,7 @@ void far encamp_load(void) {
     unsigned short *pty;
     register s16 i;
 
-    g_pEncampBmpAssetTable = (unsigned short *)resblit_load_asset_table("encamp.bmp", 2);
+    g_pEncampBmpAssetTable = resblit_load_asset_table("encamp.bmp", 2);
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wVgaPage1Base;
     resblit_load_pal_or_stream("encamp.scx");
     file = res_fopen("encamp.dat", "rb");

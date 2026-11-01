@@ -129,9 +129,9 @@ void far zone_load(void) {
     world_render_sky_texture_load();
     if ((g_wZoneFlags & 1) == 0) {
         sprintf(g_szZoneMapFilename, "Z%02uH.BMX", (u16)g_gameState.nZoneId);
-        g_pSkyPanoAssetTable = (unsigned short *)resblit_load_asset_table(g_szZoneMapFilename, 1);
+        g_pSkyPanoAssetTable = resblit_load_asset_table(g_szZoneMapFilename, 1);
     } else {
-        g_pSkyPanoAssetTable = (unsigned short *)0x0;
+        g_pSkyPanoAssetTable = NULL;
     }
     actoroverlay_image_1ff4_load();
     slot = 0;
@@ -206,7 +206,7 @@ void far zone_world_scene_teardown(void) {
     actoroverlay_image_1ff4_free();
     if ((g_wZoneFlags & 1) == 0) {
         emsimg_free_paged(g_pSkyPanoAssetTable);
-        g_pSkyPanoAssetTable = (unsigned short *)0x0;
+        g_pSkyPanoAssetTable = NULL;
     }
     world_render_sky_texture_free();
     uiwidget_compass_free();
