@@ -215,7 +215,7 @@ void world_render_frame_full(void) {
     entry.shapeId = 0xb5;
     entry.pos.nWorld_z = 0;
     entry.orientation.pitch = entry.orientation.roll = entry.orientation.yaw = 0;
-    entry.state.stateBits = 0;
+    entry.state.visTable = NULL;
     for (i = 0; i < g_nOpenZoneTileCount; i++) {
         entry.pos.xy.nWorld_x = g_abOpenZoneTileX[i] * 64000L + 32000;
         entry.pos.xy.nWorld_y = g_abOpenZoneTileY[i] * 64000L + 32000;
@@ -407,7 +407,7 @@ void far world_render_actor_at_position(s16 actor_kind, s16 gridX, s16 gridY) {
     animState[0] = (unsigned char)actor_kind;
     entry.shapeId = 0;
     entry.orientation.pitch = entry.orientation.roll = entry.orientation.yaw = 0;
-    entry.state.stateBits = (unsigned short)animState;
+    entry.state.visTable = animState;
     if (gridX == -1) {
         if (screen_cursor_get_y() > 0x8c) {
             entry.pos.xy.nWorld_y = 0;
@@ -442,7 +442,7 @@ void far world_render_actor_at_tile(s16 actor_id, s16 tile_x, s16 tile_y, s16 z,
     entry.shapeId = actor_id;
     entry.orientation.pitch = entry.orientation.roll = 0;
     entry.orientation.yaw = yaw;
-    entry.state.stateBits = (unsigned short)animBuf.b;
+    entry.state.visTable = (unsigned char *)animBuf.b;
     entry.pos.xy.nWorld_x = (s32)(tile_x * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
     entry.pos.xy.nWorld_y = (s32)(tile_y * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     entry.pos.nWorld_z = z;
@@ -463,7 +463,7 @@ void far world_render_actor_swap_textures(s16 actor_id, s16 nGrid_x, s16 nGrid_y
     pSavedTable = worldrender_table_swap(0, g_combat_render_table_prev);
     entry.shapeId = actor_id;
     entry.orientation.pitch = entry.orientation.roll = entry.orientation.yaw = 0;
-    entry.state.stateBits = 0;
+    entry.state.visTable = NULL;
     entry.pos.xy.nWorld_x = (s32)(nGrid_x * g_grid_tile_size + (g_grid_tile_size >> 1) + -0x4b0);
     entry.pos.xy.nWorld_y = (s32)(nGrid_y * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     entry.pos.nWorld_z = 0;
@@ -626,9 +626,9 @@ Combatant *world_rndr_ranged_attack_anim(Combatant *attacker, Combatant *target,
 
     projectile.base.shapeId = (short)action_id;
     if (targetIsActionClass == 0) {
-        projectile.base.state.animationState = 0;
+        projectile.base.state.visTable = NULL;
     } else {
-        projectile.base.state.animationState = (short)(u16)(unsigned char *)animBuf;
+        projectile.base.state.visTable = (unsigned char *)animBuf;
         if (anim_override != -1) {
             animBuf[0] = anim_override;
         }
@@ -756,7 +756,7 @@ void far world_render_combat_grid_sprite(WorldObject *actor) {
         *(WorldPos far *)&entry.pos = *(WorldPos far *)&actor->pos;
         entry.pos.nWorld_z = 0;
         *(EulerAngles far *)&entry.orientation = *(EulerAngles far *)&actor->orientation;
-        entry.state.stateBits = 0;
+        entry.state.visTable = NULL;
         actorrender_entity((WorldObject far *)&entry);
         goto after_flip;
     }

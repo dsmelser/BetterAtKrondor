@@ -258,7 +258,7 @@ void far worldfx_rndr_rand_flash_at_actor(Combatant *actor) {
     WorldObject entry;
     (void)scr_buf;
     entry.shapeId = 4;
-    entry.state.stateBits = 0;
+    entry.state.visTable = NULL;
     entry.pos.xy.nWorld_x =
         (s32)(actor->inner->gridX * g_grid_tile_size + (g_grid_tile_size >> 1) + (-0x4b0));
     entry.pos.xy.nWorld_y =

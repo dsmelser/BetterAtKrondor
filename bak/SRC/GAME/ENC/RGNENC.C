@@ -583,11 +583,11 @@ void far rgnenc_render_object(WorldObject far *entry, s16 bAnimTick) {
     short *pRecordDelta;
     ImageRecord **saved_table;
 
-    record_idx = *(s16 *)(entry->state.stateBits + 2);
-    actor_idx = *(s16 *)(entry->state.stateBits + 4);
-    state_idx = *(s16 *)(entry->state.stateBits + 6);
+    record_idx = *(s16 *)((unsigned char *)entry->state.encounterAux + 2);
+    actor_idx = *(s16 *)((unsigned char *)entry->state.encounterAux + 4);
+    state_idx = *(s16 *)((unsigned char *)entry->state.encounterAux + 6);
     pState = g_pEncounterObjectState + state_idx;
-    state_bytes = (unsigned char *)entry->state.stateBits;
+    state_bytes = (unsigned char *)entry->state.encounterAux;
     animFrame = (unsigned char)pState->wKind_state & 3;
     animToggle = (unsigned char)pState->wKind_state & 4;
     entityKind = (char)((pState->wKind_state & 0xff08) >> 8);
@@ -653,7 +653,7 @@ void far rgnenc_render_object(WorldObject far *entry, s16 bAnimTick) {
             if (animToggle != 0)
                 pState->wKind_state |= 4;
         }
-        *(char *)entry->state.stateBits = spriteDir + animFrame;
+        *(char *)entry->state.encounterAux = spriteDir + animFrame;
     } else {
         switch ((s16)(u16)spriteDir >> 1) {
         case 0:
@@ -670,7 +670,7 @@ void far rgnenc_render_object(WorldObject far *entry, s16 bAnimTick) {
             spriteDir = 7;
             break;
         }
-        *(unsigned char *)(entry->state.stateBits + 1) = spriteDir;
+        ((unsigned char *)entry->state.encounterAux)[1] = spriteDir;
     }
     pRecordDelta = &g_pEncounterRecordTemplates[record_idx].pActors[actor_idx].nPaged_record_delta;
     sprite_table = combat_actor_rsrc_cache_val(*pRecordDelta, 0);
@@ -682,9 +682,9 @@ void far rgnenc_render_object(WorldObject far *entry, s16 bAnimTick) {
         worldrender_table_swap(0, saved_table);
     }
     g_nActorSpriteFlip = 0;
-    *(s16 *)(entry->state.stateBits + 2) = record_idx;
-    *(s16 *)(entry->state.stateBits + 4) = actor_idx;
-    *(s16 *)(entry->state.stateBits + 6) = state_idx;
+    *(s16 *)((unsigned char *)entry->state.encounterAux + 2) = record_idx;
+    *(s16 *)((unsigned char *)entry->state.encounterAux + 4) = actor_idx;
+    *(s16 *)((unsigned char *)entry->state.encounterAux + 6) = state_idx;
 }
 
 void far rgnenc_corpse_tbl_iterate_22byte(void) {
@@ -801,7 +801,7 @@ s16 far rgnenc_visible_pool_append_spawn(unsigned char far *pEntry) {
             cursor->pos.xy.nWorld_y = *(s32 far *)(pEntry + 8);
             cursor->pos.nWorld_z = 0;
             cursor->orientation.pitch = cursor->orientation.roll = cursor->orientation.yaw = 0;
-            cursor->state.stateBits = 0;
+            cursor->state.visTable = NULL;
             if (g_gameState.nZoneId == 7 && *(s16 far *)(pEntry + 2) == 0xdd)
                 cursor->orientation.yaw = 0xc200;
             return 1;
@@ -830,7 +830,7 @@ void far rgnenc_vis_pool_remove_matching(unsigned char far *pKey) {
         cursor->shapeId = last->shapeId;
         cursor->pos = last->pos;
         cursor->orientation = last->orientation;
-        cursor->state.stateBits = last->state.stateBits;
+        cursor->state = last->state;
     }
 }
 

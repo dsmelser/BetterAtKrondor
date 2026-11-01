@@ -56,12 +56,13 @@ void far worlddoor_load_door_records(VisibleEntryList *list) {
                         if (event_result != 0) {
                             stateWord |= 0x800;
                         }
+                        cur->state.visTable = NULL;
                         cur->state.stateBits = stateWord;
                         cur->orientation.pitch = flags_val;
                         goto next_iter;
                     }
                 }
-                cur->state.stateBits = 0;
+                cur->state.visTable = NULL;
             }
         next_iter:
             i++;
@@ -73,9 +74,11 @@ void far worlddoor_load_door_records(VisibleEntryList *list) {
 void far worlddoor_rndr_enc_mark_actor(WorldObject far *entry) {
     short saved_variant;
     u16 state;
+    WorldObjectState savedState;
     unsigned char color_idx;
 
     saved_variant = entry->orientation.pitch;
+    savedState = entry->state;
     state = entry->state.stateBits;
     if (state != 0) {
         color_idx = state & 7;
@@ -85,10 +88,10 @@ void far worlddoor_rndr_enc_mark_actor(WorldObject far *entry) {
             entry->shapeId = 0x5c;
         }
         g_nEncounterMarkerColorIdx = color_idx;
-        entry->state.stateBits = (unsigned short)&g_nEncounterMarkerColorIdx;
+        entry->state.visTable = g_encounterMarkerTable;
         entry->orientation.pitch = 0;
         actorrender_entity(entry);
-        entry->state.stateBits = state;
+        entry->state = savedState;
         entry->orientation.pitch = saved_variant;
         return;
     }

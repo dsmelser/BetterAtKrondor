@@ -143,7 +143,7 @@ void far czone_load_actors(unsigned char zone, unsigned char x, unsigned char y,
                 cur->shapeId = rec.wId;
                 cur->orientation = rec.variant;
                 cur->pos = rec.worldpos;
-                cur->state.stateBits = 0;
+                cur->state.visTable = NULL;
                 cur++;
             } else {
                 throttle = throttle_reset;

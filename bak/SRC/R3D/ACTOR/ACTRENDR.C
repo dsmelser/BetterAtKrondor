@@ -105,6 +105,9 @@ s16 actorrender_mesh_parts_cull_sort(s16 part_off, s16 part_count, s16 *parts) {
     s16 sh;
     s32 keys[48];
     s16 i;
+    /* a part's offset from the record's paragraph: the original's FP_OFF of the far pointer
+       built from them, natively not the pointer's offset in its block */
+    s16 partOff;
 
     if (part_count < 2) {
         if (part_count == 0)
@@ -126,11 +129,12 @@ s16 actorrender_mesh_parts_cull_sort(s16 part_off, s16 part_count, s16 *parts) {
         pWrite = parts;
         pKey = keys;
         for (i = 0; i < part_count; i++) {
+            partOff = *pRead;
             pPart = (unsigned char far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec),
-                                               (u16)*pRead);
+                                               (u16)partOff);
             pRead++;
             if (MESH_PART_VISIBLE(pPart)) {
-                if (part_off == (s16)FP_OFF(pPart) ||
+                if (part_off == partOff ||
                     ((MeshPartRecord far *)pPart)->bEdgeVtxIdx == 0xff) {
 
                     key = 0;
@@ -152,7 +156,7 @@ s16 actorrender_mesh_parts_cull_sort(s16 part_off, s16 part_count, s16 *parts) {
                     edge = pPool[(u16)((MeshPartRecord far *)pPart)->bEdgeVtxIdx];
                     key = r3d_dot3_long_far((s16 *)&anchor, (s16 *)&edge);
                 }
-                *pWrite = (s16)FP_OFF(pPart);
+                *pWrite = partOff;
                 pWrite++;
                 *pKey = key;
                 pKey++;
@@ -187,11 +191,12 @@ s16 actorrender_mesh_parts_cull_sort(s16 part_off, s16 part_count, s16 *parts) {
     pRead = parts;
     pWrite = parts;
     for (i = 0; i < part_count; i++) {
+        partOff = *pRead;
         pPart =
-            (unsigned char far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec), (u16)*pRead);
+            (unsigned char far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec), (u16)partOff);
         pRead++;
         if (MESH_PART_VISIBLE(pPart)) {
-            *pWrite = (s16)FP_OFF(pPart);
+            *pWrite = partOff;
             pWrite++;
             count++;
         }
@@ -290,7 +295,10 @@ void actorrender_entity(WorldObject far *entry) {
         return;
     }
 
-    g_abR3dState.pCurMeshPartVisTable = (unsigned char *)entry->state.stateBits;
+    /* A plain value no wrapper swapped a table in for points into DGROUP's start in the
+       original, whose first four bytes are zeros: natively it is no table. */
+    g_abR3dState.pCurMeshPartVisTable =
+        (uintptr_t)entry->state.visTable < 0x10000 ? NULL : entry->state.visTable;
     g_abR3dState.wMeshScaleShift = pRec->shift;
     g_abR3dState.nMeshBoundHalfExtent = (s32)(short)pRec->radius << g_abR3dState.wMeshScaleShift;
 

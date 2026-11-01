@@ -30,8 +30,8 @@ or a click (as the original does), then shows the main menu with its buttons and
 DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
 come back, and Start New Game fades into chapter 1, whose opening book pages through with keys or
 clicks; the chapter cutscene after it plays to its end, the new game's state is loaded, the 3D world is
-set up, and rendering its first frame sets up the camera, draws the sky and stops at the first actor
-(below).
+set up, and its frames render: the sky, the hills, trees and road, sprites, and the game's screen
+around them (below). The world's loop then runs on; nothing after its first frames is checked yet.
 The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
 `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
@@ -44,9 +44,11 @@ and checks that an incomplete folder is turned down cleanly.
    byte for byte), reads the party from it and sets up the 3D world: `ts_init` sets the light (M3's R3D
    core starts there), loads the region's encounter shapes and the zone's actors, scans the zone around
    the party, checks the zone's ground at its position, and enters the world's main loop
-   (`world3d_main_loop`): its first frame sets up the camera (`r3d_camera_setup_view`), fills the
-   sky's flat bands (VGAFILL.ASM) and its panorama (VGA slot 33), scans and sorts what is in view, and
-   stops at the first actor, in R3D.ASM's `r3d_setup_actor_in_camera_space`.
+   (`world3d_main_loop`): each frame sets up the camera (`r3d_camera_setup_view`), fills the sky's
+   flat bands (VGAFILL.ASM) and its panorama (VGA slot 33), scans and sorts what is in view, and draws
+   each actor through R3D (all of R3D.ASM is C now) and POLYGON.ASM's `draw_polygon`. Unscripted, the
+   scripted run idles in the world until it quits, clean under ASan; no golden picture of a world frame
+   has been compared with the original yet.
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -102,6 +104,7 @@ source.
 | `GFX/RASTER/CIRCLE.C` | `draw_circle_bresenham` builds the span table's far pointer with `MK_FP` (the original builds it as segment << 16) |
 | `COMBAT/ACTOR/CACTOR.C` | `combat_actor_bnames_load_cached` reads BNAMES.DAT's records at their 16-bit offsets into the blob (the original rebases the offsets in place), and its `nameChars` holds the whole 8-byte record with `nameMeta` pointing at the second half (below) |
 | `GFX/SPRITE/DECOMP.H`, `RESBLIT.C` | `decomp_rle`'s buffer is a `NearPtr` (the original passes it as a 16-bit int) |
+| `INCLUDE/structs.h`, `R3D/ACTOR/ACTRENDR.C`, `ACTOROVL.C`, `ACTOROVL.H`, `ACTSHAKE.C`, `R3D/VIS/VISENTRY.C`, `GAME/ENC/WORLDDOR.C`, `RGNENC.C`, `R3D/SCENE/CZONE.C`, `WORLDHIT.C`, `R3D/FX/WORLDFX.C` | an actor's state word (`WorldObjectState`) is a value or a near pointer to the table of its mesh parts' variants (an encounter actor's aux record; the render wrappers swap a small table in while it is drawn): natively pointers go through `visTable` or `encounterAux`, and the whole union is cleared, saved and restored, where the original stores the pointer in the word. The wrappers' tables are ten-byte arrays, as in the original's DGROUP, where they were a byte or two and a separate tail. The mesh-part sort keeps each part's offset from the shape record's paragraph as it reads it, where the original takes the far pointer's offset (natively the offset in the whole block) |
 | `R3D/SCENE/CZONE.C` | the zones' actor pool (9 zones of 300, 35 fixed objects, 93 visible) is sized with `sizeof(WorldObject)`: 24 bytes natively, where the original's 22 make F308h |
 | `GAME/GMAIN.C`, `R3D/SCENE/ZONE.C`, `SCREENS/ENCAMP.C`, `DIALOG/ASKABOUT.C`, `INCLUDE/structs.h` | the sky's panorama, the camp's pictures and the dialog's portraits keep the table `resblit_load_asset_table` returns as `ImageRecord **` (the portrait cache, `ActSpriteCache`, sized with `sizeof`); the original holds the near pointer in a 16-bit word |
 | `R3D/TBLSTORE/SHAPETBL.C`, `SHAPETBL.H`, `SHAPEBLD.C`, `R3D/ACTOR/ACTRENDR.C`, `R3D/SPRITE/WORLDRND.C` | a TBL's record table holds normalized far pointers from its DAT chunk's start (paragraphs in the high word, under 16 bytes in the low one: so in all 3065 records of the game's TBLs, whose chunks are under 64 KB), which the original adds to the chunk's seg:0000; natively each becomes the record's address. A `Shape` is file data, so its near pointers stay 16-bit offsets, and the offsets inside a record count from its own segment: `FP_SEG_NORM(record)`, the paragraph it is in |
@@ -455,6 +458,10 @@ modes.
 - **The face shading past its lighting ramp.** A face material's shade that indexes past the 256-byte
   ramp stops with a message; the original reads on into its segment. The shipped game sets no material
   table, so its faces never take that path.
+- **A plain value in an actor's state word.** Drawn with no wrapper's table in it, the word points into
+  DGROUP's start in the original, whose first four bytes are zeros and then the runtime's copyright
+  string; natively such a value reads as no table (every part visible, every variant 0), which agrees
+  only while the value plus the part's group is under 4.
 - **Trig tables read out of range.** `r3d_tbl_asin` of a value past +-1.0 (beyond 401Fh) and
   `r3d_tbl_atan_lookup_raw` past index 1FFh stop with a message; the original reads the code after the table.
 

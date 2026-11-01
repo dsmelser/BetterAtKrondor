@@ -1400,15 +1400,22 @@ struct VfxRec {
     short nW2;
 };
 
+/* An actor's state word: a value, or a near pointer to the table of its mesh parts' variants
+   (an encounter actor's aux record; the render wrappers swap a small table in while it is
+   drawn). Natively the pointer is wider than the word, so pointers go through visTable or
+   encounterAux, and the whole union is cleared, saved and restored. */
+typedef union WorldObjectState {
+    unsigned short stateBits;
+    short animationState;
+    EncounterActorAux near *encounterAux;
+    unsigned char near *visTable;
+} WorldObjectState;
+
 struct WorldObject {
     unsigned short shapeId;
     WorldPos pos;
     EulerAngles orientation;
-    union {
-        unsigned short stateBits;
-        short animationState;
-        EncounterActorAux near *encounterAux;
-    } state;
+    WorldObjectState state;
 };
 
 struct VisibleEntryList {

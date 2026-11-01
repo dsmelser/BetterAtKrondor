@@ -17,6 +17,7 @@ void far visentry_mark_dollar_flag14(VisibleEntryList *list) {
         do {
             if (ts_get_shape(entry->shapeId)->kind == 0x24) {
                 state = 1;
+                entry->state.visTable = NULL;
                 entry->state.stateBits = state;
             }
             i++;
@@ -27,15 +28,15 @@ void far visentry_mark_dollar_flag14(VisibleEntryList *list) {
 }
 
 void far visentry_render_actor_tmp_anim(WorldObject far *entry) {
-    unsigned short savedState;
+    WorldObjectState savedState;
     unsigned char stateLow;
 
-    savedState = entry->state.stateBits;
-    stateLow = savedState & 0xff;
+    savedState = entry->state;
+    stateLow = savedState.stateBits & 0xff;
     g_render_actor_wstate_scratch[0] = 0;
     g_render_actor_wstate_scratch[1] = stateLow;
-    entry->state.stateBits = (unsigned short)g_render_actor_wstate_scratch;
+    entry->state.visTable = g_render_actor_wstate_scratch;
     actorrender_entity(entry);
-    entry->state.stateBits = savedState;
+    entry->state = savedState;
     return;
 }
