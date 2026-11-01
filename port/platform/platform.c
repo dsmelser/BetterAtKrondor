@@ -137,7 +137,7 @@ bool platform_pump_events(void) {
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP:
             if (!video_handle_key(&e))
-                keyboard_handle_event(&e);
+                input_handle_key(&e);
             break;
         case SDL_EVENT_WINDOW_MOVED:
         case SDL_EVENT_WINDOW_RESIZED:
@@ -150,6 +150,7 @@ bool platform_pump_events(void) {
             break;
         }
     }
+    input_poll();
     return running;
 }
 

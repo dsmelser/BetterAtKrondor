@@ -134,11 +134,16 @@ static uint16_t xt_code(SDL_Scancode sc) {
     }
 }
 
-void keyboard_handle_event(const SDL_Event *e) {
-    uint16_t code = xt_code(e->key.scancode);
+void keyboard_send(int key, bool down) {
+    uint16_t code = xt_code((SDL_Scancode)key);
     if (code == 0)
         return;
     if (code & EXT)
         bak_keyboard_irq(0xE0);
-    bak_keyboard_irq((uint8_t)((code & 0x7F) | (e->type == SDL_EVENT_KEY_UP ? 0x80 : 0)));
+    bak_keyboard_irq((uint8_t)((code & 0x7F) | (down ? 0 : 0x80)));
+}
+
+bool keyboard_buffer_empty(void) {
+    const unsigned char *bda = bak_bios_data();
+    return bda[0x1A] == bda[0x1C] && bda[0x1B] == bda[0x1D]; /* head == tail */
 }

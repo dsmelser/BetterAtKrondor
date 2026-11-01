@@ -99,6 +99,13 @@ struct ImageRecord;
 _Bool bak_cursor_system(const struct ImageRecord *image, int16_t hotX, int16_t hotY);
 
 /*
+ * The page the game polls for input (menupage_run; port/platform/input.c). On the world's and
+ * the map's, where the party moves, the movement bindings act (W/A/S/D as the arrows).
+ */
+enum { BAK_PAGE_OTHER, BAK_PAGE_WORLD, BAK_PAGE_MAP };
+void bak_input_page_polled(int16_t kind);
+
+/*
  * MSCDEX (INT 2Fh AH=15h, port/platform/cdrom.c): absent unless a CD drive is attached.
  * 150Bh drive check (AX result, BX = ADADh) and 1510h device request on a request
  * header; attaching gives a drive letter and its audio tracks' start positions.

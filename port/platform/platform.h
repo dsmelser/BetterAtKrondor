@@ -42,6 +42,12 @@ typedef enum SettingId {
     SETTING_WINDOW_X,
     SETTING_WINDOW_Y,
     SETTING_WINDOW_MAXIMIZED,
+    SETTING_CONTROLS_FORWARD, /* [controls] forward, back, left, right: a key's name */
+    SETTING_CONTROLS_BACK,
+    SETTING_CONTROLS_LEFT,
+    SETTING_CONTROLS_RIGHT,
+    SETTING_CONTROLS_REPEAT_DELAY, /* [controls] repeat_delay: ms */
+    SETTING_CONTROLS_REPEAT_RATE,  /* [controls] repeat_rate: a second */
     SETTING_COUNT
 } SettingId;
 enum { SCALING_PIXELART, SCALING_NEAREST, SCALING_LINEAR };
@@ -155,11 +161,23 @@ bool cursor_decode(const struct ImageRecord *image, bool colors256, int *w, int 
 void cursor_update(float sx, float sy);
 bool cursor_shown(void);
 
-/* Feed a host mouse event to the emulated INT 33h driver (mouse.c), a key to the
- * keyboard (scancode.c). */
+/* Feed a host mouse event to the emulated INT 33h driver (mouse.c). */
 union SDL_Event;
 void mouse_handle_event(const union SDL_Event *e);
-void keyboard_handle_event(const union SDL_Event *e);
+/* scancode.c: a key (an SDL_Scancode) as the PC keyboard sends it, one IRQ 1 a byte; and
+ * whether the game has taken every key from the BIOS keyboard buffer. */
+void keyboard_send(int key, bool down);
+bool keyboard_buffer_empty(void);
+/*
+ * The keyboard through the bindings (input.c). A host key event, real or scripted, goes to
+ * the game as itself, or on the pages where the party moves (the world's and the map's) as
+ * the movement it is bound to. Held movement keys repeat on the clock (input_poll, as the
+ * platform polls), the host's own repeats left out.
+ */
+void input_handle_key(const union SDL_Event *e);
+void input_poll(void);
+/* Back to no keys held and no page known (the unit tests). */
+void input_reset(void);
 /* Scripted pointer input: a position on the 320x200 picture, the left button. */
 void mouse_script_move(float px, float py);
 void mouse_script_left(bool down);

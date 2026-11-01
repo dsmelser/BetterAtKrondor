@@ -14,6 +14,8 @@
 #include "SRC/GFX/SCREEN/SCREEN.H"
 #include "SRC/UI/WIDGET.H"
 #include "SRC/UI/UIWIDGET.H"
+#include "SRC/GAME/WORLD/WORLDLP.H"
+#include "SRC/GAME/WORLD/MAP.H"
 
 MenuEntry *g_pMenuHoverEntry;
 MenuEntry *g_pMenuPressAnchor;
@@ -355,6 +357,10 @@ s16 menupage_run(MenuPage *page, unsigned short *out_consumed) {
 
     i = 0;
     entry = page->pEntries;
+    /* The port binds movement keys on the pages where the party moves. */
+    bak_input_page_polled(page == g_pReqMainPage  ? BAK_PAGE_WORLD
+                          : page == g_pReqMapPage ? BAK_PAGE_MAP
+                                                  : BAK_PAGE_OTHER);
     key = menupage_input_poll(page, out_consumed);
     if ((g_dwDialogInputCooldown != 0) && (g_timer_ticks > g_dwDialogInputCooldown)) {
         g_dwDialogInputCooldown = 0;

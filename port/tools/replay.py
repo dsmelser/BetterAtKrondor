@@ -45,11 +45,17 @@ def world_then(steps: str, quit_ms: int) -> str:
 
 
 SCENARIOS = {name: s.port_input for name, s in GOLDEN.items()}
+# Scenarios that must play out as another does, so they are checked against its baseline.
+SAME_AS: dict[str, str] = {}
 # Up steps forward, Left and Right turn: three steps along the road, a turn, a step, two turns
 # back, a step.
-SCENARIOS["walk"] = world_then(
-    "90000:key:Up;91000:key:Up;92000:key:Up;93000:key:Left;94000:key:Up;"
-    "95000:key:Right;96000:key:Right;97000:key:Up;", 100000)
+WALK = ("90000:key:Up;91000:key:Up;92000:key:Up;93000:key:Left;94000:key:Up;"
+        "95000:key:Right;96000:key:Right;97000:key:Up;")
+SCENARIOS["walk"] = world_then(WALK, 100000)
+# The same walk on W, A and D, which the port binds to the arrows where the party moves.
+SCENARIOS["walk-wasd"] = world_then(
+    WALK.replace(":Up;", ":W;").replace(":Left;", ":A;").replace(":Right;", ":D;"), 100000)
+SAME_AS["walk-wasd"] = "walk"
 # Chapter 1's first fight (DEF_COMB record 0, the box of cells 24-33 x 4-10 of zone 1's tile
 # 10,14): the party is teleported two cells north of it, facing 8400h, turns south, steps in
 # with Space for the dialog's pages, and A plays the fight out (auto-combat). Then two steps
@@ -134,6 +140,10 @@ def main() -> int:
     args = ap.parse_args()
 
     out = OUT_DIR / args.scenario
+    base = OUT_DIR / SAME_AS.get(args.scenario, args.scenario)
+    if args.cmd == "record" and base != out:
+        print(f"{args.scenario} is checked against {base.name}'s baseline: record that one")
+        return 2
     run(args.scenario, Path(args.data), Path(args.exe), out, args.set)
     if args.cmd == "record":
         for name in LOGS:
@@ -141,7 +151,9 @@ def main() -> int:
                 shutil.copyfile(out / f"{name}.log", out / f"baseline-{name}.log")
         print(f"  recorded as the baseline in {out}")
         return 0
-    ok = [compare(out / f"baseline-{name}.log", out / f"{name}.log", f"{name} log") for name in LOGS]
+    if base != out:
+        print(f"  against {base.name}'s baseline")
+    ok = [compare(base / f"baseline-{name}.log", out / f"{name}.log", f"{name} log") for name in LOGS]
     return 0 if all(ok) else 1
 
 

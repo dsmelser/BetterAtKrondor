@@ -120,6 +120,21 @@ checks the native fields against the original's offsets and the round trip.
 | `video.aspect` | `4:3` (the default: the picture stretched as a VGA monitor showed it) or `square` pixels |
 | `video.cursor` | `system` (the default: the system's pointer wearing the game's cursor, moving at the display's rate) or `game` (drawn into the picture by the game, as the original did; the DOSBox goldens use it) |
 | `window.width`, `window.height`, `window.x`, `window.y`, `window.maximized` | the window as it was when it closed; a place no display shows is dropped for the centre |
+| `controls.forward`, `controls.back`, `controls.left`, `controls.right` | keys that act as Up, Down, Left and Right where the party moves (default W, S, A, D; empty for none), named as SDL names keys (`Keypad 8`, `Space`) |
+| `controls.repeat_delay`, `controls.repeat_rate` | a held movement key repeats after 250 ms, 10 steps a second |
+
+## Controls
+
+`port/platform/input.c` takes the host's keys, and the scripted ones, to the game's keyboard
+(`scancode.c`). The game reports the page it polls (`menupage_run` calls `bak_input_page_polled`): on
+the world's and the map's, where the party moves, a key bound to a movement sends that movement's arrow
+(W, A, S, D by default), and what a press sent is kept until its release. Everywhere else a key is
+itself, so letters stay letters: the save names, the riddle chests and the keyword questions poll pages
+of their own. A held movement key, an arrow or a bound one, repeats on the platform's clock where the
+party moves, and only once the game has taken the press before from its keyboard buffer; the host's own
+repeats of it are left out (their rate is the system's setting). Elsewhere keys repeat as the host
+repeats them. The `walk-wasd` replay plays the `walk` on W, A and D and is checked against `walk`'s
+baseline: both logs are identical.
 
 ## Where the game sources depart from the original
 

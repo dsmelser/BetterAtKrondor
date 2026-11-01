@@ -126,7 +126,7 @@ bool input_script_poll(void) {
         case STEP_KEY_UP:
             e.type = s.kind == STEP_KEY_DOWN ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
             e.key.scancode = s.key;
-            keyboard_handle_event(&e);
+            input_handle_key(&e);
             if (s.kind == STEP_KEY_DOWN) {
                 s.atNs = now + RELEASE_NS;
                 s.kind = STEP_KEY_UP;

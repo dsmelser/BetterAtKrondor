@@ -20,6 +20,7 @@ typedef enum SettingType {
     SETTING_BOOL,   /* true or false (yes/no, on/off, 1/0 read too) */
     SETTING_INT,    /* min to max, or nothing when optional */
     SETTING_CHOICE, /* one of choices */
+    SETTING_KEY,    /* a key's name as SDL spells it (W, Up, Keypad 8), or none */
 } SettingType;
 
 typedef struct SettingDef {
@@ -64,6 +65,19 @@ static const SettingDef s_defs[SETTING_COUNT] = {
                           .max = 32767, .optional = true},
     [SETTING_WINDOW_MAXIMIZED] = {"window", "maximized", SETTING_BOOL, "false",
                                   "the window fills the desktop"},
+    [SETTING_CONTROLS_FORWARD] = {"controls", "forward", SETTING_KEY, "W",
+                                  "a key that steps forward where the party moves (with Up)"},
+    [SETTING_CONTROLS_BACK] = {"controls", "back", SETTING_KEY, "S",
+                               "a key that steps back (with Down)"},
+    [SETTING_CONTROLS_LEFT] = {"controls", "left", SETTING_KEY, "A",
+                               "a key that turns left (with Left)"},
+    [SETTING_CONTROLS_RIGHT] = {"controls", "right", SETTING_KEY, "D",
+                                "a key that turns right (with Right)"},
+    [SETTING_CONTROLS_REPEAT_DELAY] = {"controls", "repeat_delay", SETTING_INT, "250",
+                                       "ms a movement key is held before it repeats",
+                                       .min = 0, .max = 2000},
+    [SETTING_CONTROLS_REPEAT_RATE] = {"controls", "repeat_rate", SETTING_INT, "10",
+                                      "steps a second while it is held", .min = 1, .max = 60},
 };
 
 static char *s_values[SETTING_COUNT];
@@ -190,6 +204,22 @@ static bool take_value(int id, Span value, char *why, size_t whySize) {
             SDL_snprintf(why + used, whySize - used, "%s %s", i == 0 ? "" : ",", d->choices[i]);
         }
         return false;
+    case SETTING_KEY: {
+        if (value.len == 0) {
+            set_value(id, "", 0);
+            return true;
+        }
+        char name[64];
+        SDL_snprintf(name, sizeof name, "%.*s", (int)value.len, value.at);
+        SDL_Scancode key = SDL_GetScancodeFromName(name);
+        if (key == SDL_SCANCODE_UNKNOWN || value.len >= sizeof name) {
+            SDL_snprintf(why, whySize, "not a key's name (W, Up, Space, Keypad 8...)");
+            return false;
+        }
+        const char *kept = SDL_GetScancodeName(key);
+        set_value(id, kept, strlen(kept));
+        return true;
+    }
     }
     SDL_snprintf(why, whySize, "unknown type");
     return false;

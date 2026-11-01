@@ -26,7 +26,11 @@
     X(folders_copy_the_dos_saves_once)                                                             \
     X(cursor_reads_the_vga_drivers_images)                                                         \
     X(cursor_reads_the_16_colour_drivers_images)                                                   \
-    X(cursor_goes_to_the_system_unless_set_otherwise)
+    X(cursor_goes_to_the_system_unless_set_otherwise)                                              \
+    X(input_letters_stay_letters_off_the_world)                                                    \
+    X(input_wasd_moves_the_party)                                                                  \
+    X(input_arrows_repeat_on_the_clock)                                                            \
+    X(input_bindings_come_from_the_settings)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)
