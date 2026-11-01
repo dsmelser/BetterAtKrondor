@@ -281,7 +281,9 @@ s16 far cspell_ai_pick_castable_spell(Combatant *caster, Combatant *target, s16 
         return -1;
     }
 
-    for (spell_id = g_nSpellCount; spell_id > -1; spell_id--) {
+    /* The original starts at g_nSpellCount, one past the last spell, whose school and kind
+       are whatever its heap holds after the table. */
+    for (spell_id = g_nSpellCount - 1; spell_id > -1; spell_id--) {
         if (g_pSpellDefs[spell_id].nSchool != school)
             continue;
         if (g_pSpellDefs[spell_id].nSpell_kind != kind)

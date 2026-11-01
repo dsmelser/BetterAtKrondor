@@ -145,6 +145,16 @@ The game's rules stay the original's (CLAUDE.md); these change how it runs.
   builds then run alike: their replays agree frame for frame.
 - **`findfirst` returns names sorted**, not in the host directory's order.
 
+## Bugs of the original, fixed
+
+Where the original's code plainly does what its authors did not mean, the port does what was meant.
+The quirks below (what the port has taught us) stay unless they are listed here.
+
+- **The AI's spell search starts one past the last spell.** `cspell_ai_pick_castable_spell` counts down
+  from `g_nSpellCount`, so it first looks at a 46th SPELLS.DAT record: whatever the heap holds after the
+  table. Bytes that matched the school and kind sought would spend a random draw there and could cast a
+  spell that does not exist. The search starts at the last spell.
+
 ## ASM modules
 
 The 50 TASM modules of the 1.02 link start as generated placeholders (`port/tools/gen_asm_stubs.py`):
