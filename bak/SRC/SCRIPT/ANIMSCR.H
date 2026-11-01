@@ -11,6 +11,8 @@ extern unsigned short g_wScriptFrameHoldFlag;
 extern short g_nCombatResolveStaticThreshold;
 extern short g_nChapterSnapshotDeadStore;
 extern Slot far *g_anim_slots[2];
+extern u16 g_wAnimCondResult;
+extern u16 g_wAnimSceneChapter;
 extern unsigned short g_wScriptYieldPending;
 extern unsigned short g_wAnimResSfxId;
 extern ScriptAnimNode *g_pScriptAnimWalker;

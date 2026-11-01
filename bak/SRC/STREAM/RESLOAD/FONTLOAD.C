@@ -1,4 +1,3 @@
-#define FP_OFF(fp) (*(u16 *)&(fp))
 #include "SRC/GEN/GFXCTX.H"
 #include "structs.h"
 #include "SRC/STREAM/RESLOAD/FONTLOAD.H"

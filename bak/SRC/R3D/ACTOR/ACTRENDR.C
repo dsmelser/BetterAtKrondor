@@ -251,7 +251,8 @@ void actorrender_mesh_parts(s16 part_off, s16 part_count, s16 *part_ptr_array) {
             }
             pPoly = (unsigned char far *)MK_FP(FP_SEG_NORM(g_abR3dState.pCurActorPagedRec),
                                                ((MeshPartRecord far *)pPart)->wPolyListOff);
-            *(u16 *)&pPoly += variantIdx * 8;
+            /* The original adds to the far pointer's offset word. */
+            pPoly += variantIdx * 8;
             if (pPoly[0] == 0) {
                 poly_list = pPoly + 2;
                 g_graphics_context.bClip_enabled = 0;

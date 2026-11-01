@@ -340,7 +340,7 @@ void far townscene_main_loop(u16 scene_kind, s16 scene_index) {
     g_dialog_anim_channel = 0;
     g_nPalBlendMode = 0;
     g_nChapterSnapshotDeadStore = g_gameState.nChapter;
-    *((unsigned short *)&g_anim_slots[1] + 1) = g_gameState.nChapter;
+    g_wAnimSceneChapter = g_gameState.nChapter;
     screen_cursor_state_push_pop(1);
     screen_cursor_load_pack(1);
     palette_cycle_eb_toggle(0);

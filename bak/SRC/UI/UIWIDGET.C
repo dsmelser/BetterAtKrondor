@@ -90,7 +90,7 @@ static u16 uiwidget_glyph_blit(unsigned char ch, s16 x, s16 y) {
                 do {
                     if (!mask) {
                         mask = 0x80;
-                        (*(u16 *)&glyph_data)++;
+                        glyph_data++;
                     }
                     pixel = *glyph_data & mask;
                     if ((pixel != 0) ||
@@ -109,7 +109,7 @@ static u16 uiwidget_glyph_blit(unsigned char ch, s16 x, s16 y) {
             }
             row++;
             y = y + 1;
-            (*(u16 *)&glyph_data)++;
+            glyph_data++;
         } while (row < height);
     }
     return width;

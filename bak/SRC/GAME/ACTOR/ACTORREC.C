@@ -14,32 +14,33 @@ ActorSubrecord far *actorrec_get_subrecord(Actor far *actor, s16 which_subrecord
     if (!(which_subrecord & mask))
         goto L_null;
 
+    /* The original steps from subrecord to subrecord by adding to the far pointer's offset word. */
     p = (ActorSubrecord far *)(ACTOR_ITEMS(actor) + actor->itemCapacity);
 
     if (mask & SUBREC_PARAMS) {
         if (which_subrecord & SUBREC_PARAMS)
             return p;
-        *(u16 *)&p += sizeof(ActorSubrec01_Params);
+        p = (ActorSubrecord far *)((unsigned char far *)p + sizeof(ActorSubrec01_Params));
     }
     if (mask & SUBREC_INTERACT_MSG) {
         if (which_subrecord & SUBREC_INTERACT_MSG)
             return p;
-        *(u16 *)&p += sizeof(ActorSubrec02_InteractMsg);
+        p = (ActorSubrecord far *)((unsigned char far *)p + sizeof(ActorSubrec02_InteractMsg));
     }
     if (mask & SUBREC_EVENT_STATE) {
         if (which_subrecord & SUBREC_EVENT_STATE)
             return p;
-        *(u16 *)&p += sizeof(ActorSubrec04_EventState);
+        p = (ActorSubrecord far *)((unsigned char far *)p + sizeof(ActorSubrec04_EventState));
     }
     if (mask & SUBREC_HOTSPOT) {
         if (which_subrecord & SUBREC_HOTSPOT)
             return p;
-        *(u16 *)&p += sizeof(ActorSubrec08_HotspotAction);
+        p = (ActorSubrecord far *)((unsigned char far *)p + sizeof(ActorSubrec08_HotspotAction));
     }
     if (mask & SUBREC_LAST_TOUCH) {
         if (which_subrecord & SUBREC_LAST_TOUCH)
             return p;
-        *(u16 *)&p += sizeof(ActorSubrec10_LastTouch);
+        p = (ActorSubrecord far *)((unsigned char far *)p + sizeof(ActorSubrec10_LastTouch));
     }
     if (mask & SUBREC_DOOR_VARIANT) {
         if (which_subrecord & SUBREC_DOOR_VARIANT)

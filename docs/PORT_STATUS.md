@@ -150,6 +150,8 @@ at the `upstream-snapshot` tag.
 | `GAME/ENC/HOTSPOT.C`, `STREAM/RESLOAD/IMGLOAD.C`, `R3D/TBLSTORE/SHAPEBLD.C` | an integer counter where the original counts with a near pointer (`hotspotevt_done_reset_all`), a test that is never true left out (below), a far pointer rebuilt from its parts taken whole (`ts_project_shape`, which nothing calls) |
 | `SCREENS/MAINMENU.C` | the save listings pass `findfirst` a `struct ffblk` and read its `ff_name`; the original passes a `char[30]` and reads the name from the local after it (below) |
 | `SCREENS/PICKLOCK.C`, `PICKLOCK.H` | the lockpick screen's copy of the party's inventory is one buffer, its record and item slots; the original copies it over two locals (below) |
+| `R3D/ACTOR/ACTRENDR.C`, `GAME/ACTOR/ACTORREC.C`, `UI/UIWIDGET.C`, `STREAM/RESLOAD/FONTLOAD.C` | pointers step by pointer arithmetic where the original adds to the far pointer's offset word: a mesh part's polygon variant, an actor record's subrecords, a glyph's rows. Natively that word is the address's low half, whose carry would be lost. FONTLOAD.C's own `FP_OFF`, the same word, is gone |
+| `SCRIPT/ANIMSCR.C`, `ANIMSCR.H`, `SCREENS/TOWNSCN.C` | the animation scripts' last condition result and a town scene's chapter are variables of their own; the original keeps them in the two words of `g_anim_slots[1]` (below) |
 | `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
 
 ## Changes from the original
@@ -388,6 +390,10 @@ only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
 - **A party member's conditions are read through the training table.** `combatenc_actor_enter_defense`
   reads bytes at `aSkillTrainRate + 5 + charSlot * 7`. Past the 12-byte table they are
   `abActorStatusRanks[charSlot - 1]` (charSlot is the character's id plus 1): conditions 0-3, 5 and 6.
+- **Two words live in a slot pointer no script uses.** Scripts load into `g_anim_slots[0]` only. The
+  original keeps the last script condition's result in the low word of `g_anim_slots[1]` and, from
+  TOWNSCN.C, the chapter a town scene opened in in its high word, which nothing reads (the map lists
+  only `g_anim_slots`, 4EC0h-4EC7h). Natively the condition test, through `FP_OFF`, would stop the game.
 - **Loops and tests on pointers.** `hotspotevt_done_reset_all` clears every zone's 400 hotspot flags
   counting with a near pointer, whose + 200 steps 400 bytes. IMGLOAD.C's image loader tests the file it
   opened for failure as `(u16)pointer < 0`, which never holds.

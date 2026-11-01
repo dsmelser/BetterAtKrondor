@@ -22,6 +22,10 @@ unsigned short g_wScriptFrameHoldFlag;
 short g_nCombatResolveStaticThreshold;
 short g_nChapterSnapshotDeadStore;
 Slot far *g_anim_slots[2];
+/* Two words the original keeps in g_anim_slots[1]'s storage (scripts load into slot 0 only):
+   the last condition's result, and the chapter a town scene opened in, which nothing reads. */
+u16 g_wAnimCondResult;
+u16 g_wAnimSceneChapter;
 unsigned short g_wScriptYieldPending;
 unsigned short g_wAnimResSfxId;
 ScriptAnimNode *g_pScriptAnimWalker;
@@ -911,7 +915,7 @@ step:
 
     op = *(u16 far *)script_pc;
     if (op != 0x1430 && op != 0x1420) {
-        *(u16 *)&g_anim_slots[1] = matched;
+        g_wAnimCondResult = matched;
     } else if (matched != 0) {
         if (op == 0x1430) {
             latchResult = 1;
@@ -941,7 +945,7 @@ step:
     }
 
     if (latchResult)
-        *(u16 *)&g_anim_slots[1] = 1;
+        g_wAnimCondResult = 1;
     return script_pc;
 }
 
@@ -1079,7 +1083,7 @@ unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
     case 0x13c0:
     case 0x13c1:
         script_pc = (unsigned short far *)anim_script_combat_resolve_loop((s16 far *)script_pc);
-        if (FP_OFF(g_anim_slots[1]) != 0) {
+        if (g_wAnimCondResult != 0) {
             script_pc = anim_script_channel_step(script_pc);
         } else {
             script_pc = (unsigned short far *)anim_script_opcode_1500_follow((s16 far *)script_pc);
@@ -1101,7 +1105,7 @@ unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
         saved_pc = script_pc;
         script_pc = (unsigned short far *)anim_script_combat_resolve_loop((s16 far *)script_pc);
         slot = g_anim_slots[g_current_animation_slot];
-        if (FP_OFF(g_anim_slots[1]) != 0) {
+        if (g_wAnimCondResult != 0) {
             slot->pChannel_b2[g_nCurrentChannelSlot]++;
             *(unsigned short far *far *)&slot->pChannel_alt[g_nCurrentChannelSlot] = saved_pc;
             script_pc = anim_script_channel_step(script_pc);
