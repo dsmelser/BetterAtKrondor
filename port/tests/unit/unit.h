@@ -35,7 +35,14 @@
     X(clock_ms_for_the_game)                                                                       \
     X(input_the_wheel_presses_its_keys)                                                            \
     X(input_the_gamepad_is_keys)                                                                   \
-    X(input_the_gamepad_points)
+    X(input_the_gamepad_points)                                                                    \
+    X(audio_events_land_on_their_frame)                                                            \
+    X(audio_timer_events_take_their_ticks_time)                                                    \
+    X(audio_volumes_scale_the_mix)                                                                 \
+    X(audio_sources_at_other_rates_keep_time)                                                      \
+    X(audio_sources_join_and_queue)                                                                \
+    X(audio_epoch_follows_the_device_drift)                                                        \
+    X(audio_dump_follows_the_clock)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

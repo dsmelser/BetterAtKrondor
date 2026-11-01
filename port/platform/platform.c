@@ -9,6 +9,7 @@
 #include <windows.h>
 #endif
 
+#include "audio.h"
 #include "bak_port.h"
 #include "platform.h"
 
@@ -120,10 +121,14 @@ bool platform_init(const PlatformOptions *options) {
     }
     platform_set_dirs(s_chosenData, s_chosenUser);
     folders_import_saves(s_chosenData, s_chosenUser);
-    return video_open();
+    if (!video_open())
+        return false;
+    audio_open(); /* the game plays without sound */
+    return true;
 }
 
 void platform_shutdown(void) {
+    audio_close();
     video_close();
     SDL_Quit();
 }

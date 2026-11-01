@@ -51,6 +51,9 @@ typedef enum SettingId {
     SETTING_CONTROLS_WHEEL_UP,     /* [controls] wheel_up, wheel_down: a key's name */
     SETTING_CONTROLS_WHEEL_DOWN,
     SETTING_CONTROLS_POINTER_SPEED, /* [controls] pointer_speed: picture pixels a second */
+    SETTING_AUDIO_VOLUME,           /* [audio] volume, music_volume, effects_volume: 0-100 */
+    SETTING_AUDIO_MUSIC_VOLUME,
+    SETTING_AUDIO_EFFECTS_VOLUME,
     SETTING_COUNT
 } SettingId;
 enum { SCALING_PIXELART, SCALING_NEAREST, SCALING_LINEAR };
@@ -208,6 +211,9 @@ bool machine_port_out8(uint16_t port, uint8_t value);
 void bak_keyboard_irq(uint8_t scancode);
 /* The next moment a poll has work: the timer's next tick or the next look at host events. */
 uint64_t machine_next_due_ns(void);
+/* The moment of what the game does now, on the platform's clock: in the timer interrupt, when
+ * its tick was due (the platform runs late ticks in a burst); elsewhere the present. */
+uint64_t machine_event_ns(void);
 
 /* mpu401.c: the MPU-401's ports (false: not 330h or 331h). */
 bool mpu401_port_in8(uint16_t port, uint8_t *value);

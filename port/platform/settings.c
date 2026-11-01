@@ -86,6 +86,13 @@ static const SettingDef s_defs[SETTING_COUNT] = {
                                         "pixels a second the gamepad's right stick moves the "
                                         "pointer at full tilt",
                                         .min = 10, .max = 2000},
+    [SETTING_AUDIO_VOLUME] = {"audio", "volume", SETTING_INT, "100",
+                              "the sound's volume, in percent", .min = 0, .max = 100},
+    [SETTING_AUDIO_MUSIC_VOLUME] = {"audio", "music_volume", SETTING_INT, "100",
+                                    "the CD music's, in percent of that", .min = 0, .max = 100},
+    [SETTING_AUDIO_EFFECTS_VOLUME] = {"audio", "effects_volume", SETTING_INT, "100",
+                                      "the synthesizer's and the samples', in percent of that",
+                                      .min = 0, .max = 100},
 };
 
 static char *s_values[SETTING_COUNT];

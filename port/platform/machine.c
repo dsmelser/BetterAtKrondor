@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "audio.h"
 #include "bak_port.h"
 #include "bak_video.h"
 #include "platform.h"
@@ -27,6 +28,7 @@ static uint16_t s_pitDivisor; /* 0 counts 65536 */
 static int s_pitLowByteNext = 1;
 static uint64_t s_tickNs;
 static uint64_t s_nextTickNs;
+static uint64_t s_tickDueNs; /* while the timer interrupt runs: when its tick was due */
 static uint64_t s_lastPumpNs;
 static uint64_t s_lastFrame;
 static unsigned s_idlePolls;
@@ -180,9 +182,11 @@ static bool poll(void) {
             s_nextTickNs = now + s_tickNs;
             break;
         }
+        s_tickDueNs = s_nextTickNs;
         s_nextTickNs += s_tickNs;
         if ((s_picMask & 0x01) == 0 && s_vectors[0x08] != NULL)
             bak_run_isr(s_vectors[0x08]);
+        s_tickDueNs = 0;
         busy = true;
     }
     uint64_t frame = now / REFRESH_NS;
@@ -192,7 +196,12 @@ static bool poll(void) {
     } else {
         video_flush(); /* a picture held back for the display's refresh */
     }
+    audio_advance(now); /* after the ticks: every event up to now is posted */
     return busy;
+}
+
+uint64_t machine_event_ns(void) {
+    return s_tickDueNs != 0 ? s_tickDueNs : clock_now_ns();
 }
 
 uint64_t machine_next_due_ns(void) {
