@@ -1,6 +1,6 @@
 /*
- * SPRTHNKS.ASM in C: tail jumps through the renderer's sprite slots. blit_sprite (slot 3)
- * and blit_stretched_dispatch (slot 37) have no caller in the game and stay traps.
+ * SPRTHNKS.ASM in C: tail jumps through the renderer's sprite slots. blit_stretched_dispatch
+ * (slot 37) has no caller in the game and stays a trap.
  */
 #include "../drivers/vga.h"
 
@@ -12,8 +12,10 @@
 
 typedef void PutSpriteFn(ImageRecord *sprite, s16 x, s16 y);
 
-void blit_sprite(void) {
-    BAK_UNIMPLEMENTED("SPRTHNKS.ASM: blit_sprite (no caller in the game)");
+/* Slot 3: the record is a near pointer, natively a pointer. The 1.02 non-rotating map's party
+   marker is its one caller. */
+void blit_sprite(NearPtr sprite_desc_offset, s16 x, s16 y) {
+    ((SpriteFn *)g_renderer_vtable.pfn_blit_sprite)((const ImageRecord *)sprite_desc_offset, x, y);
 }
 
 /* Slot 29: the record is a near pointer, natively a pointer. */

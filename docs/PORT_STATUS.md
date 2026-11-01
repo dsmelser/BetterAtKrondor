@@ -54,7 +54,7 @@ and checks that an incomplete folder is turned down cleanly.
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
    for saves. A common case: a table
    of 16-bit string offsets read over a pointer table and rebased with `+= (s16)blob` (`CREDITS.C`,
-   `NAMEDTBL.C`, `ASKABOUT.C`, `CACTOR.C`, `CBENC.C` and `CSPELL.C` are done; `DLGWIDG.C` remains). The
+   `NAMEDTBL.C`, `ASKABOUT.C`, `CACTOR.C`, `CBENC.C`, `CSPELL.C` and `DLGWIDG.C` are done). The
    TBL shape records and SPELLS.DAT are done (`SHAPETBL.C`, `CSPELL.C`, below).
 4. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s (the sky's,
    the camp's and the dialog portraits' copies of it were 16-bit words; they are pointer tables now): the
@@ -132,6 +132,15 @@ at the `upstream-snapshot` tag.
 | `R3D/ACTOR/ACTMOTN.C` | a `WorldEntity` (the two cameras) is allocated with `sizeof`: 38 bytes natively, 24h in the original |
 | `R3D/ACTOR/ACTRENDR.C`, `R3D/CORE/R3D.H` | `r3d_setup_actor_in_camera_space` takes the entry's pointer alone; the original takes it far, offset and segment (an entry on the stack has no segment natively) |
 | `COMBAT/ACTOR/CACTOR.C`, `COMBAT/ARENA/COMBAT.C`, `COMBAT/AI/CBTAI.C` | three reads through pointers the original leaves unset or null (below): the speed contest's sentinel gets a zeroed state of its own, and the summon test after the last turn and the AI's support cast test their pointer first |
+| `COMBAT/ARENA/COMBAT.C`, `COMBAT/SPELL/CSPELL.C`, `GFX/SCREEN/SCREEN.C`, `SCREENS/FMAP.C`, `UI/DLGWIDG.C` and their headers | pointers the original keeps in 16-bit words are pointers: the target `combat_arena_pick_target_actor` returns, the castable spells' names, the cursor table saved across a scene, the full map's town labels (FMAP_TWN.DAT), the save dialog's labels (offsets into its string table) |
+| `COMBAT/ACTOR/CACTOR.C`, `CACTOR.H`, `DIALOG/DIALOG.C`, `SCREENS/ITEMUSE.C` | `combat_actor_bitmap_set_bit` and `combat_actor_flag_bitset_clear` take the combatant and use its `spellsKnown`; the original takes its near address as a word and adds 2, where natively the name pointer before it takes 4 |
+| `UI/DLGWIDG.C` | a `Dialog`, its widget table and a `DialogWidget` are allocated with `sizeof`; the original's 8 bytes, 2 a widget and 21h hold 2-byte pointers |
+| `GFX/RASTER/POLYFILL.C`, `POLYFILL.H`, `SCREENS/ENCAMP.C` | `draw_polygon_textured` takes the translation table's pointer and keeps it in `g_pTexturedSpanLut` for slot 39; the original stores its DGROUP offset in the context's `wTextureIdx`. Only the camp clock's hand draws this way |
+| `R3D/SCENE/WORLDHIT.C`, `GFX/SPRITE/SPRTHNKS.H` | the 1.02 non-rotating map's party marker calls `blit_sprite` with the record's pointer; the original casts the function to pass it as a word |
+| `INPUT/WCURSOR.C` | a clicked encounter actor's state index is read through `encounterAux`; the original reads the state word as a near pointer to the same record |
+| `STREAM/RESLOAD/FONTLOAD.C` | an uncompressed font's bitmap is freed by its pointer; the original frees the far pointer's offset |
+| `AUDIO/ENGINE/AUDIO.C`, `AUDIO/SND/SNDINST.C` | `audio_sfx_register` returns whether the chunk loaded (the original returns its near address; no caller reads it); the drivers' chunks reach their installs as the host pointer's two words |
+| `GAME/ENC/HOTSPOT.C`, `STREAM/RESLOAD/IMGLOAD.C`, `R3D/TBLSTORE/SHAPEBLD.C` | an integer counter where the original counts with a near pointer (`hotspotevt_done_reset_all`), a test that is never true left out (below), a far pointer rebuilt from its parts taken whole (`ts_project_shape`, which nothing calls) |
 | `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
 
 ## Changes from the original
@@ -163,7 +172,8 @@ The quirks below (what the port has taught us) stay unless they are listed here.
 - **The AI's spell search starts one past the last spell.** `cspell_ai_pick_castable_spell` counts down
   from `g_nSpellCount`, so it first looks at a 46th SPELLS.DAT record: whatever the heap holds after the
   table. Bytes that matched the school and kind sought would spend a random draw there and could cast a
-  spell that does not exist. The search starts at the last spell.
+  spell that does not exist. The search starts at the last spell, and so does
+  `cspell_paged_record_lookup_by_id`'s (nothing calls it).
 
 ## ASM modules
 
@@ -182,7 +192,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/PIXEL.ASM` | `port/asm/pixel.c` | `test_pixel.py`: the clipping decision, against probes in the pixel slots |
 | `GEN/GFXCTX.ASM` | `port/asm/gfxctx_data.c` | `test_vga.py::test_context_initial_values`: the whole 2742-byte block |
 | `GEN/RNDVTBL.ASM` | `port/asm/rndvtbl_data.c` | data only: every slot starts at `gfx_retf_stub` |
-| `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM`, `GFX/SPRITE/SPRTHNKS.ASM`, `GFX/SPRITE/BLITCHNK.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c`, `sprthnks.c`, `blitchnk.c` | no logic: each routine forwards to a vtable slot (SPRTHNKS's `blit_sprite` and `blit_stretched_dispatch` and BLITCHNK's `blit_chunky_planar_4bit` have no caller and trap) |
+| `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM`, `GFX/SPRITE/SPRTHNKS.ASM`, `GFX/SPRITE/BLITCHNK.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c`, `sprthnks.c`, `blitchnk.c` | no logic: each routine forwards to a vtable slot (SPRTHNKS's `blit_stretched_dispatch` and BLITCHNK's `blit_chunky_planar_4bit` have no caller and trap) |
 | `GFX/SPRITE/PALBLEND.ASM` | `port/asm/palblend.c`: the colour between two palette entries and the entry from 10h to E6h nearest to it, for the anti-aliased edges of the dialogs' portraits (the palette is read at the pointer; the original reads it from the segment's start, where `alloc_far`'s palettes begin) | `test_palblend.py`: palettes of 6-bit values and of full bytes, 1500 random pairs each (some with a high byte, which the original masks off); 400 palettes built around a pair's average: exact matches, totals of 2 and 3 (the early return), channels at the threshold, best totals of 26h-29h, runs of ever closer entries; the scan's first and last entries. Its threshold only drops to the best total, so it rejects nothing the total's test accepts: mutants without the drop are equivalent |
 | `GFX/RASTER/POLYGON.ASM` | `port/asm/polygon.c`: `draw_polygon` with its edge walkers, and `fill_spans_dispatch` (the edge walkers' register-argument entry points trap: `draw_polygon` calls their C forms; `blit_rect_buf_dispatch` has no caller and traps) | `test_polygon.py`: 1500 random polygons (convex and scattered, with repeated vertices, level, upright and 45-degree edges), the edge cases (two vertices, one row, one point, collinear, the same slope on both sides of the top vertex, which fills twice) both ways round, counts from -8000h to 3, 20 vertices, two vertices left by the clipper, level top edges across more than 32767 in x (where the stand-in slopes decide the chains' order), clipped or not, filled or outlined, with an outline colour of their own or not, in the 640x200 mode or not, with the line and span slots probed: what reaches them, the result, the module's state words, the graphics context and the span buffer (a whole segment of random bytes) |
 | `GFX/RASTER/POLYCLIP.ASM` | `port/asm/polyclip.c` | `test_polygon.py`: the clipper alone over 1500 polygons (convex and scattered, vertices on the bounds) against rectangles around, inside, across them and inverted, and 600 across the 16-bit range whose quotients overflow (through the divide-error handler's rule): the graphics context |
@@ -361,6 +371,9 @@ only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
 - **A party member's conditions are read through the training table.** `combatenc_actor_enter_defense`
   reads bytes at `aSkillTrainRate + 5 + charSlot * 7`. Past the 12-byte table they are
   `abActorStatusRanks[charSlot - 1]` (charSlot is the character's id plus 1): conditions 0-3, 5 and 6.
+- **Loops and tests on pointers.** `hotspotevt_done_reset_all` clears every zone's 400 hotspot flags
+  counting with a near pointer, whose + 200 steps 400 bytes. IMGLOAD.C's image loader tests the file it
+  opened for failure as `(u16)pointer < 0`, which never holds.
 - **A teleport within the zone can be skipped.** `modalscreen_pending_scene_trans` moves the party
   when the destination's zone or tile x differs from the party's, or its heading from the one kept
   at the zone's entry, or when its tile *y* is the party's (`==` where `!=` was meant). So a

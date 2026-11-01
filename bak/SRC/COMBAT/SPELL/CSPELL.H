@@ -17,7 +17,7 @@ extern unsigned char far *g_pSpellDocBlob;
 extern StatusEffectSlot *g_pStatusEffectPool;
 extern unsigned char far *g_pSpellScreenBuffer;
 extern ImageRecord **g_pCastfaceSpriteTable;
-extern unsigned short *g_pSpellCastableScratch;
+extern char **g_pSpellCastableScratch;
 extern short g_nSnowParticleSeedX;
 extern short g_nSpellFontSlot;
 extern short g_nCombatTileEffectPending;

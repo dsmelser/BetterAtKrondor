@@ -384,25 +384,26 @@ void combat_actor_deploy_encounter(void) {
     }
 }
 
-s16 combat_actor_bitmap_set_bit(s16 bitmap, s16 bit_index) {
+/* The original takes the combatant's near address as a word and reaches spellsKnown at +2. */
+s16 combat_actor_bitmap_set_bit(Combatant *actor, s16 bit_index) {
     s16 word_idx;
     u16 mask;
     s16 already_set;
 
     word_idx = bit_index / 0x10;
     mask = 1 << (bit_index % 0x10);
-    already_set = (*(u16 *)(bitmap + 2 + word_idx * 2) & mask) != mask;
-    *(u16 *)(bitmap + 2 + word_idx * 2) |= mask;
+    already_set = (actor->spellsKnown[word_idx] & mask) != mask;
+    actor->spellsKnown[word_idx] |= mask;
     return already_set;
 }
 
-void far combat_actor_flag_bitset_clear(s16 record, s16 bit) {
+void far combat_actor_flag_bitset_clear(Combatant *actor, s16 bit) {
     s16 word_index;
     s16 mask;
 
     word_index = bit / 0x10;
     mask = 1 << (bit % 0x10);
-    *(u16 *)(record + word_index * 2 + 2) &= ~mask;
+    actor->spellsKnown[word_index] &= ~mask;
 }
 
 s16 combat_actor_cnt_qrls_kind(Combatant *actor, s16 kind) {

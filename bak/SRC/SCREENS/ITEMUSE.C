@@ -259,7 +259,7 @@ s16 itemuse_dispatch_on_target(Actor far *actor, ItemSlot far *item, ItemSlot fa
         outcome = 1;
     } else if (category == 0xd) {
 
-        outcome = combat_actor_bitmap_set_bit((s16)member, (u16)item->condition);
+        outcome = combat_actor_bitmap_set_bit(member, (u16)item->condition);
     } else if (category == 0x11) {
 
         itemuse_apply_stat_effects(member, item, rec);
@@ -462,10 +462,10 @@ s16 itemuse_dispatch_on_target(Actor far *actor, ItemSlot far *item, ItemSlot fa
                 u16 bits;
                 g_gameState.lEvtArgGoldCost = 0;
                 g_gameState.lEvtArgGoldCost = (s32)combat_actor_bitmap_set_bit(
-                    (s16)&g_gameState.characters[CHR_PUG], RND(0x2d));
+                    &g_gameState.characters[CHR_PUG], RND(0x2d));
                 if (g_gameState.lEvtArgGoldCost == 0) {
                     g_gameState.lEvtArgGoldCost = (s32)combat_actor_bitmap_set_bit(
-                        (s16)&g_gameState.characters[CHR_PUG], RND(0x2d));
+                        &g_gameState.characters[CHR_PUG], RND(0x2d));
                 }
                 i = 0;
                 outcome = 1;

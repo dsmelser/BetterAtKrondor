@@ -35,7 +35,7 @@ ImageRecord **g_cursor_state = {0};
 unsigned char far *g_pPalQueuedForFlip = {0};
 short g_nCursorX = 0;
 short g_nCursorY = 0;
-unsigned short g_nCursorStateSaved = 0x0000;
+ImageRecord **g_nCursorStateSaved = NULL;
 unsigned char far *g_pSavedCursorBuf1 = {0};
 unsigned char far *g_pSavedCursorBuf2 = {0};
 
@@ -172,17 +172,17 @@ void screen_cursor_unload_pack(void) {
 void screen_cursor_state_push_pop(s16 restore) {
     if (restore != 0) {
 
-        g_nCursorStateSaved = (unsigned short)g_cursor_state;
+        g_nCursorStateSaved = g_cursor_state;
         g_pSavedCursorBuf1 = g_pCursorScratchBuf1;
         g_pSavedCursorBuf2 = g_pCursorScratchBuf2;
         g_cursor_state = (ImageRecord **)0;
         g_pActiveCursorBuf = g_pCursorScratchBuf1 = g_pCursorScratchBuf2 = (unsigned char far *)0;
     } else {
 
-        g_cursor_state = (ImageRecord **)g_nCursorStateSaved;
+        g_cursor_state = g_nCursorStateSaved;
         g_pActiveCursorBuf = g_pCursorScratchBuf1 = g_pSavedCursorBuf1;
         g_pCursorScratchBuf2 = g_pSavedCursorBuf2;
-        g_nCursorStateSaved = 0;
+        g_nCursorStateSaved = NULL;
         g_pSavedCursorBuf1 = g_pSavedCursorBuf2 = (unsigned char far *)0;
 
         screen_cursor_get_position(&g_cursor_prev_x[1].nX, &g_cursor_prev_x[1].nY);

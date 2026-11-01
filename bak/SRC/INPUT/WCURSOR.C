@@ -81,9 +81,10 @@ s16 far wcursor_dispatch_action(void) {
                 cy_diff >= 0 && cy_diff < g_pWorldHitTestTable[slot_index].rect.height) {
                 if ((&g_pWorldHitTestTable[slot_index])->pEntity->shapeId ==
                     g_nProximityTableCount) {
-                    idx = ((EncounterAnimScratch *)(&g_pWorldHitTestTable[slot_index])
-                               ->pEntity->state.animationState)
-                              ->nEncObjStateIdx;
+                    /* The original reads the state word as a near pointer to the actor's aux
+                       record (EncounterAnimScratch's view of it). */
+                    idx = (&g_pWorldHitTestTable[slot_index])
+                              ->pEntity->state.encounterAux->nEncounter_idx;
                     if ((g_pEncounterObjectState[idx].wKind_state & 0xff08) >> 8 == 4)
                         wcursor_loot_corpse(&g_pWorldHitTestTable[slot_index], idx);
                     else

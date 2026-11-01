@@ -17,7 +17,9 @@ s16 sndinst_drivers(s16 sfx_driver, s16 music_driver, u16 p3, char *fileName) {
         my_strcpy(g_szSsmTag + 4, g_apMusicDriverTags[music_driver]);
         if ((g_pMusicDriver = bak_load_chunk(fileName, g_szSsmTag, 0)) != (void far *)0) {
             g_bMusicDriverInstalled = 1;
-            snddrv_patch_farptr((u16)g_pMusicDriver, ((u16 *)&g_pMusicDriver)[1]);
+            /* The chunk's far pointer as two words: natively the halves of the host pointer,
+               which the driver joins again. */
+            snddrv_patch_farptr((u16)(uintptr_t)g_pMusicDriver, ((u16 *)&g_pMusicDriver)[1]);
             if (audio_driver_disp_seg1000_alt(p3, 1) == 0) {
                 g_bMusicDriverInstalled = 0;
                 audio_driver_disp_seg1000_far();
@@ -34,7 +36,7 @@ s16 sndinst_drivers(s16 sfx_driver, s16 music_driver, u16 p3, char *fileName) {
         my_strcpy(g_szSsmTag + 4, g_apSfxDriverTags[sfx_driver]);
         if ((g_pSfxDriver = bak_load_chunk(fileName, g_szSsmTag, 0)) != (void far *)0) {
             g_nSfxResourceId = midi_driver_install_dispatch(
-                (u16)g_pSfxDriver, (u16)((u32)g_pSfxDriver >> 16));
+                (u16)(uintptr_t)g_pSfxDriver, (u16)((uintptr_t)g_pSfxDriver >> 16));
             if (audio_resource_install_by_id(fileName, (s16 *)&g_nSfxResourceId, 0) == 0) {
                 release_buffer(g_pSfxDriver, 1);
                 g_pSfxDriver = (void far *)0;

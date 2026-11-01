@@ -84,8 +84,8 @@ void world_render_scene_dispatch(s16 animate) {
         g_world_camera->base.orientation.yaw = saved_heading;
         if (g_cfgNonRotatingMap) {
             if (g_pMapIconsTable != 0) {
-                ((BlitSpriteFn)blit_sprite)(
-                    (s16)g_pMapIconsTable[((u16)(saved_heading + 0x800)) >> 12],
+                blit_sprite(
+                    (NearPtr)g_pMapIconsTable[((u16)(saved_heading + 0x800)) >> 12],
                     g_world_widget->viewport.x + (g_world_widget->viewport.width >> 1) - 4,
                     g_world_widget->viewport.y + (g_world_widget->viewport.height >> 1) - 3);
             }

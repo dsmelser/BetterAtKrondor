@@ -60,7 +60,7 @@ unsigned char far *g_pSpellDocBlob;
 StatusEffectSlot *g_pStatusEffectPool;
 unsigned char far *g_pSpellScreenBuffer;
 ImageRecord **g_pCastfaceSpriteTable;
-unsigned short *g_pSpellCastableScratch;
+char **g_pSpellCastableScratch;
 short g_nSnowParticleSeedX;
 short g_nSpellFontSlot;
 short g_nCombatTileEffectPending;
@@ -106,7 +106,7 @@ void cspell_subsystem_load(void) {
     f = res_fopen("spells.dat", "rb");
     res_fread(&g_nSpellCount, 2, 1, f);
     g_pSpellDefs = galloc_safe_zcalloc(g_nSpellCount * sizeof(SpellDef));
-    g_pSpellCastableScratch = galloc_safe_zcalloc(g_nSpellCount << 1);
+    g_pSpellCastableScratch = galloc_safe_zcalloc(g_nSpellCount * sizeof(char *));
     records = galloc_safe_zcalloc(g_nSpellCount * SPELL_RECORD_SIZE);
     res_fread(records, SPELL_RECORD_SIZE, g_nSpellCount, f);
     res_fread(&blobLen, 2, 1, f);
@@ -1666,7 +1666,7 @@ s16 far cspell_collect_castable(Combatant *caster, s16 category) {
     while (spell_id < g_nSpellCount) {
         if ((g_pSpellDefs[spell_id].nSchool == category) || (category == -1)) {
             if (cspell_check_castable(spell_id, caster, category) != 0) {
-                g_pSpellCastableScratch[count] = (unsigned short)g_pSpellDefs[spell_id].pName;
+                g_pSpellCastableScratch[count] = g_pSpellDefs[spell_id].pName;
                 count = count + 1;
             }
         }
@@ -1722,8 +1722,9 @@ static void far cspell_menu_toggle_word7_by_id(s16 id, MenuPage *menu) {
 s16 cspell_paged_record_lookup_by_id(s16 slot) {
     s16 i;
 
-    for (i = g_nSpellCount; i > -1; i--) {
-        if ((char *)g_pSpellCastableScratch[slot] == g_pSpellDefs[i].pName) {
+    /* The original starts one past the last spell, as cspell_ai_pick_castable_spell did. */
+    for (i = g_nSpellCount - 1; i > -1; i--) {
+        if (g_pSpellCastableScratch[slot] == g_pSpellDefs[i].pName) {
             break;
         }
     }

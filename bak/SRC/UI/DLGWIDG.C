@@ -27,6 +27,7 @@ Dialog *dlgwidget_dialog_load(char *filename) {
     DialogWidget *widget;
     void *string_table;
     short label_offset;
+    char *label;
     unsigned short widget_count;
     u16 capacity;
     short rect_x;
@@ -65,15 +66,15 @@ Dialog *dlgwidget_dialog_load(char *filename) {
         res_fread(&label_x, 2, 1, file);
         res_fread(&label_y, 2, 1, file);
         res_fread(&has_fill_image, 2, 1, file);
+        /* The original adds the string table's near address to the offset in place. */
         if (label_offset == -1) {
-            label_offset = 0;
+            label = NULL;
         } else {
-            label_offset += (s16)string_table;
+            label = (char *)string_table + (u16)label_offset;
         }
         widget = dlgwidget_create(capacity, rect_x, rect_y, rect_w, bg_color, fg_color,
                                   cursor_color, label_fg, selection_color, has_fill_image);
-        dlgwidget_dialog_add_widget(dialog, widget, (char *)0x0, (char *)label_offset, label_x,
-                                    label_y);
+        dlgwidget_dialog_add_widget(dialog, widget, (char *)0x0, label, label_x, label_y);
     }
     res_fclose(file);
     return dialog;
@@ -100,8 +101,8 @@ void dlgwidget_dialog_destroy_bgs(Dialog *dialog) {
 Dialog *dlgwidget_dialog_create(s16 capacity) {
     Dialog *pDialog;
 
-    pDialog = galloc_safe_zcalloc(8);
-    pDialog->pWidgets = galloc_safe_zcalloc(capacity << 1);
+    pDialog = galloc_safe_zcalloc(sizeof(Dialog));
+    pDialog->pWidgets = galloc_safe_zcalloc(capacity * sizeof(DialogWidget *));
     pDialog->nWidget_capacity = capacity;
     pDialog->nWidget_count = 0;
     pDialog->nFocused_idx = -1;
@@ -321,7 +322,7 @@ DialogWidget *dlgwidget_create(u16 capacity, short rect_x, short rect_y, short r
                                unsigned char selection_color, s16 has_fill_image) {
     DialogWidget *w;
 
-    w = (DialogWidget *)galloc_safe_zcalloc(0x21);
+    w = (DialogWidget *)galloc_safe_zcalloc(sizeof(DialogWidget));
     w->pText_buf = (char *)galloc_safe_zcalloc(capacity);
     w->nCapacity = capacity;
     w->nLength = 0;

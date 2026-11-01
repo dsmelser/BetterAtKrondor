@@ -993,13 +993,13 @@ ZoneHotspot *hotspotevt_next_entry_19byte(s16 mode) {
 }
 
 void hotspotevt_done_reset_all(void) {
-    unsigned short *p;
+    u16 i;
 
-    p = (unsigned short *)0;
-    do {
-        gstate_event_write((u16)(p + 200), 0);
-        p = (unsigned short *)((s16)p + 1);
-    } while (p < (unsigned short *)0x12c0);
+    /* Every zone's 400 hotspot flags. The original counts with a near pointer, whose + 200 is
+       400 bytes on. */
+    for (i = 0; i < 0x12c0; i++) {
+        gstate_event_write(i + 400, 0);
+    }
 }
 
 void far hotspotevt_done_set(void) {

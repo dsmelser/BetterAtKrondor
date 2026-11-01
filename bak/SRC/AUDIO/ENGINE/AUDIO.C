@@ -395,9 +395,12 @@ void audio_play(s16 sound_id) {
     audio_start_by_id(sound_id);
 }
 
+/* Whether the effect's chunk loaded (no caller reads it): the original returns the chunk's
+   near address. */
 s16 audio_sfx_register(ResFile *file, s16 sfx_id) {
-    return ((g_sound_driver != SNDDRV_NONE) && (sfx_id < 1001)) ? (s16)audio_resource_load_chunk(file, sfx_id)
-                                                      : 0;
+    return ((g_sound_driver != SNDDRV_NONE) && (sfx_id < 1001))
+               ? audio_resource_load_chunk(file, sfx_id) != NULL
+               : 0;
 }
 
 s16 audio_sfx_stop(s16 sfx_id) {

@@ -1712,7 +1712,7 @@ static void far combat_arena_view_rstr_disp(s16 param) {
     }
 }
 
-static u16 far combat_arena_pick_target_actor(s16 requires_action_pred) {
+static Combatant *far combat_arena_pick_target_actor(s16 requires_action_pred) {
     unsigned short menuRedraw;
     u16 menuResult;
     s16 done;
@@ -1756,7 +1756,7 @@ static u16 far combat_arena_pick_target_actor(s16 requires_action_pred) {
             done = 1;
         }
     }
-    return (u16)target;
+    return target;
 }
 
 void far combat_arena_resume_dispatch(s16 command_id, s16 *p_spell_result, s16 *out_spell_result) {
@@ -1771,7 +1771,7 @@ void far combat_arena_resume_dispatch(s16 command_id, s16 *p_spell_result, s16 *
         if (g_gameState.nChapter == 8)
             return;
 #endif
-        target = (Combatant *)combat_arena_pick_target_actor(0);
+        target = combat_arena_pick_target_actor(0);
         if (target != 0)
             combat_arena_actor_die(target, 1);
         else
@@ -1781,7 +1781,7 @@ void far combat_arena_resume_dispatch(s16 command_id, s16 *p_spell_result, s16 *
         return;
     case 0x02:
         if (g_game_mode != 2) {
-            target = (Combatant *)combat_arena_pick_target_actor(0);
+            target = combat_arena_pick_target_actor(0);
             if (target != 0)
                 cspell_resolve_cast(g_current_actor, target, 5, -9);
             else
@@ -1791,14 +1791,14 @@ void far combat_arena_resume_dispatch(s16 command_id, s16 *p_spell_result, s16 *
         audio_play(0x13);
         return;
     case 0x04:
-        target = (Combatant *)combat_arena_pick_target_actor(0);
+        target = combat_arena_pick_target_actor(0);
         if (target != 0)
             cspell_resolve_cast(g_current_actor, target, 4, -0x1e);
         else
             return;
         goto shared_tail;
     case 0x0f:
-        target = (Combatant *)combat_arena_pick_target_actor(0);
+        target = combat_arena_pick_target_actor(0);
         if (target == 0)
             return;
         if (RND(100) < 0x1e)
@@ -1821,14 +1821,14 @@ void far combat_arena_resume_dispatch(s16 command_id, s16 *p_spell_result, s16 *
         cspell_summon_monster(0x38, 1);
         goto shared_tail;
     case 0x33:
-        target = (Combatant *)combat_arena_pick_target_actor(1);
+        target = combat_arena_pick_target_actor(1);
         if (target != 0)
             cspell_resolve_cast(g_current_actor, target, 0xd, -0x10);
         else
             return;
         goto shared_tail;
     case 0x32:
-        target = (Combatant *)combat_arena_pick_target_actor(1);
+        target = combat_arena_pick_target_actor(1);
         if (target != 0)
             combatenc_actor_flee_tile_east(target);
         else

@@ -100,8 +100,8 @@ NearPtr bak_load_image_record_chunked(FileRef *fname) {
 
     if (!is_file_cached(fname)) {
         opened = 1;
-        if ((u16)(fname = cached_file_open(fname)) < 0)
-            goto cleanup;
+        /* The original then tests the pointer's offset as unsigned for < 0: never true. */
+        fname = cached_file_open(fname);
     }
     if (iff_chunk_loader_2f1c(fname, &record_count, (NearPtr *)&image)) {
         size =

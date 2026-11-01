@@ -460,7 +460,7 @@ void far encamp_draw_clock_hand(u16 time_in_period) {
             g_pClockHandVertsX[2] = g_pClockHandVertsX[vertIdx + 3];
             g_pClockHandVertsY[2] = g_pClockHandVertsY[vertIdx + 3];
             draw_polygon_textured(3, (s16 *)g_pClockHandVertsX, (s16 *)g_pClockHandVertsY,
-                                  (s16)g_pEncampPaletteRemapLut);
+                                  g_pEncampPaletteRemapLut);
         }
     }
     return;

@@ -147,7 +147,9 @@ void font_unload(register s16 slot) {
         if (*(u32 *)&g_font_glyph_offset_table[slot]) {
             _freemem(((unsigned char far *far *)g_font_glyph_offset_table)[slot]);
         } else {
-            my_free((void *)FP_OFF(g_font_bitmap_data[slot]));
+            /* An uncompressed font's bitmap is a near block: the original frees the far
+               pointer's offset. */
+            my_free((void *)g_font_bitmap_data[slot]);
         }
 
         g_font_format[slot] = 0;

@@ -9,7 +9,7 @@ extern ImageRecord **g_cursor_state;
 extern unsigned char far *g_pPalQueuedForFlip;
 extern short g_nCursorX;
 extern short g_nCursorY;
-extern unsigned short g_nCursorStateSaved;
+extern ImageRecord **g_nCursorStateSaved;
 extern unsigned char far *g_pSavedCursorBuf1;
 extern unsigned char far *g_pSavedCursorBuf2;
 extern CursorState g_cursor_prev_x[2];

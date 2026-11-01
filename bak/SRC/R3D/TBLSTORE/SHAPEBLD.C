@@ -164,7 +164,9 @@ void ts_project_shape(Vec3Long *vtxData, u16 vtxSeg, s16 vtxCount, s16 radiusIn)
 
     maxMag = 0;
 
-    vtxCur = MK_FP(vtxSeg, (u16)vtxData);
+    /* The original builds the far pointer from vtxSeg and vtxData's offset. */
+    (void)vtxSeg;
+    vtxCur = vtxData;
 
     for (i = 0; i < vtxCount; i++, vtxCur++) {
         labX = labs(vtxCur->nX);
@@ -189,7 +191,7 @@ void ts_project_shape(Vec3Long *vtxData, u16 vtxSeg, s16 vtxCount, s16 radiusIn)
 
     g_builder.nSegmentRadius = radiusIn >> (g_builder.builtShape->shift + 1);
 
-    vtxCur = MK_FP(vtxSeg, (u16)vtxData);
+    vtxCur = vtxData;
 
     ts_pack_vertex(&g_builder.aVtx1Packed, vtxCur++);
     ts_pack_vertex(&g_builder.aVtx2Packed, vtxCur++);

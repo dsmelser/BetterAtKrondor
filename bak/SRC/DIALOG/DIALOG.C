@@ -1317,7 +1317,7 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                         break;
                     case 19:
                         combat_actor_bitmap_set_bit(
-                            (s16)&g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
+                            &g_gameState.characters[g_speaker_kinds[(unsigned short)op->nA1 - 2]],
                             op->nA2);
                         break;
                     case 20:

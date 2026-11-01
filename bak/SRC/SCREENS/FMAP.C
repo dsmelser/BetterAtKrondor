@@ -36,7 +36,7 @@ unsigned char far *g_pFmapLabelRectBuf;
 ImageRecord **g_pFmapIconTable = {0};
 unsigned short *g_pFmapTownXCoords = {0};
 unsigned short *g_pFmapTownYCoords = {0};
-unsigned short *g_pFmapTownLabels = {0};
+char **g_pFmapTownLabels = {0};
 
 void far fmap_screen_run(void) {
     s16 curTown;
@@ -157,7 +157,7 @@ void far fmap_screen_run(void) {
             if (drawLabelCounter != 0) {
                 g_graphics_context.bText_style_flags = '\x01';
                 g_graphics_context.bText_fg_color = '\0';
-                font_draw_text_ds((char *)g_pFmapTownLabels[curTown], labelX, labelY);
+                font_draw_text_ds(g_pFmapTownLabels[curTown], labelX, labelY);
                 drawLabelCounter--;
             }
             if (redrawMenuCounter != 0) {
@@ -180,7 +180,7 @@ void far fmap_screen_run(void) {
                         prevLabelX = labelX;
                         prevLabelY = labelY;
                         labelX = (s16)g_pFmapTownXCoords[curTown] + ((short)g_wFmapMapWidth >> 1) -
-                                 (font_text_width_ds((char *)g_pFmapTownLabels[curTown]) >> 1);
+                                 (font_text_width_ds(g_pFmapTownLabels[curTown]) >> 1);
                         labelY = g_pFmapTownYCoords[curTown] - g_wFmapLabelRectH;
                         pasteCounter = 2;
                         needSaveRect = 1;
@@ -190,7 +190,7 @@ void far fmap_screen_run(void) {
                     }
                 } else {
                     labelX = (s16)g_pFmapTownXCoords[curTown] + ((short)g_wFmapMapWidth >> 1) -
-                             (font_text_width_ds((char *)g_pFmapTownLabels[curTown]) >> 1);
+                             (font_text_width_ds(g_pFmapTownLabels[curTown]) >> 1);
                     labelY = g_pFmapTownYCoords[curTown] - g_wFmapLabelRectH;
                     needSaveRect = 1;
                     drawLabelCounter = 2;
@@ -226,7 +226,7 @@ void far fmap_screen_run(void) {
 
 void fmap_twn_load(void) {
     ResFile *file;
-    unsigned short *labelPtr;
+    char **labelPtr;
     s16 i;
     unsigned short *xPtr;
     unsigned short *yPtr;
@@ -240,17 +240,17 @@ void fmap_twn_load(void) {
     res_fread(&g_wFmapHotspotH, 2, 1, file);
     res_fread(&g_wFmapTownCount, 2, 1, file);
     if (g_wFmapTownCount != 0) {
-        g_pFmapTownLabels = labelPtr = galloc_safe_zcalloc(g_wFmapTownCount << 1);
+        g_pFmapTownLabels = labelPtr = galloc_safe_zcalloc(g_wFmapTownCount * sizeof(char *));
         g_pFmapTownXCoords = xPtr = galloc_safe_zcalloc(g_wFmapTownCount << 1);
         g_pFmapTownYCoords = yPtr = galloc_safe_zcalloc(g_wFmapTownCount << 1);
         i = 0;
         while (i < (s16)g_wFmapTownCount) {
             res_fread(&len, 2, 1, file);
-            *labelPtr = (unsigned short)galloc_safe_zcalloc(len);
-            res_fread((void *)*labelPtr, 1, len, file);
+            *labelPtr = galloc_safe_zcalloc(len);
+            res_fread(*labelPtr, 1, len, file);
             res_fread(xPtr, 2, 1, file);
             res_fread(yPtr, 2, 1, file);
-            len = font_text_width_ds((char *)*labelPtr);
+            len = font_text_width_ds(*labelPtr);
             if ((s16)len > (s16)g_wFmapLabelRectW) {
                 g_wFmapLabelRectW = len;
             }
@@ -274,7 +274,7 @@ void fmap_hotspots_unload(void) {
     free_image_record(g_pFmapIconTable);
     _freemem(g_pFmapLabelRectBuf);
     for (i = g_wFmapTownCount - 1; 0 <= i; i--) {
-        galloc_zfree((void *)g_pFmapTownLabels[i]);
+        galloc_zfree(g_pFmapTownLabels[i]);
     }
     galloc_zfree(g_pFmapTownYCoords);
     galloc_zfree(g_pFmapTownXCoords);
