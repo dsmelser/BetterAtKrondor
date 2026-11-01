@@ -317,6 +317,16 @@ void audio_advance(uint64_t nowNs) {
     }
 }
 
+/* ---- the sound card the game drives -------------------------------------------------------- */
+
+int16_t bak_sound_driver(int16_t configured) {
+    /* AUDRESIN.H's SoundDriverId: ADL 2, M32 3, SBP 4 (ADL with the digital ASB), NONE 8. */
+    static const int16_t ids[] = {[DEVICE_SB] = 4, [DEVICE_ADLIB] = 2, [DEVICE_MT32] = 3,
+                                  [DEVICE_NONE] = 8};
+    int device = settings_get_choice(SETTING_AUDIO_DEVICE);
+    return device == DEVICE_GAME ? configured : ids[device];
+}
+
 /* ---- opening and closing ---------------------------------------------------------------- */
 
 static void read_volumes(void) {

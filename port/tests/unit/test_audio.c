@@ -247,3 +247,21 @@ void unit_audio_dump_follows_the_clock(void) {
     UNIT_CHECK(audio_wav_hash() == hash);
     unit_remove_tree(dir);
 }
+
+/* audio.device chooses the sound driver the game installs (AUDRESIN.H's ids), unless it leaves the
+ * choice to RESOURCE.CFG. */
+void unit_audio_device_chooses_the_driver(void) {
+    char why[200];
+    UNIT_CHECK(settings_override("audio.device=sb", why, sizeof why));
+    UNIT_CHECK(bak_sound_driver(3) == 4); /* the MT-32 configured: the Sound Blaster */
+    UNIT_CHECK(settings_override("audio.device=adlib", why, sizeof why));
+    UNIT_CHECK(bak_sound_driver(3) == 2);
+    UNIT_CHECK(settings_override("audio.device=mt32", why, sizeof why));
+    UNIT_CHECK(bak_sound_driver(4) == 3);
+    UNIT_CHECK(settings_override("audio.device=none", why, sizeof why));
+    UNIT_CHECK(bak_sound_driver(3) == 8);
+    UNIT_CHECK(settings_override("audio.device=game", why, sizeof why));
+    UNIT_CHECK(bak_sound_driver(3) == 3 && bak_sound_driver(7) == 7);
+    UNIT_CHECK(!settings_override("audio.device=gm", why, sizeof why));
+    settings_override("audio.device=sb", why, sizeof why);
+}

@@ -113,6 +113,9 @@ uint32_t bak_clock_ms(void);
 /* Smooth steps (WORLDMOV.C): the frames a step or a turn of the party takes, its in-between
  * places drawn on all but the last (video.step_time at the VGA's 70 Hz); below 2, none. */
 int bak_smooth_frames(void);
+/* The sound driver the game installs (a SoundDriverId of AUDRESIN.H): the audio.device setting's,
+ * or for "game" the one RESOURCE.CFG named (configured). */
+int16_t bak_sound_driver(int16_t configured);
 
 /*
  * MSCDEX (INT 2Fh AH=15h, port/platform/cdrom.c): absent unless a CD drive is attached.

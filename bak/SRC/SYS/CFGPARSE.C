@@ -95,6 +95,9 @@ void parse_krondor_cfg(void) {
 #endif
         }
     }
+    /* The port's audio.device chooses the card (the Sound Blaster by default), unless set to
+     * RESOURCE.CFG's. */
+    g_sound_driver = (SoundDriverId)bak_sound_driver((s16)g_sound_driver);
 #ifdef V102CD
     fclose(fp);
     fp = fopen("drive.cfg", "rb");

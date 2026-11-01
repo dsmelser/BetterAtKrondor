@@ -44,6 +44,7 @@
     X(audio_sources_join_and_queue)                                                                \
     X(audio_epoch_follows_the_device_drift)                                                        \
     X(audio_dump_follows_the_clock)                                                                \
+    X(audio_device_chooses_the_driver)                                                             \
     X(cdrom_reads_an_ogg_files_length)                                                             \
     X(cdrom_lays_out_the_disc_from_the_music)                                                      \
     X(cdrom_plays_a_stretch_of_a_track)                                                            \

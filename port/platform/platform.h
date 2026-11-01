@@ -55,11 +55,13 @@ typedef enum SettingId {
     SETTING_AUDIO_VOLUME,           /* [audio] volume, music_volume, effects_volume: 0-100 */
     SETTING_AUDIO_MUSIC_VOLUME,
     SETTING_AUDIO_EFFECTS_VOLUME,
+    SETTING_AUDIO_DEVICE, /* [audio] device: DEVICE_* */
     SETTING_COUNT
 } SettingId;
 enum { SCALING_PIXELART, SCALING_NEAREST, SCALING_LINEAR };
 enum { ASPECT_4_3, ASPECT_SQUARE };
 enum { CURSOR_SYSTEM, CURSOR_GAME };
+enum { DEVICE_SB, DEVICE_ADLIB, DEVICE_MT32, DEVICE_NONE, DEVICE_GAME };
 /* Read <dir>/betterkrondor.ini (none: the defaults), where changes then go. False, with a
  * message, when it exists but cannot be read; then nothing is written back. */
 bool settings_load(const char *dir);

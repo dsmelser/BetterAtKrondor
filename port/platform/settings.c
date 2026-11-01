@@ -37,6 +37,7 @@ typedef struct SettingDef {
 static const char *const s_scalings[] = {"pixelart", "nearest", "linear", NULL};
 static const char *const s_aspects[] = {"4:3", "square", NULL};
 static const char *const s_cursors[] = {"system", "game", NULL};
+static const char *const s_devices[] = {"sb", "adlib", "mt32", "none", "game", NULL};
 
 static const SettingDef s_defs[SETTING_COUNT] = {
     [SETTING_PATHS_DATA] = {"paths", "data", SETTING_TEXT, "",
@@ -97,6 +98,11 @@ static const SettingDef s_defs[SETTING_COUNT] = {
     [SETTING_AUDIO_EFFECTS_VOLUME] = {"audio", "effects_volume", SETTING_INT, "100",
                                       "the synthesizer's and the samples', in percent of that",
                                       .min = 0, .max = 100},
+    [SETTING_AUDIO_DEVICE] = {"audio", "device", SETTING_CHOICE, "sb",
+                              "the sound card the game drives: sb (the Sound Blaster: the AdLib's "
+                              "synthesizer and digital samples), adlib, mt32 (its MIDI goes "
+                              "nowhere yet), none, or game (RESOURCE.CFG's choice)",
+                              .choices = s_devices},
 };
 
 static char *s_values[SETTING_COUNT];

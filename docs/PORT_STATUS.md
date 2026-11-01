@@ -142,6 +142,7 @@ state alone.
 | `controls.wheel_up`, `controls.wheel_down` | the key a notch of the mouse wheel presses (default Up and Down: a step in the world, the map scrolled, the lists moved through) |
 | `controls.pointer_speed` | how fast the gamepad's right stick moves the pointer, in picture pixels a second at full tilt (200) |
 | `audio.volume` | the sound's volume in percent (100) |
+| `audio.device` | the sound card the game drives: `sb` (the default: the Sound Blaster, the AdLib's synthesizer and digital samples), `adlib`, `mt32` (its MIDI goes nowhere yet), `none`, or `game` (RESOURCE.CFG's choice, the GOG copy's MT-32) |
 | `audio.music_volume`, `audio.effects_volume` | the CD music's, and the synthesizer's and the samples', in percent of `audio.volume` (100) |
 
 ## Controls
@@ -440,8 +441,11 @@ the original's offsets: the driver's state and power-on values are the original'
 The MIDI the MT-32 driver sends goes to the emulated MPU-401 and no further yet. The 1.02 release's
 music plays from the CD's tracks (see "The CD's music" below). The Sound Blaster setting's two
 drivers run natively: ADL on the emulated OPL2 (music and effects; its tracks cover all 179 pieces)
-and ASB on the emulated card (the 41 effects that exist only as digital samples). MT-32 music
-through Munt with user-supplied ROMs comes later.
+and ASB on the emulated card (the 41 effects that exist only as digital samples). They are the
+default (`audio.device = sb`, which overrides RESOURCE.CFG's `soundDrv` after the game reads it,
+CFGPARSE.C): with the CD's tracks there and CD music on, as a game without a KRONDOR.CFG starts, the
+music comes from the CD and the effects from the AdLib and the samples. MT-32 music through Munt
+with user-supplied ROMs comes later.
 
 ### The CD's music
 
@@ -767,6 +771,11 @@ detail 3, CD music off unless the scenario wants it), so the game folder's own f
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
 41 s of game time), since decoding and drawing take no game time; the golden scripts still work.
+
+Since the Sound Blaster became the default (2026-11-01) the replays run on it. Every scenario kept
+its states, the world's even their times, and its pictures in their order: only the first came a
+frame later (the drivers' install at start-up); the audio logs' sound now holds the AdLib's music
+and the effects.
 
 The pictures have no cursor since the system cursor became the default (2026-11-01), and the baselines
 were recorded again then: every state log stayed identical, and with `--set video.cursor=game` (the
