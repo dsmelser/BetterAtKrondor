@@ -9,6 +9,7 @@ extern u32 g_dwWorldCrossingCoord;
 extern short g_nWorldStepSpeed;
 extern short g_nWorldGridStride;
 extern s32 g_lWorldTimePerStep;
+extern s16 g_nWorldSmoothFrame;
 
 extern void worldmove_dat_load(void);
 extern void worldmove_combat_zone_snap_pos(void);

@@ -24,6 +24,7 @@
 #include "SRC/GAME/ENC/RGNENC.H"
 #include "SRC/GAME/ENC/WORLDDOR.H"
 #include "SRC/R3D/ACTOR/ACTOROVL.H"
+#include "SRC/GAME/WORLD/WORLDMOV.H"
 #include "r3d.h"
 #include <dos.h>
 
@@ -54,6 +55,9 @@ void worldframe_enc_rec_prox(unsigned char *record, s16 direction) {
     s16 i;
     s16 found;
 
+    if (g_nWorldSmoothFrame != 0) {
+        return; /* a smoothed step's in-between frame: a picture only */
+    }
     for (i = found = 0; i < 0x28; i++) {
         if ((record[0] == g_pEncounterTable->xCoord[i]) &&
             (record[1] == g_pEncounterTable->yCoord[i]) &&

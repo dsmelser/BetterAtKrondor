@@ -7,6 +7,7 @@
 #include "unit.h"
 
 #include "../../platform/platform.h"
+#include "bak_port.h"
 
 #ifdef _WIN32
 #define EOL "\r\n" /* a new file's line breaks */
@@ -207,4 +208,19 @@ void unit_settings_held_are_written_once(void) {
     SDL_free(path);
     settings_load_text("", 0);
     unit_remove_tree(dir);
+}
+
+/* Smooth steps last video.step_time, in frames of the VGA's 70 Hz (14.268 ms), rounded. */
+void unit_settings_step_time_in_frames(void) {
+    char why[200];
+    UNIT_CHECK(settings_override("video.step_time=100", why, sizeof why));
+    UNIT_CHECK(bak_smooth_frames() == 7);
+    UNIT_CHECK(settings_override("video.step_time=50", why, sizeof why));
+    UNIT_CHECK(bak_smooth_frames() == 4);
+    UNIT_CHECK(settings_override("video.step_time=0", why, sizeof why));
+    UNIT_CHECK(bak_smooth_frames() == 0);
+    UNIT_CHECK(settings_override("video.step_time=1000", why, sizeof why));
+    UNIT_CHECK(bak_smooth_frames() == 70);
+    UNIT_CHECK(!settings_override("video.step_time=1001", why, sizeof why));
+    settings_override("video.step_time=100", why, sizeof why);
 }

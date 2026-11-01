@@ -21,6 +21,7 @@
     X(settings_read_their_types)                                                                   \
     X(settings_refuse_what_their_types_do_not_take)                                                \
     X(settings_held_are_written_once)                                                              \
+    X(settings_step_time_in_frames)                                                                \
     X(folders_know_the_game_by_its_resources)                                                      \
     X(folders_remember_the_game_folder)                                                            \
     X(folders_copy_the_dos_saves_once)                                                             \

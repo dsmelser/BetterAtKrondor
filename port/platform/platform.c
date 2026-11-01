@@ -47,6 +47,7 @@ static void invalid_parameter(const wchar_t *expr, const wchar_t *func, const wc
     (void)file;
     (void)line;
     (void)reserved;
+    crash_print_stack(); /* where the game made the call */
     platform_report_error("The C runtime rejected a call from the game code (most likely a "
                           "game file is missing, e.g. drive.cfg or resource.cfg).");
     exit(4);

@@ -110,6 +110,9 @@ void bak_input_hold_start(void);
 _Bool bak_input_hold_step(void);
 /* The platform's clock in ms, for a hold the game times itself; it polls. */
 uint32_t bak_clock_ms(void);
+/* Smooth steps (WORLDMOV.C): the frames a step or a turn of the party takes, its in-between
+ * places drawn on all but the last (video.step_time at the VGA's 70 Hz); below 2, none. */
+int bak_smooth_frames(void);
 
 /*
  * MSCDEX (INT 2Fh AH=15h, port/platform/cdrom.c): absent unless a CD drive is attached.

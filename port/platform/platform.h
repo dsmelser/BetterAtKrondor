@@ -37,6 +37,7 @@ typedef enum SettingId {
     SETTING_VIDEO_INTEGER,    /* [video] integer: whole multiples only */
     SETTING_VIDEO_ASPECT,     /* [video] aspect: ASPECT_* */
     SETTING_VIDEO_CURSOR,     /* [video] cursor: CURSOR_* */
+    SETTING_VIDEO_STEP_TIME,  /* [video] step_time: ms a step or turn of the party takes */
     SETTING_WINDOW_WIDTH,     /* [window] width, height, x, y (optional), maximized */
     SETTING_WINDOW_HEIGHT,
     SETTING_WINDOW_X,

@@ -54,6 +54,10 @@ static const SettingDef s_defs[SETTING_COUNT] = {
                               "the mouse cursor: the system's, moving smoothly, or drawn into "
                               "the picture by the game as the original did",
                               .choices = s_cursors},
+    [SETTING_VIDEO_STEP_TIME] = {"video", "step_time", SETTING_INT, "100",
+                                 "ms a step or turn of the party takes, drawn smoothly (0: at "
+                                 "once, as the original)",
+                                 .min = 0, .max = 1000},
     [SETTING_WINDOW_WIDTH] = {"window", "width", SETTING_INT, "960", "the window's width",
                               .min = 320, .max = 16384},
     [SETTING_WINDOW_HEIGHT] = {"window", "height", SETTING_INT, "720", "the window's height",

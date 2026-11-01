@@ -58,11 +58,22 @@ def world_then(steps: str, quit_ms: int) -> str:
 SCENARIOS = {name: s.port_input for name, s in GOLDEN.items()}
 # Scenarios that must play out as another does, so they are checked against its baseline.
 SAME_AS: dict[str, str] = {}
+# Scenarios that must leave the game in the same states as another, in the same order, though at
+# other moments and with other pictures (the presentation changed): only their state logs are
+# compared with its baseline, the times set aside.
+SAME_STATES_AS: dict[str, str] = {}
+# Settings a scenario runs with (as --set), besides the command line's.
+SCENARIO_SETS: dict[str, list[str]] = {}
 # Up steps forward, Left and Right turn: three steps along the road, a turn, a step, two turns
 # back, a step.
 WALK = ("90000:key:Up;91000:key:Up;92000:key:Up;93000:key:Left;94000:key:Up;"
         "95000:key:Right;96000:key:Right;97000:key:Up;")
 SCENARIOS["walk"] = world_then(WALK, 100000)
+# The walk with the party's steps and turns at once, as the original drew them: smooth steps are
+# a picture only, so the game goes through the same states.
+SCENARIOS["walk-instant"] = SCENARIOS["walk"]
+SCENARIO_SETS["walk-instant"] = ["video.step_time=0"]
+SAME_STATES_AS["walk-instant"] = "walk"
 # The same walk on W, A and D, which the port binds to the arrows where the party moves.
 SCENARIOS["walk-wasd"] = world_then(
     WALK.replace(":Up;", ":W;").replace(":Left;", ":A;").replace(":Right;", ":D;"), 100000)
@@ -102,16 +113,16 @@ SCENARIOS["teleport"] = world_then("90000:teleport:1,10,14,28,12,8000;", 93000)
 # the right Shift and an Alt shows the Moredhel lock vision, whose dialog waits for a sound to
 # end, then the chest's word lock (CIPHER.C): Space through its dialogs, the first dial turned
 # (a click), Exit (a click) and Space through the two dialogs after it, back on the map.
+SCENARIOS["riddle"] = world_then(
+    "90000:key:M;92000:key:Right Shift,3000;92100:key:Left Alt,2900;92200:key:`,1000;"
+    "96000:key:Space;100000:key:Space;104000:key:Space;106000:click:136,93;"
+    "108000:click:268,176;111000:key:Space;114000:key:Space;", 117000)
 # The world's script with the CD's music on (the GOG copy's music\bakNN.ogg): the intro's, the
 # book's, the cutscene's and the world's tracks.
 SCENARIOS["music"] = SCENARIOS["world"]
 # The main menu's track (16, CD.DAT's 44.6 s of it) played out, and the silence after.
 SCENARIOS["music-menu"] = "6000:key:Escape;60000:quit"
 SCENARIO_PREFS = {"music": PREFS_CD_MUSIC, "music-menu": PREFS_CD_MUSIC}
-SCENARIOS["riddle"] = world_then(
-    "90000:key:M;92000:key:Right Shift,3000;92100:key:Left Alt,2900;92200:key:`,1000;"
-    "96000:key:Space;100000:key:Space;104000:key:Space;106000:click:136,93;"
-    "108000:click:268,176;111000:key:Space;114000:key:Space;", 117000)
 
 
 def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> None:
@@ -129,7 +140,7 @@ def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> Non
                BAK_STATE_LOG=str(out / "state.log"), BAK_AUDIO_LOG=str(out / "audio.log"),
                BAK_DUMP_AUDIO=str(out / "audio.wav"), BAK_DUMP_FRAME=str(out / "last.bmp"))
     start = time.monotonic()
-    settings = [arg for pair in sets for arg in ("--set", pair)]
+    settings = [arg for pair in SCENARIO_SETS.get(scenario, []) + sets for arg in ("--set", pair)]
     r = subprocess.run([str(exe), "--data", str(data), "--user", str(user), *settings], env=env,
                        capture_output=True, text=True, timeout=900, check=False)
     seconds = time.monotonic() - start
@@ -149,9 +160,14 @@ def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> Non
         print(f"  last frame {'equals' if same else 'differs from'} the golden capture {golden}")
 
 
-def compare(baseline: Path, current: Path, what: str) -> bool:
+def compare(baseline: Path, current: Path, what: str, untimed: bool = False) -> bool:
+    """Whether two logs hold the same lines; untimed: each line's first field (its time) set
+    aside."""
     a = baseline.read_text(encoding="utf-8").splitlines() if baseline.exists() else []
     b = current.read_text(encoding="utf-8").splitlines() if current.exists() else []
+    if untimed:
+        a = [line.split(" ", 1)[1] for line in a]
+        b = [line.split(" ", 1)[1] for line in b]
     for i, (x, y) in enumerate(zip(a, b)):
         if x != y:
             print(f"  {what}: line {i + 1} differs\n    baseline: {x}\n    this run: {y}")
@@ -177,7 +193,7 @@ def main() -> int:
     args = ap.parse_args()
 
     out = OUT_DIR / args.scenario
-    base = OUT_DIR / SAME_AS.get(args.scenario, args.scenario)
+    base = OUT_DIR / SAME_AS.get(args.scenario, SAME_STATES_AS.get(args.scenario, args.scenario))
     if args.cmd == "record" and base != out:
         print(f"{args.scenario} is checked against {base.name}'s baseline: record that one")
         return 2
@@ -190,6 +206,9 @@ def main() -> int:
         return 0
     if base != out:
         print(f"  against {base.name}'s baseline")
+    if args.scenario in SAME_STATES_AS:
+        ok = compare(base / "baseline-state.log", out / "state.log", "states", untimed=True)
+        return 0 if ok else 1
     ok = [compare(base / f"baseline-{name}.log", out / f"{name}.log", f"{name} log") for name in LOGS]
     return 0 if all(ok) else 1
 

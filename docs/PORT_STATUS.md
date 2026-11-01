@@ -119,6 +119,7 @@ checks the native fields against the original's offsets and the round trip.
 | `video.integer` | scale by whole multiples only |
 | `video.aspect` | `4:3` (the default: the picture stretched as a VGA monitor showed it) or `square` pixels |
 | `video.cursor` | `system` (the default: the system's pointer wearing the game's cursor, moving at the display's rate) or `game` (drawn into the picture by the game, as the original did; the DOSBox goldens use it) |
+| `video.step_time` | ms a step or turn of the party takes, drawn smoothly (100; 0: at once, as the original) |
 | `window.width`, `window.height`, `window.x`, `window.y`, `window.maximized` | the window as it was when it closed; a place no display shows is dropped for the centre |
 | `controls.forward`, `controls.back`, `controls.left`, `controls.right` | keys that act as Up, Down, Left and Right where the party moves (default W, S, A, D; empty for none), named as SDL names keys (`Keypad 8`, `Space`) |
 | `controls.repeat_delay`, `controls.repeat_rate` | a held movement key repeats after 250 ms, 10 steps a second |
@@ -155,6 +156,17 @@ delay. The original waited 90 timer ticks (about 0.38 s at the game's 237 Hz) on
 `g_nFrameTickCountdown`, then stepped on every pass of its loop, as fast as the machine drew the view:
 natively 46 steps in the 1.45 s the `hold-button` replay holds the button, against 12 now (and 13 in
 `hold-key`, which holds W as long: its press steps at once).
+
+**Smooth steps.** A step or a turn of the party in the 3-D view takes `video.step_time` (100 ms: 7
+frames of the VGA's 70 Hz): the frames between the place and heading before it and after it are
+drawn as the game's own automatic turns at crossings are (`world_render_scene_dispatch(0)`, nothing
+animated, the compass; WORLDMOV.C's `worldmove_smooth_from`), and the camera then stands where the
+step put it. The original jumped a whole step (400 units) or turn (400h) at once. The in-between
+places are a picture only: the game's state is that of the step's end, the ground's pattern keeps
+its offset until the step's last frame, and the labyrinths' record of what is near the party
+(`worldframe_enc_rec_prox`) is left alone meanwhile. (No replay walks a labyrinth yet: their walls
+are Gouraud-shaded, and GOURAUD.ASM is not translated.) The map's view does not smooth. Held
+movement steps at the keys' rate as long as a step takes no longer than the repeat's period.
 
 The map's hidden riddle-chest test (the grave key held with the right Shift and an Alt down, MAP.C)
 waits for half a second of holding on the platform's clock (`bak_clock_ms`). The original counted
@@ -238,6 +250,7 @@ at the `upstream-snapshot` tag.
 | `SCREENS/PICKLOCK.C`, `PICKLOCK.H` | the lockpick screen's copy of the party's inventory is one buffer, its record and item slots; the original copies it over two locals (below) |
 | `R3D/ACTOR/ACTRENDR.C`, `GAME/ACTOR/ACTORREC.C`, `UI/UIWIDGET.C`, `STREAM/RESLOAD/FONTLOAD.C` | pointers step by pointer arithmetic where the original adds to the far pointer's offset word: a mesh part's polygon variant, an actor record's subrecords, a glyph's rows. Natively that word is the address's low half, whose carry would be lost. FONTLOAD.C's own `FP_OFF`, the same word, is gone |
 | `SCRIPT/ANIMSCR.C`, `ANIMSCR.H`, `SCREENS/TOWNSCN.C` | the animation scripts' last condition result and a town scene's chapter are variables of their own; the original keeps them in the two words of `g_anim_slots[1]` (below) |
+| `GAME/WORLD/WORLDMOV.C`, `WORLDMOV.H`, `R3D/SCENE/WORLDFRM.C` | smooth steps: a step's or turn's in-between frames (`worldmove_smooth_from`, as many as `bak_smooth_frames` gives), during which the labyrinths' record of what is near the party is left alone (see "Controls") |
 | `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
 
 ## Changes from the original
@@ -689,6 +702,7 @@ detail 3, CD music off unless the scenario wants it), so the game folder's own f
 |---|---|
 | `main-menu`, `book`, `world` (the golden scenarios' scripts) | ✅ two runs give identical logs; each ends on its golden capture. The world tour takes about 19 s, against 90 s on the host's clock, because computing costs no game time |
 | `walk`: the world, then three steps, a turn left, a step, two turns right, a step | ✅ identical logs; the state log shows each 400-unit step and each 1024-unit turn |
+| `walk-instant`: the walk with `video.step_time=0`, compared with `walk`'s states alone (times set aside) | ✅ the same states: smooth steps are a picture only. When they came (2026-11-01) every scenario kept its states, times aside; in `hold-key` and `hold-button` the held key's next press waits during a step's frames, so the pass after a step takes the next one too, and the state between them (the step's time added) is no longer logged: their states are an ordered part of the earlier ones, the same steps to the same end |
 | `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state at 128 s. Since the fixes of the AI's healing, Owyn takes the Gift of Sung action on his turns and reaches the healer's choice three times (lowest ally health 55, rolls 77, 11 and 36: Gift of Sung once), but Locklear, whom the assassin attacks, keeps all his health: nothing is cast and the logs are unchanged |
 | `spawns`: the world, then a teleport into zone 4 (tile 10,14) among the sixteen stones chapter 1 spawns there, and a full turn about | ✅ identical logs, the ASan build's too; the stones live in the visible pool, past the zone pool's first 64 KB natively, and did not show before the visible list held pointers |
 | `riddle`: the world, then the map (M) and its hidden riddle chest: the grave key held with the right Shift and the left Alt shows the Moredhel lock vision, whose dialog plays a sound and waits for its end, then the chest's word lock: its dialogs, the first dial turned, Exit, the two dialogs after it, back on the map | ✅ identical logs, the ASan build's too. Before the waits for a sound polled, the run stopped at the vision: the sound never ended |

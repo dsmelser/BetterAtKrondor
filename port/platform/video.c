@@ -418,3 +418,11 @@ void video_present(void) {
     }
     video_flush();
 }
+
+/* Smooth steps (WORLDMOV.C): video.step_time in frames of the VGA's 70 Hz, rounded. */
+int bak_smooth_frames(void) {
+    const uint64_t frameNs = 14268000; /* vgaregs.c's FRAME_NS */
+    int ms = 0;
+    settings_get_int(SETTING_VIDEO_STEP_TIME, &ms);
+    return (int)(((uint64_t)ms * 1000000u + frameNs / 2) / frameNs);
+}

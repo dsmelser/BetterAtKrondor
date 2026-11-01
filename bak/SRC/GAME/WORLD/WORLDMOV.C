@@ -84,6 +84,48 @@ void worldmove_rgn_chap_trans_apply(void) {
     }
 }
 
+/* Nonzero while one of a smoothed step's in-between frames is drawn: a picture only, so the
+ * labyrinths' record of what is near is left alone (PROXSCAN.C). */
+s16 g_nWorldSmoothFrame;
+
+/* The port's smooth steps: the frames between the camera's place and heading before a step or
+ * turn and where it is now, drawn as the automatic turns' are (nothing animated; the compass),
+ * as many as the port's settings give (bak_smooth_frames). The camera ends where it is, and the
+ * game's state is left as it is: the in-between places are a picture only. Not on the map. */
+static void worldmove_smooth_from(const WorldPos *from, s16 fromYaw) {
+    WorldPos to;
+    s16 toYaw;
+    s16 turn;
+    s16 frames;
+    s16 k;
+
+    frames = (s16)bak_smooth_frames();
+    if (g_full_redraw_needed != 0 || frames < 2) {
+        return;
+    }
+    to = g_world_camera->base.pos;
+    toYaw = g_world_camera->base.orientation.yaw;
+    turn = (s16)(toYaw - fromYaw);
+    for (k = 1; k < frames; k++) {
+        g_world_camera->base.pos.xy.nWorld_x =
+            from->xy.nWorld_x + (to.xy.nWorld_x - from->xy.nWorld_x) * k / frames;
+        g_world_camera->base.pos.xy.nWorld_y =
+            from->xy.nWorld_y + (to.xy.nWorld_y - from->xy.nWorld_y) * k / frames;
+        g_world_camera->base.pos.nWorld_z =
+            from->nWorld_z + (to.nWorld_z - from->nWorld_z) * k / frames;
+        g_world_camera->base.orientation.yaw = (s16)(fromYaw + (s32)turn * k / frames);
+        g_nWorldSmoothFrame = 1;
+        g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
+            g_graphics_context.wVgaPage2Base;
+        world_render_scene_dispatch(0);
+        uiwidget_compass_draw();
+        screen_frame_present();
+        g_nWorldSmoothFrame = 0;
+    }
+    g_world_camera->base.pos = to;
+    g_world_camera->base.orientation.yaw = toYaw;
+}
+
 s16 far worldmove_party_attempt_move(s16 mode) {
     s16 out_target;
     unsigned short saved_crossing_kind;
@@ -124,6 +166,7 @@ s16 far worldmove_party_attempt_move(s16 mode) {
     }
     czone_resync_on_world_move();
     if (hotspotevt_activate_at_player() != 0) {
+        worldmove_smooth_from(&pos_save, g_world_camera->base.orientation.yaw);
         if ((out_dir == 2) || (out_dir == 3)) {
             worldmove_animate_hdg_tgt(out_dir, out_target);
         }
@@ -154,7 +197,13 @@ L_fail:
 }
 
 void worldmove_apply_turn_step(short direction) {
+    WorldPos pos;
+    s16 yaw;
+
+    pos = g_world_camera->base.pos;
+    yaw = g_world_camera->base.orientation.yaw;
     worldmove_heading_step(&g_world_camera->base.orientation.yaw, g_nWorldGridStride, direction);
+    worldmove_smooth_from(&pos, yaw);
     g_nWorldRenderJitter = RND2_FX(0x10);
 }
 
