@@ -108,6 +108,8 @@ void bak_input_page_polled(int16_t kind);
  * the hold, then ask on each pass whether a step is due, as for a held movement key. */
 void bak_input_hold_start(void);
 _Bool bak_input_hold_step(void);
+/* The platform's clock in ms, for a hold the game times itself; it polls. */
+uint32_t bak_clock_ms(void);
 
 /*
  * MSCDEX (INT 2Fh AH=15h, port/platform/cdrom.c): absent unless a CD drive is attached.

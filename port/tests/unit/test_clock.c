@@ -64,3 +64,11 @@ void unit_clock_retrace_wait_runs_the_ticks_due(void) {
     UNIT_CHECK(s_ticks == (end - start) / tick);
     UNIT_CHECK(s_ticks == 3);
 }
+
+/* The game times a hold on the platform's clock (MAP.C): ms, polling as it reads. */
+void unit_clock_ms_for_the_game(void) {
+    clock_use_virtual(5000000000ull);
+    UNIT_CHECK(bak_clock_ms() == 5000);
+    clock_spend(1234000000ull);
+    UNIT_CHECK(bak_clock_ms() == 6234);
+}

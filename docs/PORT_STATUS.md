@@ -143,6 +143,12 @@ delay. The original waited 90 timer ticks (about 0.38 s at the game's 237 Hz) on
 natively 46 steps in the 1.45 s the `hold-button` replay holds the button, against 12 now (and 13 in
 `hold-key`, which holds W as long: its press steps at once).
 
+The map's hidden riddle-chest test (the grave key held with the right Shift and an Alt down, MAP.C)
+waits for half a second of holding on the platform's clock (`bak_clock_ms`). The original counted
+500,000 polls of the key, which lasted about that long on a 386 and natively as long as the host's
+polls. Scripted, a 0.3 s hold does nothing and a 1 s hold shows the Moredhel lock vision after 0.5 s;
+the chest screen after it then stops drawing and polling (not yet investigated).
+
 ## Where the game sources depart from the original
 
 The table lists where the game's code departs from the reconstruction. Until 2026-10-31 each site was an

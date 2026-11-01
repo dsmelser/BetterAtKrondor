@@ -13,6 +13,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "bak_port.h"
 #include "platform.h"
 
 static bool s_checked;
@@ -41,6 +42,11 @@ void clock_use_virtual(uint64_t nowNs) {
 
 uint64_t clock_now_ns(void) {
     return clock_is_virtual() ? s_virtualNs : SDL_GetTicksNS();
+}
+
+uint32_t bak_clock_ms(void) {
+    bak_poll(); /* a wait on it lets time pass */
+    return (uint32_t)(clock_now_ns() / 1000000u);
 }
 
 void clock_spend(uint64_t ns) {

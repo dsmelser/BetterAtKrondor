@@ -425,14 +425,15 @@ void far map_main_loop(void) {
             case 0x29:
                 if ((key_is_down(0x2a) == 0) && (key_is_down(0x36) != 0) &&
                     (key_is_down(0x1d) == 0) && (key_is_down(0x38) != 0)) {
-                    s32 spin = 500000;
-                    do {
-                        if (key_is_down(0x29) == 0) {
+                    /* The key held for half a second. The original counted 500,000 polls of
+                     * it, a time that went with the machine's speed (about that long on a
+                     * 386); natively they took as long as the host's polls. */
+                    u32 start = bak_clock_ms();
+                    while (key_is_down(0x29) != 0) {
+                        if (bak_clock_ms() - start >= 500) {
+                            townscene_chest_open_with_cipher();
                             break;
                         }
-                    } while (--spin > 0);
-                    if (spin <= 0) {
-                        townscene_chest_open_with_cipher();
                     }
                 }
                 break;
