@@ -10,7 +10,8 @@ mutants.py is a Python file defining
     MUTANTS  a list of (old, new) pairs; each old must occur exactly once in FILE
 
 For each mutant the script writes the change, rebuilds bak_difftest or bak_unittest (Windows:
-port/tools/win-build.cmd), runs the tests (pytest with -x) and reports "killed" or "SURVIVED".
+port/tools/win-build.cmd), runs the tests (pytest with -x) and reports "killed" or "SURVIVED"; tests
+that run past TIMEOUT count as killed (a mutant that makes the code loop).
 The file is restored and the runner rebuilt at the end, also on errors and Ctrl+C. A survivor is
 either a gap in the test (add the case that tells) or an equivalent mutant (say why in the commit
 or the test's comments). Don't run it while another build uses the same build directory.
@@ -24,6 +25,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
+TIMEOUT = 600  # seconds the tests may take for a mutant before it counts as killed (a hang)
 
 
 def build(target: str) -> bool:
@@ -39,15 +41,16 @@ def build(target: str) -> bool:
 
 
 def tests_pass(tests: list[str] | str) -> bool:
+    """Whether the tests pass; a run that outlasts TIMEOUT (a mutant that loops) fails."""
     if tests == "unit":
-        unit = REPO / "build" / "win-x86-clangcl" / "bak_unittest.exe"
-        return subprocess.run([unit], cwd=REPO, capture_output=True).returncode == 0
-    r = subprocess.run(
-        ["uv", "run", "--group", "difftest", "pytest", "-q", "-x", *tests],
-        cwd=REPO,
-        capture_output=True,
-        text=True,
-    )
+        cmd = [str(REPO / "build" / "win-x86-clangcl" / "bak_unittest.exe")]
+    else:
+        cmd = ["uv", "run", "--group", "difftest", "pytest", "-q", "-x", *tests]
+    try:
+        r = subprocess.run(cmd, cwd=REPO, capture_output=True, timeout=TIMEOUT)
+    except subprocess.TimeoutExpired:
+        print(f"    (the tests ran past {TIMEOUT} s)", flush=True)
+        return False
     return r.returncode == 0
 
 
