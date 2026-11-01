@@ -139,3 +139,20 @@ void unit_input_bindings_come_from_the_settings(void) {
     UNIT_CHECK(sent((const uint8_t[]){0xE0, 0x48}, 2));
     finish();
 }
+
+/* The world's and the map's arrow buttons held with the mouse step as a held key repeats. */
+void unit_input_held_buttons_step_at_the_keys_rate(void) {
+    start(BAK_PAGE_WORLD);
+    bak_input_hold_start();
+    UNIT_CHECK(!bak_input_hold_step());
+    clock_spend(249 * MS);
+    UNIT_CHECK(!bak_input_hold_step());
+    clock_spend(1 * MS);
+    UNIT_CHECK(bak_input_hold_step());
+    UNIT_CHECK(!bak_input_hold_step()); /* just stepped */
+    clock_spend(99 * MS);
+    UNIT_CHECK(!bak_input_hold_step());
+    clock_spend(1 * MS);
+    UNIT_CHECK(bak_input_hold_step());
+    finish();
+}

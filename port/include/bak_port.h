@@ -104,6 +104,10 @@ _Bool bak_cursor_system(const struct ImageRecord *image, int16_t hotX, int16_t h
  */
 enum { BAK_PAGE_OTHER, BAK_PAGE_WORLD, BAK_PAGE_MAP };
 void bak_input_page_polled(int16_t kind);
+/* A movement button held down with the mouse (the world's and the map's arrows): start timing
+ * the hold, then ask on each pass whether a step is due, as for a held movement key. */
+void bak_input_hold_start(void);
+_Bool bak_input_hold_step(void);
 
 /*
  * MSCDEX (INT 2Fh AH=15h, port/platform/cdrom.c): absent unless a CD drive is attached.

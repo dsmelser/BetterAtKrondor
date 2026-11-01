@@ -30,7 +30,8 @@
     X(input_letters_stay_letters_off_the_world)                                                    \
     X(input_wasd_moves_the_party)                                                                  \
     X(input_arrows_repeat_on_the_clock)                                                            \
-    X(input_bindings_come_from_the_settings)
+    X(input_bindings_come_from_the_settings)                                                       \
+    X(input_held_buttons_step_at_the_keys_rate)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

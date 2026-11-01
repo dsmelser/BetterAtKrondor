@@ -258,10 +258,12 @@ void far map_main_loop(void) {
                     case 0x4d:
                     case 0x50:
                     case 0x51:
+                        /* Held with the mouse: scrolls at the port's rate for held movement
+                         * keys. The original waited 90 ticks, then scrolled every pass. */
                         if (!key_repeat_armed) {
                             key_repeat_armed = 1;
-                            g_nFrameTickCountdown = 0x5a;
-                        } else if (g_nFrameTickCountdown == 0) {
+                            bak_input_hold_start();
+                        } else if (bak_input_hold_step()) {
                             action_id = focused_entry->wAction_id;
                             redraw_menu = 1;
                         }

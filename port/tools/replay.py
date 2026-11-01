@@ -56,6 +56,11 @@ SCENARIOS["walk"] = world_then(WALK, 100000)
 SCENARIOS["walk-wasd"] = world_then(
     WALK.replace(":Up;", ":W;").replace(":Left;", ":A;").replace(":Right;", ":D;"), 100000)
 SAME_AS["walk-wasd"] = "walk"
+# Movement held: W for 1.45 s, which steps on its press and then repeats on the clock; and the
+# view's Up button held with the mouse as long, which steps at the same rate once the delay is
+# over (REQ_MAIN.DAT's entry for 48h is 151,113, 32x8).
+SCENARIOS["hold-key"] = world_then("90000:key:W,1450;", 93000)
+SCENARIOS["hold-button"] = world_then("90000:hold:167,117,1450;", 93000)
 # Chapter 1's first fight (DEF_COMB record 0, the box of cells 24-33 x 4-10 of zone 1's tile
 # 10,14): the party is teleported two cells north of it, facing 8400h, turns south, steps in
 # with Space for the dialog's pages, and A plays the fight out (auto-combat). Then two steps

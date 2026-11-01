@@ -230,11 +230,13 @@ short far world3d_main_loop(void) {
                     case 0x4b:
                     case 0x4d:
                     case 0x50:
+                        /* Held with the mouse: steps at the port's rate for held movement
+                         * keys. The original waited 90 ticks, then stepped every pass. */
                         if (key_repeat_armed == 0) {
                             key_repeat_armed = 1;
-                            g_nFrameTickCountdown = 0x5a;
+                            bak_input_hold_start();
                         } else {
-                            if (g_nFrameTickCountdown == 0) {
+                            if (bak_input_hold_step()) {
                                 action_id = focused_entry->wAction_id;
                                 redraw_menu = 1;
                                 goto after_scan1;

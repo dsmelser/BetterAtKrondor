@@ -86,20 +86,42 @@ void input_handle_key(const SDL_Event *e) {
     keyboard_send(h->sends, true);
 }
 
-void input_poll(void) {
-    if (!party_moves())
-        return;
+/* Whether a hold that began at since, last acted on at last, is due again: after the delay, then
+ * at the rate (controls.repeat_delay, repeat_rate). */
+static bool repeat_due(uint64_t now, uint64_t since, uint64_t last) {
     int delayMs = 250, rate = 10;
     settings_get_int(SETTING_CONTROLS_REPEAT_DELAY, &delayMs);
     settings_get_int(SETTING_CONTROLS_REPEAT_RATE, &rate);
+    return now - since >= (uint64_t)delayMs * 1000000u &&
+           now - last >= 1000000000u / (uint64_t)rate;
+}
+
+void input_poll(void) {
+    if (!party_moves())
+        return;
     uint64_t now = clock_now_ns();
-    uint64_t delay = (uint64_t)delayMs * 1000000u, every = 1000000000u / (uint64_t)rate;
     for (int k = 0; k < SDL_SCANCODE_COUNT; k++) {
         Held *h = &s_held[k];
-        if (!h->down || !is_movement(h->sends) || now - h->sinceNs < delay ||
-            now - h->lastNs < every || !keyboard_buffer_empty())
+        if (!h->down || !is_movement(h->sends) || !repeat_due(now, h->sinceNs, h->lastNs) ||
+            !keyboard_buffer_empty())
             continue;
         keyboard_send(h->sends, true);
         h->lastNs = now;
     }
+}
+
+/* The world's and the map's arrow buttons held down: the original stepped on every pass of its
+ * loop after a 90-tick wait, as fast as the machine drew the view; now at the keys' rate. */
+static uint64_t s_holdSinceNs, s_holdLastNs;
+
+void bak_input_hold_start(void) {
+    s_holdSinceNs = s_holdLastNs = clock_now_ns();
+}
+
+_Bool bak_input_hold_step(void) {
+    uint64_t now = clock_now_ns();
+    if (!repeat_due(now, s_holdSinceNs, s_holdLastNs))
+        return false;
+    s_holdLastNs = now;
+    return true;
 }

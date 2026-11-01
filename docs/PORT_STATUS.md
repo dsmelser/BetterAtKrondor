@@ -136,6 +136,13 @@ repeats of it are left out (their rate is the system's setting). Elsewhere keys 
 repeats them. The `walk-wasd` replay plays the `walk` on W, A and D and is checked against `walk`'s
 baseline: both logs are identical.
 
+The world's and the map's arrow buttons held down with the mouse step at the same rate
+(`bak_input_hold_start`, `bak_input_hold_step`, from WORLDLP.C and MAP.C), the first after the same
+delay. The original waited 90 timer ticks (about 0.38 s at the game's 237 Hz) on the shared
+`g_nFrameTickCountdown`, then stepped on every pass of its loop, as fast as the machine drew the view:
+natively 46 steps in the 1.45 s the `hold-button` replay holds the button, against 12 now (and 13 in
+`hold-key`, which holds W as long: its press steps at once).
+
 ## Where the game sources depart from the original
 
 The table lists where the game's code departs from the reconstruction. Until 2026-10-31 each site was an
@@ -648,7 +655,7 @@ tool passes `--set` on to the port) all seven frame logs matched the earlier bas
 | Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
 | BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |
 | MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless a drive is attached; drive check, IOCTL audio-track info, play, stop. Playing the GOG release's OGG tracks comes with the audio work |
-| Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses, pointer moves and clicks (in picture pixels), teleports and a quit, for runs without a user; times are on the platform's clock. A teleport fills in the game's own pending teleport (`port/platform/teleport.c`), which the world loop carries out at its next pass, as for TELEPORT.DAT's destinations: the zone's actors and encounters are loaded around the new place |
+| Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses (held 100 ms, or as long as given), pointer moves, clicks and holds (in picture pixels), teleports and a quit, for runs without a user; times are on the platform's clock. A teleport fills in the game's own pending teleport (`port/platform/teleport.c`), which the world loop carries out at its next pass, as for TELEPORT.DAT's destinations: the zone's actors and encounters are loaded around the new place |
 | Clock | `port/platform/clock.c`: the host's monotonic clock, or (`BAK_CLOCK=virtual`) one that moves only as the game runs, for replays (below) |
 | Window | `port/platform/video.c`: SDL's renderer (Direct3D 11 on Windows) shows the picture the CRTC scans out, scaled as the settings say (pixel art by default); Alt+Enter and F11 switch the borderless full screen. The window's place, size and state are saved when it closes. A picture goes to the window only when it differs from the one before, and at most once per refresh of the display, the latest one waiting until then (8 s of the intro: 309 pictures, 267 presented; every 70 Hz tick presented before, and a retrace wait a second time). Vsync stays off: the game paces its frames itself. `BAK_TRACE` names the video driver, the renderer and the scale mode, and counts the pictures and presents |
 | Cursor | `port/platform/cursor.c`: the game's cursor as the system's (`video.cursor`). The image the game would draw is read in its driver's format (the VGA driver's bytes; the 16-colour driver's bit planes, for the books) and shown as an SDL colour cursor, scaled with the picture, its hot spot the game's. It takes the DAC's colours and is made again when they change, so it fades with the picture. It shows while the game shows its cursor (`g_cursor_hidden`, nonzero when shown, and not shape 2); `screen_cursor_hide` only skips a background restore and hides nothing. Where the game moves the mouse (the menus' keys move it to a button), the host's pointer goes along |

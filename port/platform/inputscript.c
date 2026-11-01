@@ -3,9 +3,10 @@
  * CI). Steps are separated by ';', each "<ms>:<action>" with ms counted from start-up:
  *
  *   key:<name>     press a key (an SDL key name: Escape, Return, Space, A, F1, Up, ...)
- *                  and release it 100 ms later
+ *                  and release it 100 ms later; key:<name>,<ms> holds it for ms
  *   move:<x>,<y>   move the pointer to pixel (x, y) of the 320x200 picture
  *   click:<x>,<y>  move there and press the left button, releasing it 100 ms later
+ *   hold:<x>,<y>,<ms>  the same, held for ms
  *   teleport:<zone>,<tile x>,<tile y>,<cell x>,<cell y>,<heading in hex>
  *                  move the party there, as the game's own teleports do (teleport.c)
  *   quit           what closing the window does
@@ -38,6 +39,7 @@ typedef struct {
     uint64_t atNs;
     Kind kind;
     SDL_Scancode key;
+    uint64_t holdNs; /* a press: released this long after */
     float x, y;
     unsigned place[5]; /* teleport: zone, tile x and y, cell x and y */
     unsigned heading;
@@ -78,13 +80,34 @@ static void parse(const char *text) {
             bad("cannot read the step", step);
         rest++;
         Step s = {s_startNs + ms * 1000000ull};
+        s.holdNs = RELEASE_NS;
         float x, y;
+        unsigned long held;
         unsigned *p = s.place;
         if (SDL_strncmp(rest, "key:", 4) == 0) {
-            s.key = SDL_GetScancodeFromName(rest + 4);
+            char name[40];
+            const char *comma = SDL_strchr(rest + 4, ',');
+            size_t n = comma != NULL ? (size_t)(comma - (rest + 4)) : SDL_strlen(rest + 4);
+            if (n >= sizeof name)
+                bad("cannot read the step", step);
+            SDL_memcpy(name, rest + 4, n);
+            name[n] = '\0';
+            s.key = SDL_GetScancodeFromName(name);
             if (s.key == SDL_SCANCODE_UNKNOWN)
                 bad("cannot read the step", step);
+            if (comma != NULL) {
+                char *end;
+                held = SDL_strtoul(comma + 1, &end, 10);
+                if (end == comma + 1 || *end != '\0')
+                    bad("cannot read the step", step);
+                s.holdNs = held * 1000000ull;
+            }
             s.kind = STEP_KEY_DOWN;
+        } else if (SDL_sscanf(rest, "hold:%f,%f,%lu", &x, &y, &held) == 3) {
+            s.kind = STEP_LEFT_DOWN;
+            s.x = x;
+            s.y = y;
+            s.holdNs = held * 1000000ull;
         } else if (SDL_sscanf(rest, "move:%f,%f", &x, &y) == 2) {
             s.kind = STEP_MOVE;
             s.x = x;
@@ -128,7 +151,7 @@ bool input_script_poll(void) {
             e.key.scancode = s.key;
             input_handle_key(&e);
             if (s.kind == STEP_KEY_DOWN) {
-                s.atNs = now + RELEASE_NS;
+                s.atNs = now + s.holdNs;
                 s.kind = STEP_KEY_UP;
                 add(s, "key release");
             }
@@ -139,7 +162,7 @@ bool input_script_poll(void) {
         case STEP_LEFT_DOWN:
             mouse_script_move(s.x, s.y);
             mouse_script_left(true);
-            s.atNs = now + RELEASE_NS;
+            s.atNs = now + s.holdNs;
             s.kind = STEP_LEFT_UP;
             add(s, "click release");
             break;
