@@ -617,7 +617,7 @@ static s16 far *anim_script_pick_wtd_rand_br(s16 far *pc) {
     result = pc + 1;
     if (total != 0) {
         pc = p0;
-        total = abs((s16)((u16)rand() % (u16)total)) + 1;
+        total = abs((s16)((u16)rand_fx() % (u16)total)) + 1;
         do {
             total -= anim_script_branch_weight(pc);
             if (total <= 0)

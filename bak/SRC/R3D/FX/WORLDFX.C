@@ -49,16 +49,16 @@ void worldfx_sparkle_burst(Combatant *actor, s16 color) {
 
     for (i = 0; i < VFX_SPARKLE_COUNT; i++) {
 
-        g_pVfxSparkleScratch[i].nW0 = base_x + RND(300);
-        g_pVfxSparkleScratch[i].nW1 = base_y + RND(150);
+        g_pVfxSparkleScratch[i].nW0 = base_x + RND_FX(300);
+        g_pVfxSparkleScratch[i].nW1 = base_y + RND_FX(150);
 
-        g_pVfxSparkleScratch[i].nW2 = RND(350);
+        g_pVfxSparkleScratch[i].nW2 = RND_FX(350);
 
         project_world_to_screen(g_pVfxSparkleScratch[i].nW0, g_pVfxSparkleScratch[i].nW1,
                                 g_pVfxSparkleScratch[i].nW2, scr, g_active_window);
         putpixel(scr[0], scr[1], color);
 
-        if (RND(4) == 0) {
+        if (RND_FX(4) == 0) {
             putpixel(scr[0] - 1, scr[1], color);
             putpixel(scr[0] + 1, scr[1], color);
             putpixel(scr[0], scr[1] - 1, color);
@@ -76,11 +76,11 @@ void far worldfx_flux_vortex_step_particle(s16 slot, s16 base_ang_step) {
     if (g_pVfxParticlePool[slot].nW0 <= 0x4b)
         return;
 
-    g_pVfxParticlePool[slot].nW0 -= RNDR(1, 5);
+    g_pVfxParticlePool[slot].nW0 -= RNDR_FX(1, 5);
 
     g_pVfxParticlePool[slot].nW1 += base_ang_step + ((0xfa - g_pVfxParticlePool[slot].nW0) << 4);
 
-    g_pVfxParticlePool[slot].nW2 += 0x14 - RND(0x28);
+    g_pVfxParticlePool[slot].nW2 += 0x14 - RND_FX(0x28);
     if (g_pVfxParticlePool[slot].nW2 > 0x15e)
         g_pVfxParticlePool[slot].nW2 = 0x15e;
     if (g_pVfxParticlePool[slot].nW2 < 0x64)
@@ -97,7 +97,7 @@ void far worldfx_render_particle_blast(Combatant *actor, s16 color) {
     radius = 1;
     saved_status = actor->inner->statusHead;
     actor->inner->statusHead = 0x13;
-    i = RNDR(10, 24);
+    i = RNDR_FX(10, 24);
     while (i != 0) {
         world_render_with_overlay(MK_FP(0, 0xffff));
         screen_frame_present();
@@ -110,10 +110,10 @@ void far worldfx_render_particle_blast(Combatant *actor, s16 color) {
         g_pVfxParticlePool[i].nW0 = radius + 0x4b;
         if (i != 0) {
 
-            g_pVfxParticlePool[i].nW1 = RND(4000) + g_pVfxParticlePool[(i - 1)].nW1;
+            g_pVfxParticlePool[i].nW1 = RND_FX(4000) + g_pVfxParticlePool[(i - 1)].nW1;
         } else {
 
-            g_pVfxParticlePool[i].nW1 = RND(0x640);
+            g_pVfxParticlePool[i].nW1 = RND_FX(0x640);
         }
         g_pVfxParticlePool[i].nW2 = 300;
         i++;
@@ -142,14 +142,14 @@ void worldfx_flux_vortex_play(s16 color) {
 
     i = 0;
     while (i < VFX_PARTICLE_COUNT) {
-        g_pVfxParticlePool[i].nW0 = RNDR(250, 399);
+        g_pVfxParticlePool[i].nW0 = RNDR_FX(250, 399);
         if (i != 0) {
-            g_pVfxParticlePool[i].nW1 = RND(4000) + g_pVfxParticlePool[(i - 1)].nW1;
+            g_pVfxParticlePool[i].nW1 = RND_FX(4000) + g_pVfxParticlePool[(i - 1)].nW1;
         } else {
-            g_pVfxParticlePool[i].nW1 = RND(1600);
+            g_pVfxParticlePool[i].nW1 = RND_FX(1600);
         }
 
-        g_pVfxParticlePool[i].nW2 = RND(355);
+        g_pVfxParticlePool[i].nW2 = RND_FX(355);
         i++;
     }
 
@@ -160,7 +160,7 @@ void worldfx_flux_vortex_play(s16 color) {
         g_wVfxActiveParticleCount = 0;
         for (i = 0; i < VFX_PARTICLE_COUNT; i++) {
 
-            worldfx_flux_vortex_step_particle(i, RNDR(1300, 1599));
+            worldfx_flux_vortex_step_particle(i, RNDR_FX(1300, 1599));
         }
         world_render_with_overlay(MK_FP(0, 0xffff));
         screen_frame_present();
@@ -195,12 +195,12 @@ void far worldfx_ptcl_overlay_step_back(Combatant *pActor) {
                 project_world_to_screen(base_x + dx, base_y + dy, g_pVfxParticlePool[index].nW2,
                                         scr, g_active_window);
                 if (g_pVfxParticlePool[index].nW0 < 200) {
-                    if (RND(50) == 0) {
-                        project_world_to_screen(base_x, base_y, RNDR(0x96, 0xc7), scr2,
+                    if (RND_FX(50) == 0) {
+                        project_world_to_screen(base_x, base_y, RNDR_FX(0x96, 0xc7), scr2,
                                                 g_active_window);
                         combat_arena_actor_set_anim_pose(pActor, 1);
                         audio_play(4);
-                        g_nSnowParticleSeedX = RND2(4) + g_nSnowParticleSeedX + 2;
+                        g_nSnowParticleSeedX = RND2_FX(4) + g_nSnowParticleSeedX + 2;
                         index++;
                         continue;
                     }
@@ -238,12 +238,12 @@ void worldfx_ptcl_overlay_render_front(Combatant *pActor) {
                 project_world_to_screen(x_base + cos_shift, y_base + sin_shift,
                                         g_pVfxParticlePool[i].nW2, scr, g_active_window);
 
-                if (g_pVfxParticlePool[i].nW0 < 200 && RND(50) == 0) {
-                    project_world_to_screen(x_base, y_base, RNDR(0x96, 0xc7), scr2,
+                if (g_pVfxParticlePool[i].nW0 < 200 && RND_FX(50) == 0) {
+                    project_world_to_screen(x_base, y_base, RNDR_FX(0x96, 0xc7), scr2,
                                             g_active_window);
                     combat_arena_actor_set_anim_pose(pActor, 1);
                     audio_play(4);
-                    g_nSnowParticleSeedX = RND2(4) + g_nSnowParticleSeedX + 2;
+                    g_nSnowParticleSeedX = RND2_FX(4) + g_nSnowParticleSeedX + 2;
                     continue;
                 }
 
@@ -265,7 +265,7 @@ void far worldfx_rndr_rand_flash_at_actor(Combatant *actor) {
         (s32)(actor->inner->gridY * g_grid_tile_size + (g_grid_tile_size >> 1) + 0xc80);
     entry.pos.nWorld_z = 0;
     entry.orientation.pitch = entry.orientation.roll = entry.orientation.yaw = 0;
-    g_nActorSpriteFlip = RND2(2) << 1;
+    g_nActorSpriteFlip = RND2_FX(2) << 1;
     actorrender_entity(&entry);
 }
 
@@ -292,9 +292,9 @@ void far worldfx_combat_damage_ptcl_burst(Combatant *actor, s16 spread) {
         g_pVfxParticlePool[i].nW0 = x;
         g_pVfxParticlePool[i].nW1 = g_nVfxParticleBurstOriginY;
         g_pVfxParticlePool[i].nW2 = 0xfa;
-        g_pVfxVelocityPool[i].nW0 = RND(spread) - (spread >> 1);
-        g_pVfxVelocityPool[i].nW1 = RND(spread) - (spread >> 1);
-        g_pVfxVelocityPool[i].nW2 = RNDR(10, 69);
+        g_pVfxVelocityPool[i].nW0 = RND_FX(spread) - (spread >> 1);
+        g_pVfxVelocityPool[i].nW1 = RND_FX(spread) - (spread >> 1);
+        g_pVfxVelocityPool[i].nW2 = RNDR_FX(10, 69);
         i++;
     } while (i < VFX_PARTICLE_COUNT);
     g_wVfxActiveParticleCount = 1;
@@ -317,7 +317,7 @@ void worldfx_render_star(s16 index) {
                                 out, g_active_window);
         putpixel(out[0], out[1], 0x18);
         if (g_nVfxParticleColor == 0) {
-            color = RND2(0x100);
+            color = RND2_FX(0x100);
         } else {
             color = g_nVfxParticleColor;
         }
@@ -397,17 +397,17 @@ void worldfx_render_flame_at_actor(Combatant *actor) {
     c1 = 10;
     c2 = c1 * 2;
 
-    x_off1 = 10 - RND(20);
-    x_off2 = 3 - RND(6);
+    x_off1 = 10 - RND_FX(20);
+    x_off2 = 3 - RND_FX(6);
 
-    draw_line(scr_x + x_off2, scr_y + RND(3), scr_x + x_off1, scr_y - c1);
+    draw_line(scr_x + x_off2, scr_y + RND_FX(3), scr_x + x_off1, scr_y - c1);
     scr_y -= c1;
 
     while (scr_y > -c1) {
-        x_off2 = 10 - RND(20);
+        x_off2 = 10 - RND_FX(20);
         draw_line(scr_x + x_off1, scr_y, scr_x + x_off2, scr_y - c1);
 
-        x_off1 = 10 - RND(20);
+        x_off1 = 10 - RND_FX(20);
         draw_line(scr_x + x_off2, scr_y - c1, scr_x + x_off1, scr_y - c2);
 
         scr_y -= c2;
@@ -572,7 +572,7 @@ void far worldfx_draw_path_segment(s16 gridX, s16 gridY) {
     wy = wy + (g_grid_tile_size >> 1) * dy;
     if (shape == 0) {
 
-        jitter = RND(0x190) - 0xc8;
+        jitter = RND_FX(0x190) - 0xc8;
     } else {
         jitter = 0;
     }

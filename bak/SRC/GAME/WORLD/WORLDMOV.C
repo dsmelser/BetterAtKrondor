@@ -127,7 +127,7 @@ s16 far worldmove_party_attempt_move(s16 mode) {
         if ((out_dir == 2) || (out_dir == 3)) {
             worldmove_animate_hdg_tgt(out_dir, out_target);
         }
-        g_nWorldRenderJitter = RND2(0x10);
+        g_nWorldRenderJitter = RND2_FX(0x10);
         worldmove_step_tick_advance();
         return 1;
     }
@@ -155,12 +155,12 @@ L_fail:
 
 void worldmove_apply_turn_step(short direction) {
     worldmove_heading_step(&g_world_camera->base.orientation.yaw, g_nWorldGridStride, direction);
-    g_nWorldRenderJitter = RND2(0x10);
+    g_nWorldRenderJitter = RND2_FX(0x10);
 }
 
 void worldmove_animate_hdg_tgt(s16 hdg_step, s16 hdg_target) {
     while (g_world_camera->base.orientation.yaw != hdg_target) {
-        g_nWorldRenderJitter = RND2(0x10);
+        g_nWorldRenderJitter = RND2_FX(0x10);
         g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
             g_graphics_context.wVgaPage2Base;
         world_render_scene_dispatch(0);

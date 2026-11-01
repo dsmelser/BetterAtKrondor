@@ -55,34 +55,34 @@ void far audio_ambient_tick(void) {
             return;
         if (g_gameState.nZoneId == 6)
             return;
-        if (RND(0x6e) != 0)
+        if (RND_FX(0x6e) != 0)
             return;
 
         if (gstate_event_read(0x753a)) {
             if (g_gameState.nZoneId != 2) {
-                sfx_id = RNDR(52, 54);
+                sfx_id = RNDR_FX(52, 54);
             } else {
-                if (RND(100) <= 50)
+                if (RND_FX(100) <= 50)
                     sfx_id = 0x85;
                 else
-                    sfx_id = RND2(2) + 0x35;
+                    sfx_id = RND2_FX(2) + 0x35;
             }
         } else {
-            if (RND(100) <= 5)
+            if (RND_FX(100) <= 5)
                 sfx_id = 0x5a;
             else
                 sfx_id = 0x33;
         }
 
         audio_play(sfx_id);
-        audio_set_intensity(sfx_id, RNDR(10, 63));
+        audio_set_intensity(sfx_id, RNDR_FX(10, 63));
         return;
     }
 
-    if (RND(0xb4) != 0)
+    if (RND_FX(0xb4) != 0)
         return;
     audio_play(3);
-    audio_set_intensity(3, RNDR(10, 59));
+    audio_set_intensity(3, RNDR_FX(10, 59));
 }
 
 s16 audio_music_play(s16 track_id) {

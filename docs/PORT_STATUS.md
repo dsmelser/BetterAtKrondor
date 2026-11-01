@@ -124,6 +124,18 @@ source.
 
 The game's rules stay the original's (CLAUDE.md); these change how it runs.
 
+- **Cosmetic random draws have a stream of their own** (`rand_fx` and `RND*_FX` in `SYS/RAND.H`, the same
+  generator on a ring of its own in `port/asm/rand.c`). It serves:
+  - the world's particle effects (WORLDFX.C) and actors' shake (ACTSHAKE.C);
+  - the ground pattern's offset after each step and turn (WORLDMOV.C, read by SKY.C);
+  - sprite flips picked while drawing (WORLDHIT.C);
+  - ambient sound (AUDIO.C) and the credits' colours;
+  - the animation scripts' random timing and branches (TTM.C, ANIMSCR.C).
+
+  The original drew these from the one generator its combat, encounters and dialogs use, so how many
+  frames were drawn moved that sequence; the ambient roll alone drew once per world-loop pass. Now the
+  game's sequence moves only with play: the world tour's state log has 2 lines instead of 3,411, and a
+  walk draws from it not at all.
 - **Memory the game reads before setting it is zero.** DOS blocks and the game's own `malloc`s are
   zero-filled, and `bakgame` builds with `-ftrivial-auto-var-init=zero`. Debug, release and sanitized
   builds then run alike: their replays agree frame for frame.

@@ -654,7 +654,7 @@ s16 ttmscript_interpret_loop(s16 block_index) {
             case 0x2022:
                 if (g_wScriptOpCursorCache == 0)
                     g_nScriptTickOverride =
-                        p0 + abs((short)((u16)rand() % (u16)(p1 - p0)));
+                        p0 + abs((short)((u16)rand_fx() % (u16)(p1 - p0)));
                 break;
 
             case 0x1021:

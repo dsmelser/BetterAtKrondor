@@ -7,7 +7,8 @@
     X(clock_wall_by_default)                                                                       \
     X(clock_virtual_waits_jump_to_the_due_time)                                                    \
     X(clock_retrace_wait_runs_the_ticks_due)                                                       \
-    X(hash_covers_every_byte_and_chains)
+    X(hash_covers_every_byte_and_chains)                                                           \
+    X(rand_fx_is_the_game_generator_on_its_own_ring)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

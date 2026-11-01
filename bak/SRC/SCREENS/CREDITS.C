@@ -128,7 +128,7 @@ s16 credits_draw_scroll_pass(s16 x_left, s16 width, s16 reset) {
                 g_graphics_context.bText_fg_color = (unsigned char)bot_fade_shade;
                 break;
             case 2:
-                g_graphics_context.bText_fg_color = RND2(0x100);
+                g_graphics_context.bText_fg_color = RND2_FX(0x100);
                 break;
             default:
                 g_graphics_context.bText_fg_color = 0;
@@ -163,7 +163,7 @@ s16 credits_draw_scroll_pass(s16 x_left, s16 width, s16 reset) {
                     g_graphics_context.bText_fg_color = (unsigned char)bot_fade_shade;
                     break;
                 case 2:
-                    g_graphics_context.bText_fg_color = RND2(0x100);
+                    g_graphics_context.bText_fg_color = RND2_FX(0x100);
                     break;
                 default:
                     g_graphics_context.bText_fg_color = 0;
@@ -178,7 +178,7 @@ s16 credits_draw_scroll_pass(s16 x_left, s16 width, s16 reset) {
                 for (x = x_start; x < x_end; x += 4) {
                     s16 dy;
                     if (band_kind == 2) {
-                        g_graphics_context.bText_fg_color = RND2(0x100);
+                        g_graphics_context.bText_fg_color = RND2_FX(0x100);
                         dy = (y + x / 4) % 4 + 3;
                     } else {
                         dy = 7;

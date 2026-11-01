@@ -746,9 +746,9 @@ void far world_render_combat_grid_sprite(WorldObject *actor) {
         entry.shapeId = 6;
 
         if ((s16)actor->shapeId != 4)
-            g_nActorSpriteFlip = RND2(4);
+            g_nActorSpriteFlip = RND2_FX(4);
         else
-            g_nActorSpriteFlip = RND2(2) << 1;
+            g_nActorSpriteFlip = RND2_FX(2) << 1;
     }
 
     if (actorIdx == -1 && (s16)actor->shapeId != 4) {

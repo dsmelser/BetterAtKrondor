@@ -46,4 +46,20 @@ extern s16 rand(void);
  */
 extern void _rand_reset_indices(void);
 
+/**
+ * @brief   The cosmetic stream: not in the original.
+ * @details The original drew its particles, render jitter, ambient sound and animation
+ *          scripts' timing from the one generator its combat and encounters use. So what
+ *          was drawn, and how many frames a wait took, moved the sequence the rules see.
+ *          Those draws come from here instead: the same generator on a ring of its own.
+ * @return  The next pseudo-random word of the cosmetic stream.
+ */
+extern s16 rand_fx(void);
+/** @brief @ref RND on the cosmetic stream. */
+#define RND_FX(n) ((u16)(rand_fx() & 0xfff) % (n))
+/** @brief @ref RND2 on the cosmetic stream. */
+#define RND2_FX(n) ((u16)rand_fx() % (n))
+/** @brief @ref RNDR on the cosmetic stream. */
+#define RNDR_FX(lo, hi) ((lo) + (u16)(rand_fx() & 0xfff) % ((hi) - (lo) + 1))
+
 #endif

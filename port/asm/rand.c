@@ -5,6 +5,8 @@
  * stores the sum at the second cursor and returns it. As in the original, the cursors
  * are byte offsets into the ring (0x6e is slot 55) and the ring starts from a fixed
  * seed table, so the sequence is the same on every run.
+ *
+ * Natively a second stream (rand_fx, below) serves the cosmetic draws.
  */
 #include <string.h>
 
@@ -14,20 +16,24 @@
 #include "bak_game_end.h"
 
 #define RING_LAST 0x6e /* byte offset of ring slot 55, where a retreating cursor wraps */
+#define RING_START_J 0x30 /* where _rand_reset_indices puts the first cursor */
+
+/* The seed ring both streams start from. */
+#define RAND_SEED                                                                                  \
+    {0xdd23, 0x9533, 0xf3c8, 0x4bc2, 0xf7e2, 0xa3df, 0xaa70, 0x60aa, 0x144b, 0x8948, 0x1928, 0x6b0d, \
+     0x9e0b, 0xfbf1, 0x8607, 0x465d, 0xeaf4, 0x69fd, 0x6c44, 0x1b27, 0xdb71, 0xe38f, 0xabb4, 0xdc47, \
+     0x0fde, 0x4d8e, 0xfc7d, 0x8d38, 0x5048, 0xe36f, 0xaa22, 0x2f26, 0x43fa, 0xb5a5, 0x20eb, 0xed85, \
+     0xf5c3, 0x819f, 0x2d9c, 0xb26d, 0xe92b, 0x97d5, 0x3da1, 0x89ed, 0x1bf4, 0x74b5, 0x002c, 0xd37d, \
+     0x3b08, 0x0df5, 0xf27e, 0xc270, 0x2589, 0x2e8b, 0x6352, 0xda2d}
 
 u16 g_randPosJ = 0;
 u16 g_randPosI = 0;
 u16 g_randLast = 0;
-u16 g_randState[56] = {
-    0xdd23, 0x9533, 0xf3c8, 0x4bc2, 0xf7e2, 0xa3df, 0xaa70, 0x60aa, 0x144b, 0x8948, 0x1928, 0x6b0d,
-    0x9e0b, 0xfbf1, 0x8607, 0x465d, 0xeaf4, 0x69fd, 0x6c44, 0x1b27, 0xdb71, 0xe38f, 0xabb4, 0xdc47,
-    0x0fde, 0x4d8e, 0xfc7d, 0x8d38, 0x5048, 0xe36f, 0xaa22, 0x2f26, 0x43fa, 0xb5a5, 0x20eb, 0xed85,
-    0xf5c3, 0x819f, 0x2d9c, 0xb26d, 0xe92b, 0x97d5, 0x3da1, 0x89ed, 0x1bf4, 0x74b5, 0x002c, 0xd37d,
-    0x3b08, 0x0df5, 0xf27e, 0xc270, 0x2589, 0x2e8b, 0x6352, 0xda2d};
+u16 g_randState[56] = RAND_SEED;
 
-static u16 ring_word(u16 byteOffset) {
+static u16 ring_word(const u16 *ring, u16 byteOffset) {
     u16 v;
-    memcpy(&v, (unsigned char *)g_randState + byteOffset, sizeof v);
+    memcpy(&v, (const unsigned char *)ring + byteOffset, sizeof v);
     return v;
 }
 
@@ -41,7 +47,7 @@ static u16 retreat(u16 cursor) {
 s16 bak_rand(void) {
     u16 j = g_randPosJ;
     u16 i = g_randPosI;
-    u16 draw = (u16)(ring_word(j) + ring_word(i));
+    u16 draw = (u16)(ring_word(g_randState, j) + ring_word(g_randState, i));
     memcpy((unsigned char *)g_randState + i, &draw, sizeof draw);
     g_randLast = draw;
     g_randPosJ = retreat(j);
@@ -50,6 +56,24 @@ s16 bak_rand(void) {
 }
 
 void _rand_reset_indices(void) {
-    g_randPosJ = 0x30;
+    g_randPosJ = RING_START_J;
     g_randPosI = RING_LAST;
+}
+
+/*
+ * Not in the original: the cosmetic stream (RAND.H). The same generator on a ring of its own,
+ * started where the game's starts after _rand_reset_indices.
+ */
+static u16 s_fxRing[56] = RAND_SEED;
+static u16 s_fxPosJ = RING_START_J;
+static u16 s_fxPosI = RING_LAST;
+
+s16 rand_fx(void) {
+    u16 j = s_fxPosJ;
+    u16 i = s_fxPosI;
+    u16 draw = (u16)(ring_word(s_fxRing, j) + ring_word(s_fxRing, i));
+    memcpy((unsigned char *)s_fxRing + i, &draw, sizeof draw);
+    s_fxPosJ = retreat(j);
+    s_fxPosI = retreat(i);
+    return (s16)draw;
 }
