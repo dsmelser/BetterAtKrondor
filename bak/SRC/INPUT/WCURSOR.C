@@ -852,6 +852,7 @@ s16 far wcursor_object_toggle_open_close(WorldHotspot *pHotspot) {
     }
     audio_sfx_stop_pair_38_39();
     screen_cursor_restore_shape();
+    return 0; /* the original returned whatever AX held; no caller reads it */
 }
 
 void far wcursor_click_npc_or_trap(WorldHotspot *pHotspot) {

@@ -169,6 +169,7 @@ s16 far gstate_event_write(u16 event_id, u16 value) {
             break;
         }
     }
+    return 0; /* the original returned whatever AX held; no caller reads it */
 }
 
 s16 gstate_temp_file_open(void) {
@@ -584,33 +585,33 @@ void gstate_format_money(char *buf, s32 gold, s16 mode) {
     s32 s = gold % 10;
 
     if (mode == 0) {
-        sprintf(buf, "%ld.%ld gold", g, s);
+        sprintf(buf, "%d.%d gold", g, s);
     } else if (mode == 1) {
         if (s != 0) {
             if (g != 0) {
-                sprintf(buf, "%ld gold %ld silver", g, s);
+                sprintf(buf, "%d gold %d silver", g, s);
             } else {
-                sprintf(buf, "%ld silver", s);
+                sprintf(buf, "%d silver", s);
             }
         } else {
-            sprintf(buf, "%ld gold", g);
+            sprintf(buf, "%d gold", g);
         }
     } else {
         if (s != 0) {
             if (g > 1) {
-                sprintf(buf, "%ld sovereigns and %ld royal", g, s);
+                sprintf(buf, "%d sovereigns and %d royal", g, s);
             } else {
                 if (g != 0) {
-                    sprintf(buf, "%ld sovereign and %ld royal", g, s);
+                    sprintf(buf, "%d sovereign and %d royal", g, s);
                 } else {
-                    sprintf(buf, "%ld royal", s);
+                    sprintf(buf, "%d royal", s);
                 }
             }
             if (s > 1) {
                 strcat(buf, "s");
             }
         } else {
-            sprintf(buf, "%ld sovereign%c", g, g > 1 ? 's' : 0);
+            sprintf(buf, "%d sovereign%c", g, g > 1 ? 's' : 0);
         }
     }
 }

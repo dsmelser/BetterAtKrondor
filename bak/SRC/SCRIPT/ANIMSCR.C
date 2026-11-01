@@ -1026,7 +1026,7 @@ unsigned short far *anim_script_dispatch_opcode(unsigned short far *script_pc) {
 
     case 0xf010:
         ch = script_pc[1];
-        if (ch == 0xffff) {
+        if (ch == -1) {
             ch = g_nCurrentChannelSlot;
         } else {
             ch = anim_script_find_channel(ch);

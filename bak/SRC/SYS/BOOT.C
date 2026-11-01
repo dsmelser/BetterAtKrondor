@@ -185,7 +185,7 @@ void boot_check_memory_or_die(void) {
         hardware_shutdown();
         video_shutdown();
         if (file_missing) {
-            printf("You have %lu bytes free...\n", freeBytes);
+            printf("You have %u bytes free...\n", freeBytes);
         }
         printf("You do not have enough memory to run Betrayal at Krondor.\nTry using the Make Boot "
                "Disk option from INSTALL.\n");

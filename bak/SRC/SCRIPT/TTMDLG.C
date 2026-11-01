@@ -124,4 +124,5 @@ s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
         g_pPalQueuedForFlip = 0;
         break;
     }
+    return 0; /* the original returned whatever AX held; no caller reads it */
 }

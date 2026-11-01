@@ -482,11 +482,11 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
                     s32 r = item_value % 10;
                     if (r != 0) {
                         if (g != 0)
-                            sprintf(buf, "%ld gold %ld silver", g, r);
+                            sprintf(buf, "%d gold %d silver", g, r);
                         else
-                            sprintf(buf, "%ld silver", r);
+                            sprintf(buf, "%d silver", r);
                     } else {
-                        sprintf(buf, "%ld gold", g);
+                        sprintf(buf, "%d gold", g);
                     }
                 }
                 invui_draw_text_aligned_shadow((char far *)buf, text_x,
@@ -535,9 +535,9 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
         if (actor->bResidence == RES_PARTY_SLOT)
             invui_op_noop();
         if (gold > 9999)
-            sprintf(buf, "%ld", gold);
+            sprintf(buf, "%d", gold);
         else
-            sprintf(buf, "%lds %ldr", gold, silver);
+            sprintf(buf, "%ds %dr", gold, silver);
     }
 
     invui_draw_text_aligned_shadow((char far *)buf, 0x103, 0xb7, 2, -1, -1);

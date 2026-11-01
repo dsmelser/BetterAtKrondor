@@ -224,21 +224,16 @@ void far widget_scrollbar_update(MenuEntry *widget) {
         if (widget->wEnable_gate == 0 || widget->wEnable_gate == 1) {
             widget->wSub_state = 0;
         } else {
+            /* The source assigned step and divided by it in one expression, which C leaves
+               unsequenced; the original's code computes the step first and divides by it. */
             if (widget->rect.width < widget->rect.height) {
                 corner2 = widget->rect.width - 4;
-                widget->wSub_state =
-                    (g_nScrollTrackOffset + ((step = (widget->rect.height - corner2 * 2 - 8) /
-                                                     ((s16)widget->wEnable_gate - 1)) >>
-                                             1)) /
-                    step;
+                step = (widget->rect.height - corner2 * 2 - 8) / ((s16)widget->wEnable_gate - 1);
             } else {
                 corner2 = widget->rect.height - 4;
-                widget->wSub_state =
-                    (g_nScrollTrackOffset + ((step = (widget->rect.width - corner2 * 2 - 8) /
-                                                     ((s16)widget->wEnable_gate - 1)) >>
-                                             1)) /
-                    step;
+                step = (widget->rect.width - corner2 * 2 - 8) / ((s16)widget->wEnable_gate - 1);
             }
+            widget->wSub_state = (g_nScrollTrackOffset + (step >> 1)) / step;
             if ((s16)widget->wSub_state >= (s16)widget->wEnable_gate) {
                 widget->wSub_state = widget->wEnable_gate - 1;
             }

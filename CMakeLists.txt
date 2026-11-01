@@ -126,11 +126,20 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")
     # Locals the game reads before it sets them start at zero, in every build: what the stack
     # held (debug builds fill it with CCh) must not reach a run.
     set(BAK_GAME_DETERMINISM -ftrivial-auto-var-init=zero)
+    # Classes of 16-bit code that misbehave natively, swept clean: they stay errors.
+    set(BAK_GAME_ERRORS
+        -Werror=return-type
+        -Werror=unsequenced
+        -Werror=tautological-constant-out-of-range-compare
+        -Werror=format
+        -Werror=format-invalid-specifier)
     if(MSVC)
         list(TRANSFORM BAK_GAME_QUIET PREPEND "/clang:")
         list(TRANSFORM BAK_GAME_DETERMINISM PREPEND "/clang:")
+        list(TRANSFORM BAK_GAME_ERRORS PREPEND "/clang:")
     endif()
-    target_compile_options(bakgame PRIVATE ${BAK_GAME_QUIET} ${BAK_GAME_DETERMINISM})
+    target_compile_options(bakgame PRIVATE ${BAK_GAME_QUIET} ${BAK_GAME_DETERMINISM}
+                                           ${BAK_GAME_ERRORS})
 endif()
 
 # --- The native executable ---------------------------------------------------------------

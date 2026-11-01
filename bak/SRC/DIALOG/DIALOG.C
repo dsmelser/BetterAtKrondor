@@ -93,8 +93,9 @@ unsigned short g_bDialogWorldAnchorValid = 0x0000;
 unsigned char g_dialog_running = 0x00;
 
 s16 dialog_freemem_if_not_null(unsigned char far *ptr) {
-    if ((u32)ptr != 0)
+    if (ptr != NULL)
         _freemem(ptr);
+    return 0; /* the original returned whatever AX held; no caller reads it */
 }
 
 PDdxRecord dialog_load_record_by_key(u32 record_key, s16 use_offset) {

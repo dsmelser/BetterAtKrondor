@@ -400,6 +400,7 @@ u16 stat_combatant_apply_condition(Combatant *actor, s16 stat_idx, s16 amount) {
             return stat_combatant_modify(actor, 0x10, 0x7fff, 100);
         }
     }
+    return 0; /* the original returned whatever AX held; no caller reads it */
 }
 
 void far stat_modifier_table_insert(Combatant *actor, ActorStatModifier *pNewMod) {

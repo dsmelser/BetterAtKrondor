@@ -13,6 +13,7 @@ s16 panic_fatal_error_exit(char far *module, s16 line, char *msg) {
         printf("%s:%d (%s)\n", module, line, msg != 0 ? msg : " ");
     }
     boot_engine_exit(0);
+    return 0;
 }
 
 void far panic_assert_fail_report(char far *file, s16 line) {

@@ -836,7 +836,7 @@ s16 far rgnenc_chap_shp_init(void) {
     res_fclose(file);
     i = 0;
     do {
-        if (g_pChapterShapeIds[i] != -1) {
+        if (g_pChapterShapeIds[i] != 0xffff) {
             j = 0;
             do {
                 combat_actor_bnames_load_cached(g_pChapterShapeIds[i], j);

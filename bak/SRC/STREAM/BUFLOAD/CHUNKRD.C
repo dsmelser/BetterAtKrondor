@@ -72,6 +72,7 @@ s16 far chunkread_session_close(ResFile *file) {
     if (g_nChunk_session_owns_close != 0)
         cached_file_close(file);
     g_nChunk_session_owns_close = -1;
+    return 0; /* the original returned whatever AX held; no caller reads it */
 }
 
 ResFile *far chunkread_session_open(FileRef *file, char *chunk_id) {

@@ -297,6 +297,16 @@ only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
   E1h-E4h read the audio state, and no ellipsis precedes them in the game's text. Natively the game's
   `isalpha`, `isdigit`, `toupper` and `tolower` are Borland's (`bak_native.h`), over a copy of the table
   and the 128 bytes before it (`bakrtl_ctype_block`); `test_rtl.py` checks them against the original.
+- **16-bit promotion decided two tests.**
+  - RGNENC.C compared a `u16` with -1, and ANIMSCR.C an `s16` with 0xffff. With Borland's 16-bit `int`
+    both matched FFFFh; natively neither did.
+  - Effects: a chapter's empty creature slot loaded BNAMES records for shape FFFFh, and the script
+    opcode F010h never fell back to the current channel.
+  - Both compare in FFFFh's own type now, and `-Werror=tautological-constant-out-of-range-compare`
+    keeps the class out.
+  - In the same sweep: seven functions that return no value although declared to (no caller reads it)
+    now return 0. WIDGET.C assigned `step` and divided by it in one unsequenced expression, and now
+    divides by the new step, as the original's code does.
 - **The game formats with Borland's printf.**
   - Far strings are written `%Fs`, with Borland's F (far) size modifier. A native printf reads that as `%F`,
     a float, followed by an "s". So dialog and cutscene titles, item names, condition names and combat
