@@ -37,7 +37,7 @@ gh workflow run reference.yml -f ref=<ref>         # Borland build of <ref>: the
 
 Environment: `BAK_HEADLESS=1` (no dialogs; errors to stderr), `BAK_TRACE=1` (platform milestones),
 `SDL_VIDEO_DRIVER=dummy` (no window), `BAK_DUMP_FRAME=<file.bmp>` (the picture shown, rewritten whenever it
-changes), `BAK_DUMP_FRAMES=<dir>` (every new picture, numbered as the frame log's lines),
+changes), `BAK_DUMP_CURSOR=<file.bmp>` (each system cursor made, on a real window), `BAK_DUMP_FRAMES=<dir>` (every new picture, numbered as the frame log's lines),
 `BAK_DUMP_MIDI=<file>` (the MIDI bytes sent to the MPU-401),
 `BAK_INPUT="6000:key:Escape;9000:click:160,100"` (scripted keys and clicks, ms from start-up:
 `port/platform/inputscript.c`), `BAK_CLOCK=virtual` (a clock that moves only as the game runs: scripted runs
