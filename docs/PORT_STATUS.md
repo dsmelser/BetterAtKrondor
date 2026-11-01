@@ -46,9 +46,9 @@ and checks that an incomplete folder is turned down cleanly.
    the party, checks the zone's ground at its position, and enters the world's main loop
    (`world3d_main_loop`): each frame sets up the camera (`r3d_camera_setup_view`), fills the sky's
    flat bands (VGAFILL.ASM) and its panorama (VGA slot 33), scans and sorts what is in view, and draws
-   each actor through R3D (all of R3D.ASM is C now) and POLYGON.ASM's `draw_polygon`. Unscripted, the
-   scripted run idles in the world until it quits, clean under ASan; no golden picture of a world frame
-   has been compared with the original yet.
+   each actor through R3D (all of R3D.ASM is C now) and POLYGON.ASM's `draw_polygon`. The scripted
+   run idles in the world until it quits, clean under ASan, and its first view of the world is
+   identical to the original's (the `world` golden scenario, below).
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -395,6 +395,7 @@ plane in turn while the API reads A000h. Captures and diffs go to `work/golden/<
 |---|---|
 | `main-menu`: Escape during the intro | ✅ identical (the original shows the page at 4000h) |
 | `book`: N (Start New Game) after the intro, chapter 1's first page | ✅ identical, 640x350 in 16 colours (the original shows the page at 8000h) |
+| `world`: N, Space through the book, the chapter cutscene played out: the 3-D world's first view | ✅ identical: the sky and its panorama, the hills, trees and road, a sprite, the compass and the party (in DOSBox the view comes after about 4 minutes; the capture waits 7) |
 
 The capture also reads the attribute controller, and the decoder handles Mode Y and the 16-colour planar
 modes.

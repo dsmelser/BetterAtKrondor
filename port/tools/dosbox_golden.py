@@ -462,6 +462,15 @@ SCENARIOS = {
         description="Start New Game: the first page of chapter 1's book (640x350)",
         keys=[(18.0, "esc"), (28.0, "n")], settle=90.0,
         port_input="6000:key:Escape;9000:key:N;35000:quit"),
+    # Space pages through the book (in DOSBox it ends near 160 s); the cutscene after it plays
+    # out by itself (past 230 s), and the party then stands in the world.
+    "world": Scenario(
+        description="Start New Game, the book paged through, the cutscene: the world's first view",
+        keys=[(18.0, "esc"), (28.0, "n")] + [(75.0 + 4 * k, "space") for k in range(24)],
+        settle=420.0,
+        port_input="6000:key:Escape;9000:key:N;" + "".join(
+            f"{t}000:key:Space;" for t in (16, 19, 22, 25, 28, 31, 34, 37, 40, 45, 50, 55, 60, 70, 80))
+        + "90000:quit"),
 }
 
 
