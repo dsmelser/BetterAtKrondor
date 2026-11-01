@@ -310,13 +310,9 @@ void res_setbuf(ResFile *file, char *buffer) {
 }
 
 
-#ifdef BAK_NATIVE
 /* Never raised natively (no DOS critical errors); kept so res_setup/res_cleanup stay unchanged. */
 static void res_critical_error_handler(u16 _bp, u16 di, u16 si, u16 ds, u16 es, u16 dx, u16 cx,
                                        u16 bx, u16 ax);
-#else
-static void interrupt far res_critical_error_handler();
-#endif
 
 
 void res_setup(void) {

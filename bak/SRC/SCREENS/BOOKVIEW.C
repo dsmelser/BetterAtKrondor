@@ -38,7 +38,7 @@ void bookview_init(void) {
     s16 row;
     s16 stride;
 
-    g_pBookViewer = (BookViewerState *)calloc(1, RECORD_SIZE(BookViewerState, 100));
+    g_pBookViewer = (BookViewerState *)calloc(1, (s16)sizeof(BookViewerState));
     g_pBookViewer->pFontSlots[1] = font_load("BOOK.FNT");
     g_pBookViewer->nEmsPage0 = ems_alloc_pages(0xffffL);
     g_pBookViewer->nEmsPage1 = ems_alloc_pages(0xffffL);

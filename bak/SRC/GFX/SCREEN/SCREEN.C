@@ -7,9 +7,7 @@
 #include "SRC/SYS/SYSLOWIO.H"
 #include "SRC/INPUT/TIMER.H"
 #include "structs.h"
-#ifdef BAK_NATIVE
 #include "bak_video.h"
-#endif
 #include "SRC/GFX/SCREEN/SCREEN.H"
 #include "SRC/GFX/SPRITE/RESBLIT.H"
 #include "SRC/GFX/RASTER/PRESENT.H"
@@ -262,9 +260,6 @@ void screen_cur_refr_during_long_op(void) {
     g_graphics_context.clip.xmax = g_wScreen_width - 1;
     g_graphics_context.clip.ymax = g_wScreen_height - 1;
 
-#ifndef BAK_NATIVE
-    asm cld;
-#endif
 
     if ((unsigned char huge *)g_pActiveCursorBuf == (unsigned char huge *)g_pCursorScratchBuf1)
         pBgBuffer = g_pCursorScratchBuf2;
@@ -325,36 +320,10 @@ void far screen_frame_present(void) {
 }
 
 void far screen_frame_sync_buffers_rect(s16 row_start, s16 row_count) {
-#ifdef BAK_NATIVE
     /* VGA latch copy (write mode 1, all planes): whole rows from the front page to page 2. */
     memcpy(bak_video_page(g_graphics_context.wVgaPage2Base) + row_start * BAK_VGA_WIDTH,
            bak_video_page(g_graphics_context.wVgaFrontPageBase) + row_start * BAK_VGA_WIDTH,
            (size_t)row_count * BAK_VGA_WIDTH);
-#else
-    asm mov dx, 050h;
-    asm mov ax, word ptr row_start;
-    asm imul dx;
-    asm mov word ptr row_start, ax;
-    asm mov dx, 050h;
-    asm mov ax, word ptr row_count;
-    asm imul dx;
-    asm mov word ptr row_count, ax;
-
-    outpw(0x3c4, 0xf02);
-    outpw(0x3ce, 0x4105);
-
-    asm mov di, word ptr row_start;
-    asm mov si, di;
-    asm mov cx, word ptr row_count;
-    asm push ds;
-    asm mov es, word ptr[g_graphics_context.wVgaPage2Base];
-    asm mov ds, word ptr[g_graphics_context.wVgaFrontPageBase];
-    asm rep movsb;
-    asm pop ds;
-
-    asm mov ax, 04005h;
-    asm out dx, ax;
-#endif
 
     if (g_cursor_prev_x[1].nX != -999) {
         if ((unsigned char huge *)g_pActiveCursorBuf == (unsigned char huge *)g_pCursorScratchBuf1)

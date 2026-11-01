@@ -94,7 +94,6 @@ extern s16 gstate_temp_file_write_at(unsigned char far *src_far, u32 offset, u16
    chapter, SAVEGAME.C). Accessors yield the file
    offset of record idx. The Combatant pool base must fold in long
    (1730 * 0x5f overflows 16-bit arithmetic). */
-#ifdef BAK_NATIVE
 /* The file keeps the original's 16-bit layout (saves are copies of it), in which a near
    pointer takes 2 bytes: these records are smaller there than in memory, and are read
    and written field by field (gstate_temp_read_gamestate and the others below). */
@@ -113,11 +112,6 @@ extern void gstate_combatant_unpack(Combatant *dst, const unsigned char *disk);
 extern void gstate_combatant_pack(unsigned char *disk, const Combatant *src);
 extern void gstate_combatant_state_unpack(CombatantState *dst, const unsigned char *disk);
 extern void gstate_combatant_state_pack(unsigned char *disk, const CombatantState *src);
-#else
-#define GAM_SIZEOF_GAMESTATE sizeof(GameState)
-#define GAM_SIZEOF_COMBATANT sizeof(Combatant)
-#define GAM_SIZEOF_COMBATANT_STATE sizeof(CombatantState)
-#endif
 #define GAM_ENCOUNTER_TABLE GAM_SIZEOF_GAMESTATE
 #define GAM_OBJFIXED_LOCATION(idx)                                                                 \
     ((idx) * sizeof(ObjFixedLocationCacheEntry) + (GAM_ENCOUNTER_TABLE + sizeof(EncounterTable)))

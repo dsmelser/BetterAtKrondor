@@ -34,7 +34,6 @@ char g_szDrvSuffix_HVG[5] = "HVG:";
 char g_szDrvSuffix_HEG[5] = "HEG:";
 char g_szDrvSuffix_NEW[5] = "NEW:";
 
-#ifdef BAK_NATIVE
 /*
  * video_driver_load's mode remapping (and its screen-size side effects), then the
  * port's built-in driver for the resulting chunk, initialized. Natively this stands
@@ -64,7 +63,6 @@ const void *video_driver_bind(s16 mode) {
     }
     return bak_video_driver_init(mode);
 }
-#endif
 
 u32 far *video_driver_load(s16 mode, FileRef *file) {
     s32 size;

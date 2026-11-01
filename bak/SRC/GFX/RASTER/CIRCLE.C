@@ -40,13 +40,8 @@ u32 near draw_circle_bresenham(s16 radius, s16 cx, s16 cy) {
     unsigned short rows;
     unsigned short far *p;
 
-#ifdef BAK_NATIVE
     p = g_pSpanBufCursor =
         (unsigned short far *)MK_FP(g_graphics_context_render.wSpanTableBufSeg, 0);
-#else
-    p = g_pSpanBufCursor =
-        (unsigned short far *)((s32)(s16)g_graphics_context_render.wSpanTableBufSeg << 16);
-#endif
     x = 0;
     r = radius;
     d = 3 - radius * 2;

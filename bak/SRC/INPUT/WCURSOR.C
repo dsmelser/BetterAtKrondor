@@ -793,7 +793,7 @@ s16 far wcursor_object_toggle_open_close(WorldHotspot *pHotspot) {
     yaw_lock = pHotspot->pEntity->orientation.pitch;
     audio_play(0x30);
     if (state_word == 0)
-        RETURN_AX;
+        return 0;
 
     if (gstate_event_read((unsigned short)DOOR_OPEN(id)) != 0) {
 
@@ -801,7 +801,7 @@ s16 far wcursor_object_toggle_open_close(WorldHotspot *pHotspot) {
             dialog_viewport_clip_point(pHotspot->rect.x + pHotspot->rect.width / 2,
                                        pHotspot->rect.y + pHotspot->rect.height / 2);
             dialog_play_record(99UL, 1);
-            RETURN_AX;
+            return 0;
         }
         if (g_world_camera->base.pos.xy.nWorld_x >= pHotspot->pEntity->pos.xy.nWorld_x - 800 &&
             g_world_camera->base.pos.xy.nWorld_x <= pHotspot->pEntity->pos.xy.nWorld_x + 800 &&
@@ -831,10 +831,10 @@ s16 far wcursor_object_toggle_open_close(WorldHotspot *pHotspot) {
                                        pHotspot->rect.y + pHotspot->rect.height / 2);
         if (i != 0) {
             dialog_play_record(100UL, 1);
-            RETURN_AX;
+            return 0;
         }
         if (yaw_lock != 0 && picklock_screen_run(yaw_lock, 1, (Actor far *)0) == 0)
-            RETURN_AX;
+            return 0;
         screen_cursor_show_busy();
         audio_sfx_register_pair_38_39();
         gstate_event_write((unsigned short)DOOR_OPEN(id), 1);

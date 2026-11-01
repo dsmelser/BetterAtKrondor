@@ -5,7 +5,6 @@
 
 extern R3dRendererState far g_abR3dState;
 
-#ifdef BAK_NATIVE
 /*
  * In the original these names are labels on words of the renderer's state block, which
  * g_abR3dState covers too (R3DDATA.ASM). Natively they name its fields, so both reach the
@@ -63,65 +62,5 @@ typedef struct {
 
 /* Past the struct's end: storage of its own. */
 extern unsigned char *far g_pColorRemapTable;
-#else
-extern Mat3x3 far g_mat3x3ViewRot;
-extern short far g_nViewportCenterX;
-extern short far g_nViewportCenterY;
-
-typedef struct {
-    short x;
-    short y;
-} ViewportCenter;
-extern ViewportCenter far g_viewportCenter;
-
-extern short far g_camViewYaw;
-extern short far g_camViewPitch;
-
-typedef struct {
-    short yaw;
-    short pitch;
-} CamViewAngles;
-extern CamViewAngles far g_camViewAngles;
-
-extern s16 far g_nCurModelIdx;
-extern unsigned short far g_wActorProjScale;
-extern s32 far g_lActorRelX;
-extern s32 far g_lActorRelY;
-extern short far g_nActorFarClipThreshold;
-extern unsigned char far g_nScreenShift;
-
-extern unsigned short far g_wMeshVertexPoolOff;
-extern unsigned short far g_nMeshPartVertexCount;
-extern unsigned char far g_bCurMeshLod;
-extern unsigned short far g_wMeshScaleResidual;
-extern Mat3x3 far g_mat3x3ActorRot;
-extern short far g_nMeshOriginX;
-extern short far g_nMeshOriginY;
-extern short far g_nMeshOriginZ;
-
-extern void far *far g_pCurActorPagedRec;
-extern unsigned char *far g_pCurMeshPartVisTable;
-
-extern unsigned char *far g_pColorRemapTable;
-
-extern s32 far g_dwActorCamX;
-extern s32 far g_dwActorCamZ;
-extern s32 far g_dwActorCamY;
-extern s32 far g_dwMeshBoundHalfExtent;
-extern unsigned char far g_bSkipFarEdgeCull;
-extern unsigned char far g_bActorViewportClip;
-
-extern unsigned short far g_wMeshScaleShift;
-extern unsigned char far g_bMeshRenormCount;
-extern s32 far g_dwActorBoundExtent;
-extern s32 far g_lActorLodZ;
-extern s32 far g_lActorClampedCamZ;
-extern short far g_nMeshNormOriginX;
-extern u32 far g_dwMeshVertexFarPtrCache;
-
-extern short far g_nMeshCamOriginX;
-extern short far g_nMeshCamOriginY;
-extern short far g_nMeshCamOriginZ;
-#endif
 
 #endif

@@ -3,7 +3,6 @@
 
 #include "structs.h"
 
-#ifdef BAK_NATIVE
 /*
  * GFXCTX.ASM lays these out as one run: the context, then the screen size, the
  * row-offset LUT and the render tail, the other names being labels inside it. The
@@ -26,13 +25,5 @@ extern GfxContextBlock g_gfxContextBlock;
 #define g_pRow_offset_lut (g_gfxContextBlock.pRow_offset_lut)
 #define g_graphics_context_render (g_gfxContextBlock.render)
 #define g_wGfxBlitDstPage (g_gfxContextBlock.ctx.wGfxBlitDstPage)
-#else
-extern GraphicsContext g_graphics_context;
-extern unsigned short g_wScreen_width;
-extern unsigned short g_wScreen_height;
-extern unsigned short g_pRow_offset_lut[200];
-extern GraphicsContextRender g_graphics_context_render;
-extern unsigned short g_wGfxBlitDstPage;
-#endif
 
 #endif

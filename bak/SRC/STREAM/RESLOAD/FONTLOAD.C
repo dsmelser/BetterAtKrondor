@@ -65,23 +65,17 @@ s16 font_load(FileRef *filename) {
 
         if (error_flag == 0) {
             g_font_glyph_offset_table[slot] = (s16 far *)buf;
-            FP_OFF_ADD(buf, (u16)g_graphics_context.pFont_glyph_count[slot] * 2);
+            buf = (char *)buf + ((u16)g_graphics_context.pFont_glyph_count[slot] * 2);
             g_font_width_table[slot] = (unsigned char far *)buf;
-            FP_OFF_ADD(buf, (u16)g_graphics_context.pFont_glyph_count[slot]);
+            buf = (char *)buf + ((u16)g_graphics_context.pFont_glyph_count[slot]);
             g_font_bitmap_data[slot] = (unsigned char far *)buf;
         }
 
         stream_close(stream_id);
         if (error_flag == 0)
             goto epilogue;
-#ifdef BAK_NATIVE
         if (buf == NULL)
             goto comp_stub;
-#else
-        asm mov ax, word ptr buf;
-        asm or ax, word ptr buf + 2;
-        asm jz comp_stub;
-#endif
         _freemem(buf);
         goto comp_fail;
     comp_stub:;
@@ -121,9 +115,6 @@ s16 font_load(FileRef *filename) {
             goto uncomp_fail;
         }
     uncomp_stub:
-#ifndef BAK_NATIVE
-        asm db 0xeb, 0x00;
-#endif
     }
 comp_fail:
 uncomp_fail:

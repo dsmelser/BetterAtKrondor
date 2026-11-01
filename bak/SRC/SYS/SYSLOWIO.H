@@ -4,17 +4,12 @@
 #include "structs.h"
 
 extern char g_cBusyCursorShown;
-#ifdef BAK_NATIVE
 /* Advanced by a timer callback; natively each access first runs the interrupts that
  * are due (BAK_POLLED), as the game reads them to wait. */
 extern u32 g_timer_ticks_value;
 extern u32 g_dwSysTickCount_value;
 #define g_timer_ticks BAK_POLLED(g_timer_ticks_value)
 #define g_dwSysTickCount BAK_POLLED(g_dwSysTickCount_value)
-#else
-extern u32 g_timer_ticks;
-extern u32 g_dwSysTickCount;
-#endif
 
 extern void syslowio_timer_tick_isr(void);
 extern void syslowio_mouse_handler_cb_noop(void);

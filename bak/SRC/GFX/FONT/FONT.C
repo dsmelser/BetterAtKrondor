@@ -271,27 +271,9 @@ s16 font_render_glyph_or_ctrl(char ch, s16 x, s16 y) {
             glyph_size = ((width + 7) >> 3) * height;
             glyph_ptr = g_font_bitmap_data[0] + i * glyph_size;
         }
-#ifdef BAK_NATIVE
         /* Slot 1 takes its registers as arguments: BP = y, DX = x, CX = rows, SI = glyph. */
         (*(void (*)(s16, s16, s16, const unsigned char *))g_pfn_blit_glyph_row)(y, x, height,
                                                                                 glyph_ptr);
-#else
-        asm {
-            push bp
-            push si
-            push di
-            mov es, word ptr glyph_ptr+2
-            mov si, word ptr glyph_ptr
-            mov bx, width
-            mov cx, height
-            mov dx, x
-            mov bp, y
-            call dword ptr [g_pfn_blit_glyph_row]
-            pop di
-            pop si
-            pop bp
-        }
-#endif
     } else {
         width = font_draw_char((unsigned char)c, x, y);
         if (g_graphics_context.bText_style_flags & 2)

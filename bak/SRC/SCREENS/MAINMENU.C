@@ -1505,11 +1505,7 @@ void mainmenu_save_party_to_tmp(void) {
     zone_savegame_snap_world_state();
     g_pendingTempWriteRegion = TWR_GAMESTATE;
 
-#ifdef BAK_NATIVE
     gstate_temp_write_gamestate(&g_gameState);
-#else
-    gstate_temp_file_write_at((unsigned char far *)&g_gameState, 0L, 0xad7);
-#endif
     g_gameState.shared_inventory->needsFlush = TRUE;
     actorspawn_persist_to_temp(g_gameState.shared_inventory);
     g_gameState.ground_pile->needsFlush = TRUE;

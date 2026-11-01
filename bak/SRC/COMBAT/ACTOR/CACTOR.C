@@ -38,9 +38,7 @@
 #include <dos.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef BAK_NATIVE
 #include "SRC/GAME/STATE/GSTATE.H"
-#endif
 
 s16 g_combat_count_A;
 Combatant *g_combat_actors_A;
@@ -82,7 +80,6 @@ void far combat_actor_init_pool(void) {
     g_anim_pool_A = (AnimSlot *)galloc_safe_zcalloc(sizeof(AnimSlot) * MAX_COMBAT_ACTORS);
     file = res_fopen("p1.dat", "rb");
     for (i = 0; i < g_combat_count_A; i++) {
-#ifdef BAK_NATIVE
         /* P1.DAT holds the six party members' CombatantStates in the 16-bit layout. */
         unsigned char disk[0x16];
         lSeekOffset =
@@ -91,12 +88,6 @@ void far combat_actor_init_pool(void) {
         gstate_combatant_state_pack(disk, &pInnerPool[i]);
         res_fread(disk, GAM_SIZEOF_COMBATANT_STATE, 1, file);
         gstate_combatant_state_unpack(&pInnerPool[i], disk);
-#else
-        lSeekOffset =
-            (s32)(u16)((g_combat_actors_A[i].charSlot - 1) * sizeof(CombatantState));
-        res_fseek(file, lSeekOffset, SEEK_SET);
-        res_fread(&pInnerPool[i], sizeof(CombatantState), 1, file);
-#endif
     }
     res_fclose(file);
 
@@ -471,15 +462,10 @@ static void combat_actor_copy_11_words(unsigned short *dst, unsigned short *src)
 
 ImageRecord **far combat_actor_bnames_load_cached(s16 creatureType, s16 col) {
 
-#ifdef BAK_NATIVE
     /* Borland places nameMeta right after nameChars, and the code relies on it: a record's
      * eight bytes are copied over nameChars, and its fifth is read as nameChars[4]. */
     char nameChars[8];
     char *nameMeta = nameChars + 4;
-#else
-    char nameMeta[4];
-    char nameChars[4];
-#endif
     char idxStr[6];
     char local_ext[5] = ".bmx";
     char local_pfx[8] = "csx.dat";
@@ -515,22 +501,12 @@ ImageRecord **far combat_actor_bnames_load_cached(s16 creatureType, s16 col) {
     res_fread(strBlob, 1, blobSize, fp);
     res_fclose(fp);
 
-#ifdef BAK_NATIVE
     /* The table holds 16-bit offsets into the blob, which the original rebases in place. */
     i = 0;
     do {
         nameChars[i] = ((char *)strBlob)[((u16 *)offTable)[creatureType] + i];
         i = i + 1;
     } while (i < 8);
-#else
-    ((s16 *)offTable)[creatureType] += (s16)strBlob;
-
-    i = 0;
-    do {
-        nameChars[i] = ((char *)((s16 *)offTable)[creatureType])[i];
-        i = i + 1;
-    } while (i < 8);
-#endif
 
     galloc_zfree(strBlob);
     galloc_zfree(offTable);

@@ -15,7 +15,6 @@
 #include "SRC/SYS/DOSMEM.H"
 #include "SRC/SYS/FARPTR.H" /* memset_far — referenced only in inline asm below */
 
-#ifdef BAK_NATIVE
 /* Host-backed DOS memory (port/platform/dosmem.c). alloc_far(0xFFFFFFFF) is the
  * original's query: its "pointer" result is the largest free block size in bytes. */
 void far *alloc_far(u32 size, s32 flags) {
@@ -27,77 +26,3 @@ void far *alloc_far(u32 size, s32 flags) {
 s16 _freemem(void far *block) {
     return bak_dos_free(block);
 }
-#else
-void far *alloc_far(u32 size, s32 flags) {
-    asm mov ax, word ptr size + 2;
-    asm mov bx, word ptr size;
-    if (_AX == _BX && _AX == 0xFFFF)
-        goto query_free;
-    _DX = _BX;
-    asm shr ax, 1;
-    asm rcr bx, 1;
-    asm shr ax, 1;
-    asm rcr bx, 1;
-    asm shr ax, 1;
-    asm rcr bx, 1;
-    asm shr ax, 1;
-    asm rcr bx, 1;
-    _DX &= 0x0f;
-    asm jz do_alloc;
-    _BX++;
-do_alloc:
-    asm mov ah, 48h;
-    asm int INT_DOS;
-    asm jnc alloc_ok;
-    _AX = 0;
-    _DX = 0;
-    return;
-
-alloc_ok:
-    _DX = _AX;
-    asm mov ax, word ptr flags + 2;
-    _AX &= 1;
-    asm jz done;
-
-    asm push dx;
-    asm mov ax, word ptr size + 2;
-    asm push ax;
-    asm mov ax, word ptr size;
-    asm push ax;
-    _AX = 0;
-    asm push ax;
-    asm push dx;
-    asm push ax;
-    asm call far ptr memset_far;
-    asm add sp, 0ah;
-    asm pop dx;
-    _AX = 0;
-    return;
-
-query_free:
-    asm mov ah, 48h;
-    asm int INT_DOS;
-    _AX = _BX;
-    _BX = 0;
-    asm shl ax, 1;
-    asm rcl bx, 1;
-    asm shl ax, 1;
-    asm rcl bx, 1;
-    asm shl ax, 1;
-    asm rcl bx, 1;
-    asm shl ax, 1;
-    asm rcl bx, 1;
-    _DX = _BX;
-done:;
-}
-
-s16 _freemem(void far *block) {
-    asm push es;
-    asm mov ax, word ptr block + 2;
-    asm mov es, ax;
-    asm mov ah, 49h;
-    asm int INT_DOS;
-    asm pop es;
-    return _AX;
-}
-#endif

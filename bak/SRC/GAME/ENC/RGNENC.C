@@ -196,12 +196,8 @@ void far rgnenc_load_encounter_actors(void) {
                 j = 0;
                 while (j < 7) {
                     if (aActorSlots[j] != -1) {
-#ifdef BAK_NATIVE
                         gstate_temp_read_combatant_state(
                             &inner, GAM_COMBAT_ACTOR_INNER((s32)aActorSlots[j]));
-#else
-                        gstate_temp_file_read_at(&inner, GAM_COMBAT_ACTOR_INNER((s32)aActorSlots[j]), 0x16);
-#endif
                         /* The flags byte is read through (int)(signed char)
                            so the compiler sign-extends it (MOV AL;CWDE) and TESTs
                            the word, rather than folding to a byte-ptr TEST. The
@@ -508,11 +504,7 @@ void far rgnenc_mark_defended(u32 filter_encounter_id) {
         for (j = 0; j < 7; j++) {
             if (actor_ids[j] == -1)
                 continue;
-#ifdef BAK_NATIVE
             gstate_temp_read_combatant_state(&inner, GAM_COMBAT_ACTOR_INNER((s32)actor_ids[j]));
-#else
-            gstate_temp_file_read_at(&inner, GAM_COMBAT_ACTOR_INNER((s32)actor_ids[j]), 0x16);
-#endif
             /* The flags byte is read through (int)(signed char)
                so the compiler sign-extends it (MOV AL;CWDE) and TESTs
                the word, rather than folding to a byte-ptr TEST. The
@@ -522,12 +514,7 @@ void far rgnenc_mark_defended(u32 filter_encounter_id) {
                 continue;
             inner.flags |= CAF_DEAD;
             g_pendingTempWriteRegion = TWR_COMBAT_ACTOR_INNER;
-#ifdef BAK_NATIVE
             gstate_temp_write_combatant_state(&inner, GAM_COMBAT_ACTOR_INNER((s32)actor_ids[j]));
-#else
-            gstate_temp_file_write_at((unsigned char far *)&inner,
-                                      GAM_COMBAT_ACTOR_INNER((s32)actor_ids[j]), 0x16);
-#endif
         }
     }
 }

@@ -20,7 +20,6 @@ short g_credits_scroll_y;
 
 unsigned short g_nCreditsPassCount = 0x0000;
 
-#ifdef BAK_NATIVE
 /* CRED.DAT gives each string as a 16-bit offset into the blob that follows, which the
  * original reads into its table of near pointers and rebases in place. */
 void credits_load(void) {
@@ -31,7 +30,7 @@ void credits_load(void) {
 
     file = res_fopen("cred.dat", "rb");
     res_fread(&g_credits_pair_count, 2, 1, file);
-    g_credits_strings = galloc_safe_zcalloc(g_credits_pair_count * NEAR_PTR_SIZE);
+    g_credits_strings = galloc_safe_zcalloc(g_credits_pair_count * (s16)sizeof(void *));
     offsets = galloc_safe_zcalloc(g_credits_pair_count << 1);
     res_fread(offsets, 2, g_credits_pair_count, file);
     res_fread(&blobSize, 2, 1, file);
@@ -42,26 +41,6 @@ void credits_load(void) {
         g_credits_strings[i] = (char *)g_pCreditsBlob + offsets[i];
     galloc_zfree(offsets);
 }
-#else
-void credits_load(void) {
-    ResFile *file;
-    s16 i;
-    unsigned short blobSize;
-
-    file = res_fopen("cred.dat", "rb");
-    res_fread(&g_credits_pair_count, 2, 1, file);
-    g_credits_strings = galloc_safe_zcalloc(g_credits_pair_count << 1);
-    res_fread(g_credits_strings, 2, g_credits_pair_count, file);
-    res_fread(&blobSize, 2, 1, file);
-    g_pCreditsBlob = galloc_safe_zcalloc(blobSize);
-    res_fread(g_pCreditsBlob, 1, blobSize, file);
-    res_fclose(file);
-    for (i = 0; i < g_credits_pair_count; i++) {
-        g_credits_strings[i] += (s16)g_pCreditsBlob;
-    }
-    return;
-}
-#endif
 
 void credits_free(void) {
     if (g_credits_strings != 0) {

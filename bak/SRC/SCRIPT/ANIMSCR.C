@@ -88,7 +88,7 @@ s16 anim_script_open(char *filename, s16 mode) {
         return 0;
     }
     newSlotIdx = slotIdx;
-    if ((slot = (Slot far *)alloc_far(RECORD_SIZE(Slot, 0x472), ALLOC_FAR_ZERO_FILL)) == (Slot far *)0) {
+    if ((slot = (Slot far *)alloc_far((s16)sizeof(Slot), ALLOC_FAR_ZERO_FILL)) == (Slot far *)0) {
         return 0;
     }
     g_anim_slots[newSlotIdx] = slot;
@@ -228,7 +228,7 @@ static ScriptAnimNode **anim_script_gather_refd_objects(unsigned short far *pc) 
     s16 count;
 
     result = (ScriptAnimNode **)0x0;
-    memset(nodes, 0, 100 * NEAR_PTR_SIZE);
+    memset(nodes, 0, 100 * (s16)sizeof(void *));
     while ((opcode = *pc) != -1) {
         wTag = pc[1];
         wIdB = pc[2];
@@ -250,8 +250,8 @@ static ScriptAnimNode **anim_script_gather_refd_objects(unsigned short far *pc) 
         count = count + 1;
     }
     if (count != 0) {
-        if ((result = my_calloc(count + 1, NEAR_PTR_SIZE)) != (ScriptAnimNode **)0x0) {
-            memcpy(result, nodes, count << NEAR_PTR_SHIFT);
+        if ((result = my_calloc(count + 1, (s16)sizeof(void *))) != (ScriptAnimNode **)0x0) {
+            memcpy(result, nodes, count * (s16)sizeof(void *));
         }
     }
     return result;

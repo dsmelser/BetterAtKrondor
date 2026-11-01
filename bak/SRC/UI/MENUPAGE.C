@@ -24,7 +24,6 @@ unsigned short g_wMenuDragState;
 short g_nJoyXVel = 0;
 short g_nJoyYVel = 0;
 
-#ifdef BAK_NATIVE
 /*
  * The files hold the original's records: a page of 1Ch bytes, then the entry count and
  * entries of 21h bytes, then a string blob. Their string pointers are 16-bit offsets into
@@ -100,52 +99,6 @@ MenuPage *menupage_load(char *filename) {
     res_fclose(file);
     return page;
 }
-#else
-MenuPage *menupage_load(char *filename) {
-    ResFile *file;
-    MenuPage *page;
-    s16 i;
-    void *stringBlob;
-    u16 blobSize;
-
-    stringBlob = (void *)0;
-    file = res_fopen(filename, "rb");
-    page = galloc_safe_zcalloc(0x1c);
-    res_fread(page, 0x1c, 1, file);
-    res_fread(&page->wEntry_count, 2, 1, file);
-    page->pEntries = galloc_safe_zcalloc(page->wEntry_count * 0x21);
-    res_fread(page->pEntries, 0x21, page->wEntry_count, file);
-    res_fread(&blobSize, 2, 1, file);
-    if (blobSize != 0) {
-        stringBlob = galloc_safe_zcalloc(blobSize);
-        res_fread(stringBlob, 1, blobSize, file);
-    }
-    if ((s16)page->pTitle == -1) {
-        page->pTitle = (char *)0;
-    } else {
-        page->pTitle += (s16)stringBlob;
-    }
-    for (i = 0; i < (s16)page->wEntry_count; i++) {
-        if ((s16)page->pEntries[i].pLabel == -1) {
-            page->pEntries[i].pLabel = (char *)0;
-        } else {
-            page->pEntries[i].pLabel += (s16)stringBlob;
-        }
-        if ((s16)page->pEntries[i].pPrimary_label == -1) {
-            page->pEntries[i].pPrimary_label = (char *)0;
-        } else {
-            page->pEntries[i].pPrimary_label += (s16)stringBlob;
-        }
-        if ((s16)page->pEntries[i].pAlt_label == -1) {
-            page->pEntries[i].pAlt_label = (char *)0;
-        } else {
-            page->pEntries[i].pAlt_label += (s16)stringBlob;
-        }
-    }
-    res_fclose(file);
-    return page;
-}
-#endif
 
 void menupage_free(MenuPage *page) {
     char *blobBase;

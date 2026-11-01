@@ -118,13 +118,9 @@ Shape far *far *ts_load_shape_tbl(s16 tblIdx, char *fname) {
         g_shapeTables[tblIdx].spriteBank = -1;
         g_shapeTables[tblIdx].count = 0;
         while (*table.ofs != 0) {
-#ifdef BAK_NATIVE
             /* An entry is the record's place as a normalized far pointer from the chunk's
              * start: paragraphs in the high word, under 16 bytes in the low one. */
             *table.recs = bak_far_add((void *)(uintptr_t)base, *table.ofs);
-#else
-            *table.ofs = base + *table.ofs;
-#endif
             table.ofs++;
             g_shapeTables[tblIdx].count++;
         }

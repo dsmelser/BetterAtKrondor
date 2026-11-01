@@ -51,11 +51,7 @@ u32 chunkread_fread_far_large(char far *dst, u32 len, ResFile *file) {
         n = res_fread(scratch, 1, n, file);
         if (n == 0)
             break;
-#ifdef BAK_NATIVE
         memcpy(p, scratch, n);
-#else
-        movedata(_DS, (u16)scratch, FP_SEG(p), FP_OFF(p), n);
-#endif
         p += n;
         len -= n;
         if (chunks_per_window != 0 && --window_left == 0) {

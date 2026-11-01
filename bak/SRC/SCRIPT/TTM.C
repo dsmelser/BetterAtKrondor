@@ -237,12 +237,8 @@ static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned s
 
         unsigned short saved_page_id;
         unsigned char far *ems_ptr;
-#ifdef BAK_NATIVE
         NearWord sprite; /* param_3 holds the sprite in the original: 16 bits */
 #define TTM_SPRITE sprite
-#else
-#define TTM_SPRITE param_3
-#endif
 
         g_wTtmBlitTint = (g_nScriptCurOpcode & 0xf0) >> 4;
 
@@ -254,11 +250,7 @@ static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned s
             if (saved_page_id < 300) {
                 ems_ptr = ems_map_resource_pages(saved_page_id);
 
-#ifdef BAK_NATIVE
                 ((ImageRecord *)TTM_SPRITE)->wImageData = FP_SEG(ems_ptr);
-#else
-                ((ImageRecord *)param_3)->wImageData = ((unsigned short *)&ems_ptr)[1];
-#endif
             }
 
             if ((g_nScriptCurOpcode & 0x0f) == 7) {
@@ -383,14 +375,14 @@ s16 ttmscript_interpret_loop(s16 block_index) {
         if (low == 0xf) {
             if (g_nScriptCurOpcode == 0xaf1f || g_nScriptCurOpcode == 0xaf2f) {
                 scratchStr = ttmscript_strcpy_to_scratch(p0 << 2, (char far *)(w + 1));
-                FP_OFF_ADD(w, p0 * 4 + 2);
+                w = (void *)((char *)w + (p0 * 4 + 2));
             } else {
                 scratchStr = ttmscript_strcpy_to_scratch(0, (char far *)w);
                 w = (unsigned short far *)adscript_skip_aligned_cstring((char far *)w);
             }
         } else {
             scratchStr = (char *)0;
-            FP_OFF_ADD(w, low * 2);
+            w = (void *)((char *)w + (low * 2));
         }
 
         if (g_nScriptEnhancedOpcodeDispatchEnabled != 0 && g_nScriptCurOpcode >= 0xa000 &&
@@ -780,12 +772,8 @@ s16 ttmscript_interpret_loop(s16 block_index) {
             case 0xa535:
             case 0xa536: {
 
-#ifdef BAK_NATIVE
                 NearWord sprite; /* si holds the sprite in the original: 16 bits */
 #define TTM_SPRITE sprite
-#else
-#define TTM_SPRITE si
-#endif
                 if (g_pCurScriptObject->pAhPagedImage[p3] == 0 ||
                     (TTM_SPRITE = ((NearPtr *)g_pCurScriptObject->pAhPagedImage[p3])[p2]) == 0)
                     continue;
@@ -873,9 +861,6 @@ s16 ttmscript_find_block_by_tag(s16 tag_arg) {
 char *ttmscript_strcpy_to_scratch(s16 param_1, char far *param_2) {
     s16 i;
 
-#ifndef BAK_NATIVE
-    (void)_SI;
-#endif
     i = 0;
     if (param_1 < (short)g_wScreen_height) {
         if (param_1 == 0) {

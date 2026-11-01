@@ -73,15 +73,19 @@ the game sets each one again after a read, and the party's `inner` is always 0 o
 ones too, read back as NULL and are written as 0, where DOS writes whatever they held. `test_gstate.py`
 checks the native fields against the original's offsets and the round trip.
 
-## Native-only code in the game sources
+## Where the game sources depart from the original
 
-Byte-identity with the original build is no longer kept, so new native code may replace the original's
-outright. The sites below predate that: each is an `#ifdef BAK_NATIVE` branch next to the untouched
-original, or one of the idioms in `bak/INCLUDE/gtypes.h` (`NearPtr`/`NearWord`, `NEAR_PTR_SIZE`/`NEAR_PTR_SHIFT`
-for tables of near pointers, `RECORD_SIZE` for records holding them, `FP_OFF_ADD`, `RETURN_AX`, `NEAR_STR` for
-a string pointer that may be null, `FP_SEG_NORM` for the segment of a pointer the original holds normalized)
-that expand to the original under Borland. The table lists where the native code departs from the original
-source.
+The table lists where the game's code departs from the reconstruction. Until 2026-10-31 each site was an
+`#ifdef BAK_NATIVE` branch beside the untouched original. They are plain code now, and the originals stay
+at the `upstream-snapshot` tag.
+
+- The fold kept every source's preprocessed tokens identical; one `__LINE__` in an error message moved.
+- The idioms with nothing left to stand for became plain C: `RECORD_SIZE` is `sizeof`, `NEAR_PTR_SIZE` is
+  `sizeof(void *)`, `FP_OFF_ADD` is pointer arithmetic, `RETURN_AX` is `return 0`.
+- These `bak/INCLUDE/gtypes.h` idioms remain: `NearPtr`/`NearWord` (a pointer the original held in a
+  16-bit word), `NEAR_STR` (a string pointer that may be null) and `FP_SEG_NORM` (the segment of a pointer
+  the original holds normalized).
+- Two `#ifdef BAK_NATIVE` branches remain: RECTSPR.C and STRBLIT.C, whose native side is still a trap.
 
 | File | Native branch |
 |---|---|

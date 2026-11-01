@@ -5,7 +5,6 @@
 #include "SRC/SYS/MEM.H"
 #include "SRC/GFX/FONT/FONT.H"
 
-#ifdef BAK_NATIVE
 /*
  * A label file: the count, then 10-byte records (the label's 16-bit offset in the string
  * pool or FFFFh for none, x, y, flags, the colour and the shadow colour), then the pool's
@@ -110,91 +109,3 @@ void far namedtbl_label_draw(s16 *label) {
     g_graphics_context.bText_fg_color = l->colour;
     font_draw_text_ds(text, x, l->y);
 }
-#else
-s16 *namedtbl_load(char *filename) {
-    s16 *ptr;
-    ResFile *file;
-    void *strPool;
-    u16 poolSize;
-    s16 i;
-
-    strPool = (void *)0;
-    ptr = galloc_safe_zcalloc(4);
-    file = res_fopen(filename, "rb");
-    res_fread(ptr, 2, 1, file);
-    ptr[1] = (s16)galloc_safe_zcalloc(*ptr * 10);
-    res_fread((void *)ptr[1], 10, *ptr, file);
-    res_fread(&poolSize, 2, 1, file);
-    if (poolSize != 0) {
-        strPool = galloc_safe_zcalloc(poolSize);
-        res_fread(strPool, 1, poolSize, file);
-    }
-    res_fclose(file);
-    for (i = 0; i < *ptr; i++) {
-        if (*(s16 *)(ptr[1] + i * 10) == -1) {
-            *(s16 *)(ptr[1] + i * 10) = 0;
-        } else {
-            *(s16 *)(ptr[1] + i * 10) += (s16)strPool;
-        }
-    }
-    return ptr;
-}
-
-s16 namedtbl_free(s16 *table) {
-    void *minPtr;
-    s16 i;
-
-    if (table != (s16 *)0) {
-        minPtr = (void *)*(unsigned short *)table[1];
-        for (i = 1; i < *table; i = i + 1) {
-            if ((*(s16 *)(table[1] + i * 10) != 0) &&
-                ((minPtr == (void *)0) ||
-                 ((void *)*(u16 *)(table[1] + i * 10) < minPtr))) {
-                minPtr = (void *)*(unsigned short *)(table[1] + i * 10);
-            }
-        }
-        if (minPtr != (void *)0) {
-            galloc_zfree(minPtr);
-        }
-        galloc_zfree((void *)table[1]);
-        galloc_zfree(table);
-        return 1;
-    }
-    return 0;
-}
-
-void far namedtbl_labels_draw_all(s16 *table) {
-    s16 i;
-
-    if (table != (s16 *)0) {
-        for (i = 0; i < *table; i++) {
-            namedtbl_label_draw((s16 *)(table[1] + i * 10));
-        }
-    }
-    return;
-}
-
-void far namedtbl_label_draw(s16 *label) {
-    s16 x;
-
-    g_graphics_context.clip.xmin = 0;
-    g_graphics_context.clip.ymin = 0;
-
-    g_graphics_context.clip.xmax = 0x13f;
-    g_graphics_context.clip.ymax = 199;
-    g_graphics_context.bClip_enabled = '\x01';
-    g_graphics_context.bText_style_flags = '\x01';
-    if (label[3] & 2U) {
-        x = 0xa0 - (font_text_width_ds((char *)*label) >> 1);
-    } else {
-        x = label[1];
-    }
-    if ((label[3] & 1U) != 0) {
-        g_graphics_context.bText_fg_color = *(unsigned char *)((s16)label + 9);
-        font_draw_text_ds((char *)*label, x, label[2] + 1);
-    }
-    g_graphics_context.bText_fg_color = (unsigned char)label[4];
-    font_draw_text_ds((char *)*label, x, label[2]);
-    return;
-}
-#endif

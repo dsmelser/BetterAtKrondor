@@ -22,12 +22,8 @@ extern unsigned char g_mouse_buttons;
 extern s16 mouse_install(void);
 extern void mouse_set_cursor_clip_rect(s16 x, s16 y, s16 w, s16 h);
 extern void mouse_set_handler_cb(void far *cb);
-#ifdef BAK_NATIVE
 /* Called by the emulated INT 33h driver with what it passes in CX, DX and BX. */
 extern void mouse_event_callback(u16 x_mickeys, u16 y_mickeys, u16 buttons);
-#else
-extern void mouse_event_callback(void);
-#endif
 extern void vga_save_and_setup_gc_sc(void);
 extern void vga_restore_registers(void);
 extern s16 mouse_restore_handler(void);

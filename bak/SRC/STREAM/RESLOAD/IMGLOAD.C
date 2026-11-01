@@ -15,7 +15,6 @@
 
 void unpack_2bpp_to_byte_per_pixel(unsigned char huge *src, unsigned char huge *dst, u16 count);
 
-#ifdef BAK_NATIVE
 /*
  * The image table at native width. The original holds it as 16-bit near pointers: count + 1
  * words (the last 0), each the address of a 10-byte record, the first one also the records
@@ -36,7 +35,7 @@ s16 iff_chunk_loader_2f1c(ResFile *file, unsigned short *count, NearPtr *out_han
         goto L_fail;
     if (res_fread(count, 2, 1, file) != 1)
         goto L_fail;
-    if (!(*out_handle = (NearPtr)my_calloc((*count + 1) * NEAR_PTR_SIZE, 1)))
+    if (!(*out_handle = (NearPtr)my_calloc((*count + 1) * (s16)sizeof(void *), 1)))
         goto L_cleanup;
     if (!(*(NearPtr *)*out_handle = (NearPtr)my_calloc(10, *count)))
         goto L_cleanup;
@@ -77,65 +76,6 @@ L_cleanup:
 L_fail:
     return 0;
 }
-#else
-s16 iff_chunk_loader_2f1c(ResFile *file, unsigned short *count, unsigned short *out_handle) {
-
-    unsigned short *width;
-    unsigned short *height;
-    s16 i;
-    unsigned short n;
-    s16 *slot;
-    unsigned short *buf;
-    s16 rec;
-
-    buf = 0;
-    *out_handle = 0;
-    if (chunk_seek(file, "BMP:INF:", 0) == -1L)
-        goto L_fail;
-    if (res_fread(count, 2, 1, file) != 1)
-        goto L_fail;
-    if (!(*out_handle = (unsigned short)my_calloc((*count + 1) * 2, 1)))
-        goto L_cleanup;
-    if (!(*(unsigned short *)*out_handle = (unsigned short)my_calloc(10, *count)))
-        goto L_cleanup;
-    if ((s32)(cached_file_chunk_size(file) + (-2L)) < (s32)(s16)(*count << 2))
-        n = 1;
-    else
-        n = *count;
-    if (!(buf = (unsigned short *)my_malloc(n << 2)))
-        goto L_cleanup;
-    if (res_fread(buf, n << 2, 1, file) != 1)
-        goto L_cleanup;
-    width = buf;
-    height = buf + n;
-    rec = *(s16 *)*out_handle;
-    slot = (s16 *)*out_handle;
-    for (i = 0; i < (s16)*count; i++) {
-        *slot = rec;
-        *(unsigned short *)(rec + 6) = *width;
-        *(unsigned short *)(rec + 8) = *height;
-        if (*count == n) {
-            width++;
-            height++;
-        }
-        rec += 10;
-        slot++;
-    }
-    *slot = 0;
-    my_free(buf);
-    return 1;
-L_cleanup:
-    if (buf != 0)
-        my_free(buf);
-    if (*out_handle != 0) {
-        if (*(s16 *)*out_handle != 0)
-            my_free((void *)*(unsigned short *)*out_handle);
-        my_free((void *)*out_handle);
-    }
-L_fail:
-    return 0;
-}
-#endif
 
 NearPtr bak_load_image_record_chunked(FileRef *fname) {
     unsigned short *image;
@@ -248,7 +188,6 @@ cleanup:
     return (NearPtr)image;
 }
 
-#ifdef BAK_NATIVE
 /* The table's first entry, the records block, is a native pointer. Without a table the
  * original reads DS:0000, which Borland's startup keeps zero (its null-pointer check
  * area), and frees nothing. */
@@ -259,24 +198,12 @@ void free_container_pair(s16 *container) {
         my_free((void *)*(NearPtr *)container);
     my_free(container);
 }
-#else
-void free_container_pair(s16 *container) {
-    if (*container != 0)
-        my_free((void *)*container);
-    if (container != 0)
-        my_free(container);
-}
-#endif
 
 void far free_image_record(register ImageRecord **record) {
     s16 *inner;
     if (record) {
         inner = (s16 *)*record;
-#ifdef BAK_NATIVE
         _freemem(MK_FP((u16)inner[0], (u16)inner[1]));
-#else
-        _freemem((unsigned char far *)(((u32)inner[0] << 16) + (u16)inner[1]));
-#endif
         free_container_pair((s16 *)record);
     }
 }

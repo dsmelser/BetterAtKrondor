@@ -78,7 +78,6 @@ unsigned short far gstate_event_read(unsigned short id) {
     case 13:
         return g_gameState.nEvtArgDlgResult;
     case 5:
-#ifdef BAK_NATIVE
         if (gstate_is_party_member(CHR_PUG))
             return CHR_PUG;
         /* Chapter 0 (no game loaded yet) reads the byte before the table: in the
@@ -86,10 +85,6 @@ unsigned short far gstate_event_read(unsigned short id) {
         if (g_gameState.nChapter == 0)
             return (unsigned short)(char)((u16)g_pendingTempWriteRegion >> 8);
         return g_chapterDefaultSpeaker[g_gameState.nChapter - 1];
-#else
-        return gstate_is_party_member(CHR_PUG) ? CHR_PUG
-                                               : g_chapterDefaultSpeaker[g_gameState.nChapter - 1];
-#endif
     case 10: {
         short h = (short)(g_gameState.game_time % 0xa8c0 / 0x708);
         return (h >= 4 && h < 0x14) ? 1 : 0;
@@ -260,7 +255,6 @@ s16 gstate_temp_file_write_at(unsigned char far *src_far, u32 offset, u16 bytes)
     return 1;
 }
 
-#ifdef BAK_NATIVE
 /*
  * TEMP.GAM keeps the original's 16-bit layout, so DOS saves load natively and native
  * saves load in DOS. Three of its records hold near pointers, 2 bytes there and 4 here:
@@ -381,7 +375,6 @@ s16 gstate_temp_write_combatant_state(CombatantState *src, u32 offset) {
     gstate_combatant_state_pack(disk, src);
     return gstate_temp_file_write_at(disk, offset, (u16)GAM_SIZEOF_COMBATANT_STATE);
 }
-#endif
 
 static s16 far gstate_consume_rations_tick(s16 ctx) {
     s16 table_loaded;

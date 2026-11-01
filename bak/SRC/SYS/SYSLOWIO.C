@@ -10,13 +10,8 @@
 unsigned char _dgroup_lead_15a[3] = {0x0a, 0x00, 0x00};
 char g_cBusyCursorShown = 0;
 
-#ifdef BAK_NATIVE
 u32 g_timer_ticks_value;
 u32 g_dwSysTickCount_value;
-#else
-u32 g_timer_ticks;
-u32 g_dwSysTickCount;
-#endif
 
 void syslowio_timer_tick_isr(void) {
     g_timer_ticks++;

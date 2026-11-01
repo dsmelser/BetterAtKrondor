@@ -143,15 +143,15 @@ static void adscript_object_chain_append(unsigned short id_a, unsigned short tag
     ScriptAnimNode *pTail;
 
     if (g_pScriptObjectChainHead == (ScriptAnimNode *)0x0) {
-        g_pCurScriptAnimNode = g_pScriptObjectChainHead = my_malloc(RECORD_SIZE(ScriptAnimNode, 0x3d));
+        g_pCurScriptAnimNode = g_pScriptObjectChainHead = my_malloc((s16)sizeof(ScriptAnimNode));
     } else {
         pTail = g_pScriptObjectChainHead;
         for (; pTail->pNext != (ScriptAnimNode *)0x0; pTail = pTail->pNext) {
         }
-        g_pCurScriptAnimNode = pTail->pNext = my_malloc(RECORD_SIZE(ScriptAnimNode, 0x3d));
+        g_pCurScriptAnimNode = pTail->pNext = my_malloc((s16)sizeof(ScriptAnimNode));
     }
     if (g_pCurScriptAnimNode != (ScriptAnimNode *)0x0) {
-        memset(g_pCurScriptAnimNode, 0, RECORD_SIZE(ScriptAnimNode, 0x3d));
+        memset(g_pCurScriptAnimNode, 0, (s16)sizeof(ScriptAnimNode));
         g_pCurScriptAnimNode->wPcSaved = id_a;
         g_pCurScriptAnimNode->wPc = id_a;
         g_pCurScriptAnimNode->wTag = tag;
@@ -198,7 +198,7 @@ short adscript_channel_dispatch_loop(unsigned short script_obj_id) {
             for (;;) {
                 if (FP_OFF(g_pCurScriptObject->pTt3_end) <= FP_OFF(cur))
                     return 0;
-                FP_OFF_ADD(cur, 2);
+                cur += 2;
                 cx = *(unsigned short far *)saved;
 
                 if (cx == 0xff0) {
@@ -216,7 +216,7 @@ short adscript_channel_dispatch_loop(unsigned short script_obj_id) {
                         dx = *(unsigned short far *)cur;
                         dx <<= 1;
                         do {
-                            FP_OFF_ADD(cur, 2);
+                            cur += 2;
                         } while (dx--);
                     } else {
                         cur = (unsigned char far *)adscript_skip_aligned_cstring((char far *)cur);
@@ -226,7 +226,7 @@ short adscript_channel_dispatch_loop(unsigned short script_obj_id) {
                 case 1:
 
                     dx = *(unsigned short far *)cur;
-                    FP_OFF_ADD(cur, 2);
+                    cur += 2;
                     if (cx == 0x1111)
                         adscript_object_chain_append(id_a, script_obj_id, dx);
                     break;
@@ -238,7 +238,7 @@ short adscript_channel_dispatch_loop(unsigned short script_obj_id) {
                 case 6:
                 case 7:
 
-                    FP_OFF_ADD(cur, dx * 2);
+                    cur += dx * 2;
                     break;
 
                 default:

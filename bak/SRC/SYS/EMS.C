@@ -46,23 +46,8 @@ void ems_shutdown(void) {
     if (g_ems_present) {
         if (g_pEmsPageNextTbl != 0)
             my_free(g_pEmsPageNextTbl);
-#ifdef BAK_NATIVE
         bak_ems_release(g_ems_frame_segment); /* AH=45h; the global holds the handle */
         g_ems_present = 0;
-#else
-        asm {
-            push si
-            push di
-            mov dx, g_ems_frame_segment
-            mov ah, 45h
-            int INT_EMS
-        }
-        g_ems_present = 0;
-        asm {
-            pop di
-            pop si
-        }
-#endif
     }
 }
 
@@ -140,17 +125,7 @@ unsigned char far *ems_map_at_offset(s16 page_chain_1based, s32 offset) {
         chain_node = g_pEmsPageNextTbl[chain_node];
     }
 
-#ifdef BAK_NATIVE
     bak_ems_map_multiple(g_ems_frame_segment, g_anEmsPageMap, phys_slot); /* AX=5000h */
-#else
-    asm {
-        mov si, offset g_anEmsPageMap
-        mov dx, g_ems_frame_segment
-        mov cx, phys_slot
-        mov ax, 5000h
-        int INT_EMS
-    }
-#endif
     return (unsigned char far *)MK_FP(g_ems_free_pages, within);
 }
 
@@ -173,16 +148,6 @@ unsigned char far *ems_map_resource_pages(s16 page_id) {
         cur = g_pEmsPageNextTbl[cur];
     }
 
-#ifdef BAK_NATIVE
     bak_ems_map_multiple(g_ems_frame_segment, g_anEmsPageMap, count); /* AX=5000h */
-#else
-    asm {
-        mov si, offset g_anEmsPageMap
-        mov dx, g_ems_frame_segment
-        mov cx, count
-        mov ax, 5000h
-        int INT_EMS
-    }
-#endif
     return (unsigned char far *)MK_FP(g_ems_free_pages, 0);
 }

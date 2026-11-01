@@ -70,7 +70,7 @@ ImageRecord **resblit_load_asset_table(char *path, s16 storage_mode) {
         res_fread(&hdr, 12, 1, fp);
 
         if (hdr.wImageCount != 0 && hdr.wMagic == 0x1066) {
-            if ((tbl = my_calloc((hdr.wImageCount + 1) * NEAR_PTR_SIZE, 1)) != 0) {
+            if ((tbl = my_calloc((hdr.wImageCount + 1) * (s16)sizeof(void *), 1)) != 0) {
                 if ((tbl[0] = my_calloc(10, hdr.wImageCount)) != 0) {
                     i = 0;
                     while (i < hdr.wImageCount) {
