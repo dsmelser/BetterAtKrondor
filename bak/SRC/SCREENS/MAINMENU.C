@@ -1419,29 +1419,29 @@ s16 mainmenu_save_any_exists(void) {
     u16 slotKey;
     s16 saveId;
     s16 state;
-    char slotName[14];
-    char slotDta[30];
-    char fileName[14];
-    char fileDta[30];
+    /* The original declares char slotName[14] and slotDta[30], fileName[14] and fileDta[30]:
+       Borland lays each DTA just below its name, so the found name (at offset 30) lands there. */
+    struct ffblk slotDta;
+    struct ffblk fileDta;
     char slotBase[50];
     char filePath[90];
 
     if (mainmenu_save_games_dir_exists() != 0) {
         sprintf(slotBase, "%s\\*.G??", "GAMES");
-        outer_r = findfirst(slotBase, slotDta, 0x10);
+        outer_r = findfirst(slotBase, &slotDta, 0x10);
         while (outer_r == 0) {
-            if (mainmenu_save_parse_filename(slotName, slotBase, (s16 *)&slotKey) != 0) {
-                sprintf(filePath, "%s\\%s\\SAVE??.GAM", "GAMES", slotName);
-                inner_r = findfirst(filePath, fileDta, 0);
+            if (mainmenu_save_parse_filename(slotDta.ff_name, slotBase, (s16 *)&slotKey) != 0) {
+                sprintf(filePath, "%s\\%s\\SAVE??.GAM", "GAMES", slotDta.ff_name);
+                inner_r = findfirst(filePath, &fileDta, 0);
                 while (inner_r == 0) {
-                    if (mainmenu_save_parse_read_title(fileName, filePath, &saveId, slotBase,
+                    if (mainmenu_save_parse_read_title(fileDta.ff_name, filePath, &saveId, slotBase,
                                                        slotKey, &state) != 0) {
                         return 1;
                     }
-                    inner_r = findnext(fileDta);
+                    inner_r = findnext(&fileDta);
                 }
             }
-            outer_r = findnext(slotDta);
+            outer_r = findnext(&slotDta);
         }
     }
     return 0;
@@ -1543,8 +1543,9 @@ s16 mainmenu_save_scan_highest_slot(void) {
     s16 highest;
     s16 state;
     s16 save_id;
-    char title[14];
-    char dta[30];
+    /* The original's char title[14] and dta[30]: the found name lands in title (see
+       mainmenu_save_any_exists). */
+    struct ffblk dta;
     char path[90];
     s16 rc;
 
@@ -1552,18 +1553,18 @@ s16 mainmenu_save_scan_highest_slot(void) {
     if (g_wSaveSlotDirValid != 0) {
         sprintf(path, "%s\\%s.G%02d\\SAVE??.GAM", "GAMES", g_szSaveSlotDirName_51cc,
                 g_wCurrentSaveSlotKey);
-        rc = findfirst(path, (struct ffblk *)dta, 0);
+        rc = findfirst(path, &dta, 0);
         while (rc == 0) {
-            if (mainmenu_save_parse_read_title(title, path, &save_id, g_szSaveSlotDirName_51cc,
+            if (mainmenu_save_parse_read_title(dta.ff_name, path, &save_id, g_szSaveSlotDirName_51cc,
                                                g_wCurrentSaveSlotKey, &state)) {
                 if (state > highest) {
                     highest = state;
                 }
-            } else if (mainmenu_save_slot_is_at_cap(title)) {
+            } else if (mainmenu_save_slot_is_at_cap(dta.ff_name)) {
                 highest = 10;
                 break;
             }
-            rc = findnext((struct ffblk *)dta);
+            rc = findnext(&dta);
         }
     }
     if (g_nMenuReentering != 0 && g_gameState.nChapter > highest) {
@@ -1668,19 +1669,21 @@ s16 mainmenu_save_parse_filename(char *filename, char *out_name, s16 *out_slot) 
 s16 mainmenu_save_enum_files_slot(ListWidget *list, char *slot_name, s16 slot_id) {
     unsigned short key;
     s16 state;
-    char title[14];
-    char dta[30];
+    /* The original's char title[14] and dta[30]: the found name lands in title (see
+       mainmenu_save_any_exists). */
+    struct ffblk dta;
     char path[90];
     s16 rc;
 
     if (!list)
         goto fail;
     sprintf(path, "%s\\%s.G%02d\\SAVE??.GAM", "GAMES", slot_name, slot_id);
-    rc = findfirst(path, (struct ffblk *)dta, 0);
+    rc = findfirst(path, &dta, 0);
     while (rc == 0) {
-        if (mainmenu_save_parse_read_title(title, path, (s16 *)&key, slot_name, slot_id, &state))
+        if (mainmenu_save_parse_read_title(dta.ff_name, path, (s16 *)&key, slot_name, slot_id,
+                                           &state))
             mainmenu_savelist_insert_sorted(list, path, key);
-        rc = findnext((struct ffblk *)dta);
+        rc = findnext(&dta);
     }
     return 1;
 fail:

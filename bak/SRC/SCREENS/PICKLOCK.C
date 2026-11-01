@@ -20,7 +20,7 @@
 
 unsigned char g_bPicklockSuccess;
 short g_nPicklockMode;
-unsigned char far *g_pPicklockWorkingInv;
+Actor far *g_pPicklockWorkingInv;
 Actor far *g_pPicklockOwnerActor;
 short g_nPicklockScore;
 short g_nPicklockDiffTier;
@@ -61,24 +61,33 @@ typedef struct {
 s16 far picklock_screen_run(s16 score, s16 mode, Actor far *record) {
     short memberIdx;
     s16 pickCount;
-    unsigned char items[0x70];
-    Actor workActor;
+    /* The original declares unsigned char items[0x70], then Actor workActor: Borland lays them
+       out in a row, the party's inventory (its record and 70h bytes of item slots) is copied
+       over both, and the slots are reached through items. Natively they are one buffer. */
+    union {
+        ActorWorkBuf raw;
+        struct {
+            Actor header;
+            unsigned char items[0x70];
+        } inv;
+    } work;
 
     stat_party_find_extreme(0xd, 0, &memberIdx);
     g_gameState.nEvtArgCount = mode;
     g_gameState.nEvtArgActor0 = memberIdx;
-    g_pPicklockWorkingInv = (unsigned char far *)&workActor;
+    g_pPicklockWorkingInv = &work.inv.header;
     if (dialog_play_record(0x4f, 1) == 0) {
         g_nPicklockDiffTier = (score > 0x64) ? 4 : (score > 0x50) ? 3 : (score > 0x32) ? 2 : 1;
-        workActor.bResidence = RES_PICKLOCK_BUFFER;
-        *(ActorWorkBuf far *)&workActor = *(ActorWorkBuf far *)g_gameState.shared_inventory;
+        work.inv.header.bResidence = RES_PICKLOCK_BUFFER;
+        work.raw = *(ActorWorkBuf far *)g_gameState.shared_inventory;
         if ((pickCount = itemtbl_partySize_by_kind(0x50)) > 0) {
-            ItemSlot far *pickSlot = (ItemSlot far *)&((ItemSlot *)items)[workActor.itemCount++];
+            ItemSlot far *pickSlot =
+                (ItemSlot far *)&((ItemSlot *)work.inv.items)[work.inv.header.itemCount++];
             pickSlot->item_id = 0x50;
             pickSlot->flags = 0;
             pickSlot->condition = pickCount;
         }
-        if (workActor.itemCount == 0) {
+        if (work.inv.header.itemCount == 0) {
             dialog_play_record(0x56, 0);
         } else {
             g_bInventoryShopMode = '\x01';
@@ -87,7 +96,7 @@ s16 far picklock_screen_run(s16 score, s16 mode, Actor far *record) {
             g_nPicklockMode = mode;
             g_pPicklockOwnerActor = record;
             cmbinv_inventory_screen_run(
-                (Actor far *)&workActor,
+                (Actor far *)&work.inv.header,
                 gstate_find_party_slot(&g_gameState.characters[memberIdx]) + 1, 0);
             g_bInventoryShopMode = '\0';
             screen_render_main_frame(0);

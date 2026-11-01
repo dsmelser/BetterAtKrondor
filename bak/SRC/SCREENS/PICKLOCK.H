@@ -8,7 +8,7 @@ extern unsigned char g_bInventoryShopMode;
 extern unsigned char g_abInvQuizAnswerTable[13];
 extern unsigned char g_bPicklockSuccess;
 extern short g_nPicklockMode;
-extern unsigned char far *g_pPicklockWorkingInv;
+extern Actor far *g_pPicklockWorkingInv;
 extern Actor far *g_pPicklockOwnerActor;
 extern short g_nPicklockScore;
 extern short g_nPicklockDiffTier;

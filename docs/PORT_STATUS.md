@@ -141,6 +141,8 @@ at the `upstream-snapshot` tag.
 | `STREAM/RESLOAD/FONTLOAD.C` | an uncompressed font's bitmap is freed by its pointer; the original frees the far pointer's offset |
 | `AUDIO/ENGINE/AUDIO.C`, `AUDIO/SND/SNDINST.C` | `audio_sfx_register` returns whether the chunk loaded (the original returns its near address; no caller reads it); the drivers' chunks reach their installs as the host pointer's two words |
 | `GAME/ENC/HOTSPOT.C`, `STREAM/RESLOAD/IMGLOAD.C`, `R3D/TBLSTORE/SHAPEBLD.C` | an integer counter where the original counts with a near pointer (`hotspotevt_done_reset_all`), a test that is never true left out (below), a far pointer rebuilt from its parts taken whole (`ts_project_shape`, which nothing calls) |
+| `SCREENS/MAINMENU.C` | the save listings pass `findfirst` a `struct ffblk` and read its `ff_name`; the original passes a `char[30]` and reads the name from the local after it (below) |
+| `SCREENS/PICKLOCK.C`, `PICKLOCK.H` | the lockpick screen's copy of the party's inventory is one buffer, its record and item slots; the original copies it over two locals (below) |
 | `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
 
 ## Changes from the original
@@ -315,6 +317,14 @@ only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
 - **Four locals filled through the address of one.** The ask-about menu builders pass `&nX` to
   `dialog_apply_style_state`, which writes eight bytes: x, y, width and height land in `nX`, `nY`, `nWidth`
   and `nHeight` because Borland lays those locals out in a row. Natively the write hit the stack guard.
+- **Search results land in the next local.** The save listings (`mainmenu_save_any_exists`,
+  `mainmenu_save_scan_highest_slot`, `mainmenu_save_enum_files_slot`) give `findfirst` a `char[30]` for
+  its 43-byte DTA. Borland lays the name buffer declared before it just above it, so the found name, at
+  offset 30, lands in that buffer, which the code then reads. Natively the overrun went elsewhere and
+  the names stayed empty.
+- **The lockpick screen copies an inventory over two locals.** `picklock_screen_run` copies 86h bytes,
+  the party's inventory record (22 bytes) and its item slots, over an `Actor` and the `items[0x70]`
+  declared before it, and reaches the slots through `items`.
 - **A creature's name record runs over two locals.** `combat_actor_bnames_load_cached` copies a BNAMES.DAT
   record, three letters and a NUL then four bytes (its images' numbers and a palette), into the 4-byte
   `nameChars`, and reads the second half as `nameMeta`, which Borland places after it; building the file
