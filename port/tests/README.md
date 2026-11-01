@@ -61,3 +61,10 @@ Without the reference artifacts or the executable, the tests skip.
   C side points at a twin of the same model (`dosrw.c`, `decomp.c`).
 - Keep word accesses away from offset FFFFh of a segment: a 286 and later fault there, an
   8086 wraps, and Unicorn reads on past the segment, so no answer is the original's.
+- Routines that address memory through BP (`[BP+n]`) use SS: when the original writes its
+  results that way, give `call_far` the same segment as `ds=` and `ss=` (`test_r3d.py`'s
+  `original(..., stack_too=True)`). Words of R3D.ASM that the 1.02 map leaves out sit just
+  before their routine's entry (`test_r3dmesh.py` reads them there).
+- Mutation-check every new test: `python -I port/tools/mutate.py <mutants.py>` applies each
+  change in turn, rebuilds and reports the mutants the test does not kill. Explain the
+  equivalent ones; add a case for the others.
