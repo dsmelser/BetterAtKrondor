@@ -181,39 +181,33 @@ s16 far combat_ai_execute_turn(Combatant *actor, s16 param_2, u16 param_3) {
     return ret;
 }
 
+/* The spell combat_ai_try_cast_heal casts, if the caster knows it: Gift of Sung (7) when the
+   lowest health among the caster's living allies is below a roll of 0-79, else Hocho's Haven (6)
+   when the target lacks it, else none (-1). In an AI turn g_pCombatOtherActors holds the caster's
+   side. The original reads the health of g_pCombatActiveActors, the caster's opponents, keeps the
+   lowest and tests the last one's. The port skips dead allies, as the cast that follows does. */
 s16 far combat_ai_pick_heal_spell(Combatant *caster, Combatant *target) {
-    u16 curHp;
-    u16 min_hp_pct;
+    Combatant *ally;
+    u16 hp;
+    u16 lowestHp;
     u16 threshold;
     register s16 i;
-    s16 result;
 
-    min_hp_pct = 0x6e;
-    i = 0;
-    while (i < g_nCombatActiveCount) {
-        if (&g_pCombatActiveActors[i] != caster) {
-            curHp = stat_actor_get(&g_pCombatActiveActors[i], 0, 0);
-            if ((s16)curHp < (s16)min_hp_pct) {
-                min_hp_pct = curHp;
-            }
-        }
-        i++;
+    lowestHp = 0x6e;
+    for (i = 0; i < g_nCombatOtherCount; i++) {
+        ally = &g_pCombatOtherActors[i];
+        if (ally == caster || (ally->inner->flags & CAF_DEAD) != 0)
+            continue;
+        hp = stat_actor_get(ally, 0, 0);
+        if ((s16)hp < (s16)lowestHp)
+            lowestHp = hp;
     }
     threshold = RND(80);
-    if ((s16)curHp < (s16)threshold) {
-        if (cspell_check_castable(7, caster, -1)) {
-            result = 7;
-            return result;
-        }
-    }
-    if (cspell_check_castable(6, caster, -1)) {
-        if (cspell_stat_effect_find_type(target, 6) == -1) {
-            result = 6;
-            return result;
-        }
-    }
-    result = -1;
-    return result;
+    if ((s16)lowestHp < (s16)threshold && cspell_check_castable(7, caster, -1))
+        return 7;
+    if (cspell_check_castable(6, caster, -1) && cspell_stat_effect_find_type(target, 6) == -1)
+        return 6;
+    return -1;
 }
 
 s16 far combat_ai_try_cast_heal(register Combatant *caster) {

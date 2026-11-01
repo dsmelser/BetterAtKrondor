@@ -7,7 +7,7 @@
     "cast-function-type-strict": 3,
     "comma": 5,
     "comment": 1,
-    "conditional-uninitialized": 77,
+    "conditional-uninitialized": 76,
     "deprecated-declarations": 87,
     "deprecated-non-prototype": 59,
     "fortify-source": 15,

@@ -214,6 +214,15 @@ The quirks below (what the port has taught us) stay unless they are listed here.
   enemies that know spells do. The port walks the opponents (`combat_ai_sung_ally_under_attack`, checked
   by `bak_unittest`) and asks for the spell, as the AI's other cast of it (`combat_ai_pick_heal_spell`)
   does.
+- **The AI's healers choose their spell by an opponent's health.** `combat_ai_pick_heal_spell` decides
+  what the caster AI's healing action (`combat_ai_try_cast_heal`) casts on a hurt ally, if the caster
+  knows it: Gift of Sung when the lowest health among the caster's allies, in points, is below a roll of
+  0-79 (the likelier the lower it is), else Hocho's Haven when the first of the caster's side lacks
+  it. The original reads the health of `g_pCombatActiveActors`, in an AI turn the caster's opponents
+  (its test that skips the caster shows the side it meant), keeps the lowest, and tests the last one's.
+  The port takes the lowest health among the caster's living allies other than itself, skipping the
+  dead as the cast that follows does, and still draws one roll a call. `bak_unittest` checks the choice
+  and the draw.
 
 ## ASM modules
 
@@ -570,7 +579,7 @@ folder, and compares two logs with a baseline recorded in `work/replay/<scenario
 |---|---|
 | `main-menu`, `book`, `world` (the golden scenarios' scripts) | ✅ two runs give identical logs; each ends on its golden capture. The world tour takes about 19 s, against 90 s on the host's clock, because computing costs no game time |
 | `walk`: the world, then three steps, a turn left, a step, two turns right, a step | ✅ identical logs; the state log shows each 400-unit step and each 1024-unit turn |
-| `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state at 128 s. Since the fix of the AI's Gift of Sung, Owyn takes that action on his turns, but Locklear, whom the assassin attacks, keeps all his health: nothing is cast and the logs are unchanged |
+| `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state at 128 s. Since the fixes of the AI's healing, Owyn takes the Gift of Sung action on his turns and reaches the healer's choice three times (lowest ally health 55, rolls 77, 11 and 36: Gift of Sung once), but Locklear, whom the assassin attacks, keeps all his health: nothing is cast and the logs are unchanged |
 | `spawns`: the world, then a teleport into zone 4 (tile 10,14) among the sixteen stones chapter 1 spawns there, and a full turn about | ✅ identical logs, the ASan build's too; the stones live in the visible pool, past the zone pool's first 64 KB natively, and did not show before the visible list held pointers |
 | `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs, the ASan build's too; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
 

@@ -9,7 +9,8 @@
     X(clock_retrace_wait_runs_the_ticks_due)                                                       \
     X(hash_covers_every_byte_and_chains)                                                           \
     X(rand_fx_is_the_game_generator_on_its_own_ring)                                               \
-    X(ai_sung_goes_to_an_ally_under_attack)
+    X(ai_sung_goes_to_an_ally_under_attack)                                                        \
+    X(ai_heal_spell_follows_the_weakest_living_ally)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)
