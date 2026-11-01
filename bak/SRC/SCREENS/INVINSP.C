@@ -366,7 +366,7 @@ void far invinspect_item_flow(ItemSlot far *item, s16 affecting, MenuPage *page)
         sprintf(buf, "Uses left: %d", (u16)item->condition);
         invui_draw_text_aligned_shadow((char far *)buf, 0x3a, 0x23, 1, -1, -1);
     } else if (((irec->wFlags & 0x1000) != 0) && ((irec->wSub_flags & 4) != 0)) {
-        sprintf(buf, "Value Rating: %d%", (u16)item->condition);
+        sprintf(buf, "Value Rating: %d%%", (u16)item->condition);
         invui_draw_text_aligned_shadow((char far *)buf, 0x3a, 0x23, 1, -1, -1);
     } else if ((irec->wFlags & 0x1000) != 0) {
         sprintf(buf, "Condition: %d%%", (u16)item->condition);

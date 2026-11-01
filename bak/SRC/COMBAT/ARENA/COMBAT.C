@@ -1188,13 +1188,13 @@ void far combat_arena_draw_tgt_info_panel(void) {
     x = 0x82 - (font_text_width_ds(pStr) >> 1);
     y = 0x84;
     font_draw_text_ds(pStr, x, y);
-    sprintf(buf, "%Fs", quarrelRec);
+    sprintf(buf, "%s", (char *)quarrelRec);
     if (quarrelRec->wName_split_off != 0) {
         buf[quarrelRec->wName_split_off] = '\0';
         x = 0x82 - (font_text_width_ds(buf) >> 1);
         y += 10;
         font_draw_text_ds(buf, x, y);
-        sprintf(buf, "%Fs", (char far *)quarrelRec + (quarrelRec->wName_split_off + 1));
+        sprintf(buf, "%s", (char far *)quarrelRec + (quarrelRec->wName_split_off + 1));
     }
     x = 0x82 - (font_text_width_ds(buf) >> 1);
     y += 10;

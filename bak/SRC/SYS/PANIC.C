@@ -10,7 +10,7 @@ s16 panic_fatal_error_exit(char far *module, s16 line, char *msg) {
     if (module != 0) {
         printf("A system error has occured.  Please write down the\n");
         printf("following data and contact Sierra Customer Support:\n");
-        printf("%Fs:%d (%s)\n", module, line, msg != 0 ? msg : " ");
+        printf("%s:%d (%s)\n", module, line, msg != 0 ? msg : " ");
     }
     boot_engine_exit(0);
 }
@@ -18,7 +18,7 @@ s16 panic_fatal_error_exit(char far *module, s16 line, char *msg) {
 void far panic_assert_fail_report(char far *file, s16 line) {
     video_shutdown();
     printf("Bad Midkemian!\n");
-    printf("FILE = %Fs\n", file);
+    printf("FILE = %s\n", file);
     printf("LINE = %d\n", line);
     hardware_shutdown();
     boot_engine_exit(0);

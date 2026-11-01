@@ -272,6 +272,16 @@ only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
   E1h-E4h read the audio state, and no ellipsis precedes them in the game's text. Natively the game's
   `isalpha`, `isdigit`, `toupper` and `tolower` are Borland's (`bak_native.h`), over a copy of the table
   and the 128 bytes before it (`bakrtl_ctype_block`); `test_rtl.py` checks them against the original.
+- **The game formats with Borland's printf.**
+  - Far strings are written `%Fs`, with Borland's F (far) size modifier. A native printf reads that as `%F`,
+    a float, followed by an "s". So dialog and cutscene titles, item names, condition names and combat
+    names printed whatever 8 bytes followed in the argument list; in the chapter-1 cutscene the title
+    plate read "0.000000s".
+  - Borland's printf prints an unknown conversion as it stands. "(%d%)" on the character screen and the
+    trailing "%" of "Value Rating: %d%" (CHARSCRN.C, INVINSP.C) showed a percent sign, where the native
+    runtime rejects them and the port stopped.
+  - Natively these are `%s` and `%%`. A replay showed it: the debug and ASan builds drew that title plate
+    differently.
 - **File opens are unchecked.** A missing `drive.cfg` (1.02) or `resource.cfg` passes a NULL `FILE *` to
   `fscanf`; natively the C runtime's invalid-parameter handler reports it.
 - **The sequencer's priority change re-sorts with a MOV where a CMP was meant.** `midi_chord_propagate_setting`

@@ -223,7 +223,7 @@ static void far charscreen_info_draw(Combatant *actor, MenuPage *page, s16 party
     i = condCount = 0;
     for (; i < 7; i++) {
         if ((char)g_gameState.abActorStatusRanks[party_slot][i] > 0) {
-            sprintf(buf, "%Fs (%d%)", g_aConditionInfo[i].pName,
+            sprintf(buf, "%s (%d%%)", g_aConditionInfo[i].pName,
                     (s16)(char)g_gameState.abActorStatusRanks[party_slot][i]);
             invui_draw_text_aligned_shadow((unsigned char far *)buf, 0xdc, ++condCount * 9 + 0x10, 0, 0x89,
                                            0x8f);

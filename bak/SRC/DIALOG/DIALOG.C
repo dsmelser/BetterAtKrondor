@@ -586,13 +586,13 @@ void dialog_render_text_with_tokens(DDXRecord far *record, char far *text, s16 f
         *text = '\0';
         text++;
         if (record->bStyle != 1) {
-            sprintf(buf, "- %Fs -", pTitle);
+            sprintf(buf, "- %s -", pTitle);
             g_graphics_context.bText_fg_color = 1;
             font_draw_text_far(buf, (centerX + 1) - font_text_pixel_width(buf) / 2, nTitleY + 1);
             g_graphics_context.bText_fg_color = 10;
             font_draw_text_far(buf, centerX - font_text_pixel_width(buf) / 2, nTitleY);
         } else {
-            sprintf(buf, "%Fs", pTitle);
+            sprintf(buf, "%s", pTitle);
             dialog_draw_speech_bubble(buf, 10);
         }
     }

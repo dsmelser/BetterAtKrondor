@@ -449,7 +449,7 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
                 text_x = e->rect.x + pg->rect.x + e->rect.width / 2;
                 text_ym1 = e->rect.y + pg->rect.y + e->rect.height - 1;
                 item_value = itemtbl_compute_value(slot);
-                sprintf(buf, "%Fs", (char far *)item);
+                sprintf(buf, "%s", (char far *)item);
                 if (item->wName_split_off != 0) {
                     item->pName[item->wName_split_off] = '\0';
                     if (item->wDefault_qty_or_1 == 4)
@@ -459,7 +459,7 @@ static void invui_grid_render(MenuPage *page, Actor far *actor, short selected_s
                     invui_draw_text_aligned_shadow(
                         (char far *)item, text_x, text_ym1 - g_graphics_context.pFont_height[0] * 3,
                         1, -1, -1);
-                    sprintf(buf, "%Fs", (char far *)item + (item->wName_split_off + 1));
+                    sprintf(buf, "%s", (char far *)item + (item->wName_split_off + 1));
                     item->pName[item->wName_split_off] = ' ';
                 }
                 if ((item->wFlags & 0xa000) != 0) {
