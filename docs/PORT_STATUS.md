@@ -318,6 +318,11 @@ only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
     runtime rejects them and the port stopped.
   - Natively these are `%s` and `%%`. A replay showed it: the debug and ASan builds drew that title plate
     differently.
+- **A teleport within the zone can be skipped.** `modalscreen_pending_scene_trans` moves the party
+  when the destination's zone or tile x differs from the party's, or its heading from the one kept
+  at the zone's entry, or when its tile *y* is the party's (`==` where `!=` was meant). So a
+  destination in the party's zone and tile column, on another row, at the kept heading, is
+  ignored. Not fixed yet; scripted teleports arrive at another heading.
 - **File opens are unchecked.** A missing `drive.cfg` (1.02) or `resource.cfg` passes a NULL `FILE *` to
   `fscanf`; natively the C runtime's invalid-parameter handler reports it.
 - **The sequencer's priority change re-sorts with a MOV where a CMP was meant.** `midi_chord_propagate_setting`
@@ -479,7 +484,7 @@ On the virtual clock the game reaches the world sooner than on the host's (its l
 | Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
 | BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |
 | MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless a drive is attached; drive check, IOCTL audio-track info, play, stop. Playing the GOG release's OGG tracks comes with the audio work |
-| Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses, pointer moves and clicks (in picture pixels) and a quit, for runs without a user; times are on the platform's clock |
+| Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses, pointer moves and clicks (in picture pixels), teleports and a quit, for runs without a user; times are on the platform's clock. A teleport fills in the game's own pending teleport (`port/platform/teleport.c`), which the world loop carries out at its next pass, as for TELEPORT.DAT's destinations: the zone's actors and encounters are loaded around the new place |
 | Clock | `port/platform/clock.c`: the host's monotonic clock, or (`BAK_CLOCK=virtual`) one that moves only as the game runs, for replays (below) |
 | MPU-401 | `port/platform/mpu401.c`, ports 330h/331h: UART mode, always ready, every command acknowledged. MIDI bytes go to a sink (`bak_midi_set_sink`); without one they are dropped, or written to the file `BAK_DUMP_MIDI` names |
 

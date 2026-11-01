@@ -6,6 +6,8 @@
  *                  and release it 100 ms later
  *   move:<x>,<y>   move the pointer to pixel (x, y) of the 320x200 picture
  *   click:<x>,<y>  move there and press the left button, releasing it 100 ms later
+ *   teleport:<zone>,<tile x>,<tile y>,<cell x>,<cell y>,<heading in hex>
+ *                  move the party there, as the game's own teleports do (teleport.c)
  *   quit           what closing the window does
  *
  * For example BAK_INPUT="20000:key:Escape;30000:click:160,100". The steps run in time
@@ -19,7 +21,7 @@
 #include "bak_port.h"
 #include "platform.h"
 
-#define MAX_STEPS 256
+#define MAX_STEPS 4096
 #define RELEASE_NS (100 * 1000000ull)
 
 typedef enum {
@@ -28,6 +30,7 @@ typedef enum {
     STEP_MOVE,
     STEP_LEFT_DOWN,
     STEP_LEFT_UP,
+    STEP_TELEPORT,
     STEP_QUIT
 } Kind;
 
@@ -36,6 +39,8 @@ typedef struct {
     Kind kind;
     SDL_Scancode key;
     float x, y;
+    unsigned place[5]; /* teleport: zone, tile x and y, cell x and y */
+    unsigned heading;
 } Step;
 
 static Step s_steps[MAX_STEPS];
@@ -74,6 +79,7 @@ static void parse(const char *text) {
         rest++;
         Step s = {s_startNs + ms * 1000000ull};
         float x, y;
+        unsigned *p = s.place;
         if (SDL_strncmp(rest, "key:", 4) == 0) {
             s.key = SDL_GetScancodeFromName(rest + 4);
             if (s.key == SDL_SCANCODE_UNKNOWN)
@@ -87,6 +93,12 @@ static void parse(const char *text) {
             s.kind = STEP_LEFT_DOWN;
             s.x = x;
             s.y = y;
+        } else if (SDL_sscanf(rest, "teleport:%u,%u,%u,%u,%u,%x", &p[0], &p[1], &p[2], &p[3],
+                              &p[4], &s.heading) == 6) {
+            if (p[0] == 0 || p[0] > 0xfe || p[1] > 0xff || p[2] > 0xff || p[3] >= 40 || p[4] >= 40 ||
+                s.heading > 0xffff)
+                bad("a place out of range in the step", step);
+            s.kind = STEP_TELEPORT;
         } else if (SDL_strcmp(rest, "quit") == 0) {
             s.kind = STEP_QUIT;
         } else {
@@ -133,6 +145,10 @@ bool input_script_poll(void) {
             break;
         case STEP_LEFT_UP:
             mouse_script_left(false);
+            break;
+        case STEP_TELEPORT:
+            game_request_teleport((uint8_t)s.place[0], (uint8_t)s.place[1], (uint8_t)s.place[2],
+                                  (uint8_t)s.place[3], (uint8_t)s.place[4], (uint16_t)s.heading);
             break;
         case STEP_QUIT:
             return false;

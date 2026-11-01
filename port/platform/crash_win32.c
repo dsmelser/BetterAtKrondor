@@ -55,6 +55,22 @@ static LONG WINAPI on_crash(EXCEPTION_POINTERS *ep) {
     frame.AddrStack.Offset = ctx.Rsp;
 #endif
     frame.AddrPC.Mode = frame.AddrFrame.Mode = frame.AddrStack.Mode = AddrModeFlat;
+    /* A call through a bad function pointer stops outside every module, where the walk cannot
+       start: start it from the return address the call pushed. */
+    void *sp = (void *)(uintptr_t)frame.AddrStack.Offset;
+    if (SymGetModuleBase64(proc, frame.AddrPC.Offset) == 0 && !IsBadReadPtr(sp, sizeof(uintptr_t))) {
+        uintptr_t ret = *(uintptr_t *)sp;
+        fprintf(stderr, "  (no code there: called from 0x%08llx)\n", (unsigned long long)ret);
+        frame.AddrPC.Offset = ret;
+        frame.AddrStack.Offset += sizeof(uintptr_t);
+#ifdef _M_IX86
+        ctx.Eip = (DWORD)ret;
+        ctx.Esp = (DWORD)frame.AddrStack.Offset;
+#else
+        ctx.Rip = ret;
+        ctx.Rsp = frame.AddrStack.Offset;
+#endif
+    }
     for (int i = 0; i < 32; i++) {
         if (!StackWalk64(machine, proc, GetCurrentThread(), &frame, &ctx, NULL,
                          SymFunctionTableAccess64, SymGetModuleBase64, NULL))
