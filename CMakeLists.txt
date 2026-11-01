@@ -181,7 +181,14 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 endif()
 target_link_libraries(bakport PUBLIC SDL3::SDL3)
 
-add_executable(betterkrondor "${CMAKE_SOURCE_DIR}/port/platform/main.c")
+# Windows: paths are UTF-8 for the C runtime too (see the manifest).
+if(WIN32)
+    set(BAK_MANIFEST "${CMAKE_SOURCE_DIR}/port/platform/betterkrondor.manifest")
+else()
+    set(BAK_MANIFEST)
+endif()
+
+add_executable(betterkrondor "${CMAKE_SOURCE_DIR}/port/platform/main.c" ${BAK_MANIFEST})
 target_link_libraries(betterkrondor PRIVATE bakport bakgame SDL3::SDL3)
 if(BAK_ASAN AND MSVC)
     add_custom_command(TARGET betterkrondor POST_BUILD
@@ -201,7 +208,7 @@ target_link_libraries(bak_difftest PRIVATE bakport bakgame SDL3::SDL3)
 
 # Unit tests of the port's own code (port/tests/unit). They need no game data, so CI runs them.
 file(GLOB BAK_UNIT_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/port/tests/unit/*.c")
-add_executable(bak_unittest ${BAK_UNIT_SOURCES})
+add_executable(bak_unittest ${BAK_UNIT_SOURCES} ${BAK_MANIFEST})
 target_link_libraries(bak_unittest PRIVATE bakport bakgame SDL3::SDL3)
 
 enable_testing()

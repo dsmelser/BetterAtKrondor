@@ -17,6 +17,41 @@ void unit_fail(const char *file, int line, const char *check) {
     s_failedChecks++;
 }
 
+static SDL_EnumerationResult SDLCALL remove_entry(void *userdata, const char *dirname,
+                                                  const char *fname) {
+    (void)userdata;
+    char *path = NULL;
+    if (SDL_asprintf(&path, "%s%s", dirname, fname) < 0)
+        return SDL_ENUM_FAILURE;
+    unit_remove_tree(path);
+    SDL_free(path);
+    return SDL_ENUM_CONTINUE;
+}
+
+void unit_remove_tree(const char *path) {
+    SDL_PathInfo info;
+    if (!SDL_GetPathInfo(path, &info))
+        return;
+    if (info.type == SDL_PATHTYPE_DIRECTORY)
+        SDL_EnumerateDirectory(path, remove_entry, NULL);
+    SDL_RemovePath(path);
+}
+
+/* Under unit-tmp beside the runner; a run that crashed may have left one behind. The name
+ * lives until the process ends. */
+const char *unit_temp_dir(const char *name) {
+    char *path = NULL;
+    if (SDL_asprintf(&path, "%sunit-tmp/%s", SDL_GetBasePath(), name) < 0)
+        return NULL;
+    for (char *p = path; *p; p++)
+        if (*p == '\\')
+            *p = '/';
+    unit_remove_tree(path);
+    if (!SDL_CreateDirectory(path))
+        fprintf(stderr, "cannot create %s: %s\n", path, SDL_GetError());
+    return path;
+}
+
 int main(void) {
     /* The platform pumps host events while it waits. */
     if (!SDL_Init(SDL_INIT_EVENTS)) {
