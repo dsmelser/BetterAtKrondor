@@ -231,4 +231,10 @@ int cdrom_track_at(uint32_t sector, int64_t *from);
 bool mpu401_port_in8(uint16_t port, uint8_t *value);
 bool mpu401_port_out8(uint16_t port, uint8_t value);
 
+/* opl.c: the AdLib's OPL2 at 388h and 389h (false: not one of them). opl_close drops the chip
+ * and forgets its source (after audio_close, in the tests). */
+bool opl_port_in8(uint16_t port, uint8_t *value);
+bool opl_port_out8(uint16_t port, uint8_t value);
+void opl_close(void);
+
 #endif

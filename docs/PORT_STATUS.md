@@ -406,9 +406,10 @@ the original's offsets: the driver's state and power-on values are the original'
 | `NLD`, `ADL`, `SBP`, `GMD`, `PRO`, `PS1`, `STD`; digital `ASB`, `APA`, `ADS` | ⬜ stop with "Not implemented yet: the SX.OVL sound driver \"<device name>\"" |
 
 The MIDI the MT-32 driver sends goes to the emulated MPU-401 and no further yet. The 1.02 release's
-music plays from the CD's tracks (see "The CD's music" below). Next: the sound effects through the AdLib
-and Sound Blaster digital drivers (the AdLib tracks cover all 179 pieces, and 41 effects exist only as
-digital samples), then MT-32 music through Munt with user-supplied ROMs.
+music plays from the CD's tracks (see "The CD's music" below). The AdLib's OPL2 is emulated (see
+"Platform services"); next come its driver and the Sound Blaster's digital one for the sound effects
+(the AdLib tracks cover all 179 pieces, and 41 effects exist only as digital samples), then MT-32
+music through Munt with user-supplied ROMs.
 
 ### The CD's music
 
@@ -717,6 +718,7 @@ tool passes `--set` on to the port) all seven frame logs matched the earlier bas
 | Cursor | `port/platform/cursor.c`: the game's cursor as the system's (`video.cursor`). The image the game would draw is read in its driver's format (the VGA driver's bytes; the 16-colour driver's bit planes, for the books) and shown as an SDL colour cursor, scaled with the picture, its hot spot the game's. It takes the DAC's colours and is made again when they change, so it fades with the picture. It shows while the game shows its cursor (`g_cursor_shown`, and not shape 2); `screen_cursor_hide` only skips a background restore and hides nothing. Where the game moves the mouse (the menus' keys move it to a button), the host's pointer goes along |
 | Files | `port/compat/bakrtl.c`: the game's DOS paths (any case, backslashes, a drive letter) are looked up in the user folder, then in the game folder; writes go to the user folder (see "Settings and folders"). `chdir` tells whether the folder is there, looked for as reads are: the game asks it whether `GAMES` exists and makes one, with a first `SAVES.G01`, when not (`mainmenu_save_games_dir_exists`). Until 2026-11-01 it answered yes to everything, so a first save failed in a user folder without `GAMES`. Host paths are UTF-8, SDL's and the C runtime's alike: on Windows the executable's manifest (`port/platform/betterkrondor.manifest`) makes UTF-8 the process code page (Windows 10 1903 on) |
 | Sound | `port/platform/audio.c`: sources (the CD's music, the synthesizer, the samples) each render their own format into an SDL audio stream, which converts it to the mix (48 kHz, stereo). What the game tells a source is an event stamped on the platform's clock: inside the timer interrupt, when its tick was due (`machine_event_ns`), so the bursts of late ticks the platform runs do not jitter. A source carries out each event between the frames of its moment, 50 ms later. On the host's clock SDL's audio thread renders the mix as the device asks, and the epoch follows the device's drift once it passes 20 ms; on the virtual clock the mix is rendered as the clock moves into the WAV file `BAK_DUMP_AUDIO` names, the same every run. Nothing the game reads depends on the rendering |
+| OPL2 | `port/platform/opl.c`, ports 388h/389h: each register written becomes an event of the synthesizer's audio source, which renders the chip through ymfm (`port/platform/ymfm_opl2.cpp`, ymfm fetched by CMake at a pinned commit, built as a C++ library of its own) at the AdLib's 3579545 Hz over 72. The chip and its source are made at the first write. The status port reads 06h, an idle OPL2's: the AdLib driver starts no timer. `bak_opl_set_sink` gives the tests every register written, in order |
 | MPU-401 | `port/platform/mpu401.c`, ports 330h/331h: UART mode, always ready, every command acknowledged. MIDI bytes go to a sink (`bak_midi_set_sink`); without one they are dropped, or written to the file `BAK_DUMP_MIDI` names |
 
 ## Known divergences from the original

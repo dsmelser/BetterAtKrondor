@@ -54,6 +54,18 @@ if(BAK_BUILD_PORT)
     FetchContent_MakeAvailable(stb_vorbis)
 endif()
 
+# --- ymfm: Yamaha FM chips in C++ (BSD-3), for the AdLib's OPL2 --------------------------
+
+if(BAK_BUILD_PORT)
+    enable_language(CXX)
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    FetchContent_Declare(ymfm
+        GIT_REPOSITORY https://github.com/aaronsgiles/ymfm.git
+        GIT_TAG 81aec25ccbb98f4873a255f7551ac4dadac59b4a)
+    FetchContent_MakeAvailable(ymfm)
+endif()
+
 # --- Compiler settings shared by game and port code -----------------------------------
 
 if(MSVC)
@@ -192,6 +204,25 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
     endif()
 endif()
 target_link_libraries(bakport PUBLIC SDL3::SDL3)
+# The OPL2 through ymfm (port/platform/ymfm_opl2.cpp gives it a C interface): a library of its
+# own, so that no game or port header comes before the C++ library's.
+add_library(bakymfm STATIC
+    "${CMAKE_SOURCE_DIR}/port/platform/ymfm_opl2.cpp"
+    "${ymfm_SOURCE_DIR}/src/ymfm_opl.cpp"
+    "${ymfm_SOURCE_DIR}/src/ymfm_adpcm.cpp"
+    "${ymfm_SOURCE_DIR}/src/ymfm_pcm.cpp")
+target_include_directories(bakymfm PRIVATE "${ymfm_SOURCE_DIR}/src")
+if(MSVC)
+    set_source_files_properties("${ymfm_SOURCE_DIR}/src/ymfm_opl.cpp"
+        "${ymfm_SOURCE_DIR}/src/ymfm_adpcm.cpp" "${ymfm_SOURCE_DIR}/src/ymfm_pcm.cpp"
+        PROPERTIES COMPILE_OPTIONS /w)
+    target_compile_options(bakymfm PRIVATE /EHsc)
+else()
+    set_source_files_properties("${ymfm_SOURCE_DIR}/src/ymfm_opl.cpp"
+        "${ymfm_SOURCE_DIR}/src/ymfm_adpcm.cpp" "${ymfm_SOURCE_DIR}/src/ymfm_pcm.cpp"
+        PROPERTIES COMPILE_OPTIONS -w)
+endif()
+target_link_libraries(bakport PUBLIC bakymfm)
 # stb_vorbis builds as it comes, its warnings left alone; port/platform/cdrom.c includes its
 # declarations.
 set(BAK_STB_VORBIS "${stb_vorbis_SOURCE_DIR}/stb_vorbis.c")

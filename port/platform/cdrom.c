@@ -111,6 +111,7 @@ void bak_cdrom_attach(int drive, int firstTrack, int lastTrack, const unsigned c
             s_trackStart[t] = ((uint32_t)msf[0] * 60 + msf[1]) * 75 + msf[2];
         }
     s_playing = 0;
+    s_source = NULL; /* a test's drive has no music */
 }
 
 int bak_mscdex_installed(void) {

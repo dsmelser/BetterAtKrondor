@@ -128,6 +128,11 @@ void bak_cdrom_attach(int drive, int firstTrack, int lastTrack, const unsigned c
  */
 typedef void BakMidiSink(uint8_t byte);
 void bak_midi_set_sink(BakMidiSink *sink);
+
+/* The AdLib's OPL2 (ports 388h/389h, port/platform/opl.c): each register written, in order,
+ * also goes to a sink (the tests'). */
+typedef void BakOplSink(uint8_t reg, uint8_t value);
+void bak_opl_set_sink(BakOplSink *sink);
 void bak_mpu401_reset(void);
 
 /* I/O ports (VGA sequencer/CRTC/attribute registers, ...), emulated by the platform. */

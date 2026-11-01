@@ -45,7 +45,9 @@
     X(audio_dump_follows_the_clock)                                                                \
     X(cdrom_reads_an_ogg_files_length)                                                             \
     X(cdrom_lays_out_the_disc_from_the_music)                                                      \
-    X(cdrom_plays_a_stretch_of_a_track)
+    X(cdrom_plays_a_stretch_of_a_track)                                                            \
+    X(opl_ports_reach_the_sink)                                                                    \
+    X(opl_notes_sound_at_their_moment)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)
