@@ -8,6 +8,8 @@
  * translations keep its order of reads and stores: overlapping inputs and outputs come
  * out the same.
  */
+#include <string.h>
+
 #include "r3ddata.h"
 
 #include "bak_game_begin.h"
@@ -15,6 +17,8 @@
 #include "r3d.h"
 #include "SRC/GEN/GFXCTX.H"
 #include "SRC/R3D/CORE/R3D.H"
+#include "SRC/R3D/SKY/SKY.H"
+#include "SRC/R3D/SPRITE/WORLDRND.H"
 #include "bak_game_end.h"
 
 #define Q14_ONE 0x4000
@@ -601,11 +605,225 @@ void r3d_actor_compute_lod_z(void) {
     st->nActorLodZ = (s32)(z + (u32)st->nActorCamZ);
 }
 
-/* ---- not translated yet ------------------------------------------------------------ */
+/* ---- the faces -------------------------------------------------------------------- */
+
+/*
+ * A mesh's records count their offsets from the shape record's paragraph, the segment the
+ * original holds in ES while it walks them; a face is 8 bytes (flags, day outline and fill,
+ * night outline and fill, the normal's vertex, the offset of its 0FFh-ended vertex list).
+ */
+enum { F_FLAGS, F_DAY_OUTLINE, F_DAY_FILL, F_NIGHT_OUTLINE, F_NIGHT_FILL, F_NRM_VERT, F_VERT_LIST };
+#define FACE_SIZE 8
+#define FACE_FILLED 0x80
+#define FACE_TEXTURED 0x10
+
+/* A row of a vertex or normal table: three shorts at index * 6. */
+static const unsigned char *vrow(const unsigned char *pool, unsigned idx) {
+    return pool + idx * 6u;
+}
+
+/*
+ * r3d_backface_dot_indexed (AL = the normal's vertex, AH = the face's first vertex, ES:BP =
+ * the vertex pool): the face normal's row into g_matXIn2 as it is, the first vertex's into
+ * g_matXOut scaled down by the mesh's residual shift and moved by the camera origin, and
+ * their dot product. The shift is a SAR by the residual's negation, its low 5 bits.
+ */
+static s32 backface_dot(const unsigned char *pool, unsigned char nrm, unsigned char first) {
+    const unsigned char *a = vrow(pool, nrm), *b = vrow(pool, first);
+    const R3dRendererState *st = &g_abR3dState;
+    unsigned sh = (unsigned)(u16)(0u - st->wMeshScaleResidual) & 31;
+    g_r3d.matIn2[0] = rd16(a);
+    g_r3d.matIn2[1] = rd16(a + 2);
+    g_r3d.matIn2[2] = rd16(a + 4);
+    g_r3d.matOut[0] = (s16)((rd16(b) >> sh) + st->nMeshCamOriginX);
+    g_r3d.matOut[1] = (s16)((rd16(b + 2) >> sh) + st->nMeshCamOriginY);
+    g_r3d.matOut[2] = (s16)((rd16(b + 4) >> sh) + st->nMeshCamOriginZ);
+    return r3d_dot3_long(g_r3d.matIn2, g_r3d.matOut);
+}
 
 s32 r3d_backface_dot_indexed(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_backface_dot_indexed");
+    BAK_UNIMPLEMENTED("R3D.ASM: r3d_backface_dot_indexed (register arguments: R3D's own "
+                      "routines call its C form)");
 }
+
+/*
+ * r3d_polygon_resolve_shade_color and its fall-through _lit (ES:DI = the face, ES:BP = the
+ * pool): the day or night colours by the render-state flag, filled by the face's bit 7.
+ * A filled face of a simple mesh (20h) in daylight with a material table takes its material
+ * from the table by its fill colour; materials 1-8 shade it by its normal against the
+ * light, from the lighting ramp. The colour remap table, if any, applies last. (The shipped
+ * game sets no material table.)
+ */
+static void resolve_shade_color(const unsigned char *face, const unsigned char *pool) {
+    const R3dRendererState *st = &g_abR3dState;
+    unsigned char day = g_graphics_context.bGfxRenderStateFlag;
+    unsigned char outline = day ? face[F_DAY_OUTLINE] : face[F_NIGHT_OUTLINE];
+    unsigned char fill = day ? face[F_DAY_FILL] : face[F_NIGHT_FILL];
+    unsigned char flags = face[F_FLAGS];
+    unsigned material;
+
+    g_graphics_context.bGfx_fill_enabled = (flags & FACE_FILLED) ? 1 : 0;
+    if ((flags & FACE_FILLED) && (flags & MESH_FLAG_SIMPLE) && day &&
+        g_r3d.pFaceMaterialTable != NULL) {
+        material = g_r3d.pFaceMaterialTable[fill];
+        if (material != 0 && material <= 8) {
+            const unsigned char *n = vrow(pool, face[F_NRM_VERT]);
+            s16 shade;
+            unsigned at;
+            g_r3d.matIn2[0] = rd16(n);
+            g_r3d.matIn2[1] = rd16(n + 2);
+            g_r3d.matIn2[2] = rd16(n + 4);
+            if (st->bPolyNormalFlipped) {
+                g_r3d.matIn2[0] = (s16)-g_r3d.matIn2[0];
+                g_r3d.matIn2[1] = (s16)-g_r3d.matIn2[1];
+                g_r3d.matIn2[2] = (s16)-g_r3d.matIn2[2];
+            }
+            shade = (s16)((u32)r3d_dot3_long(g_r3d.matIn2, (s16 *)st->vec3LightDirObj) >> 16);
+            if (shade == 16)
+                shade = 15;
+            at = (u16)(((material - 1) << 5) + (u16)(shade + 16));
+            if (at >= sizeof g_r3d.abLightingLut)
+                BAK_UNIMPLEMENTED("r3d_polygon_resolve_shade_color_lit past the lighting ramp "
+                                  "(the original reads on into its segment)");
+            unsigned char lit = (unsigned char)(g_r3d.abLightingLut[at] + fill);
+            if (outline == fill)
+                outline = lit;
+            fill = lit;
+        }
+    }
+    if (g_pColorRemapTable != NULL) {
+        outline = g_pColorRemapTable[outline];
+        fill = g_pColorRemapTable[fill];
+    }
+    g_graphics_context.bGfx_outline_color = outline;
+    g_graphics_context.bGfx_fill_color = fill;
+}
+
+void r3d_polygon_resolve_shade_color(void) {
+    BAK_UNIMPLEMENTED("R3D.ASM: r3d_polygon_resolve_shade_color (register arguments: R3D's own "
+                      "routines call its C form)");
+}
+
+void r3d_polygon_resolve_shade_color_lit(void) {
+    BAK_UNIMPLEMENTED("R3D.ASM: r3d_polygon_resolve_shade_color_lit (the tail of "
+                      "r3d_polygon_resolve_shade_color, never called)");
+}
+
+/* Where submitted polygons go: the game's dispatchers (the tests point them elsewhere). */
+R3dDrawPolygonFn *g_r3dDrawPolygon = sky_polygon_draw_dispatch;
+R3dDrawTexturedQuadFn *g_r3dDrawTexturedQuad = worldrender_textured_quad_lod;
+
+/* The polygon's corners into the graphics context's arrays (REP MOVSW from 20-entry arrays
+ * into 20-entry ones: more corners overrun both). */
+static void copy_corners(u16 n) {
+    if (n > R3D_POLY_MAX)
+        BAK_UNIMPLEMENTED("R3D polygon submission with more than 20 corners (the original "
+                          "copies past its arrays)");
+    memcpy(g_graphics_context.pPolygonX, g_r3d.aPolyInX, n * sizeof(s16));
+    memcpy(g_graphics_context.pPolygonY, g_r3d.aPolyInY, n * sizeof(s16));
+}
+
+/* r3d_polygon_submit_to_rasterizer: the polygon, if it has corners, to the flat filler. */
+static void submit_to_rasterizer(void) {
+    u16 n = (u16)g_r3d.nMeshPolyVertexCount;
+    if (n == 0)
+        return;
+    g_graphics_context.nPolygonClipVertexCount = (s16)n;
+    copy_corners(n);
+    g_r3dDrawPolygon((u16)g_graphics_context.nPolygonClipVertexCount,
+                     g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
+}
+
+void r3d_polygon_submit_to_rasterizer(void) {
+    BAK_UNIMPLEMENTED("R3D.ASM: r3d_polygon_submit_to_rasterizer (register arguments: R3D's own "
+                      "routines call its C form)");
+}
+
+/* r3d_polygon_submit_textured_quad (ES:DI = the face): a quadrilateral to the textured
+ * filler, its texture the day or night colour pair as a word; any other polygon is
+ * dropped. */
+static void submit_textured_quad(const unsigned char *face) {
+    u16 n = (u16)g_r3d.nMeshPolyVertexCount;
+    s16 texture;
+    if (n != 4)
+        return;
+    g_graphics_context.nPolygonClipVertexCount = (s16)n;
+    texture = g_graphics_context.bGfxRenderStateFlag ? rd16(face + F_DAY_OUTLINE)
+                                                     : rd16(face + F_NIGHT_OUTLINE);
+    copy_corners(n);
+    g_r3dDrawTexturedQuad(texture, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
+}
+
+void r3d_polygon_submit_textured_quad(void) {
+    BAK_UNIMPLEMENTED("R3D.ASM: r3d_polygon_submit_textured_quad (register arguments: R3D's own "
+                      "routines call its C form)");
+}
+
+/* A 32-bit sum of products as 48 bits (sign-extended), shifted left 2 + count: the integer
+ * part (bits 16-47) out, the fraction (bits 0-15) in *frac. */
+static s32 scaled48(u32 sum, unsigned count, s16 *frac) {
+    uint64_t v = 0;
+    if (2 + count < 48)
+        v = ((uint64_t)(int64_t)(s32)sum << (2 + count)) & MASK48;
+    *frac = (s16)(u16)v;
+    return (s32)(u32)(v >> 16);
+}
+
+/* A short widened and shifted left count times (32 bits). */
+static s32 widened(s16 v, unsigned count) {
+    return count >= 32 ? 0 : (s32)((u32)(s32)v << count);
+}
+
+/*
+ * A mesh vertex into the actor's frame in 48 bits, scaled by the mesh's shift: the integer
+ * parts to out (X, then the matrix's second row, then its third), the fractions to
+ * g_matXOut... The identity widens the vector; type 1 turns X and Y and widens Z; any other
+ * type takes all three rows. Each part is stored before the next one's inputs are read.
+ */
+void r3d_mat3_xform_vec3_long(s16 *vec, Mat3x3 *matrix, s32 *out) {
+    const s16 *m = matrix->pM;
+    unsigned char type = matrix->bType;
+    unsigned count = g_abR3dState.wMeshScaleShift;
+    if (type == MAT3T_IDENTITY) {
+        out[0] = widened(vec[0], count);
+        g_r3d.matOut[0] = 0;
+        out[1] = widened(vec[1], count);
+        g_r3d.matOut[1] = 0;
+        out[2] = widened(vec[2], count);
+        g_r3d.matOut[2] = 0;
+    } else if (type == MAT3T_ZROT) {
+        out[0] = scaled48(mul(vec[0], m[0]) + mul(vec[1], m[3]), count, &g_r3d.matOut[0]);
+        out[1] = scaled48(mul(vec[0], m[1]) + mul(vec[1], m[4]), count, &g_r3d.matOut[1]);
+        out[2] = widened(vec[2], count);
+        g_r3d.matOut[2] = 0;
+    } else {
+        out[0] = scaled48(mul(vec[0], m[0]) + mul(vec[1], m[3]) + mul(vec[2], m[6]), count,
+                          &g_r3d.matOut[0]);
+        out[1] = scaled48(mul(vec[0], m[1]) + mul(vec[1], m[4]) + mul(vec[2], m[7]), count,
+                          &g_r3d.matOut[1]);
+        out[2] = scaled48(mul(vec[0], m[2]) + mul(vec[1], m[5]) + mul(vec[2], m[8]), count,
+                          &g_r3d.matOut[2]);
+    }
+}
+
+/* The register-convention routines' C forms, for the differential tests. */
+s32 r3d_test_backface_dot(const unsigned char *pool, unsigned char nrm, unsigned char first) {
+    return backface_dot(pool, nrm, first);
+}
+
+void r3d_test_resolve_shade_color(const unsigned char *face, const unsigned char *pool) {
+    resolve_shade_color(face, pool);
+}
+
+void r3d_test_submit_to_rasterizer(void) {
+    submit_to_rasterizer();
+}
+
+void r3d_test_submit_textured_quad(const unsigned char *face) {
+    submit_textured_quad(face);
+}
+
+/* ---- not translated yet ------------------------------------------------------------ */
 
 void r3d_mesh_part_polygons(unsigned char *part_header) {
     (void)part_header;
@@ -614,29 +832,6 @@ void r3d_mesh_part_polygons(unsigned char *part_header) {
 
 void r3d_poly_emit_screen_or_world(void) {
     BAK_UNIMPLEMENTED("R3D.ASM: r3d_poly_emit_screen_or_world");
-}
-
-void r3d_polygon_resolve_shade_color(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_polygon_resolve_shade_color");
-}
-
-void r3d_polygon_resolve_shade_color_lit(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_polygon_resolve_shade_color_lit");
-}
-
-void r3d_polygon_submit_to_rasterizer(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_polygon_submit_to_rasterizer");
-}
-
-void r3d_polygon_submit_textured_quad(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_polygon_submit_textured_quad");
-}
-
-void r3d_mat3_xform_vec3_long(s16 *vec, Mat3x3 *matrix, s32 *out) {
-    (void)vec;
-    (void)matrix;
-    (void)out;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_mat3_xform_vec3_long");
 }
 
 void r3d_mesh_polygons(unsigned char *part_header) {

@@ -526,3 +526,203 @@ def test_actor_lod_depth(krondor, native):
     rng = random.Random(13)
     for _ in range(800):
         actor_case(krondor, native, rng, 2)
+
+
+def r3d_seg(m) -> int:
+    return m.sym("r3d_camera_setup_view")[0]
+
+
+def short3(rng, magnitude: int = 0x8000) -> list[int]:
+    return [rng.randrange(-magnitude, magnitude) for _ in range(3)]
+
+
+def test_dot3(krondor, native):
+    # Q14-sized and full-range vectors: the sum of the three products wraps in 32 bits.
+    rng = random.Random(14)
+    edges = [-0x8000, 0x7FFF, 0, 1, -1]
+    cases = [[rng.choice(edges) for _ in range(6)] for _ in range(100)]
+    cases += [short3(rng, rng.choice((0x200, 0x4000, 0x8000))) + short3(rng) for _ in range(900)]
+    krondor.free_all()
+    seg = krondor.alloc(16)
+    want = []
+    for v in cases:
+        krondor.write((seg, 0), words(*v))
+        want.append(krondor.call_far("r3d_dot3_long_far", 0, 6, ds=seg).dx_ax)
+    reply = native.call("r3d.dot3", b"".join(words(*v) for v in cases))
+    assert list(struct.unpack(f"<{len(cases)}I", reply)) == want
+
+
+def test_vertex_transform_long(krondor, native):
+    # A mesh vertex through the actor's matrix in 48 bits: every type byte, mesh shifts up
+    # to the 16-bit range (the parts shift out), any vertex.
+    rng = random.Random(15)
+    seg = r3d_seg(krondor)
+    for i in range(1200):
+        shift = rng.choice((0, 1, 2, 3, rng.randrange(48), rng.randrange(0x10000)))
+        vec = short3(rng) if i % 2 else short3(rng, 0x400)
+        matrix = rotation_bytes(rng)
+        krondor.write(
+            "g_abR3dState",
+            words(0, 0, 0, 0) + words(shift),
+        )
+        krondor.write("g_matXIn", words(*vec))
+        krondor.write("g_mat3x3ActorRot", matrix)
+        krondor.call_near(
+            "r3d_mat3_xform_vec3_long",
+            ax=krondor.sym("g_matXIn")[1],
+            bx=krondor.sym("g_mat3x3ActorRot")[1],
+            cx=krondor.sym("g_matXOut32")[1],
+            ds=seg,
+        )
+        want = krondor.read("g_matXOut32", 12) + krondor.read("g_matXOut", 6)
+        got = native.call("r3d.xlong", words(shift, *vec) + matrix)
+        assert got == want, (shift, vec, matrix.hex())
+
+
+POOL = 256 * 6
+
+
+def test_backface_dot(krondor, native):
+    # The face normal's row against the first vertex's, scaled down by any residual (the
+    # shift takes its negation's low 5 bits) and moved by the camera origin.
+    rng = random.Random(16)
+    seg = r3d_seg(krondor)
+    krondor.free_all()
+    pool_seg = krondor.alloc(POOL)
+    for i in range(800):
+        pool = rng.randbytes(POOL)
+        residual = rng.choice((0, -1, -2, -3, rng.randrange(-40, 40), rng.randrange(0x10000)))
+        origin = short3(rng, rng.choice((0x1000, 0x8000)))
+        nrm, first = rng.randrange(256), rng.randrange(256)
+        krondor.write((pool_seg, 0), pool)
+        krondor.write("g_abR3dState", bytes(10) + words(residual))
+        krondor.write("g_nMeshCamOriginX", words(*origin))
+        dot = krondor.call_near(
+            "r3d_backface_dot_indexed", ax=nrm | first << 8, es=pool_seg, bp=0, ds=seg
+        ).dx_ax
+        want = struct.pack("<I", dot) + krondor.read("g_matXIn2", 6) + krondor.read("g_matXOut", 6)
+        got = native.call("r3d.backface", words(residual, *origin) + bytes((nrm, first)) + pool)
+        assert got == want, (residual, origin, nrm, first)
+
+
+TABLES_AT = 0xF000  # in DGROUP, under the test's stack: the material and remap tables
+
+
+def test_shade_color(krondor, native):
+    # Day and night colours, filled or not; the material path (a filled simple-mesh face in
+    # daylight with a material table: materials 0, 1-8 and above, flipped normals, shades
+    # at the ramp's ends) and the colour remap.
+    rng = random.Random(17)
+    seg = r3d_seg(krondor)
+    ctx_seg, ctx_off = krondor.sym("g_graphics_context")
+    flag_off = struct.unpack("<4H", native.call("r3d.ctxoffs"))[0]
+    krondor.free_all()
+    face_seg = krondor.alloc(16 + POOL)
+    for i in range(1500):
+        day = rng.choice((0, 1, rng.randrange(256)))
+        flipped = rng.choice((0, 1))
+        light = short3(rng, 0x200)
+        materials = bytearray(rng.choice((0, 1, 2, 4, 8, 9, 0xFF)) for _ in range(256))
+        remap = rng.randbytes(256)
+        has_materials = rng.random() < 0.7
+        has_remap = rng.random() < 0.5
+        face = bytearray(rng.randbytes(8))
+        face[0] = rng.choice((0xA0, 0xA1, 0x80, 0x20, 0, rng.randrange(256)))
+        if i % 3 == 0:  # the outline the fill's colour: the lit colour takes both
+            face[1], face[3] = face[2], face[4]
+        pool = bytearray(rng.randbytes(POOL))
+        nrm = face[5]
+        # normals that keep the shade on the ramp (dot >> 16 within -16..16), its ends too
+        normal = short3(rng, rng.choice((0x80, 0x200)))
+        if i % 10 == 0:
+            light = [0x200, 0, 0]
+            normal = [rng.choice((0x800, 0x7FF, -0x800, -0x7FF)), 0, 0]
+        pool[nrm * 6 : nrm * 6 + 6] = words(*normal)
+
+        krondor.write((face_seg, 0), bytes(face) + bytes(8) + bytes(pool))
+        krondor.write((ctx_seg, ctx_off + flag_off), bytes((day,)))
+        krondor.write("g_abR3dState", bytes(0x13) + bytes((flipped,)))
+        krondor.write("g_vec3LightDirObj", words(*light))
+        krondor.write((krondor.data_seg, TABLES_AT), bytes(materials) + remap)
+        krondor.write("g_pFaceMaterialTable", words(TABLES_AT if has_materials else 0))
+        krondor.write("g_pColorRemapTable", words(TABLES_AT + 256 if has_remap else 0))
+        krondor.write("g_matXIn2", bytes(6))
+        krondor.call_near("r3d_polygon_resolve_shade_color", es=face_seg, di=0, bp=16, ds=seg)
+        ctx = krondor.read((ctx_seg, ctx_off + 0x0C), 3)  # fill enabled, fill, outline
+        want = bytes((ctx[0], ctx[2], ctx[1])) + krondor.read("g_matXIn2", 6)
+        got = native.call(
+            "r3d.shade",
+            bytes((day, flipped))
+            + words(*light)
+            + bytes((has_materials, has_remap))
+            + bytes(materials)
+            + remap
+            + bytes(face)
+            + bytes(pool),
+        )
+        assert got == want, (i, day, face.hex())  # g_matXIn2 starts from zeros on both
+
+
+class DrawHook:
+    """The far dispatchers R3D submits to, replaced by INT F1h + RETF: their arguments."""
+
+    def __init__(self, m):
+        self.m = m
+        for name in ("sky_polygon_draw_dispatch", "worldrender_textured_quad_lod"):
+            s, o = m.sym(name)
+            m.uc.mem_write(m.linear(s, o), bytes((0xCD, 0xF1 if name[0] == "s" else 0xF2, 0xCB)))
+        m.interrupts[0xF1] = lambda m: self.record(1)
+        m.interrupts[0xF2] = lambda m: self.record(2)
+        self.reset()
+
+    def reset(self) -> None:
+        self.which, self.args = 0, (0, 0, 0)
+
+    def record(self, which: int) -> None:
+        self.which = which
+        self.args = struct.unpack("<3H", self.m.read((self.m.reg("ss"), self.m.reg("sp") + 4), 6))
+
+
+def test_submit(krondor, native):
+    # A polygon of 0-20 corners to the flat filler; a quadrilateral (or not) to the textured
+    # one, its texture by day or by night: the context's arrays and what was called.
+    rng = random.Random(18)
+    seg = r3d_seg(krondor)
+    ctx_seg, ctx_off = krondor.sym("g_graphics_context")
+    flag_off, px_off, py_off, count_off = struct.unpack("<4H", native.call("r3d.ctxoffs"))
+    hook = DrawHook(krondor)
+    krondor.free_all()
+    face_seg = krondor.alloc(16)
+    for i in range(600):
+        textured = i % 2
+        day = rng.choice((0, 1, 0x80))
+        n = rng.choice((0, 3, 4, 4, 5, 8, 20, rng.randrange(21)))
+        xs, ys = short3(rng) * 7, short3(rng) * 7
+        face = rng.randbytes(8)
+        before = rng.randbytes(82)  # the corner count and arrays left behind
+        krondor.write((ctx_seg, ctx_off + count_off), before[:2])
+        krondor.write((ctx_seg, ctx_off + px_off), before[2:42])
+        krondor.write((ctx_seg, ctx_off + py_off), before[42:])
+        krondor.write((ctx_seg, ctx_off + flag_off), bytes((day,)))
+        krondor.write("g_nMeshPolyVertexCount", words(n))
+        krondor.write("g_aPolyInX", words(*xs[:20]))
+        krondor.write("g_aPolyInY", words(*ys[:20]))
+        krondor.write((face_seg, 0), face)
+        hook.reset()
+        if textured:
+            krondor.call_near("r3d_polygon_submit_textured_quad", es=face_seg, di=0, ds=seg)
+        else:
+            krondor.call_near("r3d_polygon_submit_to_rasterizer", ds=seg)
+        ctx = krondor.read((ctx_seg, ctx_off), 0x6F2)
+        ours = int(hook.args[1:] == (ctx_off + px_off, ctx_off + py_off))
+        want = (
+            ctx[count_off : count_off + 2]
+            + ctx[px_off : px_off + 40]
+            + ctx[py_off : py_off + 40]
+            + words(hook.which, hook.args[0] if hook.which else 0, ours if hook.which else 0)
+        )
+        got = native.call(
+            "r3d.submit",
+            bytes((textured, day)) + words(n) + words(*xs[:20]) + words(*ys[:20]) + face + before,
+        )
+        assert got == want, (i, textured, day, n)

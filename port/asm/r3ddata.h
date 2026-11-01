@@ -63,4 +63,16 @@ typedef struct R3dWork {
 
 extern R3dWork g_r3d;
 
+/* Where R3D submits its polygons: the game's dispatchers, but the tests' models there. */
+typedef void R3dDrawPolygonFn(u16 vcount, s16 *xs, s16 *ys);
+typedef void R3dDrawTexturedQuadFn(s16 texture_index, s16 *xs, s16 *ys);
+extern R3dDrawPolygonFn *g_r3dDrawPolygon;
+extern R3dDrawTexturedQuadFn *g_r3dDrawTexturedQuad;
+
+/* The register-convention routines' C forms, for the differential tests. */
+s32 r3d_test_backface_dot(const unsigned char *pool, unsigned char nrm, unsigned char first);
+void r3d_test_resolve_shade_color(const unsigned char *face, const unsigned char *pool);
+void r3d_test_submit_to_rasterizer(void);
+void r3d_test_submit_textured_quad(const unsigned char *face);
+
 #endif

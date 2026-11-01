@@ -10,6 +10,8 @@
 #include "r3d.h"
 #include "SRC/GEN/GFXCTX.H"
 #include "SRC/R3D/CORE/R3D.H"
+#include "SRC/R3D/SKY/SKY.H"
+#include "SRC/R3D/SPRITE/WORLDRND.H"
 #include "bak_game_end.h"
 
 #define MEM 256
@@ -251,6 +253,127 @@ static void cmd_actor(DtIn *in, DtOut *out) {
     scratch_put(out);
 }
 
+/* r3d.dot3 <s16 a[3], s16 b[3]>... -> s32 each (r3d_dot3_long_far) */
+static void cmd_dot3(DtIn *in, DtOut *out) {
+    while (dt_remaining(in) != 0) {
+        s16 v[6];
+        memcpy(v, dt_bytes(in, sizeof v), sizeof v);
+        dt_put_u32(out, (uint32_t)r3d_dot3_long_far(v, v + 3));
+    }
+}
+
+/* r3d.xlong <u16 shift> <s16 vec[3]> <19 bytes: the matrix> -> s32 out[3], g_matXOut.. */
+static void cmd_xlong(DtIn *in, DtOut *out) {
+    s32 result[3];
+    g_abR3dState.wMeshScaleShift = dt_u16(in);
+    memcpy(g_r3d.matIn, dt_bytes(in, 6), 6);
+    memcpy(&g_abR3dState.mat3x3ActorRot, dt_bytes(in, sizeof(Mat3x3)), sizeof(Mat3x3));
+    r3d_mat3_xform_vec3_long(g_r3d.matIn, &g_abR3dState.mat3x3ActorRot, result);
+    dt_put_bytes(out, result, sizeof result);
+    dt_put_bytes(out, g_r3d.matOut, 6);
+}
+
+/* The vertex pool the face tests read: 256 rows. */
+static unsigned char s_pool[256 * 6];
+
+/* r3d.backface <s16 residual> <s16 camera origin[3]> <u8 normal's vertex> <u8 first vertex>
+ * <pool> -> s32 the dot product, g_matXIn2.., g_matXOut.. */
+static void cmd_backface(DtIn *in, DtOut *out) {
+    g_abR3dState.wMeshScaleResidual = dt_u16(in);
+    memcpy(&g_abR3dState.nMeshCamOriginX, dt_bytes(in, 6), 6);
+    uint8_t nrm = dt_u8(in), first = dt_u8(in);
+    memcpy(s_pool, dt_bytes(in, sizeof s_pool), sizeof s_pool);
+    dt_put_u32(out, (uint32_t)r3d_test_backface_dot(s_pool, nrm, first));
+    dt_put_bytes(out, g_r3d.matIn2, 6);
+    dt_put_bytes(out, g_r3d.matOut, 6);
+}
+
+/* r3d.shade <u8 day> <u8 flipped> <s16 light[3]> <u8 material table?> <u8 remap table?>
+ * <256: material table> <256: remap table> <8: face> <pool> -> fill enabled, outline,
+ * fill, g_matXIn2.. */
+static void cmd_shade(DtIn *in, DtOut *out) {
+    static unsigned char materials[256], remap[256], face[8];
+    g_graphics_context.bGfxRenderStateFlag = dt_u8(in);
+    g_abR3dState.bPolyNormalFlipped = dt_u8(in);
+    memcpy(g_abR3dState.vec3LightDirObj, dt_bytes(in, 6), 6);
+    uint8_t hasMaterials = dt_u8(in), hasRemap = dt_u8(in);
+    memcpy(materials, dt_bytes(in, 256), 256);
+    memcpy(remap, dt_bytes(in, 256), 256);
+    memcpy(face, dt_bytes(in, 8), 8);
+    memcpy(s_pool, dt_bytes(in, sizeof s_pool), sizeof s_pool);
+    g_r3d.pFaceMaterialTable = hasMaterials ? materials : NULL;
+    g_pColorRemapTable = hasRemap ? remap : NULL;
+    memset(g_r3d.matIn2, 0, sizeof g_r3d.matIn2);
+    r3d_test_resolve_shade_color(face, s_pool);
+    g_r3d.pFaceMaterialTable = NULL;
+    g_pColorRemapTable = NULL;
+    dt_put_u8(out, g_graphics_context.bGfx_fill_enabled);
+    dt_put_u8(out, g_graphics_context.bGfx_outline_color);
+    dt_put_u8(out, g_graphics_context.bGfx_fill_color);
+    dt_put_bytes(out, g_r3d.matIn2, 6);
+}
+
+/* What reached the polygon dispatchers: which, its first argument, and whether the corner
+ * arrays were the context's. */
+static struct {
+    uint16_t which, first, ours;
+} s_drawn;
+
+static void record_polygon(u16 vcount, s16 *xs, s16 *ys) {
+    s_drawn.which = 1;
+    s_drawn.first = vcount;
+    s_drawn.ours = xs == g_graphics_context.pPolygonX && ys == g_graphics_context.pPolygonY;
+}
+
+static void record_quad(s16 texture, s16 *xs, s16 *ys) {
+    s_drawn.which = 2;
+    s_drawn.first = (uint16_t)texture;
+    s_drawn.ours = xs == g_graphics_context.pPolygonX && ys == g_graphics_context.pPolygonY;
+}
+
+/* r3d.submit <u8 textured> <u8 day> <u16 corners> <s16 x[20]> <s16 y[20]> <8: face>
+ *            <the context's corner count, pPolygonX[20] and pPolygonY[20] before>
+ *   -> the context's corner count, pPolygonX[20], pPolygonY[20], u16 which (0 none, 1 the
+ *      flat filler, 2 the textured quad), u16 its first argument, u16 1 if the arrays were
+ *      the context's */
+static void cmd_submit(DtIn *in, DtOut *out) {
+    static unsigned char face[8];
+    uint8_t textured = dt_u8(in);
+    g_graphics_context.bGfxRenderStateFlag = dt_u8(in);
+    g_r3d.nMeshPolyVertexCount = (s16)dt_u16(in);
+    memcpy(g_r3d.aPolyInX, dt_bytes(in, sizeof g_r3d.aPolyInX), sizeof g_r3d.aPolyInX);
+    memcpy(g_r3d.aPolyInY, dt_bytes(in, sizeof g_r3d.aPolyInY), sizeof g_r3d.aPolyInY);
+    memcpy(face, dt_bytes(in, 8), 8);
+    memcpy(&g_graphics_context.nPolygonClipVertexCount, dt_bytes(in, 2), 2);
+    memcpy(g_graphics_context.pPolygonX, dt_bytes(in, 40), 40);
+    memcpy(g_graphics_context.pPolygonY, dt_bytes(in, 40), 40);
+    memset(&s_drawn, 0, sizeof s_drawn);
+    g_r3dDrawPolygon = record_polygon;
+    g_r3dDrawTexturedQuad = record_quad;
+    if (textured)
+        r3d_test_submit_textured_quad(face);
+    else
+        r3d_test_submit_to_rasterizer();
+    g_r3dDrawPolygon = sky_polygon_draw_dispatch;
+    g_r3dDrawTexturedQuad = worldrender_textured_quad_lod;
+    dt_put_u16(out, (uint16_t)g_graphics_context.nPolygonClipVertexCount);
+    dt_put_bytes(out, g_graphics_context.pPolygonX, sizeof g_graphics_context.pPolygonX);
+    dt_put_bytes(out, g_graphics_context.pPolygonY, sizeof g_graphics_context.pPolygonY);
+    dt_put_u16(out, s_drawn.which);
+    dt_put_u16(out, s_drawn.first);
+    dt_put_u16(out, s_drawn.ours);
+}
+
+/* r3d.ctxoffs -> u16 offsets in the graphics context of bGfxRenderStateFlag, pPolygonX,
+ * pPolygonY, nPolygonClipVertexCount */
+static void cmd_ctxoffs(DtIn *in, DtOut *out) {
+    (void)in;
+    dt_put_u16(out, (uint16_t)offsetof(GraphicsContext, bGfxRenderStateFlag));
+    dt_put_u16(out, (uint16_t)offsetof(GraphicsContext, pPolygonX));
+    dt_put_u16(out, (uint16_t)offsetof(GraphicsContext, pPolygonY));
+    dt_put_u16(out, (uint16_t)offsetof(GraphicsContext, nPolygonClipVertexCount));
+}
+
 /* r3d.imul <s16 a, s16 b>... -> u32 each */
 static void cmd_imul(DtIn *in, DtOut *out) {
     while (dt_remaining(in) != 0) {
@@ -274,6 +397,12 @@ const DtEntry dt_r3d_entries[] = {
     DT_COMMAND("r3d.projscale", cmd_projscale),
     DT_COMMAND("r3d.yflip", cmd_yflip),
     DT_COMMAND("r3d.actor", cmd_actor),
+    DT_COMMAND("r3d.dot3", cmd_dot3),
+    DT_COMMAND("r3d.xlong", cmd_xlong),
+    DT_COMMAND("r3d.backface", cmd_backface),
+    DT_COMMAND("r3d.shade", cmd_shade),
+    DT_COMMAND("r3d.submit", cmd_submit),
+    DT_COMMAND("r3d.ctxoffs", cmd_ctxoffs),
     {"g_abLightingLut", NULL, g_r3d.abLightingLut, sizeof g_r3d.abLightingLut},
     DT_END,
 };
