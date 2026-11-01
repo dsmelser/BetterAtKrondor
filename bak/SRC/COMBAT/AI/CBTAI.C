@@ -298,46 +298,38 @@ s16 far combat_ai_turn_packet_30006(Combatant *actor) {
     return result;
 }
 
-s16 far combat_ai_try_aoe_cast_spell_7(Combatant *actor) {
-    s16 result;
-    Combatant *target_actor;
-    register s16 i;
-    s16 stat;
+/* The ally an AI caster gives Gift of Sung (spell 7) in combat_ai_try_aoe_cast_spell_7: the first
+   that an opponent attacks, alive and below 70% of its health (80% for side B's first combatant),
+   or NULL. In an AI turn g_pCombatOtherActors holds the caster's side and g_pCombatActiveActors
+   its opponents. */
+Combatant *combat_ai_sung_ally_under_attack(Combatant *caster) {
+    Combatant *ally;
+    s16 i;
 
-    result = 0;
-    if (combatenc_actor_stat_above_table(2, actor)) {
-        i = 0;
-        while (i < g_nCombatOtherCount) {
-            if (g_pCombatOtherActors[i].inner->target != actor) {
-                /* !flags & 2 is 0 whatever the flags, so the original never casts here; it reads
-                   the flags through a target that may be NULL, which natively is tested first. */
-                if (g_pCombatOtherActors[i].inner->target != NULL &&
-                    (!((char)g_pCombatOtherActors[i].inner->target->inner->flags) & 2)) {
-                    if (g_pCombatOtherActors[i].inner->target != NULL) {
-                        target_actor = g_pCombatOtherActors[i].inner->target;
-                        stat = combat_actor_stat_percent(target_actor, 0);
-                        if (target_actor == g_actors_B_origin)
-                            goto do_origin_check;
-                        if (stat < 0x46)
-                            goto do_cast;
-                    do_origin_check:
-                        if (target_actor != g_actors_B_origin)
-                            goto do_skip;
-                        if (stat >= 0x50)
-                            goto do_skip;
-                    do_cast:
-                        cspell_resolve_cast(actor, target_actor, 7,
-                                            cspell_actor_stat_get_comb_dflt(actor, 7));
-                        result = 1;
-                        i = g_nCombatOtherCount;
-                    do_skip:;
-                    }
-                }
-            }
-            i++;
-        }
+    for (i = 0; i < g_nCombatActiveCount; i++) {
+        ally = g_pCombatActiveActors[i].inner->target;
+        if (ally == caster || ally == NULL || (ally->inner->flags & CAF_DEAD) != 0)
+            continue;
+        if (combat_actor_stat_percent(ally, 0) < (ally == g_actors_B_origin ? 0x50 : 0x46))
+            return ally;
     }
-    return result;
+    return NULL;
+}
+
+/* The original never casts here. It tests the target's flags as !flags & 2, which is 0 whatever
+   they are, where CAF_DEAD was meant; it walks the caster's own side and takes each one's target,
+   an opponent; and it casts whether or not the caster knows the spell. The port walks the
+   opponents and asks for the spell as combat_ai_pick_heal_spell does. */
+s16 far combat_ai_try_aoe_cast_spell_7(Combatant *actor) {
+    Combatant *ally;
+
+    if (!combatenc_actor_stat_above_table(2, actor) || !cspell_check_castable(7, actor, -1))
+        return 0;
+    ally = combat_ai_sung_ally_under_attack(actor);
+    if (ally == NULL)
+        return 0;
+    cspell_resolve_cast(actor, ally, 7, cspell_actor_stat_get_comb_dflt(actor, 7));
+    return 1;
 }
 
 /* The order in which a turn profile (1-8) tries the turn actions, and the actions, numbered

@@ -14,6 +14,7 @@ extern s16 combat_ai_turn_packet_40006(Combatant *actor);
 extern s16 combat_ai_turn_packet_50006(Combatant *actor);
 extern s16 combat_ai_turn_packet_30006(Combatant *actor);
 extern s16 combat_ai_try_aoe_cast_spell_7(Combatant *actor);
+extern Combatant *combat_ai_sung_ally_under_attack(Combatant *caster);
 extern void combat_ai_actor_cast_spell(Combatant *caster, Combatant *target, s16 spell_id);
 extern void combat_ai_resolve_attack_attempt(Combatant *attacker, Combatant *target,
                                              s16 spell_id);

@@ -202,6 +202,18 @@ The quirks below (what the port has taught us) stay unless they are listed here.
   party's too, but that test reads `==` where `!=` was meant. So it skips a destination on another row
   of the party's tile column, and moves the party into its own tile all the same. The port moves the
   party to every destination, as the original does everywhere but there (`teleport` replay).
+- **The AI never gives Gift of Sung to an ally under attack.** One of the caster AI's turn actions,
+  `combat_ai_try_aoe_cast_spell_7`, is meant to cast Gift of Sung (spell 7, which moves the caster's
+  health to its target) on an ally an opponent attacks when the ally is below 70% of its health (80% for
+  the encounter's first enemy). Turn profile 8, Owyn's and Pug's in P1.DAT, tries it first, and the
+  monsters' profiles try it too. The original never casts there: it tests the ally's flags as
+  `!flags & 2`, which is 0 whatever they are (`!` binds first), where `CAF_DEAD` was meant. Two more
+  slips hide behind that one. It walks the caster's own side (in an AI turn `g_pCombatOtherActors`)
+  and takes each one's target, an opponent, so fixing the test alone would heal the opponents. And it
+  casts whether or not the caster knows the spell, which in STARTUP.GAM Owyn, Patrus and 60 of the 189
+  enemies that know spells do. The port walks the opponents (`combat_ai_sung_ally_under_attack`, checked
+  by `bak_unittest`) and asks for the spell, as the AI's other cast of it (`combat_ai_pick_heal_spell`)
+  does.
 
 ## ASM modules
 
@@ -391,10 +403,6 @@ only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
   `g_encounter_ai_action_table + 10h`. In DGROUP these land on `__dat_153c`, on the rows that follow
   `__dat_1492`'s ten-byte animation template, and on `__dat_15dc`. The monsters' profiles in MONSTnn.DAT
   run from 0 (none) to 8, inside the tables.
-- **The AI never casts its support spell.** `combat_ai_try_aoe_cast_spell_7` would cast spell 7 (Gift of
-  Sung) on an ally an opponent is attacking, but it tests `!flags & 2`, which is 0 whatever the flags
-  (`!` binds first). On its way it reads the flags through the opponent's target before testing that
-  target for NULL. Not fixed: enemies would fight differently.
 - **Pointers left unset or null are read.** `combat_actor_pick_next`'s sentinel combatant never gets a
   state block, and its speed test reads the sentinel's flags through whatever the stack held (charSlot 0
   decides the test either way). After a fight's last turn `combat_arena_turn_actor_inact` tests the
@@ -562,9 +570,9 @@ folder, and compares two logs with a baseline recorded in `work/replay/<scenario
 |---|---|
 | `main-menu`, `book`, `world` (the golden scenarios' scripts) | ✅ two runs give identical logs; each ends on its golden capture. The world tour takes about 19 s, against 90 s on the host's clock, because computing costs no game time |
 | `walk`: the world, then three steps, a turn left, a step, two turns right, a step | ✅ identical logs; the state log shows each 400-unit step and each 1024-unit turn |
-| `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state at 128 s |
+| `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state at 128 s. Since the fix of the AI's Gift of Sung, Owyn takes that action on his turns, but Locklear, whom the assassin attacks, keeps all his health: nothing is cast and the logs are unchanged |
 | `spawns`: the world, then a teleport into zone 4 (tile 10,14) among the sixteen stones chapter 1 spawns there, and a full turn about | ✅ identical logs, the ASan build's too; the stones live in the visible pool, past the zone pool's first 64 KB natively, and did not show before the visible list held pointers |
-| `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
+| `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs, the ASan build's too; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
 41 s of game time), since decoding and drawing take no game time; the golden scripts still work.

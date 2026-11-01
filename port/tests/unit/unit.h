@@ -8,7 +8,8 @@
     X(clock_virtual_waits_jump_to_the_due_time)                                                    \
     X(clock_retrace_wait_runs_the_ticks_due)                                                       \
     X(hash_covers_every_byte_and_chains)                                                           \
-    X(rand_fx_is_the_game_generator_on_its_own_ring)
+    X(rand_fx_is_the_game_generator_on_its_own_ring)                                               \
+    X(ai_sung_goes_to_an_ally_under_attack)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)
