@@ -402,7 +402,7 @@ void far wcursor_interact_container_event(WorldHotspot *pHotspot) {
         if (actor == 0 || actor->bResidence != RES_FIXED_OBJECT) {
             dialog_play_record(0x9a, 1);
         } else {
-            pMsg = actorrec_get_subrecord(actor, SUBREC_INTERACT_MSG);
+            pMsg = (ActorSubrec02_InteractMsg far *)actorrec_get_subrecord(actor, SUBREC_INTERACT_MSG);
             if (pMsg != 0 && pMsg->dwMessage_id != 0) {
                 dwRecord = pMsg->dwMessage_id;
             } else {

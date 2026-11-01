@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern EncounterAiTurnFn far *g_encounter_ai_turn_table[8];
+extern EncounterAiTurnFn g_encounter_ai_turn_table[8];
 extern unsigned char __dat_153c[128];
 
 extern s16 combat_ai_try_cast_heal(Combatant *caster);

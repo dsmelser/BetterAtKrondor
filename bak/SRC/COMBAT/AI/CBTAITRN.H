@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern EncounterAiActionFn far *g_encounter_ai_action_table[8];
+extern EncounterAiActionFn g_encounter_ai_action_table[8];
 extern unsigned char __dat_15dc[128];
 
 extern s16 combataiturn_sel_consum_qrl(Combatant *actor, s16 kind, s16 consume_flag);

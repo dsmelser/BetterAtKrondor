@@ -111,7 +111,7 @@ void sky_draw_ground_band(void) {
     g_vgablit_row_count = 0;
 
     save_fill = g_renderer_vtable.pfn_fill_spans_dithered_modey;
-    g_renderer_vtable.pfn_fill_spans_dithered_modey = vgablit_planar_runs;
+    g_renderer_vtable.pfn_fill_spans_dithered_modey = (Slot27Fn far *)vgablit_planar_runs;
 
     if ((g_game_mode == 1) || ((g_wZoneFlags & 8) != 0))
         draw_rect_filled(g_graphics_context.clip.xmin, g_nHorizonRowY,
@@ -154,8 +154,8 @@ void sky_polygon_draw_dispatch(u16 vcount, s16 *xs, s16 *ys) {
 
     save_fill = g_renderer_vtable.pfn_fill_spans_dithered_modey;
     save_line = g_renderer_vtable.pfn_draw_line;
-    g_renderer_vtable.pfn_fill_spans_dithered_modey = vgablit_planar_runs;
-    g_renderer_vtable.pfn_draw_line = vgablit_span_emit_textured;
+    g_renderer_vtable.pfn_fill_spans_dithered_modey = (Slot27Fn far *)vgablit_planar_runs;
+    g_renderer_vtable.pfn_draw_line = (Slot02Fn far *)vgablit_span_emit_textured;
     draw_polygon(vcount, xs, ys);
     g_renderer_vtable.pfn_fill_spans_dithered_modey = save_fill;
     g_renderer_vtable.pfn_draw_line = save_line;

@@ -13,7 +13,7 @@
 #include "SRC/COMBAT/SPELL/CSPELL.H"
 #include "defines.h"
 
-CombatAiActionFn far *g_combat_ai_action_table[8] = {
+CombatAiActionFn g_combat_ai_action_table[8] = {
     &combataipath_low_health_action, &combataipath_action_6,     &combataipath_action_100_1,
     &combataipath_action_100_2,      &combataipath_action_60064, &combataipath_action_50064,
     &combataipath_action_30064,      &combataipath_action_40064};

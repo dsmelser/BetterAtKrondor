@@ -12,7 +12,7 @@
 #include "defines.h"
 #include <stddef.h>
 
-EncounterAiTurnFn far *g_encounter_ai_turn_table[8] = {
+EncounterAiTurnFn g_encounter_ai_turn_table[8] = {
     &combat_ai_try_cast_heal,     &combat_ai_turn_kind6,          &combat_ai_turn_packet_10006,
     &combat_ai_turn_packet_20006, &combat_ai_turn_packet_40006,   &combat_ai_turn_packet_50006,
     &combat_ai_turn_packet_30006, &combat_ai_try_aoe_cast_spell_7};

@@ -15,7 +15,7 @@
 #include "SRC/COMBAT/STATS/CBSTAT.H"
 #include "defines.h"
 
-EncounterAiActionFn far *g_encounter_ai_action_table[8] = {
+EncounterAiActionFn g_encounter_ai_action_table[8] = {
     &combataiturn_thunk_action_6, &combataiturn_action_kind6,     &combataiturn_action_1000a,
     &combataiturn_action_2000a,   &combataiturn_action_4000a,     &combataiturn_action_5000a,
     &combataiturn_action_3000a,   &combataiturn_select_and_engage};

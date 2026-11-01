@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern CombatAiActionFn far *g_combat_ai_action_table[8];
+extern CombatAiActionFn g_combat_ai_action_table[8];
 extern unsigned short g_bActorAdjacentToTarget;
 extern unsigned char __dat_1492[138];
 

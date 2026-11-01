@@ -214,11 +214,11 @@ typedef void(far *BlitChunkyFn)(unsigned char *src_off, unsigned short src_seg, 
 typedef void(far *BlitSpriteFn)(s16 sprite_desc_offset, s16 dst_x, s16 dst_y);
 typedef void(far *BlitSpriteSimpleFn)(ImageRecord *sprite, s16 x, s16 y);
 typedef void(far *CirclePlotterFn)(s16 x, s16 y);
-typedef void(far *CombatAiActionFn)(Combatant far *actor);
+typedef s16(far *CombatAiActionFn)(Combatant far *actor);
 typedef void(far *CrtExitFn)(void);
 typedef void(far *DefaultStubFn)(void);
-typedef void(far *EncounterAiActionFn)(Combatant *actor);
-typedef void(far *EncounterAiTurnFn)(Combatant *actor);
+typedef s16(far *EncounterAiActionFn)(Combatant *actor);
+typedef s16(far *EncounterAiTurnFn)(Combatant *actor);
 typedef void(far *FARFN)(void);
 typedef u16(far *GetpixelFn)(s16 x, s16 y);
 typedef u32(far *ImageInstallFn)(unsigned short *image_descs_table,
@@ -810,7 +810,7 @@ struct IffResLevel {
 };
 
 struct IffResReader {
-    struct IoFile *pStream;
+    struct ResFile *pStream;
     char pChunk_id_stack[25];
     IffResLevel pLevel_cache[7];
     short nDepth;
@@ -1305,7 +1305,7 @@ struct StatusEffectSlot {
 
 union StreamDescSrcUnion {
     unsigned char huge *pBufBase;
-    struct IoFile *pFile;
+    struct ResFile *pFile;
 };
 
 struct StreamDesc {
