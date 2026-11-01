@@ -349,7 +349,7 @@ DialogWidget *dlgwidget_create(u16 capacity, short rect_x, short rect_y, short r
 
 void dlgwidget_destroy(DialogWidget *widget) {
 
-    if (*(s16 *)&widget->pFill_image | *((s16 *)&widget->pFill_image + 1)) {
+    if (widget->pFill_image != NULL) {
         _freemem(widget->pFill_image);
     }
     galloc_zfree(widget->pText_buf);
@@ -390,7 +390,7 @@ void dlgwidget_set_label_pos(DialogWidget *widget, char *label, short label_x, s
 
 void dlgwidget_capture_background(DialogWidget *widget) {
 
-    if (*(s16 *)&widget->pFill_image | *((s16 *)&widget->pFill_image + 1)) {
+    if (widget->pFill_image != NULL) {
         cga_save_rect_to_buffer(widget->pFill_image, widget->rect.x, widget->rect.y,
                                 widget->rect.width, widget->rect.height);
     }
@@ -558,7 +558,7 @@ void dlgwidget_draw_text_input_widget(DialogWidget *widget, s16 in_input_mode) {
 
     g_graphics_context.bClip_enabled = 0;
     g_graphics_context.bGfx_outline_color = widget->bFg_color;
-    if (*(s16 *)&widget->pFill_image | *((s16 *)&widget->pFill_image + 1)) {
+    if (widget->pFill_image != NULL) {
         cga_rect_paste_from_buffer(widget->pFill_image, widget->rect.x, widget->rect.y,
                                    widget->rect.width, widget->rect.height);
         g_graphics_context.bGfx_fill_enabled = 0;

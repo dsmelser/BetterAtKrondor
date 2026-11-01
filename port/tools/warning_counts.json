@@ -1,0 +1,21 @@
+{
+  "clang 20": {
+    "array-bounds-pointer-arithmetic": 6,
+    "bad-function-cast": 12,
+    "c23-extensions": 1,
+    "cast-align": 225,
+    "cast-function-type-strict": 3,
+    "comma": 5,
+    "comment": 1,
+    "conditional-uninitialized": 77,
+    "deprecated-declarations": 87,
+    "deprecated-non-prototype": 59,
+    "fortify-source": 15,
+    "implicit-int-conversion": 369,
+    "pointer-sign": 52,
+    "sign-compare": 13,
+    "sometimes-uninitialized": 8,
+    "switch": 10,
+    "uninitialized": 2
+  }
+}

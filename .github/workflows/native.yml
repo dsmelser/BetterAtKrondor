@@ -46,6 +46,14 @@ jobs:
 
       - uses: astral-sh/setup-uv@v10.3.3
 
+      - name: Pointer audit (16-bit pointer habits the diagnostics let through)
+        shell: bash
+        run: uv run python -I port/tools/ptrwidth_audit.py
+
+      - name: Warning ratchet (no category's count may rise)
+        shell: bash
+        run: uv run python -I port/tools/warning_ratchet.py
+
       - name: Fetch the reference artifacts (latest successful reference build)
         shell: bash
         env:

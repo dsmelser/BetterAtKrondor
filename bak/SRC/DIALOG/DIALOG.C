@@ -557,6 +557,7 @@ void dialog_render_text_with_tokens(DDXRecord far *record, char far *text, s16 f
     s16 applied[4];
     s16 nScratchLen;
     char far *pTitle;
+    s16 lineCount; /* the original keeps it in pTitle's high word, its last use past */
     char buf[50];
 
     DialogStyleDescriptor *pStyle;
@@ -645,11 +646,11 @@ void dialog_render_text_with_tokens(DDXRecord far *record, char far *text, s16 f
     applied[3] -= pStyle->header[7] + pStyle->header[8];
     if (record->wFlags & 0x200) {
 
-        ((s16 *)&pTitle)[1] =
+        lineCount =
             textwrap_compute_lines((s32)g_pMainScratchBuf, applied[2], (s16 *)0, 999) -
             scroll_start;
         applied[3] -= 0x14;
-        if (applied[3] < ((s16 *)&pTitle)[1] * (g_graphics_context.pFont_height[0] + 1))
+        if (applied[3] < lineCount * (g_graphics_context.pFont_height[0] + 1))
             applied[1] += 10;
     }
     g_nTabWidth = pStyle->header[11];

@@ -30,6 +30,8 @@ uv run python -I port/tools/replay.py check world --data <game dir>   # replay o
 uv run python -I port/tools/dosbox_golden.py run main-menu --data <game dir>   # the original in DOSBox Staging vs the port
 python -I port/tools/gen_asm_stubs.py              # regenerate placeholders for unported ASM modules
 python -I port/tools/asm_publics.py                # inventory of the in-EXE ASM modules
+python -I port/tools/ptrwidth_audit.py             # 16-bit pointer habits the diagnostics miss (CI)
+python -I port/tools/warning_ratchet.py [--update] # no warning category may grow (CI)
 gh workflow run reference.yml -f ref=<ref>         # Borland build of <ref>: the reference objects (test fixtures)
 ```
 

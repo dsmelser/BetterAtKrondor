@@ -65,7 +65,15 @@ and checks that an incomplete folder is turned down cleanly.
    `int-conversion` and `incompatible-pointer-types` (`BAK_GAME_ERRORS` in CMakeLists.txt), beside the
    earlier `return-type`, `unsequenced`, `tautological-constant-out-of-range-compare` and `format`.
    Casts through `uintptr_t` stay possible where a far pointer's two words are meant (the sound
-   drivers' installs).
+   drivers' installs). Two checks in CI keep the rest out:
+   - `port/tools/ptrwidth_audit.py` walks clang's AST of the game for what the diagnostics let
+     through: allocations sized without `sizeof` that become records holding pointers, file I/O sized
+     by `sizeof` of such records, 16-bit views of a pointer's storage, pointers narrowed through an
+     integer. The far-pointer cases, the same width in both, are allowed in `ptrwidth_allowlist.txt`;
+     `test_ptrwidth_audit.py` checks each detector against the bugs it is for.
+   - `port/tools/warning_ratchet.py` counts the game's warnings per category (16-bit conversions,
+     signedness, casts the web build rejects, uninitialized reads and the defaults) and fails when a
+     count rises. Baselines are kept per clang major in `warning_counts.json`.
 
 ## TEMP.GAM and saves
 

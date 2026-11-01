@@ -1,0 +1,10 @@
+# ptrwidth_audit.py's allowed findings: kind, the file under bak/SRC, the function, and why.
+alloc-size COMBAT/SPELL/CSPELL.C cspell_subsystem_load  # SPELLDOC.DAT's rows: one far pointer each, 4 bytes in the original too
+alloc-size INPUT/WCURSOR.C wcursor_load_detect_dat  # ten WorldHotspot records of 16 bytes: their pointer is far, 4 bytes in both
+alloc-size R3D/SCENE/CZONE.C czone_subsystem_init  # the pool's size is sizeof(WorldObject) times its count, a statement earlier
+alloc-size SCREENS/BOOKVIEW.C bookview_load_page_directory  # a directory read whole: its 4-byte offsets become far pointers in place
+alloc-size SCREENS/TOWNSCN.C townscene_load  # a town scene read whole: its pointers are far, 4 bytes on disk and natively
+alloc-size SCRIPT/ADSCRIPT.C adscript_resource_load  # a table of far pointers to the script's blocks, 4 bytes each in both
+pointer-to-word AUDIO/SND/SNDINST.C sndinst_drivers  # the music driver's chunk as its two words, joined again by the install
+pointer-to-word AUDIO/SND/SNDINST.C sndinst_drivers  # the effects driver's chunk as its two words, likewise
+word-of-pointer AUDIO/SND/SNDINST.C sndinst_drivers  # the music driver chunk's high word, the other half of the same pair
