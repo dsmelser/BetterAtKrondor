@@ -44,7 +44,7 @@ jobs:
         shell: cmd
         run: build\win-x86-clangcl\bak_unittest.exe
 
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3
 
       - name: Fetch the reference artifacts (latest successful reference build)
         shell: bash
