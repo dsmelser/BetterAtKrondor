@@ -17,8 +17,10 @@
 #include "r3d.h"
 #include "SRC/GEN/GFXCTX.H"
 #include "SRC/R3D/CORE/R3D.H"
+#include "SRC/R3D/SCENE/ZONE.H"
 #include "SRC/R3D/SKY/SKY.H"
 #include "SRC/R3D/SPRITE/WORLDRND.H"
+#include "SRC/UI/UIWIDGET.H"
 #include "bak_game_end.h"
 
 #define Q14_ONE 0x4000
@@ -806,6 +808,381 @@ void r3d_mat3_xform_vec3_long(s16 *vec, Mat3x3 *matrix, s32 *out) {
     }
 }
 
+/* ---- the mesh producers ----------------------------------------------------------- */
+
+/*
+ * The three producers walk a mesh part's faces (part header: the face count, then the
+ * faces' offset), cull or flip them by the back-face dot, colour them, transform and
+ * project each vertex once (its state in g_abPolygonClipState at twice its index:
+ * untouched, pending, projected, behind the view plane), clip, and submit. The vertex
+ * caches are kept until the part's vertex pool changes (its segment and offset).
+ * g_polygon_vertices holds each corner as its vertex's byte offset in the word arrays.
+ */
+enum { CLIP_UNTOUCHED, CLIP_PENDING, CLIP_PROJECTED, CLIP_BEHIND };
+
+/* The segment the original walks the mesh in (ES): the shape record's paragraph, which
+ * actorrender_mesh_parts built the part header's far pointer from. */
+static u16 mesh_seg(void) {
+    return FP_SEG_NORM(g_abR3dState.pCurActorPagedRec);
+}
+
+static const unsigned char *at_seg(u16 seg, u16 off) {
+    return MK_FP(seg, off);
+}
+
+/* A new vertex pool clears the vertex states: the part's vertex count in words. */
+static void mesh_cache(u16 seg) {
+    R3dRendererState *st = &g_abR3dState;
+    u32 key = (u32)seg << 16 | st->wMeshVertexPoolOff;
+    if (st->dwMeshVertexFarPtrCache == key)
+        return;
+    st->dwMeshVertexFarPtrCache = key;
+    if (st->wMeshPartVertexCount > R3D_VERTEX_MAX)
+        BAK_UNIMPLEMENTED("R3D mesh part with more than 255 vertices (the original clears past "
+                          "its vertex states)");
+    memset(g_r3d.abPolygonClipState, 0, 2u * st->wMeshPartVertexCount);
+}
+
+/* DEC then JGE: on while the count was at least 1 (the true difference is not negative). */
+static int next_face(u16 *remaining) {
+    s16 old = (s16)*remaining;
+    *remaining = (u16)(old - 1);
+    return old >= 1;
+}
+
+/* The back-face test of a face: 1 to draw it (with g_bPolyNormalFlipped set as it is
+ * drawn), 0 to skip it. Kind 0 is drawn either way, flipped from behind when a simple
+ * mesh's (20h); kinds 1 and 3 are culled from behind. */
+static int face_facing(u16 seg, const unsigned char *face, const unsigned char *pool) {
+    unsigned char first = *at_seg(seg, rd16(face + F_VERT_LIST));
+    unsigned kind = face[F_FLAGS] & 3;
+    g_abR3dState.bPolyNormalFlipped = 0;
+    if (kind == 0) {
+        if ((face[F_FLAGS] & MESH_FLAG_SIMPLE) && backface_dot(pool, face[F_NRM_VERT], first) >= 0)
+            g_abR3dState.bPolyNormalFlipped = 1;
+        return 1;
+    }
+    return backface_dot(pool, face[F_NRM_VERT], first) < 0;
+}
+
+static void append_corner(u16 slot) {
+    if ((u16)g_r3d.nMeshPolyVertexCount >= R3D_POLY_MAX)
+        BAK_UNIMPLEMENTED("R3D face with more than 20 vertices (the original writes past its "
+                          "corner list)");
+    g_r3d.polygonVertices[g_r3d.nMeshPolyVertexCount++] = slot;
+}
+
+/*
+ * DX:AX for the 16-bit projection: v widened, shifted left by the screen shift's word (its
+ * high byte included). From a low byte of 8 up (a signed compare) a byte goes at once and
+ * the low byte loses 8; the rest is a LOOP on the word, 65536 times from 0.
+ */
+static s32 proj_shift(s16 v) {
+    u16 cx = (u16)(g_abR3dState.bScreenShift | g_abR3dState.bScreenShiftHi << 8);
+    u32 dxax = (u32)(s32)v;
+    u32 count;
+    if ((signed char)(cx & 0xff) >= 8) {
+        dxax <<= 8;
+        cx = (u16)((cx & 0xff00) | (unsigned char)((cx & 0xff) - 8));
+        if ((cx & 0xff) == 0)
+            return (s32)dxax;
+    }
+    count = cx == 0 ? 0x10000u : cx;
+    return count >= 32 ? 0 : (s32)(dxax << count);
+}
+
+/* The 16-bit producers' projection: x and z (the Y and Z arrays hold depth and height) over
+ * the depth, IDIV as the divide-error handler resolves it. */
+static void project16(unsigned v) {
+    s16 depth = g_r3d.aVertexCamY[v];
+    s16 rem;
+    g_r3d.aVertexScrX[v] = bak_idiv16(proj_shift(g_r3d.aVertexCamX[v]), depth, &rem);
+    g_r3d.aVertexScrY[v] = bak_idiv16(proj_shift(g_r3d.aVertexCamZ[v]), depth, &rem);
+}
+
+/* A vertex's row of the pool through the actor's matrix (16 bits) into g_matXOut... */
+static void transform16(const unsigned char *pool, unsigned v) {
+    const unsigned char *row = vrow(pool, v);
+    g_r3d.matIn[0] = rd16(row);
+    g_r3d.matIn[1] = rd16(row + 2);
+    g_r3d.matIn[2] = rd16(row + 4);
+    transform_vec3(g_r3d.matIn, &g_abR3dState.mat3x3ActorRot, g_r3d.matOut);
+}
+
+/* The projected corners into the polygon arrays (low words; the 32-bit producer adds the
+ * high ones). */
+static void copy_projected(int wide) {
+    for (u16 i = 0; i < (u16)g_r3d.nMeshPolyVertexCount; i++) {
+        unsigned v = g_r3d.polygonVertices[i] / 2;
+        g_r3d.aPolyInX[i] = g_r3d.aVertexScrX[v];
+        if (wide)
+            g_r3d.aPolyInXHi[i] = (u16)g_r3d.aVertexScrXHi[v];
+        g_r3d.aPolyInY[i] = g_r3d.aVertexScrY[v];
+        if (wide)
+            g_r3d.aPolyInYHi[i] = (u16)g_r3d.aVertexScrYHi[v];
+    }
+}
+
+/* A textured face whose normal row is (0, 0, z != 0): a floor tile seen from above or below. */
+static int floor_tile(const unsigned char *face, const unsigned char *pool) {
+    const unsigned char *n = vrow(pool, face[F_NRM_VERT]);
+    return rd16(n) == 0 && rd16(n + 2) == 0 && rd16(n + 4) != 0;
+}
+
+/*
+ * After the near clip of a floor tile in the world: each corner behind the view plane gives
+ * its camera x and z as they are (kept if its depth is not negative), the others their
+ * screen position; no corner kept drops the polygon.
+ */
+void r3d_poly_emit_screen_or_world(void) {
+    u16 n = (u16)g_r3d.nMeshPolyVertexCount, kept = 0;
+    if (n == 0)
+        return;
+    for (u16 i = 0; i < n; i++) {
+        u16 slot = g_r3d.polygonVertices[i];
+        unsigned v = slot / 2;
+        if (g_r3d.abPolygonClipState[slot] == CLIP_BEHIND) {
+            g_r3d.aPolyInX[i] = g_r3d.aVertexCamX[v];
+            g_r3d.aPolyInY[i] = g_r3d.aVertexCamZ[v];
+            if (g_r3d.aVertexCamY[v] >= 0)
+                kept++;
+        } else {
+            kept++;
+            g_r3d.aPolyInX[i] = g_r3d.aVertexScrX[v];
+            g_r3d.aPolyInY[i] = g_r3d.aVertexScrY[v];
+        }
+    }
+    if (kept == 0)
+        g_r3d.nMeshPolyVertexCount = 0;
+}
+
+/*
+ * LOD 0: 16-bit camera space. A vertex goes behind the view plane when its depth is under
+ * the plane's distance (a signed compare); a polygon with one is clipped there, except a
+ * floor tile in the world, whose world corners go on as they are. A textured face goes to
+ * the textured filler, but a floor tile in the world with textures off is filled flat in
+ * colour 8 (9 seen from below).
+ */
+void r3d_mesh_part_polygons(unsigned char *part_header) {
+    R3dRendererState *st = &g_abR3dState;
+    u16 seg = mesh_seg();
+    const unsigned char *pool = at_seg(seg, st->wMeshVertexPoolOff);
+    u16 face_off;
+
+    mesh_cache(seg);
+    g_r3d.nMeshPartPolygonsRemaining = (u16)rd16(part_header);
+    face_off = (u16)rd16(part_header + 2);
+    for (; next_face(&g_r3d.nMeshPartPolygonsRemaining); face_off = (u16)(face_off + FACE_SIZE)) {
+        const unsigned char *face = at_seg(seg, face_off);
+        u16 list;
+        if ((face[F_FLAGS] & 3) == 2 || !face_facing(seg, face, pool))
+            continue;
+        resolve_shade_color(face, pool);
+        g_r3d.bNearClipNeeded = 0;
+        g_r3d.nMeshPolyVertexCount = 0;
+        for (list = (u16)rd16(face + F_VERT_LIST);; list++) {
+            unsigned v = *at_seg(seg, list);
+            unsigned char *state;
+            if (v == 0xff)
+                break;
+            state = &g_r3d.abPolygonClipState[2 * v];
+            if (*state == CLIP_UNTOUCHED) {
+                *state = CLIP_PENDING;
+                transform16(pool, v);
+                g_r3d.aVertexCamX[v] = (s16)(g_r3d.matOut[0] + (u16)st->nActorCamX);
+                g_r3d.aVertexCamY[v] = (s16)(g_r3d.matOut[1] + (u16)st->nActorCamZ);
+                g_r3d.aVertexCamZ[v] = (s16)(g_r3d.matOut[2] + (u16)st->nActorCamY);
+            } else if (*state == CLIP_PROJECTED) {
+                append_corner((u16)(2 * v));
+                continue;
+            }
+            if (g_r3d.aVertexCamY[v] < st->nActorFarClipThreshold) {
+                *state = CLIP_BEHIND;
+                g_r3d.bNearClipNeeded = 1;
+            } else {
+                *state = CLIP_PROJECTED;
+                project16(v);
+            }
+            append_corner((u16)(2 * v));
+        }
+        if (g_r3d.bNearClipNeeded) {
+            if (g_game_mode == 2 && (face[F_FLAGS] & FACE_TEXTURED) && floor_tile(face, pool))
+                r3d_poly_emit_screen_or_world();
+            else
+                r3d_polygon_clip_near_z();
+        } else {
+            if (g_r3d.nMeshPolyVertexCount == 0)
+                continue;
+            copy_projected(0);
+        }
+        r3d_apply_viewport_offset();
+        if (face[F_FLAGS] & FACE_TEXTURED) {
+            if (g_game_mode != 2 || g_bTexturedPolyEnabled != 0 || !floor_tile(face, pool)) {
+                submit_textured_quad(face);
+                continue;
+            }
+            unsigned char color = rd16(vrow(pool, face[F_NRM_VERT]) + 4) < 0 ? 9 : 8;
+            g_graphics_context.bGfx_outline_color = color;
+            g_graphics_context.bGfx_fill_color = color;
+            g_graphics_context.bGfx_fill_enabled = 1;
+        }
+        if (st->bActorViewportClip)
+            r3d_polygon_scissor_2d();
+        submit_to_rasterizer();
+    }
+}
+
+/*
+ * LODs 1 and 2: 32-bit camera space, from the 48-bit vertex transform. A vertex goes behind
+ * the view plane when its depth is under the plane's distance; the screen position comes
+ * from the long scaler. LOD 1 clips against the plane and the viewport with the 32-bit
+ * clippers, LOD 2 with the others.
+ */
+void r3d_mesh_polygons(unsigned char *part_header) {
+    R3dRendererState *st = &g_abR3dState;
+    u16 seg = mesh_seg();
+    const unsigned char *pool = at_seg(seg, st->wMeshVertexPoolOff);
+    u16 face_off;
+
+    mesh_cache(seg);
+    g_r3d.nMeshPolyRemaining = (u16)rd16(part_header);
+    face_off = (u16)rd16(part_header + 2);
+    for (; next_face(&g_r3d.nMeshPolyRemaining); face_off = (u16)(face_off + FACE_SIZE)) {
+        const unsigned char *face = at_seg(seg, face_off);
+        u16 list;
+        if ((face[F_FLAGS] & 3) == 2 || !face_facing(seg, face, pool))
+            continue;
+        resolve_shade_color(face, pool);
+        g_r3d.bMeshPolyHasZClipVertex = 0;
+        g_r3d.nMeshPolyVertexCount = 0;
+        for (list = (u16)rd16(face + F_VERT_LIST);; list++) {
+            unsigned v = *at_seg(seg, list);
+            unsigned char *state;
+            s32 x, y, z;
+            if (v == 0xff)
+                break;
+            state = &g_r3d.abPolygonClipState[2 * v];
+            if (*state == CLIP_UNTOUCHED) {
+                const unsigned char *row = vrow(pool, v);
+                *state = CLIP_PENDING;
+                g_r3d.matIn[0] = rd16(row);
+                g_r3d.matIn[1] = rd16(row + 2);
+                g_r3d.matIn[2] = rd16(row + 4);
+                r3d_mat3_xform_vec3_long(g_r3d.matIn, &st->mat3x3ActorRot, g_r3d.matOut32);
+                x = (s32)((u32)g_r3d.matOut32[0] + (u32)st->nActorCamX);
+                y = (s32)((u32)g_r3d.matOut32[1] + (u32)st->nActorCamZ);
+                z = (s32)((u32)g_r3d.matOut32[2] + (u32)st->nActorCamY);
+                g_r3d.aVertexCamX[v] = (s16)x;
+                g_r3d.aVertexCamXHi[v] = (s16)(x >> 16);
+                g_r3d.aVertexCamY[v] = (s16)y;
+                g_r3d.aVertexCamYHi[v] = (s16)(y >> 16);
+                g_r3d.aVertexCamZ[v] = (s16)z;
+                g_r3d.aVertexCamZHi[v] = (s16)(z >> 16);
+            } else if (*state == CLIP_PROJECTED) {
+                append_corner((u16)(2 * v));
+                continue;
+            }
+            x = (s32)((u32)(u16)g_r3d.aVertexCamXHi[v] << 16 | (u16)g_r3d.aVertexCamX[v]);
+            y = (s32)((u32)(u16)g_r3d.aVertexCamYHi[v] << 16 | (u16)g_r3d.aVertexCamY[v]);
+            z = (s32)((u32)(u16)g_r3d.aVertexCamZHi[v] << 16 | (u16)g_r3d.aVertexCamZ[v]);
+            if (y < view_dist()) {
+                *state = CLIP_BEHIND;
+                g_r3d.bMeshPolyHasZClipVertex = 1;
+            } else {
+                *state = CLIP_PROJECTED;
+                r3d_ldiv_helper(&x, &z, y, view_dist());
+                g_r3d.aVertexScrX[v] = (s16)x;
+                g_r3d.aVertexScrXHi[v] = (s16)(x >> 16);
+                g_r3d.aVertexScrY[v] = (s16)z;
+                g_r3d.aVertexScrYHi[v] = (s16)(z >> 16);
+            }
+            append_corner((u16)(2 * v));
+        }
+        if (g_r3d.bMeshPolyHasZClipVertex) {
+            if (st->bCurMeshLod == 1)
+                r3d_polygon_clip_against_zplane();
+            else
+                r3d_polygon_clip_near_z_lod2();
+        } else {
+            if (g_r3d.nMeshPolyVertexCount == 0)
+                continue;
+            copy_projected(1);
+        }
+        r3d_apply_viewport_offset_long();
+        if (st->bActorViewportClip) {
+            if (st->bCurMeshLod == 1)
+                r3d_clip_polygon_to_viewport();
+            else
+                r3d_polygon_clip_rect_2d();
+        }
+        submit_to_rasterizer();
+    }
+}
+
+/* The mesh's scale on a 16-bit coordinate: SHL by the shift's low byte when it is positive
+ * (a signed byte), else SAR by its negation (the CPU takes 5 bits of either). */
+static s16 lod3_scale(s16 v) {
+    signed char cl = (signed char)(g_abR3dState.wMeshScaleShift & 0xff);
+    if (cl > 0)
+        return (s16)(u16)((u16)v << (cl & 31));
+    return (s16)(v >> ((unsigned char)-cl & 31));
+}
+
+/*
+ * LOD 3: 16-bit camera space at the mesh's own scale, every vertex projected (no near
+ * clip, so nothing tests the depth before the division).
+ */
+void r3d_mesh_part_polygons_lod3(unsigned short *part_header) {
+    R3dRendererState *st = &g_abR3dState;
+    u16 seg = mesh_seg();
+    const unsigned char *pool = at_seg(seg, st->wMeshVertexPoolOff);
+    const unsigned char *header = (const unsigned char *)part_header;
+    u16 face_off;
+
+    mesh_cache(seg);
+    g_r3d.nPolyListRemaining = (u16)rd16(header);
+    face_off = (u16)rd16(header + 2);
+    for (; next_face(&g_r3d.nPolyListRemaining); face_off = (u16)(face_off + FACE_SIZE)) {
+        const unsigned char *face = at_seg(seg, face_off);
+        u16 list;
+        if ((face[F_FLAGS] & 3) == 2 || !face_facing(seg, face, pool))
+            continue;
+        resolve_shade_color(face, pool);
+        g_r3d.nMeshPolyVertexCount = 0;
+        for (list = (u16)rd16(face + F_VERT_LIST);; list++) {
+            unsigned v = *at_seg(seg, list);
+            unsigned char *state;
+            if (v == 0xff)
+                break;
+            state = &g_r3d.abPolygonClipState[2 * v];
+            if (*state == CLIP_UNTOUCHED) {
+                *state = CLIP_PENDING;
+                transform16(pool, v);
+                g_r3d.aVertexCamX[v] = (s16)(lod3_scale(g_r3d.matOut[0]) + (u16)st->nActorCamX);
+                g_r3d.aVertexCamY[v] = (s16)(lod3_scale(g_r3d.matOut[1]) + (u16)st->nActorCamZ);
+                g_r3d.aVertexCamZ[v] = (s16)(lod3_scale(g_r3d.matOut[2]) + (u16)st->nActorCamY);
+            } else if (*state == CLIP_PROJECTED) {
+                append_corner((u16)(2 * v));
+                continue;
+            }
+            *state = CLIP_PROJECTED;
+            project16(v);
+            append_corner((u16)(2 * v));
+        }
+        if (g_r3d.nMeshPolyVertexCount == 0)
+            continue;
+        copy_projected(0);
+        r3d_apply_viewport_offset();
+        if (face[F_FLAGS] & FACE_TEXTURED) {
+            submit_textured_quad(face);
+        } else {
+            if (st->bActorViewportClip)
+                r3d_polygon_scissor_2d();
+            submit_to_rasterizer();
+        }
+    }
+}
+
 /* The register-convention routines' C forms, for the differential tests. */
 s32 r3d_test_backface_dot(const unsigned char *pool, unsigned char nrm, unsigned char first) {
     return backface_dot(pool, nrm, first);
@@ -822,25 +1199,3 @@ void r3d_test_submit_to_rasterizer(void) {
 void r3d_test_submit_textured_quad(const unsigned char *face) {
     submit_textured_quad(face);
 }
-
-/* ---- not translated yet ------------------------------------------------------------ */
-
-void r3d_mesh_part_polygons(unsigned char *part_header) {
-    (void)part_header;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_mesh_part_polygons");
-}
-
-void r3d_poly_emit_screen_or_world(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_poly_emit_screen_or_world");
-}
-
-void r3d_mesh_polygons(unsigned char *part_header) {
-    (void)part_header;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_mesh_polygons");
-}
-
-void r3d_mesh_part_polygons_lod3(unsigned short *part_header) {
-    (void)part_header;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_mesh_part_polygons_lod3");
-}
-

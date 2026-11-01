@@ -4145,18 +4145,11 @@ g_nPolyListRemaining	dw 0
 ;
 ;           if (kind == 0)
 ;           {
-;               /* One-sided face: back-face cull unless flagged two-sided (0x20). */
+;               /* Drawn either way; a simple mesh's (0x20) face seen from behind
+;                  is drawn with its normal flipped (as in the other producers). */
 ;               if ((flags & 0x20) != 0 &&
 ;                   r3d_backface_dot_indexed(indexList[0], facePtr[5]) >= 0)
-;               {
-;                   /* Two-sided face seen from behind: draw with flipped normal. */
 ;                   g_bPolyNormalFlipped = 1;
-;               }
-;               else
-;               {
-;                   facePtr += 8;
-;                   continue;
-;               }
 ;           }
 ;           else
 ;           {

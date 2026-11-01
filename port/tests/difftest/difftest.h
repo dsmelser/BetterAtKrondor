@@ -90,5 +90,6 @@ extern const DtEntry dt_decomp_entries[];
 extern const DtEntry dt_distdir_entries[];
 extern const DtEntry dt_vgafill_entries[];
 extern const DtEntry dt_r3dclip_entries[];
+extern const DtEntry dt_r3dmesh_entries[];
 
 #endif
