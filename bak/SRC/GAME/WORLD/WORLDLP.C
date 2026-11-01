@@ -343,6 +343,17 @@ short far world3d_main_loop(void) {
                 }
                 mainmenu_save_bookmark();
                 goto after_move;
+            case 0x3f: /* F5: the port's quicksave */
+                if (refusal_mode == 0) {
+                    mainmenu_save_quick();
+                }
+                goto after_move;
+            case 0x43: /* F9: the port's quickload, of the Bookmark (none: nothing) */
+                if (refusal_mode == 0 && mainmenu_save_quick_load_ready() != 0) {
+                    exit_mode = 3;
+                    keep_running = 0;
+                }
+                goto post_dispatch;
             case 0x18:
                 if (refusal_mode != 0) {
                     dialog_play_record(0xe7, 1);

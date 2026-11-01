@@ -88,6 +88,23 @@ the game sets each one again after a read, and the party's `inner` is always 0 o
 ones too, read back as NULL and are written as 0, where DOS writes whatever they held. `test_gstate.py`
 checks the native fields against the original's offsets and the round trip.
 
+**Saving and loading natively** (2026-11-01, first exercised): the Save Game dialog makes its folder
+(`GAMES\<name>.Gnn`) and writes `SAVEnn.GAM`, and the world's quicksave and quickload (below) write
+the Bookmark and load it as Restore Game does: TEMP.GAM after the load is the TEMP.GAM written at
+the save (the `quicksave` replay). A saved game loading in DOSBox comes with the save-state golden.
+
+**Quicksave and quickload.** In the world, F5 saves the Bookmark (`SAVE00.GAM` in the save folder
+chosen, as the original's B does) without its question; with no folder chosen (a fresh user folder
+has no GAMES) it first makes the Save Game dialog's first one, `GAMES\SAVES.G01`, and chooses it as
+the game does at its start (`mainmenu_save_quick`). F9 loads that folder's Bookmark as Restore Game
+loads a save (the world loop ends with mode 3): the full map with the chapter's caption, then the
+world where the party was; without a Bookmark F9 does nothing. Neither key meant anything in the
+world. Saving takes no draw from the game's random generator (the Bookmark's question and notice,
+which F5 skips, are dialogs, and each dialog box draws its parchment's offset from it). Autosaves
+are not done yet: a save snapshots the party's place into the game state (`zoneDefaultCameraPos`),
+which `zone_load` reads after every fight, so a save the player did not ask for must leave the live
+state alone.
+
 ## Settings and folders
 
 - **The user folder** holds what the game writes (the saves in `GAMES`, `TEMP.GAM`, `KRONDOR.CFG`) and
@@ -103,8 +120,7 @@ checks the native fields against the original's offsets and the round trip.
   remembered (`port/platform/folders.c`).
 - **The DOS saves.** When the user folder has no `GAMES` and the game folder has one, it is copied over
   at start-up, through `GAMES.new` so that a copy cut short is done again, and the saves made in DOS
-  load. From then on the user folder's saves are its own. (Saving and loading natively are not yet
-  exercised end to end.)
+  load. From then on the user folder's saves are its own.
 - **`betterkrondor.ini`** in the user folder holds the port's settings; `KRONDOR.CFG` keeps the game's
   own (its sound choices). Each key has a type and a default (`port/platform/settings.c`), and
   `betterkrondor --help` lists them. A value the port changes is written back at once, on its own line:
@@ -250,6 +266,7 @@ at the `upstream-snapshot` tag.
 | `SCREENS/PICKLOCK.C`, `PICKLOCK.H` | the lockpick screen's copy of the party's inventory is one buffer, its record and item slots; the original copies it over two locals (below) |
 | `R3D/ACTOR/ACTRENDR.C`, `GAME/ACTOR/ACTORREC.C`, `UI/UIWIDGET.C`, `STREAM/RESLOAD/FONTLOAD.C` | pointers step by pointer arithmetic where the original adds to the far pointer's offset word: a mesh part's polygon variant, an actor record's subrecords, a glyph's rows. Natively that word is the address's low half, whose carry would be lost. FONTLOAD.C's own `FP_OFF`, the same word, is gone |
 | `SCRIPT/ANIMSCR.C`, `ANIMSCR.H`, `SCREENS/TOWNSCN.C` | the animation scripts' last condition result and a town scene's chapter are variables of their own; the original keeps them in the two words of `g_anim_slots[1]` (below) |
+| `GAME/WORLD/WORLDLP.C`, `SCREENS/MAINMENU.C`, `MAINMENU.H` | the world's F5 (quicksave: the Bookmark without its question) and F9 (quickload of the Bookmark), see "TEMP.GAM and saves" |
 | `GAME/WORLD/WORLDMOV.C`, `WORLDMOV.H`, `R3D/SCENE/WORLDFRM.C` | smooth steps: a step's or turn's in-between frames (`worldmove_smooth_from`, as many as `bak_smooth_frames` gives), during which the labyrinths' record of what is near the party is left alone (see "Controls") |
 | `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
 
@@ -708,6 +725,8 @@ detail 3, CD music off unless the scenario wants it), so the game folder's own f
 | `riddle`: the world, then the map (M) and its hidden riddle chest: the grave key held with the right Shift and the left Alt shows the Moredhel lock vision, whose dialog plays a sound and waits for its end, then the chest's word lock: its dialogs, the first dial turned, Exit, the two dialogs after it, back on the map | ✅ identical logs, the ASan build's too. Before the waits for a sound polled, the run stopped at the vision: the sound never ended |
 | `music`: the world's script with CD music on | ✅ identical logs, the ASan build's too: tracks 24, 16, 11, 31 and 36 play, each from 39 frames before its start, and the sound renders the same every run. The world comes at 38 s, 3 s sooner than with the MT-32's music, whose changes of track wait for a fade |
 | `music-menu`: the main menu with CD music on, a minute | ✅ identical logs, the ASan build's too: track 16 plays out its 3348 frames |
+| `quicksave`: the world; the Save Game dialog (O, S, a folder and a save name typed, Save); F9, which finds no Bookmark; two steps, F5, two steps, F9, and Space through the load's map and caption | ✅ identical logs, the ASan build's too: the dialog writes `GAMES\one.G02\SAVE01.GAM` and F5 `SAVE00.GAM`, saving leaves the random state alone, and F9 puts the party back at F5's place, not the dialog's: TEMP.GAM's hash and the game state after the load are those right after F5 |
+| `quicksave-first`: the world, F5 as the first save of a fresh user folder, two steps, F9 | ✅ identical logs, the ASan build's too: F5 makes `GAMES\SAVES.G01` for its Bookmark, and F9 brings the party back |
 | `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs, the ASan build's too; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
@@ -730,7 +749,7 @@ tool passes `--set` on to the port) all seven frame logs matched the earlier bas
 | Clock | `port/platform/clock.c`: the host's monotonic clock, or (`BAK_CLOCK=virtual`) one that moves only as the game runs, for replays (below) |
 | Window | `port/platform/video.c`: SDL's renderer (Direct3D 11 on Windows) shows the picture the CRTC scans out, scaled as the settings say (pixel art by default); Alt+Enter and F11 switch the borderless full screen. The window's place, size and state are saved when it closes. A picture goes to the window only when it differs from the one before, and at most once per refresh of the display, the latest one waiting until then (8 s of the intro: 309 pictures, 267 presented; every 70 Hz tick presented before, and a retrace wait a second time). Vsync stays off: the game paces its frames itself. `BAK_TRACE` names the video driver, the renderer and the scale mode, and counts the pictures and presents |
 | Cursor | `port/platform/cursor.c`: the game's cursor as the system's (`video.cursor`). The image the game would draw is read in its driver's format (the VGA driver's bytes; the 16-colour driver's bit planes, for the books) and shown as an SDL colour cursor, scaled with the picture, its hot spot the game's. It takes the DAC's colours and is made again when they change, so it fades with the picture. It shows while the game shows its cursor (`g_cursor_shown`, and not shape 2); `screen_cursor_hide` only skips a background restore and hides nothing. Where the game moves the mouse (the menus' keys move it to a button), the host's pointer goes along |
-| Files | `port/compat/bakrtl.c`: the game's DOS paths (any case, backslashes, a drive letter) are looked up in the user folder, then in the game folder; writes go to the user folder (see "Settings and folders"). `chdir` tells whether the folder is there, looked for as reads are: the game asks it whether `GAMES` exists and makes one, with a first `SAVES.G01`, when not (`mainmenu_save_games_dir_exists`). Until 2026-11-01 it answered yes to everything, so a first save failed in a user folder without `GAMES`. Host paths are UTF-8, SDL's and the C runtime's alike: on Windows the executable's manifest (`port/platform/betterkrondor.manifest`) makes UTF-8 the process code page (Windows 10 1903 on) |
+| Files | `port/compat/bakrtl.c`: the game's DOS paths (any case, backslashes, a drive letter) are looked up in the user folder, then in the game folder; writes go to the user folder (see "Settings and folders"). `chdir` tells whether the folder is there, looked for as reads are: the game asks it whether `GAMES` exists (`mainmenu_save_games_dir_exists`), and the Save Game dialog makes one, with a first `SAVES.G01`, when not (`mainmenu_save_games_dir_create`). Until 2026-11-01 it answered yes to everything, so a first save failed in a user folder without `GAMES`. Host paths are UTF-8, SDL's and the C runtime's alike: on Windows the executable's manifest (`port/platform/betterkrondor.manifest`) makes UTF-8 the process code page (Windows 10 1903 on) |
 | Sound | `port/platform/audio.c`: sources (the CD's music, the synthesizer, the samples) each render their own format into an SDL audio stream, which converts it to the mix (48 kHz, stereo). What the game tells a source is an event stamped on the platform's clock: inside the timer interrupt, when its tick was due (`machine_event_ns`), so the bursts of late ticks the platform runs do not jitter. A source carries out each event between the frames of its moment, 50 ms later. On the host's clock SDL's audio thread renders the mix as the device asks, and the epoch follows the device's drift once it passes 20 ms; on the virtual clock the mix is rendered as the clock moves into the WAV file `BAK_DUMP_AUDIO` names, the same every run. Nothing the game reads depends on the rendering |
 | OPL2 | `port/platform/opl.c`, ports 388h/389h: each register written becomes an event of the synthesizer's audio source, which renders the chip through ymfm (`port/platform/ymfm_opl2.cpp`, ymfm fetched by CMake at a pinned commit, built as a C++ library of its own) at the AdLib's 3579545 Hz over 72. The chip and its source are made at the first write. The status port reads 06h, an idle OPL2's: the AdLib driver starts no timer. `bak_opl_set_sink` gives the tests every register written, in order |
 | MPU-401 | `port/platform/mpu401.c`, ports 330h/331h: UART mode, always ready, every command acknowledged. MIDI bytes go to a sink (`bak_midi_set_sink`); without one they are dropped, or written to the file `BAK_DUMP_MIDI` names |

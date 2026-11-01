@@ -1499,6 +1499,48 @@ void far mainmenu_save_bookmark(void) {
     return;
 }
 
+/* The port's quicksave (F5 in the world): the Bookmark without its question or its notice
+ * (the world is drawn over it at once). With no save folder chosen (no GAMES, or none in it)
+ * it first makes the first folder the Save Game dialog would, GAMES\SAVES.G01, and chooses it
+ * as the game does at its start. */
+void far mainmenu_save_quick(void) {
+    char path[50];
+    bool16 verify;
+
+    if (g_wSaveSlotDirValid == 0) {
+        if (mainmenu_save_games_dir_exists() == 0) {
+            mainmenu_save_games_dir_create();
+        } else {
+            sprintf(path, "%s\\%s", "GAMES", "SAVES.G01");
+            mkdir(path);
+        }
+        mainmenu_save_request_load_game();
+    }
+    verify = g_cfgBookmarkVerify;
+    g_cfgBookmarkVerify = FALSE;
+    mainmenu_save_bookmark();
+    g_cfgBookmarkVerify = verify;
+}
+
+/* The port's quickload (F9 in the world): whether the chosen save folder holds a Bookmark, which
+ * then becomes the save Restore Game would load (mode 3). */
+s16 far mainmenu_save_quick_load_ready(void) {
+    char path[50];
+    ResFile *file;
+
+    if (g_wSaveSlotDirValid == 0) {
+        return 0;
+    }
+    sprintf(path, "%s\\%s.G%02d\\SAVE00.GAM", "GAMES", g_szSaveSlotDirName_51cc,
+            g_wCurrentSaveSlotKey);
+    if ((file = res_fopen(path, "rb")) == (ResFile *)0) {
+        return 0;
+    }
+    res_fclose(file);
+    g_wCurrentSaveFileKey = 0;
+    return 1;
+}
+
 void mainmenu_save_party_to_tmp(void) {
     s16 i;
 
