@@ -11,7 +11,8 @@
     X(rand_fx_is_the_game_generator_on_its_own_ring)                                               \
     X(ai_sung_goes_to_an_ally_under_attack)                                                        \
     X(ai_heal_spell_follows_the_weakest_living_ally)                                               \
-    X(paths_are_utf8_for_the_c_runtime)
+    X(paths_are_utf8_for_the_c_runtime)                                                            \
+    X(paths_chdir_finds_folders_as_dos_does)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

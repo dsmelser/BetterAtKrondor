@@ -115,6 +115,16 @@ static void resolve_write(const char *dosPath, char *out, size_t outSize) {
     resolve_in(platform_user_dir(), rel, out, outSize);
 }
 
+static int is_directory(const char *path) {
+#ifdef _WIN32
+    DWORD attributes = GetFileAttributesA(path);
+    return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY);
+#else
+    struct stat st;
+    return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
+#endif
+}
+
 /* ---- stdio --------------------------------------------------------------------------- */
 
 #undef fopen
@@ -403,8 +413,14 @@ int bakrtl_rmdir(const char *path) {
 }
 
 int bakrtl_chdir(const char *path) {
-    /* The game only changes into its own directory tree; paths stay relative to it. */
-    (void)path;
+    /* The game changes only into GAMES and back, to learn whether it exists (it makes one when
+     * not); paths stay relative to the game's folders. */
+    char host[PATH_MAX_LEN];
+    resolve_read(path, host, sizeof host);
+    if (!is_directory(host)) {
+        errno = ENOENT;
+        return -1;
+    }
     return 0;
 }
 

@@ -33,3 +33,27 @@ void unit_paths_are_utf8_for_the_c_runtime(void) {
     platform_set_dirs(".", ".");
     unit_remove_tree(root);
 }
+
+/* The save dialog makes GAMES when chdir says it is not there (MAINMENU.C). */
+void unit_paths_chdir_finds_folders_as_dos_does(void) {
+    const char *root = unit_temp_dir("paths-chdir");
+    char data[1024], user[1024], dataGames[1100], userFile[1100];
+    SDL_snprintf(data, sizeof data, "%s/data", root);
+    SDL_snprintf(user, sizeof user, "%s/user", root);
+    SDL_snprintf(dataGames, sizeof dataGames, "%s/GAMES", data);
+    SDL_snprintf(userFile, sizeof userFile, "%s/FILE", user);
+    UNIT_CHECK(SDL_CreateDirectory(data) && SDL_CreateDirectory(user));
+    platform_set_dirs(data, user);
+    UNIT_CHECK(bakrtl_chdir("GAMES") == -1);
+    UNIT_CHECK(SDL_CreateDirectory(dataGames));
+    UNIT_CHECK(bakrtl_chdir("GAMES") == 0); /* read through to the game folder */
+    UNIT_CHECK(bakrtl_chdir("..") == 0);
+    UNIT_CHECK(SDL_RemovePath(dataGames));
+    UNIT_CHECK(bakrtl_chdir("GAMES") == -1);
+    UNIT_CHECK(bakrtl_mkdir("GAMES") == 0); /* made in the user folder */
+    UNIT_CHECK(bakrtl_chdir("games") == 0);
+    UNIT_CHECK(SDL_SaveFile(userFile, "not a folder", 12));
+    UNIT_CHECK(bakrtl_chdir("FILE") == -1);
+    platform_set_dirs(".", ".");
+    unit_remove_tree(root);
+}
