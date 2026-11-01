@@ -28,8 +28,11 @@ void far czone_subsystem_init(void) {
     VisibleEntryList *list;
     s16 i;
 
-    list = galloc_safe_zcalloc(0x5a);
-    sz = 0xf308;
+    list = galloc_safe_zcalloc(9 * sizeof(VisibleEntryList));
+    /* 9 zones of 300 actors, then 35 fixed objects and a pool of 93 visible ones: 0xf308
+       bytes in the original, whose WorldObject is 22 bytes; its union holds a pointer, wider
+       natively */
+    sz = 2828 * (u32)sizeof(WorldObject);
     p = (WorldObject far *)alloc_far(sz, 0);
     i = 0;
     do {
