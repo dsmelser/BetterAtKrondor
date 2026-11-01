@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-extern short g_cursor_hidden;
+extern short g_cursor_shown;
 extern short g_cursor_prev_shape;
 extern ImageRecord **g_cursor_state;
 extern unsigned char far *g_pPalQueuedForFlip;
@@ -19,7 +19,7 @@ extern unsigned char far *g_pCursorScratchBuf2;
 
 extern s16 screen_cursor_get_position(short *out_x, short *out_y);
 extern s16 screen_cursor_set_position(s16 x, s16 y);
-extern void screen_cursor_set_hidden_flag(s16 hidden);
+extern void screen_cursor_set_shown(s16 shown);
 extern short screen_cursor_get_x(void);
 extern short screen_cursor_get_y(void);
 extern ImageRecord **screen_cursor_state_get(void);

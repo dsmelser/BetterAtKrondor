@@ -103,24 +103,24 @@ s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
     }
     case 1:
         font_activate(g_wGameFontSlot);
-        screen_cursor_set_hidden_flag(0);
+        screen_cursor_set_shown(0);
         dialog_show_by_key((s32)arg + 1600000, 0);
-        screen_cursor_set_hidden_flag(1);
+        screen_cursor_set_shown(1);
         break;
     case 2:
         gmain_play_chapter_intro(arg / 10, arg % 10);
         break;
     case 4:
-        screen_cursor_set_hidden_flag(0);
+        screen_cursor_set_shown(0);
         font_activate(g_wGameFontSlot);
         dialog_show_by_key((s32)arg + 1600000, 0);
-        screen_cursor_set_hidden_flag(1);
+        screen_cursor_set_shown(1);
         break;
     case 5:
-        screen_cursor_set_hidden_flag(0);
+        screen_cursor_set_shown(0);
         font_activate(g_wGameFontSlot);
         dialog_play_record((s32)arg + 1600000, 0);
-        screen_cursor_set_hidden_flag(1);
+        screen_cursor_set_shown(1);
         g_pPalQueuedForFlip = 0;
         break;
     }

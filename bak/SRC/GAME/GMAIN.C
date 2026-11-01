@@ -405,9 +405,9 @@ void far gmain_cutsc_play_fullmap_scene(s16 scene_index) {
     gfx_present_dispatch(0, 0, 0x140, 200);
     palette_fade_in(0, 0x100, -1, 0);
     font_activate(g_wGameFontSlot);
-    screen_cursor_set_hidden_flag(0);
+    screen_cursor_set_shown(0);
     dialog_play_record((s32)scene_index + 0x186ab5, 1);
-    screen_cursor_set_hidden_flag(1);
+    screen_cursor_set_shown(1);
     cache_release(pal);
     gmain_screen_fade_to_black();
 }

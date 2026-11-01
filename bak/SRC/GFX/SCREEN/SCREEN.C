@@ -29,7 +29,7 @@ unsigned char far *g_pActiveCursorBuf;
 unsigned char far *g_pCursorScratchBuf1;
 unsigned char far *g_pCursorScratchBuf2;
 
-short g_cursor_hidden = 1;
+short g_cursor_shown = 1;
 short g_cursor_prev_shape = 0;
 ImageRecord **g_cursor_state = {0};
 unsigned char far *g_pPalQueuedForFlip = {0};
@@ -70,8 +70,8 @@ s16 screen_cursor_set_position(s16 x, s16 y) {
     return 1;
 }
 
-void screen_cursor_set_hidden_flag(s16 hidden) {
-    g_cursor_hidden = hidden;
+void screen_cursor_set_shown(s16 shown) {
+    g_cursor_shown = shown;
 }
 
 short screen_cursor_get_x(void) {
@@ -204,7 +204,7 @@ void screen_cursor_hide(void) {
  * shows one. The nX of -999 that screen_cursor_hide leaves only skips restoring a background
  * that a page copy replaced, for a frame; it hides nothing. */
 static const ImageRecord *screen_cursor_image(const CursorState *c) {
-    if (g_cursor_hidden == 0 || c->shape == 2 || g_cursor_state == NULL)
+    if (g_cursor_shown == 0 || c->shape == 2 || g_cursor_state == NULL)
         return NULL;
     return g_cursor_state[c->shape];
 }
@@ -291,7 +291,7 @@ void screen_cur_refr_during_long_op(void) {
 
     screen_cursor_draw(&g_cursor_prev_x[1], pBgBuffer);
 
-    if (!screen_cursor_to_system(&g_cursor_prev_x[1]) && g_cursor_hidden != 0 &&
+    if (!screen_cursor_to_system(&g_cursor_prev_x[1]) && g_cursor_shown != 0 &&
         g_cursor_prev_x[1].shape != 2) {
         blit_sprite_indirect((NearPtr)g_cursor_state[g_cursor_prev_x[1].shape],
                              g_cursor_prev_x[1].nX - g_cursor_prev_x[1].nHotX,
@@ -318,7 +318,7 @@ void far screen_frame_present(void) {
     screen_cursor_get_position(&g_cursor_prev_x[1].nX, &g_cursor_prev_x[1].nY);
     screen_cursor_draw(&g_cursor_prev_x[1], g_pActiveCursorBuf);
     if (!screen_cursor_to_system(&g_cursor_prev_x[1]) && g_cursor_prev_x[0].nX != -999 &&
-        g_cursor_hidden != 0 && g_cursor_prev_x[1].shape != 2) {
+        g_cursor_shown != 0 && g_cursor_prev_x[1].shape != 2) {
         blit_sprite_indirect((NearPtr)g_cursor_state[g_cursor_prev_x[1].shape],
                              g_cursor_prev_x[1].nX - g_cursor_prev_x[1].nHotX,
                              g_cursor_prev_x[1].nY - g_cursor_prev_x[1].nHotY, 0);
@@ -445,7 +445,7 @@ void far screen_wipe_horizontal(s16 x, s16 y, s16 w, s16 h) {
 
     screen_cursor_draw(&g_cursor_prev_x[0], g_pActiveCursorBuf);
 
-    if (!screen_cursor_to_system(&g_cursor_prev_x[0]) && g_cursor_hidden != 0 &&
+    if (!screen_cursor_to_system(&g_cursor_prev_x[0]) && g_cursor_shown != 0 &&
         g_cursor_prev_x[0].shape != 2) {
         blit_sprite_indirect((NearPtr)g_cursor_state[g_cursor_prev_x[0].shape],
                              g_cursor_prev_x[0].nX - g_cursor_prev_x[0].nHotX,
