@@ -42,7 +42,10 @@
     X(audio_sources_at_other_rates_keep_time)                                                      \
     X(audio_sources_join_and_queue)                                                                \
     X(audio_epoch_follows_the_device_drift)                                                        \
-    X(audio_dump_follows_the_clock)
+    X(audio_dump_follows_the_clock)                                                                \
+    X(cdrom_reads_an_ogg_files_length)                                                             \
+    X(cdrom_lays_out_the_disc_from_the_music)                                                      \
+    X(cdrom_plays_a_stretch_of_a_track)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

@@ -43,6 +43,17 @@ else()
     find_package(SDL3 REQUIRED CONFIG)
 endif()
 
+# --- stb_vorbis: the CD music's decoder (public domain or MIT), one file -------------------
+
+if(BAK_BUILD_PORT)
+    include(FetchContent)
+    FetchContent_Declare(stb_vorbis
+        URL https://raw.githubusercontent.com/nothings/stb/003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5/stb_vorbis.c
+        URL_HASH SHA256=4c7cb2ff1f7011e9d67950446b7eb9ca044f2e464d76bfbb0b84dd2e23e65636
+        DOWNLOAD_NO_EXTRACT TRUE)
+    FetchContent_MakeAvailable(stb_vorbis)
+endif()
+
 # --- Compiler settings shared by game and port code -----------------------------------
 
 if(MSVC)
@@ -181,6 +192,16 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
     endif()
 endif()
 target_link_libraries(bakport PUBLIC SDL3::SDL3)
+# stb_vorbis builds as it comes, its warnings left alone; port/platform/cdrom.c includes its
+# declarations.
+set(BAK_STB_VORBIS "${stb_vorbis_SOURCE_DIR}/stb_vorbis.c")
+target_sources(bakport PRIVATE "${BAK_STB_VORBIS}")
+target_include_directories(bakport PRIVATE "${stb_vorbis_SOURCE_DIR}")
+if(MSVC)
+    set_source_files_properties("${BAK_STB_VORBIS}" PROPERTIES COMPILE_OPTIONS /w)
+else()
+    set_source_files_properties("${BAK_STB_VORBIS}" PROPERTIES COMPILE_OPTIONS -w)
+endif()
 
 # Windows: paths are UTF-8 for the C runtime too (see the manifest).
 if(WIN32)

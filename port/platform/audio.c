@@ -12,6 +12,7 @@
  * each pull compares the mix's time with the clock and, once they are more than DRIFT_NS
  * further apart than at the first pull, moves the epoch back into step.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -54,6 +55,9 @@ static float s_volume, s_music, s_effects;
 
 static SDL_IOStream *s_wav;
 static uint32_t s_wavBytes;
+static uint32_t s_wavHash;
+static SDL_IOStream *s_log;
+static bool s_logOpened;
 
 /* ---- the WAV file: 16-bit stereo at the mix's rate --------------------------------------- */
 
@@ -85,6 +89,7 @@ static bool wav_open(const char *path) {
         return false;
     }
     s_wavBytes = 0;
+    s_wavHash = 0;
     wav_header(h, 0);
     SDL_WriteIO(s_wav, h, sizeof h);
     return true;
@@ -98,6 +103,7 @@ static void wav_write(const float *mix, int frames) {
         pcm[i] = (int16_t)(v < 0.0f ? v - 0.5f : v + 0.5f);
     }
     SDL_WriteIO(s_wav, pcm, (size_t)frames * 4);
+    s_wavHash = platform_hash(s_wavHash, pcm, (size_t)frames * 4);
     s_wavBytes += (uint32_t)frames * 4;
 }
 
@@ -108,6 +114,28 @@ static void wav_close(void) {
     SDL_WriteIO(s_wav, h, sizeof h);
     SDL_CloseIO(s_wav);
     s_wav = NULL;
+    audio_log("wav: %u frames, hash %08x", (unsigned)(s_wavBytes / 4), (unsigned)s_wavHash);
+}
+
+/* ---- the log ------------------------------------------------------------------------------ */
+
+void audio_log(const char *fmt, ...) {
+    char line[256];
+    va_list ap;
+    if (!s_logOpened) {
+        const char *path = SDL_getenv("BAK_AUDIO_LOG");
+        s_logOpened = true;
+        if (path != NULL && (s_log = SDL_IOFromFile(path, "w")) == NULL)
+            fprintf(stderr, "BAK_AUDIO_LOG: cannot write %s\n", path);
+    }
+    if (s_log == NULL)
+        return;
+    va_start(ap, fmt);
+    SDL_vsnprintf(line, sizeof line, fmt, ap);
+    va_end(ap);
+    uint64_t ns = machine_event_ns();
+    SDL_IOprintf(s_log, "%llu.%03llu %s\n", (unsigned long long)(ns / 1000000),
+                 (unsigned long long)(ns / 1000 % 1000), line);
 }
 
 /* ---- sources --------------------------------------------------------------------------- */
@@ -338,6 +366,10 @@ void audio_close(void) {
     }
     if (s_wav != NULL)
         wav_close();
+    if (s_log != NULL) {
+        SDL_CloseIO(s_log);
+        s_log = NULL;
+    }
     for (int i = 0; i < s_sourceCount; i++) {
         SDL_DestroyAudioStream(s_sources[i].stream);
         SDL_free(s_sources[i].buf);

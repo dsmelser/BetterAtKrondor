@@ -405,10 +405,38 @@ the original's offsets: the driver's state and power-on values are the original'
 | `M32` Roland MT-32 | ✅ `port/drivers/m32.c`; `test_m32.py`: `M32.EXE` and the translation on the same MPU-401 model, a generated bank, then thousands of random slot calls: registers, MIDI bytes and the whole chunk after each |
 | `NLD`, `ADL`, `SBP`, `GMD`, `PRO`, `PS1`, `STD`; digital `ASB`, `APA`, `ADS` | ⬜ stop with "Not implemented yet: the SX.OVL sound driver \"<device name>\"" |
 
-The MIDI the MT-32 driver sends goes to the emulated MPU-401 and no further yet. Sound is planned in this
-order: music from the 1.02 CD tracks (the GOG copy's `music\bakNN.ogg`), then the sound effects through
-the AdLib and Sound Blaster digital drivers (the AdLib tracks cover all 179 pieces, and 41 effects exist
-only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
+The MIDI the MT-32 driver sends goes to the emulated MPU-401 and no further yet. The 1.02 release's
+music plays from the CD's tracks (see "The CD's music" below). Next: the sound effects through the AdLib
+and Sound Blaster digital drivers (the AdLib tracks cover all 179 pieces, and 41 effects exist only as
+digital samples), then MT-32 music through Munt with user-supplied ROMs.
+
+### The CD's music
+
+The 1.02 release plays its music from the CD when it finds a CD drive through MSCDEX and its
+preferences have CD music on (KRONDOR.CFG's flag 10h; Preferences switches it, and a game without a
+KRONDOR.CFG starts from CDEFAULT.DAT's, which has it on, where DEFAULT.DAT has not). A music track's
+id less 999 is the CD's track, played from 75 frames before the track's start as MSCDEX reports it,
+less the 114 the game keeps as the disc's first address: 39 frames into the gap before the track. The
+length played comes from CD.DAT, a frame count for each track, 1.5 to 2 s shorter than the track. The
+game never asks whether the CD still plays: a track plays once.
+
+The port's drive (`port/platform/cdrom.c`) appears when the game folder holds the tracks as
+`music\bakNN.ogg` (the GOG release's layout), NN from 02 (track 1 is the data). Its table of
+contents is laid out as on a disc: the data track at 00:02:00, a minute long, then each audio track
+after a two-second gap, as long as its file (read from the Ogg pages; the GOG copy's 62 tracks make a
+disc of 54:44). It answers to the first drive letter the game asks about (DRIVE.CFG's). A play request is a
+stretch of the disc: the track it starts in plays from there, after the part of the gap before it as
+silence, for the frames asked. The track's file is read and opened when the play is asked for and
+decoded (stb_vorbis, fetched by CMake at a pinned commit) as the mix asks. With the GOG copy and CD
+music on, the intro plays track 24, the main menu 16, the book 11, the chapter's cutscene 31 and the
+world's arrival 36. The GOG copy's tracks end in a few seconds of digital silence, where CD.DAT's
+lengths cut them.
+
+`bak_unittest` lays out a disc from synthetic Ogg pages (lengths, a track missing, one at another
+rate, one past what a disc holds) and plays stretches of two synthetic tones
+(`port/tools/gen_tone_ogg.py`, kept in `port/tests/unit/tone_ogg.h`) through the mix: the gap's
+silence, the cut where the play ends, a file that ends first, a mono file on both sides, a stop.
+The `music` and `music-menu` replays play the GOG copy's.
 
 ## What the port has taught us about the original
 
@@ -640,7 +668,9 @@ modes.
 ## Replays
 
 `port/tools/replay.py` runs a scenario's scripted input headless on the virtual clock, from a fresh user
-folder, and compares two logs with a baseline recorded in `work/replay/<scenario>/`.
+folder, and compares three logs with a baseline recorded in `work/replay/<scenario>/`. The fresh user folder gets
+the game's preferences the baselines were recorded with (KRONDOR.CFG: step and combat step speed 0,
+detail 3, CD music off unless the scenario wants it), so the game folder's own file plays no part.
 
 - **The virtual clock** (`BAK_CLOCK=virtual`, `port/platform/clock.c`): each poll costs 1 µs, and where the
   game waits (an idle poll, the retrace) the clock jumps to the next timer tick or look at the host's
@@ -650,6 +680,9 @@ folder, and compares two logs with a baseline recorded in `work/replay/<scenario
 - **`BAK_STATE_LOG`**: written on each pass of the world loop when something changed. It holds hashes of
   the game state in TEMP.GAM's layout, of TEMP.GAM (read through the game's own stream) and of the random
   generator, and the party's position and heading.
+- **`BAK_AUDIO_LOG`**: what the sound was told (the CD's plays, with the track and frame they start at,
+  and its stops), and last the length and hash of the sound rendered into `BAK_DUMP_AUDIO`'s WAV file
+  (kept as `audio.wav`).
 
 | Scenario | Result |
 |---|---|
@@ -658,6 +691,8 @@ folder, and compares two logs with a baseline recorded in `work/replay/<scenario
 | `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state at 128 s. Since the fixes of the AI's healing, Owyn takes the Gift of Sung action on his turns and reaches the healer's choice three times (lowest ally health 55, rolls 77, 11 and 36: Gift of Sung once), but Locklear, whom the assassin attacks, keeps all his health: nothing is cast and the logs are unchanged |
 | `spawns`: the world, then a teleport into zone 4 (tile 10,14) among the sixteen stones chapter 1 spawns there, and a full turn about | ✅ identical logs, the ASan build's too; the stones live in the visible pool, past the zone pool's first 64 KB natively, and did not show before the visible list held pointers |
 | `riddle`: the world, then the map (M) and its hidden riddle chest: the grave key held with the right Shift and the left Alt shows the Moredhel lock vision, whose dialog plays a sound and waits for its end, then the chest's word lock: its dialogs, the first dial turned, Exit, the two dialogs after it, back on the map | ✅ identical logs, the ASan build's too. Before the waits for a sound polled, the run stopped at the vision: the sound never ended |
+| `music`: the world's script with CD music on | ✅ identical logs, the ASan build's too: tracks 24, 16, 11, 31 and 36 play, each from 39 frames before its start, and the sound renders the same every run. The world comes at 38 s, 3 s sooner than with the MT-32's music, whose changes of track wait for a fade |
+| `music-menu`: the main menu with CD music on, a minute | ✅ identical logs, the ASan build's too: track 16 plays out its 3348 frames |
 | `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs, the ASan build's too; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
@@ -675,7 +710,7 @@ tool passes `--set` on to the port) all seven frame logs matched the earlier bas
 | INT 33h mouse | `port/platform/mouse.c`: the host pointer's position over the picture, in the ranges the game sets (four units per pixel); the driver calls the game's handler as an interrupt |
 | Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
 | BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |
-| MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless a drive is attached; drive check, IOCTL audio-track info, play, stop. Playing the GOG release's OGG tracks comes with the audio work |
+| MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless the game folder holds the CD's tracks (`music\bakNN.ogg`), whose drive then plays them (see "The CD's music"); the tests attach drives of their own. Drive check, IOCTL audio-track info, play (from an HSG sector), stop |
 | Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses (held 100 ms, or as long as given), pointer moves, clicks and holds (in picture pixels), wheel notches, gamepad buttons, teleports and a quit, for runs without a user; times are on the platform's clock. A teleport fills in the game's own pending teleport (`port/platform/teleport.c`), which the world loop carries out at its next pass, as for TELEPORT.DAT's destinations: the zone's actors and encounters are loaded around the new place |
 | Clock | `port/platform/clock.c`: the host's monotonic clock, or (`BAK_CLOCK=virtual`) one that moves only as the game runs, for replays (below) |
 | Window | `port/platform/video.c`: SDL's renderer (Direct3D 11 on Windows) shows the picture the CRTC scans out, scaled as the settings say (pixel art by default); Alt+Enter and F11 switch the borderless full screen. The window's place, size and state are saved when it closes. A picture goes to the window only when it differs from the one before, and at most once per refresh of the display, the latest one waiting until then (8 s of the intro: 309 pictures, 267 presented; every 70 Hz tick presented before, and a retrace wait a second time). Vsync stays off: the game paces its frames itself. `BAK_TRACE` names the video driver, the renderer and the scale mode, and counts the pictures and presents |

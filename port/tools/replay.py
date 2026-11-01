@@ -2,10 +2,15 @@
 
 A replay runs the port headless on the virtual clock (BAK_CLOCK=virtual) with a scenario's
 scripted input and a fresh user folder, so it plays out the same way every time and takes
-seconds. It writes two logs: every picture shown (BAK_FRAME_LOG: the time, the size, a CRC-32 of
-the pixels) and the game's state on each pass of the world loop (BAK_STATE_LOG). Builds are
-compared by their logs. A change that must not alter the game (a mechanical sweep) leaves both
-identical; a change to the presentation only leaves the state log identical.
+seconds. It writes three logs: every picture shown (BAK_FRAME_LOG: the time, the size, a hash of
+the pixels), the game's state on each pass of the world loop (BAK_STATE_LOG), and what the sound
+was told (BAK_AUDIO_LOG: the CD's plays and stops), ending with the hash of the sound rendered
+(BAK_DUMP_AUDIO, kept as audio.wav). Builds are compared by their logs. A change that must not
+alter the game (a mechanical sweep) leaves them identical; a change to the presentation only
+leaves the state log identical.
+
+The fresh user folder gets the game's preferences (KRONDOR.CFG) the baselines were recorded with,
+so the game folder's own file, if any, plays no part.
 
     uv run python -I port/tools/replay.py record world --data "E:/GOG/Betrayal at Krondor"
     uv run python -I port/tools/replay.py check world --data "E:/GOG/Betrayal at Krondor"
@@ -34,7 +39,12 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = ROOT / "work" / "replay"
 GOLDEN_DIR = ROOT / "work" / "golden"
 PORT_EXE = ROOT / "build" / "win-x86-clangcl" / "betterkrondor.exe"
-LOGS = ("frames", "state")
+LOGS = ("frames", "state", "audio")
+# KRONDOR.CFG: step speed, combat step speed, detail, text speed, flags. The flags' 10h is the CD
+# music; the scenarios run with it off (the music on the MT-32 driver), as the GOG copy's file
+# had it when the first baselines were recorded.
+PREFS = bytes([0, 0, 3, 0, 0x0F])
+PREFS_CD_MUSIC = bytes([0, 0, 3, 0, 0x1F])
 
 
 def world_then(steps: str, quit_ms: int) -> str:
@@ -92,6 +102,12 @@ SCENARIOS["teleport"] = world_then("90000:teleport:1,10,14,28,12,8000;", 93000)
 # the right Shift and an Alt shows the Moredhel lock vision, whose dialog waits for a sound to
 # end, then the chest's word lock (CIPHER.C): Space through its dialogs, the first dial turned
 # (a click), Exit (a click) and Space through the two dialogs after it, back on the map.
+# The world's script with the CD's music on (the GOG copy's music\bakNN.ogg): the intro's, the
+# book's, the cutscene's and the world's tracks.
+SCENARIOS["music"] = SCENARIOS["world"]
+# The main menu's track (16, CD.DAT's 44.6 s of it) played out, and the silence after.
+SCENARIOS["music-menu"] = "6000:key:Escape;60000:quit"
+SCENARIO_PREFS = {"music": PREFS_CD_MUSIC, "music-menu": PREFS_CD_MUSIC}
 SCENARIOS["riddle"] = world_then(
     "90000:key:M;92000:key:Right Shift,3000;92100:key:Left Alt,2900;92200:key:`,1000;"
     "96000:key:Space;100000:key:Space;104000:key:Space;106000:click:136,93;"
@@ -104,12 +120,14 @@ def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> Non
     if user.exists():
         shutil.rmtree(user)
     user.mkdir()
+    (user / "KRONDOR.CFG").write_bytes(SCENARIO_PREFS.get(scenario, PREFS))
     for name in LOGS:
         (out / f"{name}.log").unlink(missing_ok=True)
     (out / "last.bmp").unlink(missing_ok=True)
     env = dict(os.environ, BAK_CLOCK="virtual", BAK_HEADLESS="1", SDL_VIDEO_DRIVER="dummy",
                BAK_INPUT=SCENARIOS[scenario], BAK_FRAME_LOG=str(out / "frames.log"),
-               BAK_STATE_LOG=str(out / "state.log"), BAK_DUMP_FRAME=str(out / "last.bmp"))
+               BAK_STATE_LOG=str(out / "state.log"), BAK_AUDIO_LOG=str(out / "audio.log"),
+               BAK_DUMP_AUDIO=str(out / "audio.wav"), BAK_DUMP_FRAME=str(out / "last.bmp"))
     start = time.monotonic()
     settings = [arg for pair in sets for arg in ("--set", pair)]
     r = subprocess.run([str(exe), "--data", str(data), "--user", str(user), *settings], env=env,

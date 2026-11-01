@@ -123,6 +123,7 @@ bool platform_init(const PlatformOptions *options) {
     folders_import_saves(s_chosenData, s_chosenUser);
     if (!video_open())
         return false;
+    cdrom_open_music(s_chosenData);
     audio_open(); /* the game plays without sound */
     return true;
 }

@@ -68,6 +68,10 @@ AudioSource *audio_source_add(const AudioSourceDesc *desc);
 void audio_post(AudioSource *s, uint32_t a, uint32_t b, void *p);
 void audio_post_at(AudioSource *s, uint64_t ns, uint32_t a, uint32_t b, void *p);
 
+/* A line for BAK_AUDIO_LOG's file, which replays compare: something a source was told, at the
+ * present moment (ms). When the WAV file is finished, its length and hash end the log. */
+void audio_log(const char *fmt, ...);
+
 /* Render what is due up to nowNs when rendering follows the clock (audio_open_dump); called
  * as the platform polls. */
 void audio_advance(uint64_t nowNs);

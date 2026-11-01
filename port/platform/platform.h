@@ -215,6 +215,18 @@ uint64_t machine_next_due_ns(void);
  * its tick was due (the platform runs late ticks in a burst); elsewhere the present. */
 uint64_t machine_event_ns(void);
 
+/*
+ * The CD drive (cdrom.c). It appears when the game folder holds the CD's audio tracks as
+ * music\bakNN.ogg: its table of contents is laid out from their lengths, and its plays go to the
+ * CD's audio source. False when there are none.
+ */
+bool cdrom_open_music(const char *dataDir);
+/* An Ogg Vorbis file's rate, channels and length in samples, from its first and last pages. */
+bool cdrom_ogg_info(const char *path, int *rate, int *channels, uint64_t *samples);
+/* The audio track whose gap or audio holds an HSG sector, and the frame of the track it is
+ * (negative in the gap before it); 0 for none. */
+int cdrom_track_at(uint32_t sector, int64_t *from);
+
 /* mpu401.c: the MPU-401's ports (false: not 330h or 331h). */
 bool mpu401_port_in8(uint16_t port, uint8_t *value);
 bool mpu401_port_out8(uint16_t port, uint8_t value);
