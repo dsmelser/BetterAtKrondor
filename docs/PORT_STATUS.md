@@ -224,8 +224,10 @@ the original's offsets: the driver's state and power-on values are the original'
 | `M32` Roland MT-32 | ✅ `port/drivers/m32.c`; `test_m32.py`: `M32.EXE` and the translation on the same MPU-401 model, a generated bank, then thousands of random slot calls: registers, MIDI bytes and the whole chunk after each |
 | `NLD`, `ADL`, `SBP`, `GMD`, `PRO`, `PS1`, `STD`; digital `ASB`, `APA`, `ADS` | ⬜ stop with "Not implemented yet: the SX.OVL sound driver \"<device name>\"" |
 
-The MIDI the MT-32 driver sends goes to the emulated MPU-401 and no further yet: playing it (host MIDI, or Munt
-with user-supplied ROMs) comes after M1, behind a toggle.
+The MIDI the MT-32 driver sends goes to the emulated MPU-401 and no further yet. Sound is planned in this
+order: music from the 1.02 CD tracks (the GOG copy's `music\bakNN.ogg`), then the sound effects through
+the AdLib and Sound Blaster digital drivers (the AdLib tracks cover all 179 pieces, and 41 effects exist
+only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
 
 ## What the port has taught us about the original
 

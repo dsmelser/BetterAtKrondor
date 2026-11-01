@@ -5,8 +5,9 @@ BetterAtKrondor is a hard fork of
 byte-perfect reconstruction of *Betrayal at Krondor* (1993, DOS), turning it into a
 **native SDL3 port**. Upstream's "stay byte-identical" rule does **not** apply on `main`, and
 byte-identity is no goal at all: the reconstruction was the starting point, the real source.
-The aim is a game that looks and feels modern, by whatever means. Behaviour is checked against
-the original instead (see Verification).
+The aim is a game that looks and feels modern, by whatever means. There is no exact "Original"
+mode to keep, but the game's rules stay the original's (see Rules); behaviour is checked
+against the original where code still mirrors it (see Verification).
 
 ## Layout
 
@@ -38,12 +39,17 @@ stack on Windows. Unprompted, the intro and credits loop like the original's att
 
 ## Rules
 
-- **Faithful by default.** At default settings the port must behave like the original
-  release whose data it runs (1.00 or 1.02). Every enhancement is a runtime toggle, and the
-  "Original" setting stays exact.
-- **Change the game code directly.** `main` need not build with Borland, so a change to
-  `bak/` needs no `#ifdef BAK_NATIVE` branch and no Borland-neutral idiom (`gtypes.h`); the
-  existing ones can stay or go.
+- **Modern by default.** An improvement may become the default and needs no toggle. The
+  game's rules stay those of the release whose data it runs (1.00 or 1.02): combat maths,
+  stats, encounters, dialogs, time. Its bugs get fixed, each listed in
+  `docs/PORT_STATUS.md`. New controls may change how the party moves, as long as time,
+  encounters and triggers advance as the original's steps do.
+- **Saves stay DOS-compatible**, both ways: the original's saves load natively, and the
+  port's load in DOS. Data only the port uses goes in files of its own.
+- **Rewrite freely.** Any subsystem (renderer, UI, main loop, audio) may be replaced
+  outright; the reconstruction is the reference for behaviour. `main` need not build with
+  Borland, so change `bak/` directly, with no `#ifdef BAK_NATIVE` branch and no
+  Borland-neutral idiom (`gtypes.h`).
 - **Mechanical vs semantic.** Sweeps (retyping, renames, removing `far`) never share a
   commit with behaviour changes, so a regression bisects to one kind of change.
 - **Integer widths are explicit.** Game code uses `s16`/`u16`/`s32`/`u32`
@@ -51,8 +57,12 @@ stack on Windows. Unprompted, the intro and credits loop like the original's att
   only at host boundaries (SDL, libc callbacks, `main`). Natively, 16-bit operands promote
   to 32-bit `int`, so when touching an expression check `-`, comparisons, `~`, `>>`, `/` and
   `%` on `u16` values.
-- **ASM replacements are verified** against the original routine (the Unicorn harness in
-  `port/tests/`, fed by the reference build's objects) before they replace a stub.
+- **Verification follows longevity.** Code that stays a translation of an original routine
+  (codecs, the sequencer, sound drivers, R3D while it draws) is verified against that routine
+  before it replaces a stub: the Unicorn harness in `port/tests/`, fed by the reference
+  build's objects, with the test mutation-checked by `port/tools/mutate.py`. Code that a new
+  subsystem will replace gets a plain native version, checked by a DOSBox golden of its
+  screen. New code gets tests of its own.
 - **No game data, ROMs or upscaled art in the repo.** Users supply their own copy; HD art
   packs are generated locally from it.
 - **Names from evidence.** Many names in `bak/SRC` are decompiler guesses. Rename or
@@ -80,6 +90,8 @@ stack on Windows. Unprompted, the intro and credits loop like the original's att
   toolchain, verifies the binaries by sha256, and uploads every `.OBJ`, map and binary: the
   original routines the differential tests run. Build `upstream-snapshot` or an older ref
   for them; byte-neutrality of `main` is not checked.
-- **Differential tests**: original routine (from the reference objects) vs its C translation.
+- **Differential tests**: original routine (from the reference objects) vs its C
+  translation, for code that stays a translation.
 - **Black box**: the original EXE from the user's copy, running in DOSBox Staging.
-  `port/tools/dosbox_golden.py` runs it headless next to the port and compares the pictures.
+  `port/tools/dosbox_golden.py` runs it headless next to the port and compares the pictures
+  of screens the port still draws as the original does (the 1× pages of the 2-D screens).

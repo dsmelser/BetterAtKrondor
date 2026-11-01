@@ -7,9 +7,9 @@ DOS binaries) and is now being brought up natively. Start with
 [docs/PORT_STATUS.md](docs/PORT_STATUS.md): it lists what runs, what is stubbed, and what is
 known to diverge from the original.
 
-The ground rules are in [CLAUDE.md](CLAUDE.md). In short: faithful by default, every
-enhancement a toggle, explicit integer widths, verified ASM replacements, no game data in the
-repo.
+The ground rules are in [CLAUDE.md](CLAUDE.md). In short: modern by default with the
+original's game rules, saves compatible with DOS, explicit integer widths, translations
+verified against the original, no game data in the repo.
 
 ## Kinds of work
 
@@ -27,6 +27,10 @@ abort with the routine's name. To replace one:
    Hardware-facing modules (keyboard, mouse, timer, VGA ports) are replaced by the platform
    layer instead of being translated.
 
+A routine that a new subsystem will replace (the 1993 renderer's rasterizers, for one) needs
+no faithful translation: a plain native version will do, checked by a DOSBox golden of the
+screen that uses it.
+
 ### Touching game code under `bak/SRC`
 
 - Keep the original control flow unless the change is the point of the commit.
@@ -40,8 +44,10 @@ abort with the routine's name. To replace one:
 
 ### Enhancements
 
-Every enhancement is a runtime option, with "Original" as the default that stays exact. Keep
-enhancement code in `port/` where possible, and hook into game code at a single, named point.
+There is no "Original" mode to keep exact, so an enhancement may be the default and need not
+be an option. Two things stay: the game's rules (fixes of its bugs excepted, each listed in
+`docs/PORT_STATUS.md`) and its save format. Keep platform code in `port/`, and hook into game
+code at named points.
 
 ## Verification
 

@@ -3,7 +3,8 @@
 <p align="center">A native port of <em>Betrayal at Krondor</em> (1993) for modern systems,
 built on a byte-perfect reconstruction of the original source.</p>
 
-> **Status: early bring-up — nothing is playable yet.** Progress is tracked in
+> **Status: in development, not playable through yet.** A new game reaches the 3-D world;
+> much of the game beyond it is not ported. Progress is tracked in
 > [docs/PORT_STATUS.md](docs/PORT_STATUS.md).
 
 ## About
@@ -13,12 +14,11 @@ the game's source from the DOS binaries until it rebuilt them byte for byte. Tha
 about preservation and deliberately stops at DOS. BetterAtKrondor is a fork that takes the
 reconstructed code to modern platforms:
 
-- **Faithful first.** At default settings the port plays like the DOS release whose data it
-  runs (1.00 floppy or 1.02 CD): same rules, timing and look.
-- **Then better, optionally.** Rebindable controls and gamepad support, quality-of-life
-  options, a high-resolution 3D view, upscaled art, widescreen. Every enhancement is a
-  toggle; "Original" stays exact.
-- **Native, no emulator.** Windows first, then Linux and macOS, using SDL3.
+- **The same game.** The rules are those of the DOS release whose data it runs (1.00 floppy
+  or 1.02 CD), with its bugs fixed, and saves stay compatible with it both ways.
+- **Modern to play.** Rebindable controls and gamepad support, quality-of-life features, a
+  high-resolution 3D view, upscaled art, widescreen.
+- **Native, no emulator.** Windows first, then the web browser, using SDL3.
 
 ## You need your own copy of the game
 
@@ -35,9 +35,9 @@ build\win-x86-clangcl\betterkrondor.exe --data "C:\path\to\Betrayal at Krondor"
 ```
 
 The script finds Visual Studio, loads its x86 environment and runs the `win-x86-clangcl` CMake
-preset (SDL3 is downloaded and built automatically). The port is in early bring-up: it starts, reads
-the game's configuration and stops at the first subsystem not ported yet. See
-[docs/PORT_STATUS.md](docs/PORT_STATUS.md).
+preset (SDL3 is downloaded and built automatically). A new game plays the intro, the first book
+and the chapter's cutscene and enters the 3-D world; anything not ported yet stops with its
+name. See [docs/PORT_STATUS.md](docs/PORT_STATUS.md).
 
 The original DOS build (Borland C++ in FreeDOS under QEMU) is preserved at the
 `upstream-snapshot` tag and runs in CI (`.github/workflows/reference.yml`) to produce
