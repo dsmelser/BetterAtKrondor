@@ -35,6 +35,7 @@ typedef struct SettingDef {
 
 static const char *const s_scalings[] = {"pixelart", "nearest", "linear", NULL};
 static const char *const s_aspects[] = {"4:3", "square", NULL};
+static const char *const s_cursors[] = {"system", "game", NULL};
 
 static const SettingDef s_defs[SETTING_COUNT] = {
     [SETTING_PATHS_DATA] = {"paths", "data", SETTING_TEXT, "",
@@ -48,6 +49,10 @@ static const SettingDef s_defs[SETTING_COUNT] = {
     [SETTING_VIDEO_ASPECT] = {"video", "aspect", SETTING_CHOICE, "4:3",
                               "the picture's shape: a 4:3 screen's, or square pixels",
                               .choices = s_aspects},
+    [SETTING_VIDEO_CURSOR] = {"video", "cursor", SETTING_CHOICE, "system",
+                              "the mouse cursor: the system's, moving smoothly, or drawn into "
+                              "the picture by the game as the original did",
+                              .choices = s_cursors},
     [SETTING_WINDOW_WIDTH] = {"window", "width", SETTING_INT, "960", "the window's width",
                               .min = 320, .max = 16384},
     [SETTING_WINDOW_HEIGHT] = {"window", "height", SETTING_INT, "720", "the window's height",
@@ -304,24 +309,33 @@ bool settings_override(const char *assignment, char *why, size_t whySize) {
     return take_value(id, trimmed(eq + 1, eq + 1 + strlen(eq + 1)), why, whySize);
 }
 
-const char *settings_get_string(SettingId id) {
+/* A setting's value; the defaults when nothing was loaded (the test runners). */
+static const char *value_of(SettingId id) {
+    if (s_values[id] == NULL)
+        reset();
     return s_values[id];
 }
 
+const char *settings_get_string(SettingId id) {
+    return value_of(id);
+}
+
 bool settings_get_bool(SettingId id) {
-    return strcmp(s_values[id], "true") == 0;
+    return strcmp(value_of(id), "true") == 0;
 }
 
 bool settings_get_int(SettingId id, int *value) {
-    if (s_values[id][0] == '\0')
+    const char *text = value_of(id);
+    if (text[0] == '\0')
         return false;
-    *value = (int)strtol(s_values[id], NULL, 10);
+    *value = (int)strtol(text, NULL, 10);
     return true;
 }
 
 int settings_get_choice(SettingId id) {
+    const char *text = value_of(id);
     for (int i = 0; s_defs[id].choices[i] != NULL; i++)
-        if (strcmp(s_values[id], s_defs[id].choices[i]) == 0)
+        if (strcmp(text, s_defs[id].choices[i]) == 0)
             return i;
     return 0;
 }
@@ -401,7 +415,7 @@ static int add_line(int id) {
 
 bool settings_set_string(SettingId id, const char *value) {
     size_t len = strcspn(value, "\r\n"); /* one line */
-    if (strlen(s_values[id]) == len && memcmp(s_values[id], value, len) == 0)
+    if (strlen(value_of(id)) == len && memcmp(s_values[id], value, len) == 0)
         return true; /* nothing changes */
     set_value(id, value, len);
     if (s_lineOf[id] < 0)

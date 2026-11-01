@@ -36,6 +36,7 @@ typedef enum SettingId {
     SETTING_VIDEO_SCALING,    /* [video] scaling: SCALING_* */
     SETTING_VIDEO_INTEGER,    /* [video] integer: whole multiples only */
     SETTING_VIDEO_ASPECT,     /* [video] aspect: ASPECT_* */
+    SETTING_VIDEO_CURSOR,     /* [video] cursor: CURSOR_* */
     SETTING_WINDOW_WIDTH,     /* [window] width, height, x, y (optional), maximized */
     SETTING_WINDOW_HEIGHT,
     SETTING_WINDOW_X,
@@ -45,6 +46,7 @@ typedef enum SettingId {
 } SettingId;
 enum { SCALING_PIXELART, SCALING_NEAREST, SCALING_LINEAR };
 enum { ASPECT_4_3, ASPECT_SQUARE };
+enum { CURSOR_SYSTEM, CURSOR_GAME };
 /* Read <dir>/betterkrondor.ini (none: the defaults), where changes then go. False, with a
  * message, when it exists but cannot be read; then nothing is written back. */
 bool settings_load(const char *dir);
@@ -134,6 +136,24 @@ union SDL_Event;
 bool video_handle_key(const union SDL_Event *e);
 /* The window moved, was resized or uncovered, or went to another display. */
 void video_handle_window_event(const union SDL_Event *e);
+/* The DAC index a 16-colour pixel shows, through the attribute controller. */
+uint8_t video_attribute_color(unsigned value);
+/* The host's pointer to a place on the picture (the game moved the mouse), while the system
+ * cursor shows and the window has the mouse. */
+void video_warp_pointer(float px, float py);
+
+/*
+ * The system cursor (cursor.c). cursor_decode turns a game cursor image of the VGA driver's
+ * (colors256) or the 16-colour driver's into DAC indices, CURSOR_CLEAR where transparent; false
+ * when it is empty or larger than CURSOR_MAX a side. cursor_update makes the window's cursor
+ * the game's, scaled by sx x sy window pixels a picture pixel.
+ */
+#define CURSOR_MAX 64
+#define CURSOR_CLEAR 0xFFFF
+struct ImageRecord;
+bool cursor_decode(const struct ImageRecord *image, bool colors256, int *w, int *h, uint16_t *px);
+void cursor_update(float sx, float sy);
+bool cursor_shown(void);
 
 /* Feed a host mouse event to the emulated INT 33h driver (mouse.c), a key to the
  * keyboard (scancode.c). */

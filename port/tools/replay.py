@@ -73,7 +73,7 @@ SCENARIOS["spawns"] = world_then(
 SCENARIOS["teleport"] = world_then("90000:teleport:1,10,14,28,12,8000;", 93000)
 
 
-def run(scenario: str, data: Path, exe: Path, out: Path) -> None:
+def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> None:
     out.mkdir(parents=True, exist_ok=True)
     user = out / "user"
     if user.exists():
@@ -86,7 +86,8 @@ def run(scenario: str, data: Path, exe: Path, out: Path) -> None:
                BAK_INPUT=SCENARIOS[scenario], BAK_FRAME_LOG=str(out / "frames.log"),
                BAK_STATE_LOG=str(out / "state.log"), BAK_DUMP_FRAME=str(out / "last.bmp"))
     start = time.monotonic()
-    r = subprocess.run([str(exe), "--data", str(data), "--user", str(user)], env=env,
+    settings = [arg for pair in sets for arg in ("--set", pair)]
+    r = subprocess.run([str(exe), "--data", str(data), "--user", str(user), *settings], env=env,
                        capture_output=True, text=True, timeout=900, check=False)
     seconds = time.monotonic() - start
     (out / "stderr.txt").write_text(r.stderr, encoding="utf-8", newline="\n")
@@ -128,10 +129,12 @@ def main() -> int:
         p.add_argument("scenario", choices=sorted(SCENARIOS))
         p.add_argument("--data", required=True, help="the game folder")
         p.add_argument("--exe", default=str(PORT_EXE), help="the port's executable")
+        p.add_argument("--set", action="append", default=[], metavar="SECTION.KEY=VALUE",
+                       help="a setting for the run (e.g. video.cursor=game), as the port's")
     args = ap.parse_args()
 
     out = OUT_DIR / args.scenario
-    run(args.scenario, Path(args.data), Path(args.exe), out)
+    run(args.scenario, Path(args.data), Path(args.exe), out, args.set)
     if args.cmd == "record":
         for name in LOGS:
             if (out / f"{name}.log").exists():

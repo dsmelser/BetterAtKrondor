@@ -209,7 +209,7 @@ bool video_open(void) {
     }
     if (!set_picture_size(BAK_VGA_WIDTH, BAK_VGA_HEIGHT))
         return false;
-    SDL_HideCursor(); /* the game draws its own */
+    SDL_HideCursor(); /* until the game shows its own (cursor.c) */
     const char *driver = SDL_GetCurrentVideoDriver();
     s_offscreen = driver != NULL && SDL_strcmp(driver, "dummy") == 0;
     note_display();
@@ -320,7 +320,7 @@ static void picture_size(bool colors256, int *w, int *h) {
 
 /* The DAC index of a 16-colour pixel: the attribute controller's palette register,
  * with bits 4-7 from the colour select register as its paging mode says. */
-static uint8_t attribute_color(unsigned nibble) {
+uint8_t video_attribute_color(unsigned nibble) {
     const uint8_t *a = g_vga.attr;
     uint8_t v = a[nibble & a[0x12] & 0x0F];
     if (a[0x10] & 0x80)
@@ -354,7 +354,7 @@ static void scan_out(const uint32_t *pal) {
                 unsigned bit = 7u - (unsigned)b, nibble = 0;
                 for (unsigned plane = 0; plane < 4; plane++)
                     nibble |= ((p[plane] >> bit) & 1u) << plane;
-                row[x + b] = pal[attribute_color(nibble) & g_vga.pelMask];
+                row[x + b] = pal[video_attribute_color(nibble) & g_vga.pelMask];
             }
         }
     }
@@ -376,10 +376,29 @@ void video_flush(void) {
     SDL_RenderPresent(s_renderer);
 }
 
+void video_warp_pointer(float px, float py) {
+    float wx, wy;
+    if (s_offscreen || s_renderer == NULL || !cursor_shown() || SDL_GetMouseFocus() != s_window)
+        return;
+    /* The middle of the pixel, so the pointer maps back to it. */
+    if (SDL_RenderCoordinatesToWindow(s_renderer, px + 0.5f,
+                                      (py + 0.5f) * (float)s_shownHeight / (float)s_height, &wx,
+                                      &wy))
+        SDL_WarpMouseInWindow(s_window, wx, wy);
+}
+
+/* The system cursor at the picture's scale: window pixels per picture pixel. */
+static void update_cursor(void) {
+    SDL_FRect r;
+    if (!s_offscreen && SDL_GetRenderLogicalPresentationRect(s_renderer, &r) && r.w > 0.0f)
+        cursor_update(r.w / (float)s_width, r.h / (float)s_height);
+}
+
 /* Show the picture the CRTC is scanning out. */
 void video_present(void) {
     if (s_texture == NULL)
         return;
+    update_cursor();
     uint32_t pal[256];
     for (int i = 0; i < 256; i++) {
         uint32_t r = g_vga.dac[i][0], g = g_vga.dac[i][1], b = g_vga.dac[i][2];

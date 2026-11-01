@@ -91,6 +91,14 @@ void bak_int33_set_ratio(int16_t horizontal, int16_t vertical);
 extern void (*g_int33Trace)(uint16_t ax, uint16_t cx, uint16_t dx);
 
 /*
+ * The game's mouse cursor as the system's (port/platform/cursor.c): the image the game would
+ * draw now and its hot spot, or NULL when it shows none. True when the system cursor shows it
+ * (the video.cursor setting), and the game then draws nothing.
+ */
+struct ImageRecord;
+_Bool bak_cursor_system(const struct ImageRecord *image, int16_t hotX, int16_t hotY);
+
+/*
  * MSCDEX (INT 2Fh AH=15h, port/platform/cdrom.c): absent unless a CD drive is attached.
  * 150Bh drive check (AX result, BX = ADADh) and 1510h device request on a request
  * header; attaching gives a drive letter and its audio tracks' start positions.

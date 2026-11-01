@@ -23,7 +23,10 @@
     X(settings_held_are_written_once)                                                              \
     X(folders_know_the_game_by_its_resources)                                                      \
     X(folders_remember_the_game_folder)                                                            \
-    X(folders_copy_the_dos_saves_once)
+    X(folders_copy_the_dos_saves_once)                                                             \
+    X(cursor_reads_the_vga_drivers_images)                                                         \
+    X(cursor_reads_the_16_colour_drivers_images)                                                   \
+    X(cursor_goes_to_the_system_unless_set_otherwise)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

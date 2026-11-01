@@ -69,6 +69,8 @@ void bak_int33_set_position(int16_t x, int16_t y) {
     trace(0x04, (uint16_t)x, (uint16_t)y);
     s_mouse.x = clamp(x, s_mouse.xmin, s_mouse.xmax);
     s_mouse.y = clamp(y, s_mouse.ymin, s_mouse.ymax);
+    /* The system cursor goes where the game put the mouse (menus move it to a button). */
+    video_warp_pointer((float)s_mouse.x / 4.0f, (float)s_mouse.y / 4.0f);
 }
 
 void bak_int33_set_x_range(int16_t min, int16_t max) {

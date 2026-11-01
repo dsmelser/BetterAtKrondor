@@ -118,6 +118,7 @@ checks the native fields against the original's offsets and the round trip.
 | `video.scaling` | `pixelart` (the default: sharp pixels without nearest's uneven rows and columns at scales that are not whole), `nearest`, `linear` |
 | `video.integer` | scale by whole multiples only |
 | `video.aspect` | `4:3` (the default: the picture stretched as a VGA monitor showed it) or `square` pixels |
+| `video.cursor` | `system` (the default: the system's pointer wearing the game's cursor, moving at the display's rate) or `game` (drawn into the picture by the game, as the original did; the DOSBox goldens use it) |
 | `window.width`, `window.height`, `window.x`, `window.y`, `window.maximized` | the window as it was when it closed; a place no display shows is dropped for the centre |
 
 ## Where the game sources depart from the original
@@ -191,6 +192,7 @@ at the `upstream-snapshot` tag.
 | `AUDIO/ENGINE/AUDIO.C`, `AUDIO/SND/SNDINST.C` | `audio_sfx_register` returns whether the chunk loaded (the original returns its near address; no caller reads it); the drivers' chunks reach their installs as the host pointer's two words |
 | `GAME/ENC/HOTSPOT.C`, `STREAM/RESLOAD/IMGLOAD.C`, `R3D/TBLSTORE/SHAPEBLD.C` | an integer counter where the original counts with a near pointer (`hotspotevt_done_reset_all`), a test that is never true left out (below), a far pointer rebuilt from its parts taken whole (`ts_project_shape`, which nothing calls) |
 | `SCREENS/MAINMENU.C` | the save listings pass `findfirst` a `struct ffblk` and read its `ff_name`; the original passes a `char[30]` and reads the name from the local after it (below) |
+| `GFX/SCREEN/SCREEN.C` | where the game would draw its cursor into the picture (`screen_frame_present`, `screen_cur_refr_during_long_op`, `screen_wipe_horizontal`), it first hands it to the system cursor (`bak_cursor_system`), and draws it only when that declines (`video.cursor = game`) |
 | `SCREENS/PICKLOCK.C`, `PICKLOCK.H` | the lockpick screen's copy of the party's inventory is one buffer, its record and item slots; the original copies it over two locals (below) |
 | `R3D/ACTOR/ACTRENDR.C`, `GAME/ACTOR/ACTORREC.C`, `UI/UIWIDGET.C`, `STREAM/RESLOAD/FONTLOAD.C` | pointers step by pointer arithmetic where the original adds to the far pointer's offset word: a mesh part's polygon variant, an actor record's subrecords, a glyph's rows. Natively that word is the address's low half, whose carry would be lost. FONTLOAD.C's own `FP_OFF`, the same word, is gone |
 | `SCRIPT/ANIMSCR.C`, `ANIMSCR.H`, `SCREENS/TOWNSCN.C` | the animation scripts' last condition result and a town scene's chapter are variables of their own; the original keeps them in the two words of `g_anim_slots[1]` (below) |
@@ -618,6 +620,10 @@ folder, and compares two logs with a baseline recorded in `work/replay/<scenario
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
 41 s of game time), since decoding and drawing take no game time; the golden scripts still work.
 
+The pictures have no cursor since the system cursor became the default (2026-11-01), and the baselines
+were recorded again then: every state log stayed identical, and with `--set video.cursor=game` (the
+tool passes `--set` on to the port) all seven frame logs matched the earlier baselines exactly.
+
 ## Platform services
 
 | Service | Implementation |
@@ -630,6 +636,7 @@ On the virtual clock the game reaches the world sooner than on the host's (its l
 | Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses, pointer moves and clicks (in picture pixels), teleports and a quit, for runs without a user; times are on the platform's clock. A teleport fills in the game's own pending teleport (`port/platform/teleport.c`), which the world loop carries out at its next pass, as for TELEPORT.DAT's destinations: the zone's actors and encounters are loaded around the new place |
 | Clock | `port/platform/clock.c`: the host's monotonic clock, or (`BAK_CLOCK=virtual`) one that moves only as the game runs, for replays (below) |
 | Window | `port/platform/video.c`: SDL's renderer (Direct3D 11 on Windows) shows the picture the CRTC scans out, scaled as the settings say (pixel art by default); Alt+Enter and F11 switch the borderless full screen. The window's place, size and state are saved when it closes. A picture goes to the window only when it differs from the one before, and at most once per refresh of the display, the latest one waiting until then (8 s of the intro: 309 pictures, 267 presented; every 70 Hz tick presented before, and a retrace wait a second time). Vsync stays off: the game paces its frames itself. `BAK_TRACE` names the video driver, the renderer and the scale mode, and counts the pictures and presents |
+| Cursor | `port/platform/cursor.c`: the game's cursor as the system's (`video.cursor`). The image the game would draw is read in its driver's format (the VGA driver's bytes; the 16-colour driver's bit planes, for the books) and shown as an SDL colour cursor, scaled with the picture, its hot spot the game's. It takes the DAC's colours and is made again when they change, so it fades with the picture. It shows while the game shows its cursor (`g_cursor_hidden`, nonzero when shown, and not shape 2); `screen_cursor_hide` only skips a background restore and hides nothing. Where the game moves the mouse (the menus' keys move it to a button), the host's pointer goes along |
 | Files | `port/compat/bakrtl.c`: the game's DOS paths (any case, backslashes, a drive letter) are looked up in the user folder, then in the game folder; writes go to the user folder (see "Settings and folders"). `chdir` tells whether the folder is there, looked for as reads are: the game asks it whether `GAMES` exists and makes one, with a first `SAVES.G01`, when not (`mainmenu_save_games_dir_exists`). Until 2026-11-01 it answered yes to everything, so a first save failed in a user folder without `GAMES`. Host paths are UTF-8, SDL's and the C runtime's alike: on Windows the executable's manifest (`port/platform/betterkrondor.manifest`) makes UTF-8 the process code page (Windows 10 1903 on) |
 | MPU-401 | `port/platform/mpu401.c`, ports 330h/331h: UART mode, always ready, every command acknowledged. MIDI bytes go to a sink (`bak_midi_set_sink`); without one they are dropped, or written to the file `BAK_DUMP_MIDI` names |
 

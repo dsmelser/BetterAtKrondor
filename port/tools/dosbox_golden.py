@@ -542,8 +542,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     user.mkdir(exist_ok=True)
     env = dict(os.environ, BAK_HEADLESS="1", SDL_VIDEO_DRIVER="dummy",
                BAK_INPUT=s.port_input, BAK_DUMP_FRAME=str(bmp))
-    r = subprocess.run([args.exe, "--data", str(data), "--user", str(user)], env=env, check=False,
-                       timeout=120)
+    # The original draws its cursor into the picture; so does the port's game cursor.
+    r = subprocess.run([args.exe, "--data", str(data), "--user", str(user),
+                        "--set", "video.cursor=game"], env=env, check=False, timeout=120)
     if r.returncode != 0 or not bmp.exists():
         print(f"the port exited with {r.returncode:#x}")
         return 2
