@@ -75,7 +75,7 @@ struct Shape {
     /** 0x0C, 2B: signed bounding half-extent; `radius << shift` = cull/LOD extent. */
     short radius;
 
-    /** 0x0E, 6B: bbox min; runtime-built meshes only, unread by render/collision. */
+    /** 0x0E, 6B: bbox min; r3d_actor_compute_lod_z reads the box for meshes without flag 20h. */
     Vec3Short aabbMin;
 
     /** 0x14, 6B: bbox max; present with aabbMin. */

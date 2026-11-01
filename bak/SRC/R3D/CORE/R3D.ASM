@@ -4654,13 +4654,13 @@ _r3d_imul_full32:
 ;       g_matZOut = accLo;
 ;
 ;       if (z != 0) {
+;           g_matXOut = (unsigned short)(acc >> 16);   /* the first two terms' sum */
+;           g_matYOut = (unsigned short)acc;
+;           g_matZOut = accLo;
 ;           (void)mul48_signed(z, coeffs[2], &term);
 ;           acc = add48(&accLo, term);
 ;       }
-;
-;       g_matYOut = (unsigned short)(acc >> 16);
-;       g_matZOut = (unsigned short)acc;
-;       return acc;
+;       return acc;   /* 48 bits: DX:AX:CX, the scratch words left as above */
 ;   }
 ;
 ;   /* Sign-magnitude multiply of a 16-bit signed value by a 32-bit signed

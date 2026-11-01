@@ -1083,7 +1083,8 @@ struct R3dRendererState {
     unsigned short wMeshScaleShift;
     unsigned short wMeshScaleResidual;
     unsigned char bMeshRenormCount;
-    unsigned char _pad_0xd[1];
+    /* r3d_compose_actor_camera_matrix stores the count as a word: its high byte */
+    unsigned char bMeshRenormCountHi;
     unsigned char bCurMeshLod;
     unsigned char bCamSetupResetFlag;
     unsigned char bSkipFarEdgeCull;

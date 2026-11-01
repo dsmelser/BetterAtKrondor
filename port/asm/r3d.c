@@ -407,21 +407,201 @@ void r3d_light_set_direction(short elevation, short azimuth) {
     transform_vec3(in, &g_r3d.mat3x3ScratchRot, g_r3d.vec3LightDirWorld);
 }
 
-/* ---- not translated yet ------------------------------------------------------------ */
+/* ---- the actor ------------------------------------------------------------------- */
 
+#define MASK48 0xffffffffffffull
+#define MESH_FLAG_SIMPLE 0x20
+
+/* SAR by 1, n times: from 32 on, the sign alone. */
+static s32 sar32(s32 v, unsigned n) {
+    return n >= 32 ? (v < 0 ? -1 : 0) : v >> n;
+}
+
+static s32 abs32(s32 v) {
+    return v < 0 ? (s32)(0u - (u32)v) : v;
+}
+
+/* A 16-bit value times a 32-bit one, in 48 bits (the original multiplies the magnitudes and
+ * negates all 48 bits: the exact product). */
+static uint64_t mul48(s16 v, s32 c) {
+    return (uint64_t)((int64_t)v * c) & MASK48;
+}
+
+/* The running sum in g_matXOut..g_matZOut: the high word first. */
+static void put48(uint64_t v) {
+    g_r3d.matOut[0] = (s16)(u16)(v >> 32);
+    g_r3d.matOut[1] = (s16)(u16)(v >> 16);
+    g_r3d.matOut[2] = (s16)(u16)v;
+}
+
+/*
+ * r3d_dot3_coeff16_vec32 (AX = x, CX = y, DX = z, BX = c): x * c[0] + y * c[1] + z * c[2],
+ * 48 bits (DX:AX:CX). x, y and z stay in g_matXIn2..; the running sum in g_matXOut.. holds
+ * the first product, then, unless z is 0 (whose product is skipped), the first two's sum.
+ */
+static uint64_t dot3_coeff16_vec32(s16 x, s16 y, s16 z, const s32 *c) {
+    uint64_t sum;
+    g_r3d.matIn2[0] = x;
+    g_r3d.matIn2[1] = y;
+    g_r3d.matIn2[2] = z;
+    sum = mul48(x, c[0]);
+    put48(sum);
+    sum = (sum + mul48(y, c[1])) & MASK48;
+    if (z == 0)
+        return sum;
+    put48(sum);
+    return (sum + mul48(z, c[2])) & MASK48;
+}
+
+s32 r3d_dot3_coeff16_vec32(void) {
+    BAK_UNIMPLEMENTED("R3D.ASM: r3d_dot3_coeff16_vec32 (register arguments: R3D's own routines "
+                      "call its C form)");
+}
+
+/* Q14NORM48C: bits 14-45 of a 48-bit sum. */
+static s32 q14_48(uint64_t v) {
+    return (s32)(u32)(v >> 14);
+}
+
+/*
+ * r3d_mat3_xform_vec3_ll (AX = in, BX = m, CX = out): three longs through m's columns. The
+ * identity copies the six words; type 1 turns X and Y and keeps Z; any other type takes all
+ * three rows (unlike the short transform, whose test is signed). Each output is stored
+ * before the next one's inputs are read.
+ */
+static void mat3_xform_vec3_ll(const s32 *in, const Mat3x3 *mat, s32 *out) {
+    const s16 *m = mat->pM;
+    unsigned char type = mat->bType;
+    if (type == MAT3T_IDENTITY) {
+        const u16 *s = (const u16 *)in;
+        u16 *d = (u16 *)out;
+        for (int i = 0; i < 6; i++) /* REP MOVSW */
+            d[i] = s[i];
+        return;
+    }
+    out[0] = q14_48(dot3_coeff16_vec32(m[0], m[3], m[6], in));
+    out[1] = q14_48(dot3_coeff16_vec32(m[1], m[4], m[7], in));
+    if (type == MAT3T_ZROT)
+        out[2] = in[2];
+    else
+        out[2] = q14_48(dot3_coeff16_vec32(m[2], m[5], m[8], in));
+}
+
+void r3d_mat3_xform_vec3_ll(void) {
+    BAK_UNIMPLEMENTED("R3D.ASM: r3d_mat3_xform_vec3_ll (register arguments: R3D's own routines "
+                      "call its C form)");
+}
+
+/*
+ * An actor into the camera's space: its angles go to g_matXIn for the matrix, its position
+ * less the camera's through the view matrix, and its depth, no nearer than the view plane,
+ * to g_lActorClampedCamZ. (The segment is the far pointer's other half.)
+ */
 void r3d_setup_actor_in_camera_space(WorldObject *entry, unsigned short entry_seg) {
-    (void)entry;
+    R3dRendererState *st = &g_abR3dState;
+    s32 z, plane;
     (void)entry_seg;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_setup_actor_in_camera_space");
+    g_r3d.matIn[0] = entry->orientation.pitch;
+    g_r3d.matIn[1] = entry->orientation.roll;
+    g_r3d.matIn[2] = entry->orientation.yaw;
+    st->nActorRelX = entry->pos.xy.nWorld_x;
+    st->nActorRelY = entry->pos.xy.nWorld_y;
+    st->nActorRelZ = entry->pos.nWorld_z;
+    st->nActorRelX = (s32)((u32)st->nActorRelX - (u32)st->camCurWorldPos[0]);
+    st->nActorRelY = (s32)((u32)st->nActorRelY - (u32)st->camCurWorldPos[1]);
+    st->nActorRelZ = (s32)((u32)st->nActorRelZ - (u32)st->camCurWorldPos[2]);
+    mat3_xform_vec3_ll(&st->nActorRelX, &st->mat3x3ViewRot, &st->nActorCamX);
+    z = st->nActorCamZ;
+    plane = view_dist();
+    st->nActorClampedCamZ = z < plane ? plane : z;
 }
 
+/*
+ * The actor's matrix (its own angles, then the view's), and the scale its mesh is transformed
+ * at: the shift that brings the camera-space extent plus the mesh's half extent under 3FACh,
+ * counted from the mesh's own shift, applied to the actor's camera-space and relative
+ * positions. The camera origin and the light go into the actor's frame through its
+ * transposed matrix.
+ */
 void r3d_compose_actor_camera_matrix(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_compose_actor_camera_matrix");
+    R3dRendererState *st = &g_abR3dState;
+    s32 *cam = &st->nActorCamX; /* X, Z, Y */
+    s32 extent, a;
+    u32 u;
+    u16 count;
+
+    r3d_build_rotation_matrix(g_r3d.matIn, &st->mat3x3TempOut);
+    r3d_matrix3x3_multiply(&st->mat3x3TempOut, &st->mat3x3ViewRot, &st->mat3x3ActorRot);
+    r3d_matrix3x3_transpose(&st->mat3x3TempOut);
+
+    extent = abs32(cam[0]);
+    a = abs32(cam[1]);
+    if (extent < a)
+        extent = a;
+    a = abs32(cam[2]);
+    if (extent < a)
+        extent = a;
+    st->nActorBoundExtent = extent;
+
+    a = sar32((s32)((u32)st->nMeshBoundHalfExtent + (u32)extent), st->wMeshScaleShift);
+    count = st->wMeshScaleShift;
+    for (u = (u32)a; u >= 0x3fac; u >>= 1) /* SHR: a negative sum takes 32 shifts */
+        count++;
+    /* a word store: the count's high byte goes to the byte after it */
+    st->bMeshRenormCount = (unsigned char)count;
+    st->bMeshRenormCountHi = (unsigned char)(count >> 8);
+    st->wMeshScaleResidual = (u16)(st->wMeshScaleShift - count);
+
+    st->nMeshNormOriginX = (s16)sar32(st->nActorClampedCamZ, count);
+    st->nMeshOriginX = (s16)sar32(cam[0], count);
+    st->nMeshOriginY = (s16)sar32(cam[1], count);
+    st->nMeshOriginZ = (s16)sar32(cam[2], count);
+    g_r3d.matIn[0] = (s16)sar32(st->nActorRelX, count);
+    g_r3d.matIn[1] = (s16)sar32(st->nActorRelY, count);
+    g_r3d.matIn[2] = (s16)sar32(st->nActorRelZ, count);
+    transform_vec3(g_r3d.matIn, &st->mat3x3TempOut, &st->nMeshCamOriginX);
+    transform_vec3(g_r3d.vec3LightDirWorld, &st->mat3x3TempOut, st->vec3LightDirObj);
 }
 
-void r3d_actor_compute_lod_z(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_actor_compute_lod_z");
+static s16 rd16(const unsigned char *p) {
+    return (s16)(u16)(p[0] | p[1] << 8);
 }
+
+/* The nearer of a box's two faces along the view axis: each face's coordinate (record words
+ * at a and b) times the matrix element, Q14; none for an element of 0. */
+static s16 nearer_face(const unsigned char *rec, int a, int b, s16 r) {
+    s16 fa, fb;
+    if (r == 0)
+        return 0;
+    fa = fmul(rd16(rec + a), r);
+    fb = fmul(rd16(rec + b), r);
+    return fa <= fb ? fa : fb;
+}
+
+/*
+ * The actor's depth for its level of detail: its camera depth less the mesh's half extent
+ * for a simple mesh (flag 20h), else plus its bounding box's nearest corner along the view
+ * axis (the box at 0Eh and 14h of the shape record), scaled by the mesh's shift.
+ */
+void r3d_actor_compute_lod_z(void) {
+    R3dRendererState *st = &g_abR3dState;
+    const unsigned char *rec = st->pCurActorPagedRec;
+    const s16 *rot = st->mat3x3ActorRot.pM;
+    u32 z;
+
+    if (rec[0] & MESH_FLAG_SIMPLE) {
+        st->nActorLodZ = (s32)((u32)st->nActorCamZ - (u32)st->nMeshBoundHalfExtent);
+        return;
+    }
+    st->nActorLodZ = nearer_face(rec, 0x0e, 0x14, rot[1]);
+    st->nActorLodZ = (s32)((u32)st->nActorLodZ + (u32)(s32)nearer_face(rec, 0x10, 0x16, rot[4]));
+    st->nActorLodZ = (s32)((u32)st->nActorLodZ + (u32)(s32)nearer_face(rec, 0x12, 0x18, rot[7]));
+    z = (u32)st->nActorLodZ;
+    z = st->wMeshScaleShift >= 32 ? 0 : z << st->wMeshScaleShift;
+    st->nActorLodZ = (s32)(z + (u32)st->nActorCamZ);
+}
+
+/* ---- not translated yet ------------------------------------------------------------ */
 
 s32 r3d_backface_dot_indexed(void) {
     BAK_UNIMPLEMENTED("R3D.ASM: r3d_backface_dot_indexed");
@@ -467,14 +647,6 @@ void r3d_mesh_polygons(unsigned char *part_header) {
 void r3d_mesh_part_polygons_lod3(unsigned short *part_header) {
     (void)part_header;
     BAK_UNIMPLEMENTED("R3D.ASM: r3d_mesh_part_polygons_lod3");
-}
-
-s32 r3d_dot3_coeff16_vec32(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_dot3_coeff16_vec32");
-}
-
-void r3d_mat3_xform_vec3_ll(void) {
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_mat3_xform_vec3_ll");
 }
 
 void r3d_polygon_scissor_2d(void) {

@@ -409,3 +409,120 @@ def test_projection(krondor, native):
         ax = krondor.call_far("r3d_vec2_long_translate_yflip", pt, ds=seg).ax
         got = native.call("r3d.yflip", words(cx, cy) + bytes((pt,)) + bytes(mem))
         assert got == krondor.read((seg, 0), MEM) + words(ax), (cx, cy, pt)
+
+
+STATE_SIZE, STATE_PTRS, STATE_REST = 0xAD, 0x85, 0x8B
+ST_SHIFT, ST_HALF, ST_RELX = 0x08, 0x8B, 0x4D
+ST_CAMX, ST_CLAMPZ, ST_CAMPOS = 0x59, 0x9F, 0x71
+ST_VIEWROT, ST_ACTORROT, ST_DIST = 0x14, 0x27, 0xA5
+
+
+def rotation_bytes(rng) -> bytes:
+    """A matrix the builder makes (every type), or any values with any type byte."""
+    if rng.random() < 0.7:
+        m = Machine_free_matrix(rng)
+        return m
+    return matrix_bytes(rng)
+
+
+def Machine_free_matrix(rng) -> bytes:
+    # A rotation from random angles, built on the Python side the way the tests know: the
+    # identity, a turn about Z, or a full one, as Q14 values within one.
+    kind = rng.choice((0, 1, 3, 3))
+    if kind == 0:
+        return words(0x4000, 0, 0, 0, 0x4000, 0, 0, 0, 0x4000) + bytes([0])
+    values = [rng.randrange(-0x4000, 0x4001) for _ in range(9)]
+    if kind == 1:
+        values[2] = values[5] = values[6] = values[7] = 0
+        values[8] = 0x4000
+    return words(*values) + bytes([kind])
+
+
+def actor_case(m, native, rng, step: int, tweak=None) -> None:
+    state = bytearray(rng.randbytes(STATE_SIZE))
+    scratch = bytearray(rng.randbytes(24))
+    shift = rng.choice((0, 0, 1, 2, 3, rng.randrange(32), rng.randrange(0x10000)))
+    state[ST_SHIFT : ST_SHIFT + 2] = words(shift)
+    state[ST_DIST : ST_DIST + 2] = words(rng.choice(VIEW_DISTS + [rng.randrange(0x10000)]))
+    state[ST_VIEWROT : ST_VIEWROT + 19] = rotation_bytes(rng)
+    state[ST_ACTORROT : ST_ACTORROT + 19] = rotation_bytes(rng)
+    if rng.random() < 0.6:  # the game's magnitudes: positions within a zone, near the camera
+        for off, n in ((ST_CAMPOS, 3), (ST_RELX, 3), (ST_CAMX, 3)):
+            state[off : off + 4 * n] = struct.pack(
+                f"<{n}i", *(rng.randrange(-0x40000, 0x40000) for _ in range(n))
+            )
+        state[ST_HALF : ST_HALF + 4] = struct.pack("<i", rng.randrange(0, 0x8000))
+        state[ST_CLAMPZ : ST_CLAMPZ + 4] = struct.pack("<i", rng.randrange(0x80, 0x40000))
+    entry = bytearray(rng.randbytes(22))
+    if rng.random() < 0.5:
+        entry[2:14] = struct.pack("<3i", *(rng.randrange(-0x40000, 0x40000) for _ in range(3)))
+    record = bytearray(rng.randbytes(26))
+    record[0] = rng.choice((0, 0x20, 0x40, 0x60, rng.randrange(256)))
+    if tweak is not None:
+        tweak(state)
+
+    m.free_all()
+    seg = m.alloc(0x40)
+    m.write((seg, 0), bytes(entry) + bytes(record))
+    orig_state = bytearray(state)
+    orig_state[STATE_PTRS : STATE_PTRS + 4] = words(22, seg)  # the record, after the entry
+    m.write("g_abR3dState", bytes(orig_state))
+    m.write("g_matXIn", bytes(scratch[:18]))
+    cs_seg, cs_off = m.sym("r3d_camera_setup_view")
+    m.write((cs_seg, cs_off - 6), bytes(scratch[18:]))
+    routine = (
+        "r3d_setup_actor_in_camera_space",
+        "r3d_compose_actor_camera_matrix",
+        "r3d_actor_compute_lod_z",
+    )[step]
+    if step == 0:
+        m.call_far(routine, 0, seg)
+    else:
+        m.call_far(routine)
+    want = bytearray(m.read("g_abR3dState", STATE_SIZE))
+    want[STATE_PTRS:STATE_REST] = bytes(STATE_REST - STATE_PTRS)
+    want += m.read("g_matXIn", 18) + m.read((cs_seg, cs_off - 6), 6)
+    got = native.call(
+        "r3d.actor", bytes([step]) + bytes(state) + bytes(scratch) + bytes(entry) + bytes(record)
+    )
+    if got != bytes(want):
+        at = next(k for k in range(len(got)) if got[k] != want[k])
+        raise AssertionError(f"{routine}: differs at {at:#x} (shift {shift})")
+
+
+def test_actor_setup(krondor, native):
+    # The actor into camera space: every type of view matrix, positions in a zone and
+    # anywhere, depths on both sides of the view plane.
+    rng = random.Random(11)
+    for _ in range(800):
+        actor_case(krondor, native, rng, 0)
+
+
+def test_actor_compose(krondor, native):
+    # The actor's matrix and its mesh's scale: mesh shifts of 0-3 as the game's, up to the
+    # 16-bit range (the shifts saturate), extents whose sum is negative or past 3FACh.
+    rng = random.Random(12)
+    for _ in range(800):
+        actor_case(krondor, native, rng, 1)
+
+    # The extent plus the half extent just under, on and over 3FACh, before and after shifts.
+    def edge(total: int, shift: int):
+        def tweak(state: bytearray) -> None:
+            extent = rng.randrange(total + 1)
+            state[ST_SHIFT : ST_SHIFT + 2] = words(shift)
+            state[ST_CAMX : ST_CAMX + 12] = struct.pack("<3i", -extent, extent // 2, 0)
+            state[ST_HALF : ST_HALF + 4] = struct.pack("<i", total - extent)
+
+        return tweak
+
+    for shift in (0, 1, 3):
+        for k in (0, 1, 4):
+            for total in (0x3FAB, 0x3FAC, 0x3FAD):
+                actor_case(krondor, native, rng, 1, edge((total << k) << shift, shift))
+
+
+def test_actor_lod_depth(krondor, native):
+    # Simple meshes (flag 20h) and boxed ones, matrix elements of 0, any box.
+    rng = random.Random(13)
+    for _ in range(800):
+        actor_case(krondor, native, rng, 2)

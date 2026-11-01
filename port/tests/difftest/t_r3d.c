@@ -184,6 +184,73 @@ static void cmd_yflip(DtIn *in, DtOut *out) {
     put_result(out, r3d_vec2_long_translate_yflip(pt));
 }
 
+/*
+ * The renderer's state block in the original's layout (3778h..3824h): the same as the
+ * struct's up to its two pointers, a far one at 85h and a near one at 89h, which natively
+ * are wider; they read as zeros here and are set apart.
+ */
+#define STATE_SIZE 0xad
+#define STATE_PTRS 0x85
+#define STATE_REST 0x8b
+_Static_assert(offsetof(R3dRendererState, pCurActorPagedRec) == STATE_PTRS, "state layout");
+
+static void state_get(DtIn *in) {
+    const uint8_t *b = dt_bytes(in, STATE_SIZE);
+    memcpy(&g_abR3dState, b, STATE_PTRS);
+    memcpy(&g_abR3dState.nMeshBoundHalfExtent, b + STATE_REST, STATE_SIZE - STATE_REST);
+}
+
+static void state_put(DtOut *out) {
+    static const uint8_t zeros[STATE_REST - STATE_PTRS];
+    dt_put_bytes(out, &g_abR3dState, STATE_PTRS);
+    dt_put_bytes(out, zeros, sizeof zeros);
+    dt_put_bytes(out, &g_abR3dState.nMeshBoundHalfExtent, STATE_SIZE - STATE_REST);
+}
+
+/* g_matXIn, g_matXIn2, g_matXOut and the world's light vector */
+static void scratch_get(DtIn *in) {
+    memcpy(g_r3d.matIn, dt_bytes(in, 6), 6);
+    memcpy(g_r3d.matIn2, dt_bytes(in, 6), 6);
+    memcpy(g_r3d.matOut, dt_bytes(in, 6), 6);
+    memcpy(g_r3d.vec3LightDirWorld, dt_bytes(in, 6), 6);
+}
+
+static void scratch_put(DtOut *out) {
+    dt_put_bytes(out, g_r3d.matIn, 6);
+    dt_put_bytes(out, g_r3d.matIn2, 6);
+    dt_put_bytes(out, g_r3d.matOut, 6);
+    dt_put_bytes(out, g_r3d.vec3LightDirWorld, 6);
+}
+
+/*
+ * r3d.actor <u8 step> <state> <scratch> <22 bytes: the WorldObject> <26 bytes: the shape
+ * record> -> the state and the scratch after the step: 0 r3d_setup_actor_in_camera_space,
+ * 1 r3d_compose_actor_camera_matrix, 2 r3d_actor_compute_lod_z (the record is the actor's)
+ */
+static void cmd_actor(DtIn *in, DtOut *out) {
+    static unsigned char record[26];
+    WorldObject entry;
+    uint8_t step = dt_u8(in);
+    state_get(in);
+    scratch_get(in);
+    memset(&entry, 0, sizeof entry); /* the original's 22 bytes, field by field */
+    memcpy(&entry.shapeId, dt_bytes(in, 2), 2);
+    memcpy(&entry.pos, dt_bytes(in, 12), 12);
+    memcpy(&entry.orientation, dt_bytes(in, 6), 6);
+    memcpy(&entry.state.stateBits, dt_bytes(in, 2), 2);
+    memcpy(record, dt_bytes(in, sizeof record), sizeof record);
+    g_abR3dState.pCurActorPagedRec = record;
+    g_abR3dState.pCurMeshPartVisTable = NULL;
+    if (step == 0)
+        r3d_setup_actor_in_camera_space(&entry, 0);
+    else if (step == 1)
+        r3d_compose_actor_camera_matrix();
+    else
+        r3d_actor_compute_lod_z();
+    state_put(out);
+    scratch_put(out);
+}
+
 /* r3d.imul <s16 a, s16 b>... -> u32 each */
 static void cmd_imul(DtIn *in, DtOut *out) {
     while (dt_remaining(in) != 0) {
@@ -206,6 +273,7 @@ const DtEntry dt_r3d_entries[] = {
     DT_COMMAND("r3d.persp", cmd_persp),
     DT_COMMAND("r3d.projscale", cmd_projscale),
     DT_COMMAND("r3d.yflip", cmd_yflip),
+    DT_COMMAND("r3d.actor", cmd_actor),
     {"g_abLightingLut", NULL, g_r3d.abLightingLut, sizeof g_r3d.abLightingLut},
     DT_END,
 };
