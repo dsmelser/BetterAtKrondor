@@ -59,7 +59,7 @@ static void far ilbmsave_write_body_chunk(FILE *stream) {
     size_be = 64000;
     ilbmsave_iff_fwrite_be(&size_be, 1, 4, stream);
 
-    src = malloc(0x280);
+    src = calloc(1, 0x280);
     y = 0;
     do {
         p = (unsigned char *)src;

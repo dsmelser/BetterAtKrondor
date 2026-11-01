@@ -290,6 +290,16 @@ static int fill_ffblk(FindState *f, struct ffblk *ff) {
     return -1;
 }
 
+/* Names compare case-insensitively, as DOS's do. */
+static int compare_names(const void *a, const void *b) {
+    const char *x = *(const char *const *)a, *y = *(const char *const *)b;
+    for (;; x++, y++) {
+        int cx = toupper((unsigned char)*x), cy = toupper((unsigned char)*y);
+        if (cx != cy || cx == 0)
+            return cx - cy;
+    }
+}
+
 static void add_name(FindState *f, const char *name) {
     if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
         return;
@@ -343,6 +353,10 @@ int bakrtl_findfirst(const char *pattern, struct ffblk *ff, int attrib) {
         closedir(d);
     }
 #endif
+    /* In name order: the host's directory order (creation order on FAT, a tree's on NTFS,
+     * anything in a browser's file system) must not reach a run. */
+    if (f->count > 1)
+        qsort(f->names, (size_t)f->count, sizeof *f->names, compare_names);
     memset(ff->ff_reserved, 0, sizeof ff->ff_reserved);
     ff->ff_reserved[0] = (char)(slot + 1);
     if (fill_ffblk(f, ff) != 0) {

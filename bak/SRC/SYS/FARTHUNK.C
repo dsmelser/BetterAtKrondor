@@ -54,7 +54,7 @@ s16 fclose_far(FILE *stream) {
 }
 
 void *my_malloc(u16 size) {
-    return malloc(size);
+    return calloc(1, size);
 }
 
 void my_free(void *ptr) {

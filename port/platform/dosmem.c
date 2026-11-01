@@ -26,10 +26,13 @@
  */
 #define BLOCK_SLACK 0x1000u
 
+/* Every block starts zeroed, asked or not: what the host's allocator left there (which
+ * differs between debug, release and sanitized builds) must not reach a run. */
 void *bak_dos_alloc(uint32_t size, int zeroFill) {
+    (void)zeroFill;
     uint32_t rounded = (size + 15u) & ~15u;
     uint32_t bytes = (rounded ? rounded : 16) + BLOCK_SLACK;
-    void *p = zeroFill ? calloc(1, bytes) : malloc(bytes);
+    void *p = calloc(1, bytes);
     if (p == NULL)
         return NULL;
     bak_seg_register(p, rounded);

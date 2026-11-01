@@ -14,7 +14,7 @@ unsigned short g_bForceOverlay = 0x0000;
 void *actormotion_xzmalloc(u16 size) {
     void *p;
 
-    p = malloc(size);
+    p = calloc(1, size);
     if (p == NULL) {
         panic("malloc failed");
     }

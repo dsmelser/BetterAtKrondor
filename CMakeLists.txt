@@ -123,10 +123,14 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")
         -Wno-unused-variable
         -Wno-unused-but-set-variable
         -Wno-unused-function)
+    # Locals the game reads before it sets them start at zero, in every build: what the stack
+    # held (debug builds fill it with CCh) must not reach a run.
+    set(BAK_GAME_DETERMINISM -ftrivial-auto-var-init=zero)
     if(MSVC)
         list(TRANSFORM BAK_GAME_QUIET PREPEND "/clang:")
+        list(TRANSFORM BAK_GAME_DETERMINISM PREPEND "/clang:")
     endif()
-    target_compile_options(bakgame PRIVATE ${BAK_GAME_QUIET})
+    target_compile_options(bakgame PRIVATE ${BAK_GAME_QUIET} ${BAK_GAME_DETERMINISM})
 endif()
 
 # --- The native executable ---------------------------------------------------------------

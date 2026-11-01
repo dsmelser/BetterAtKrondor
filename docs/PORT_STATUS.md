@@ -120,6 +120,15 @@ source.
 | `GEN/GFXCTX.H`, `GEN/RNDVTBL.H` | the original's labels inside the graphics-context block and the vtable name the same storage |
 | `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
 
+## Changes from the original
+
+The game's rules stay the original's (CLAUDE.md); these change how it runs.
+
+- **Memory the game reads before setting it is zero.** DOS blocks and the game's own `malloc`s are
+  zero-filled, and `bakgame` builds with `-ftrivial-auto-var-init=zero`. Debug, release and sanitized
+  builds then run alike: their replays agree frame for frame.
+- **`findfirst` returns names sorted**, not in the host directory's order.
+
 ## ASM modules
 
 The 50 TASM modules of the 1.02 link start as generated placeholders (`port/tools/gen_asm_stubs.py`):
