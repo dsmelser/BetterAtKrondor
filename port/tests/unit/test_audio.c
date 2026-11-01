@@ -231,5 +231,19 @@ void unit_audio_dump_follows_the_clock(void) {
         UNIT_CHECK(rd32(h + 24) == AUDIO_RATE && (h[22] | h[23] << 8) == 2);
         UNIT_CHECK((int16_t)(h[44] | h[45] << 8) == 618); /* the first frame's left, rounded */
     }
+    /* The same sound rendered as the clock moves in other steps: the same hash. */
+    uint32_t hash = audio_wav_hash();
+    clock_use_virtual(T0);
+    settings_override("audio.volume=50", why, sizeof why);
+    s = add_test_source(&t, AUDIO_RATE, AUDIO_VOLUME_EFFECTS);
+    UNIT_CHECK(audio_open_dump(path, T0));
+    settings_override("audio.volume=100", why, sizeof why);
+    audio_post_at(s, 0, 1235, 0, NULL);
+    audio_advance(T0 + 7 * MS);
+    audio_advance(T0 + 61 * MS);
+    audio_advance(T0 + 100 * MS);
+    UNIT_CHECK(t.rendered == 4800);
+    audio_close();
+    UNIT_CHECK(audio_wav_hash() == hash);
     unit_remove_tree(dir);
 }

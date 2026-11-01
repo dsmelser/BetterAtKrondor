@@ -71,6 +71,9 @@ void audio_post_at(AudioSource *s, uint64_t ns, uint32_t a, uint32_t b, void *p)
 /* A line for BAK_AUDIO_LOG's file, which replays compare: something a source was told, at the
  * present moment (ms). When the WAV file is finished, its length and hash end the log. */
 void audio_log(const char *fmt, ...);
+/* The hash of the last WAV file finished, as its log line gives it: of its sound alone, whatever
+ * the sizes it was written in. */
+uint32_t audio_wav_hash(void);
 
 /* Render what is due up to nowNs when rendering follows the clock (audio_open_dump); called
  * as the platform polls. */

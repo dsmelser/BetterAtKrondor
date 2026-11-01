@@ -55,7 +55,8 @@ static float s_volume, s_music, s_effects;
 
 static SDL_IOStream *s_wav;
 static uint32_t s_wavBytes;
-static uint32_t s_wavHash;
+static uint64_t s_wavHash; /* FNV-1a over the frames written, whatever the writes' sizes */
+static uint32_t s_wavDone; /* the last WAV file's, folded */
 static SDL_IOStream *s_log;
 static bool s_logOpened;
 
@@ -89,7 +90,7 @@ static bool wav_open(const char *path) {
         return false;
     }
     s_wavBytes = 0;
-    s_wavHash = 0;
+    s_wavHash = 0xcbf29ce484222325ull;
     wav_header(h, 0);
     SDL_WriteIO(s_wav, h, sizeof h);
     return true;
@@ -103,7 +104,10 @@ static void wav_write(const float *mix, int frames) {
         pcm[i] = (int16_t)(v < 0.0f ? v - 0.5f : v + 0.5f);
     }
     SDL_WriteIO(s_wav, pcm, (size_t)frames * 4);
-    s_wavHash = platform_hash(s_wavHash, pcm, (size_t)frames * 4);
+    for (int i = 0; i < frames; i++)
+        s_wavHash = (s_wavHash ^ ((uint32_t)(uint16_t)pcm[2 * i] |
+                                  (uint32_t)(uint16_t)pcm[2 * i + 1] << 16)) *
+                    0x100000001b3ull;
     s_wavBytes += (uint32_t)frames * 4;
 }
 
@@ -114,7 +118,12 @@ static void wav_close(void) {
     SDL_WriteIO(s_wav, h, sizeof h);
     SDL_CloseIO(s_wav);
     s_wav = NULL;
-    audio_log("wav: %u frames, hash %08x", (unsigned)(s_wavBytes / 4), (unsigned)s_wavHash);
+    s_wavDone = (uint32_t)(s_wavHash ^ s_wavHash >> 32);
+    audio_log("wav: %u frames, hash %08x", (unsigned)(s_wavBytes / 4), (unsigned)s_wavDone);
+}
+
+uint32_t audio_wav_hash(void) {
+    return s_wavDone;
 }
 
 /* ---- the log ------------------------------------------------------------------------------ */
