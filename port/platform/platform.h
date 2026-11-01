@@ -3,6 +3,7 @@
 #define BAK_PLATFORM_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /* Game data directory (the user's copy) and the writable user directory (saves, TEMP.GAM). */
@@ -15,6 +16,24 @@ bool platform_init(int argc, char **argv);
 /* Set by the test runner: no real-time waits and no presenting (vertical retrace is
  * always under way). */
 extern bool g_platformFreeRunning;
+
+/*
+ * The clock everything time-driven follows (clock.c): the host's, or with BAK_CLOCK=virtual
+ * one that moves only as the game runs, so scripted runs repeat exactly.
+ */
+#define CLOCK_POLL_NS 1000ull /* what a poll costs on the virtual clock */
+bool clock_is_virtual(void);
+/* Switch to the virtual clock at nowNs (the unit tests). */
+void clock_use_virtual(uint64_t nowNs);
+uint64_t clock_now_ns(void);
+/* Account for work done: moves the virtual clock, nothing on the host's. */
+void clock_spend(uint64_t ns);
+/* Wait: the host's clock sleeps wallNs; the virtual one jumps to dueNs, the next moment
+ * something is due (or by a poll's cost if that has passed). */
+void clock_idle(uint64_t wallNs, uint64_t dueNs);
+
+/* A fast hash of a buffer for the replay logs (hash.c); chain calls through hash. */
+uint32_t platform_hash(uint32_t hash, const void *data, size_t bytes);
 
 /* Print crashes (exception + symbolized call stack) to stderr (crash_win32.c). */
 void crash_reporter_install(void);
@@ -49,6 +68,8 @@ bool input_script_poll(void);
 bool machine_port_in8(uint16_t port, uint8_t *value);
 bool machine_port_out8(uint16_t port, uint8_t value);
 void bak_keyboard_irq(uint8_t scancode);
+/* The next moment a poll has work: the timer's next tick or the next look at host events. */
+uint64_t machine_next_due_ns(void);
 
 /* mpu401.c: the MPU-401's ports (false: not 330h or 331h). */
 bool mpu401_port_in8(uint16_t port, uint8_t *value);

@@ -100,12 +100,12 @@ static void parse(const char *text) {
 bool input_script_poll(void) {
     if (!s_loaded) {
         s_loaded = true;
-        s_startNs = SDL_GetTicksNS();
+        s_startNs = clock_now_ns();
         const char *text = SDL_getenv("BAK_INPUT");
         if (text != NULL)
             parse(text);
     }
-    uint64_t now = SDL_GetTicksNS();
+    uint64_t now = clock_now_ns();
     while (s_next < s_count && s_steps[s_next].atNs <= now) {
         Step s = s_steps[s_next++];
         SDL_Event e = {0};

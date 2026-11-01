@@ -5,15 +5,14 @@
  * Interrupts are delivered where the game looks for them. bak_poll, called from the
  * points where the game waits or reads its input and timer state, pumps host events
  * (a key becomes an IRQ 1, the mouse driver calls its handler) and runs IRQ 0 once for
- * every period of the programmed timer rate that has passed in real time. Vectors
- * 08h, 09h and 1Ch are a small table the game's install routines write, so the BIOS
- * handlers they replace and chain to exist too.
+ * every period of the programmed timer rate that has passed on the platform's clock
+ * (clock.c: real time, or the virtual time of a replay). Vectors 08h, 09h and 1Ch are a
+ * small table the game's install routines write, so the BIOS handlers they replace and
+ * chain to exist too.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <SDL3/SDL.h>
 
 #include "bak_port.h"
 #include "bak_video.h"
@@ -107,7 +106,7 @@ bool bak_in_isr(void) {
 static void pit_reprogrammed(void) {
     uint32_t count = s_pitDivisor ? s_pitDivisor : 0x10000u;
     s_tickNs = count * 1000000000ull / PIT_HZ;
-    s_nextTickNs = SDL_GetTicksNS() + s_tickNs;
+    s_nextTickNs = clock_now_ns() + s_tickNs;
 }
 
 bool machine_port_in8(uint16_t port, uint8_t *value) {
@@ -164,7 +163,7 @@ void bak_keyboard_irq(uint8_t scancode) {
 /* Runs the timer interrupts that are due, pumps host events now and then, and shows a
  * frame at the display's refresh rate. Returns whether anything happened. */
 static bool poll(void) {
-    uint64_t now = SDL_GetTicksNS();
+    uint64_t now = clock_now_ns();
     bool busy = false;
     if (now - s_lastPumpNs >= PUMP_NS) {
         s_lastPumpNs = now;
@@ -194,19 +193,26 @@ static bool poll(void) {
     return busy;
 }
 
+uint64_t machine_next_due_ns(void) {
+    uint64_t pump = s_lastPumpNs + PUMP_NS;
+    return s_tickNs != 0 && s_nextTickNs < pump ? s_nextTickNs : pump;
+}
+
 void bak_poll(void) {
     if (s_inIsr || g_platformFreeRunning)
         return;
+    clock_spend(CLOCK_POLL_NS);
     /* A loop that only polls (a bare wait on a timer variable) yields the CPU. */
     if (poll())
         s_idlePolls = 0;
     else if (++s_idlePolls >= 64)
-        SDL_DelayPrecise(100000);
+        clock_idle(100000, machine_next_due_ns());
 }
 
 void bak_idle(void) {
     if (s_inIsr || g_platformFreeRunning)
         return;
+    clock_spend(CLOCK_POLL_NS);
     if (!poll())
-        SDL_DelayPrecise(250000);
+        clock_idle(250000, machine_next_due_ns());
 }

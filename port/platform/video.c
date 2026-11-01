@@ -7,7 +7,9 @@
  * four planes, mapped through the attribute controller's palette. It goes through the
  * emulated DAC and is shown scaled to a 4:3 picture, as on a VGA monitor.
  */
+#include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <SDL3/SDL.h>
@@ -27,6 +29,7 @@ static SDL_Renderer *s_renderer;
 static SDL_Texture *s_texture;
 static int s_width = BAK_VGA_WIDTH, s_height = BAK_VGA_HEIGHT; /* the picture's pixels */
 static uint32_t s_picture[MAX_WIDTH * MAX_HEIGHT];
+static bool s_offscreen; /* SDL's dummy video driver: nobody sees the window */
 
 uint8_t *bak_video_page(uint16_t pageSeg) {
     if (pageSeg < 0xA000) {
@@ -68,6 +71,8 @@ bool video_open(void) {
     if (!set_picture_size(BAK_VGA_WIDTH, BAK_VGA_HEIGHT))
         return false;
     SDL_HideCursor(); /* the game draws its own */
+    const char *driver = SDL_GetCurrentVideoDriver();
+    s_offscreen = driver != NULL && SDL_strcmp(driver, "dummy") == 0;
     return true;
 }
 
@@ -90,22 +95,66 @@ void video_close(void) {
     s_window = NULL;
 }
 
-/* BAK_DUMP_FRAME=<file.bmp>: write every presented frame there too (headless checks). */
-static void dump_frame(void) {
-    static const char *path;
-    static bool checked;
+/*
+ * Headless checks, each written when the picture shown differs from the one before it:
+ *
+ *   BAK_DUMP_FRAME=<file.bmp>  the picture, so the file ends up holding the last one shown;
+ *   BAK_DUMP_FRAMES=<dir>      every picture, numbered from 00001.bmp, as the frame log's lines;
+ *   BAK_FRAME_LOG=<file>       a line per picture: the clock's time in ms, the size and the
+ *                              hash of the pixels. On the virtual clock (BAK_CLOCK=virtual) a
+ *                              scripted run writes the same log every time, so two builds can be
+ *                              compared frame by frame.
+ */
+static void save_bmp(const char *path) {
+    SDL_Surface *s =
+        SDL_CreateSurfaceFrom(s_width, s_height, SDL_PIXELFORMAT_XRGB8888, s_picture, s_width * 4);
+    if (s != NULL) {
+        SDL_SaveBMP(s, path);
+        SDL_DestroySurface(s);
+    }
+}
+
+static void record_frame(void) {
+    static const char *dumpPath, *dumpDir;
+    static FILE *log;
+    static bool checked, written;
+    static uint32_t last[MAX_WIDTH * MAX_HEIGHT];
+    static int lastW, lastH;
+    static unsigned count;
     if (!checked) {
         checked = true;
-        path = SDL_getenv("BAK_DUMP_FRAME");
+        dumpPath = SDL_getenv("BAK_DUMP_FRAME");
+        dumpDir = SDL_getenv("BAK_DUMP_FRAMES");
+        const char *logPath = SDL_getenv("BAK_FRAME_LOG");
+        if (logPath != NULL && (log = fopen(logPath, "w")) == NULL) {
+            fprintf(stderr, "BAK_FRAME_LOG: cannot write %s\n", logPath);
+            exit(2);
+        }
     }
-    if (path == NULL)
+    if (dumpPath == NULL && dumpDir == NULL && log == NULL)
         return;
-    SDL_Surface *s = SDL_CreateSurfaceFrom(s_width, s_height, SDL_PIXELFORMAT_XRGB8888, s_picture,
-                                           s_width * 4);
-    if (s == NULL)
+    size_t bytes = (size_t)s_width * (size_t)s_height * sizeof s_picture[0];
+    if (written && s_width == lastW && s_height == lastH && memcmp(last, s_picture, bytes) == 0)
         return;
-    SDL_SaveBMP(s, path);
-    SDL_DestroySurface(s);
+    written = true;
+    memcpy(last, s_picture, bytes);
+    lastW = s_width;
+    lastH = s_height;
+    uint32_t hash = platform_hash(0, s_picture, bytes);
+    count++;
+    if (dumpPath != NULL)
+        save_bmp(dumpPath);
+    if (dumpDir != NULL) {
+        char path[1024];
+        snprintf(path, sizeof path, "%s/%05u.bmp", dumpDir, count);
+        save_bmp(path);
+    }
+    if (log != NULL) {
+        uint64_t ns = clock_now_ns();
+        fprintf(log, "%" PRIu64 ".%03" PRIu64 " %dx%d %08" PRIx32 "\n", ns / 1000000,
+                ns / 1000 % 1000, s_width, s_height, hash);
+        fflush(log);
+    }
 }
 
 /*
@@ -178,7 +227,9 @@ void video_present(void) {
         pal[i] = (r << 2 | r >> 4) << 16 | (g << 2 | g >> 4) << 8 | (b << 2 | b >> 4);
     }
     scan_out(pal);
-    dump_frame();
+    record_frame();
+    if (s_offscreen)
+        return;
     SDL_UpdateTexture(s_texture, NULL, s_picture, s_width * 4);
     SDL_RenderClear(s_renderer);
     SDL_FRect dst = {0, 0, (float)s_width, (float)(s_width * 3 / 4)};

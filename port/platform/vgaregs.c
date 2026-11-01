@@ -4,8 +4,8 @@
  * Keeps the sequencer, CRTC, graphics-controller, attribute-controller and DAC
  * state the original reads back or relies on (CRTC start address, line compare
  * and pel panning drive the hardware scrolling in UI/SCROLL.C). Vertical retrace
- * comes from a virtual 70 Hz refresh: Input Status 1 (3DAh) reports it, and
- * bak_vga_wait_retrace waits for it and shows the frame.
+ * comes from a virtual 70 Hz refresh on the platform's clock: Input Status 1 (3DAh)
+ * reports it, and bak_vga_wait_retrace waits for it and shows the frame.
  *
  * Also the CPU's path to display memory through the graphics controller (the latches,
  * read modes 0-1 and write modes 0-3), and the register values the BIOS sets for the
@@ -83,7 +83,9 @@ static uint64_t frame_phase(uint64_t ns) {
 }
 
 static uint8_t input_status_1(void) {
-    uint64_t phase = frame_phase(SDL_GetTicksNS());
+    /* A loop waiting on the retrace bit must see time pass on the virtual clock too. */
+    clock_spend(CLOCK_POLL_NS);
+    uint64_t phase = frame_phase(clock_now_ns());
     uint8_t v = 0;
     if (phase < RETRACE_NS)
         v |= 0x08 | 0x01;
@@ -98,17 +100,18 @@ void bak_vga_wait_retrace(int next) {
     s_attrFlipFlop = 0;
     if (g_platformFreeRunning)
         return;
-    uint64_t now = SDL_GetTicksNS();
+    uint64_t now = clock_now_ns();
     uint64_t phase = frame_phase(now);
     if (next || phase >= RETRACE_NS) {
         uint64_t target = now - phase + FRAME_NS;
         /* Interrupts keep coming while the game waits for retrace. */
         for (;;) {
             bak_poll();
-            now = SDL_GetTicksNS();
+            now = clock_now_ns();
             if (now >= target)
                 break;
-            SDL_DelayPrecise(target - now < 250000 ? target - now : 250000);
+            uint64_t due = machine_next_due_ns();
+            clock_idle(target - now < 250000 ? target - now : 250000, due < target ? due : target);
         }
     }
     video_present();

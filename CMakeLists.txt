@@ -181,7 +181,13 @@ file(GLOB BAK_DIFFTEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/port/tests
 add_executable(bak_difftest ${BAK_DIFFTEST_SOURCES})
 target_link_libraries(bak_difftest PRIVATE bakport bakgame SDL3::SDL3)
 
+# Unit tests of the port's own code (port/tests/unit). They need no game data, so CI runs them.
+file(GLOB BAK_UNIT_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/port/tests/unit/*.c")
+add_executable(bak_unittest ${BAK_UNIT_SOURCES})
+target_link_libraries(bak_unittest PRIVATE bakport bakgame SDL3::SDL3)
+
 enable_testing()
+add_test(NAME unit COMMAND bak_unittest)
 find_program(BAK_UV uv)
 if(BAK_UV)
     add_test(NAME difftest

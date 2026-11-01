@@ -133,6 +133,10 @@ _Bool bak_in_isr(void);
 /* A variable an interrupt updates, read where the game waits for it: polls first. */
 #define BAK_POLLED(var) (*(bak_poll(), &(var)))
 
+/* Called once per pass of the world loop: logs the game's state for replays when
+ * BAK_STATE_LOG names a file (port/platform/statelog.c). */
+void bak_state_log_pass(void);
+
 /* The BIOS data area (0040:0000), also reachable as MK_FP(0x40, off). */
 unsigned char *bak_bios_data(void);
 

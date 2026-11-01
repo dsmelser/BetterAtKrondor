@@ -91,6 +91,7 @@ short far world3d_main_loop(void) {
     g_nSceneReloadPending = 1;
 
     while (keep_running != 0) {
+        bak_state_log_pass();
         if (g_gameState.abTeleportRecord[0] != '\0') {
             g_nSceneReloadPending = modalscreen_pending_scene_trans();
         }

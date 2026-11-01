@@ -25,6 +25,8 @@ port\tools\win-build.cmd [preset]                 # Windows: VS env + configure 
 build\win-x86-clangcl\betterkrondor.exe --data <game dir> [--user <save dir>]
 port\tools\win-build.cmd win-x86-clangcl-asan     # AddressSanitizer: finds buffers sized for 16-bit pointers
 uv run --group difftest pytest -q port/tests       # differential tests (needs work/ref, see port/tests/README.md)
+build\win-x86-clangcl\bak_unittest.exe            # unit tests of the port's own code (no game data)
+uv run python -I port/tools/replay.py check world --data <game dir>   # replay on the virtual clock vs its baseline (record first)
 uv run python -I port/tools/dosbox_golden.py run main-menu --data <game dir>   # the original in DOSBox Staging vs the port
 python -I port/tools/gen_asm_stubs.py              # regenerate placeholders for unported ASM modules
 python -I port/tools/asm_publics.py                # inventory of the in-EXE ASM modules
@@ -32,10 +34,14 @@ gh workflow run reference.yml -f ref=<ref>         # Borland build of <ref>: the
 ```
 
 Environment: `BAK_HEADLESS=1` (no dialogs; errors to stderr), `BAK_TRACE=1` (platform milestones),
-`SDL_VIDEO_DRIVER=dummy` (no window), `BAK_DUMP_FRAME=<file.bmp>` (each presented frame),
-`BAK_DUMP_MIDI=<file>` (the MIDI bytes sent to the MPU-401), `BAK_INPUT="6000:key:Escape;9000:click:160,100"`
-(scripted keys and clicks, ms from start-up: `port/platform/inputscript.c`). Crashes print a symbolized
-stack on Windows. Unprompted, the intro and credits loop like the original's attract mode; Escape skips them.
+`SDL_VIDEO_DRIVER=dummy` (no window), `BAK_DUMP_FRAME=<file.bmp>` (the picture shown, rewritten whenever it
+changes), `BAK_DUMP_FRAMES=<dir>` (every new picture, numbered as the frame log's lines),
+`BAK_DUMP_MIDI=<file>` (the MIDI bytes sent to the MPU-401),
+`BAK_INPUT="6000:key:Escape;9000:click:160,100"` (scripted keys and clicks, ms from start-up:
+`port/platform/inputscript.c`), `BAK_CLOCK=virtual` (a clock that moves only as the game runs: scripted runs
+repeat exactly and take seconds), `BAK_FRAME_LOG=<file>` (a hash of each picture shown) and
+`BAK_STATE_LOG=<file>` (hashes of the game state on each world-loop pass). Crashes print a symbolized stack
+on Windows. Unprompted, the intro and credits loop like the original's attract mode; Escape skips them.
 
 ## Rules
 
@@ -95,3 +101,7 @@ stack on Windows. Unprompted, the intro and credits loop like the original's att
 - **Black box**: the original EXE from the user's copy, running in DOSBox Staging.
   `port/tools/dosbox_golden.py` runs it headless next to the port and compares the pictures
   of screens the port still draws as the original does (the 1× pages of the 2-D screens).
+- **Replays**: `port/tools/replay.py` runs a scenario on the virtual clock and compares its
+  frame and state logs with a recorded baseline (`work/replay/`). A mechanical change must
+  leave both identical; a change to the presentation only must leave the state log identical.
+- **Unit tests** (`port/tests/unit`, `bak_unittest`) for the port's own code; CI runs them.

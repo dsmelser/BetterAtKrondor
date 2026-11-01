@@ -40,6 +40,10 @@ jobs:
             throw "the incomplete game folder was not reported"
           }
 
+      - name: Unit tests (the port's own code; no game data needed)
+        shell: cmd
+        run: build\win-x86-clangcl\bak_unittest.exe
+
       - uses: astral-sh/setup-uv@v10
 
       - name: Fetch the reference artifacts (latest successful reference build)

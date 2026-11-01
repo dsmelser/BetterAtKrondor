@@ -402,6 +402,28 @@ plane in turn while the API reads A000h. Captures and diffs go to `work/golden/<
 The capture also reads the attribute controller, and the decoder handles Mode Y and the 16-colour planar
 modes.
 
+## Replays
+
+`port/tools/replay.py` runs a scenario's scripted input headless on the virtual clock, from a fresh user
+folder, and compares two logs with a baseline recorded in `work/replay/<scenario>/`.
+
+- **The virtual clock** (`BAK_CLOCK=virtual`, `port/platform/clock.c`): each poll costs 1 µs, and where the
+  game waits (an idle poll, the retrace) the clock jumps to the next timer tick or look at the host's
+  events. The game itself reads no wall clock: the PIT, the retrace, the scripted input and the frames
+  shown are all that move with time, and they all follow this clock.
+- **`BAK_FRAME_LOG`**: the time, size and hash of each picture shown that differs from the one before.
+- **`BAK_STATE_LOG`**: written on each pass of the world loop when something changed. It holds hashes of
+  the game state in TEMP.GAM's layout, of TEMP.GAM (read through the game's own stream) and of the random
+  generator, and the party's position and heading.
+
+| Scenario | Result |
+|---|---|
+| `main-menu`, `book`, `world` (the golden scenarios' scripts) | ✅ two runs give identical logs; each ends on its golden capture. The world tour takes about 19 s, against 90 s on the host's clock, because computing costs no game time |
+| `walk`: the world, then three steps, a turn left, a step, two turns right, a step | ✅ identical logs; the state log shows each 400-unit step and each 1024-unit turn |
+
+On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
+41 s of game time), since decoding and drawing take no game time; the golden scripts still work.
+
 ## Platform services
 
 | Service | Implementation |
@@ -411,7 +433,8 @@ modes.
 | Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
 | BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |
 | MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless a drive is attached; drive check, IOCTL audio-track info, play, stop. Playing the GOG release's OGG tracks comes with the audio work |
-| Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses, pointer moves and clicks (in picture pixels) and a quit, for runs without a user |
+| Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses, pointer moves and clicks (in picture pixels) and a quit, for runs without a user; times are on the platform's clock |
+| Clock | `port/platform/clock.c`: the host's monotonic clock, or (`BAK_CLOCK=virtual`) one that moves only as the game runs, for replays (below) |
 | MPU-401 | `port/platform/mpu401.c`, ports 330h/331h: UART mode, always ready, every command acknowledged. MIDI bytes go to a sink (`bak_midi_set_sink`); without one they are dropped, or written to the file `BAK_DUMP_MIDI` names |
 
 ## Known divergences from the original
