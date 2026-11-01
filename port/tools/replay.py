@@ -12,7 +12,8 @@ identical; a change to the presentation only leaves the state log identical.
 
 `record` keeps a run's logs as the scenario's baseline, `check` runs again and compares with it.
 Runs go to work/replay/<scenario>/, never committed: the logs and the last frame come from the
-game's art. The scenarios are the golden screenshots' (dosbox_golden.py), a walk and a fight.
+game's art. The scenarios are the golden screenshots' (dosbox_golden.py), a walk, a fight and
+the spawned objects of zone 4.
 """
 
 from __future__ import annotations
@@ -59,6 +60,12 @@ SCENARIOS["combat"] = world_then(
     + "".join(f"{92000 + 400 * i}:key:Up;{92200 + 400 * i}:key:Space;" for i in range(8))
     + "".join(f"{95400 + 400 * i}:key:Space;" for i in range(9))
     + "100000:key:A;130000:key:Up;131000:key:Up;", 135000)
+# The zone pool's last entries, past its first 64 KB natively: zone 4's sixteen stones (shape
+# D4h) that chapter 1 spawns around tile 10,14 sit in the visible pool. The party is teleported
+# among them, looks north, then turns about.
+SCENARIOS["spawns"] = world_then(
+    "90000:teleport:4,10,14,14,10,0;"
+    + "".join(f"{92000 + 500 * i}:key:Left;" for i in range(32)), 110000)
 
 
 def run(scenario: str, data: Path, exe: Path, out: Path) -> None:
