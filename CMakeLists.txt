@@ -132,7 +132,12 @@ if(CMAKE_C_COMPILER_ID STREQUAL "Clang" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")
         -Werror=unsequenced
         -Werror=tautological-constant-out-of-range-compare
         -Werror=format
-        -Werror=format-invalid-specifier)
+        -Werror=format-invalid-specifier
+        -Werror=pointer-to-int-cast
+        -Werror=void-pointer-to-int-cast
+        -Werror=int-to-pointer-cast
+        -Werror=int-conversion
+        -Werror=incompatible-pointer-types)
     if(MSVC)
         list(TRANSFORM BAK_GAME_QUIET PREPEND "/clang:")
         list(TRANSFORM BAK_GAME_DETERMINISM PREPEND "/clang:")

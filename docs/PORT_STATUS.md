@@ -59,6 +59,13 @@ and checks that an incomplete folder is turned down cleanly.
 4. **Pointer tables and fields sized for 2-byte pointers**, like `resblit_load_asset_table`'s (the sky's,
    the camp's and the dialog portraits' copies of it were 16-bit words; they are pointer tables now): the
    ASan preset reports them at the first write.
+5. **Pointers through integers.** All 85 casts clang found between pointers and narrower integers are
+   gone (2026-11-01), and the 37 assignments between incompatible pointer types: `bakgame` builds with
+   `-Werror` for `pointer-to-int-cast`, `void-pointer-to-int-cast`, `int-to-pointer-cast`,
+   `int-conversion` and `incompatible-pointer-types` (`BAK_GAME_ERRORS` in CMakeLists.txt), beside the
+   earlier `return-type`, `unsequenced`, `tautological-constant-out-of-range-compare` and `format`.
+   Casts through `uintptr_t` stay possible where a far pointer's two words are meant (the sound
+   drivers' installs).
 
 ## TEMP.GAM and saves
 
