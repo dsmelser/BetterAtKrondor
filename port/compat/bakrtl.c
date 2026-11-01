@@ -115,6 +115,12 @@ static void resolve_write(const char *dosPath, char *out, size_t outSize) {
     resolve_in(platform_user_dir(), rel, out, outSize);
 }
 
+int bakrtl_resolve_in(const char *dir, const char *dosPath, char *out, size_t outSize) {
+    char rel[PATH_MAX_LEN];
+    dos_relative(dosPath, rel, sizeof rel);
+    return resolve_in(dir, rel, out, outSize);
+}
+
 static int is_directory(const char *path) {
 #ifdef _WIN32
     DWORD attributes = GetFileAttributesA(path);

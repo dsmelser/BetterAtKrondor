@@ -19,23 +19,23 @@ Where the native port stands. Update this file in the same commit as the work it
 | Boots the user's data to the main menu | ✅ intro, credits, main menu; Quit To DOS, Preferences and Contents work and the game quits cleanly; Start New Game goes on into chapter 1 (M2). At 4bd88e5 native CI is green (106 differential tests) and the reference build is byte-identical for 1.00 and 1.02 |
 | Golden screenshot of the main menu against the original in DOSBox Staging | ✅ identical pixel for pixel, cursor included (`dosbox_golden.py run main-menu`, below) |
 
-**Current behaviour.** `betterkrondor --data <dir>` first checks that the folder holds the game: `KRONDOR.RMF`
-must be a resource index and the archive it names must be present, since the game uses whatever it failed to
-load. Then it parses `resource.cfg` and `drive.cfg`, binds the native VGA driver, installs mouse, keyboard
-and timer, loads the game font, shows the "Loading Betrayal at Krondor... please wait." screen, finds no CD
-drive (MSCDEX is absent), installs the MT-32 driver and the sequencer (the bank's 71 SysEx messages go out
-through the emulated MPU-401), reads its menu pages (`REQ_*.DAT`), composes the frame screens with the
-party's portraits for EMS, plays the intro to its end and scrolls the credits, starting over until a key
-or a click (as the original does), then shows the main menu with its buttons and the mouse cursor. Quit To
-DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
-come back, and Start New Game fades into chapter 1, whose opening book pages through with keys or
-clicks; the chapter cutscene after it plays to its end, the new game's state is loaded, the 3D world is
-set up, and its frames render: the sky, the hills, trees and road, sprites, and the game's screen
-around them (below). The world's loop then runs on; nothing after its first frames is checked yet.
-The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
-`BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
-a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
-and checks that an incomplete folder is turned down cleanly.
+**Current behaviour.** `betterkrondor` first finds the game folder (see "Settings and folders" below) and
+checks that it holds the game: `KRONDOR.RMF` must be a resource index and the archive it names must be
+present, since the game uses whatever it failed to load. Then it parses `resource.cfg` and `drive.cfg`,
+binds the native VGA driver, installs mouse, keyboard and timer, loads the game font, shows the "Loading
+Betrayal at Krondor... please wait." screen, finds no CD drive (MSCDEX is absent), installs the MT-32
+driver and the sequencer (the bank's 71 SysEx messages go out through the emulated MPU-401), reads its
+menu pages (`REQ_*.DAT`), composes the frame screens with the party's portraits for EMS, plays the intro
+to its end and scrolls the credits, starting over until a key or a click (as the original does), then
+shows the main menu with its buttons and the mouse cursor. Quit To DOS asks for confirmation (Yes quits
+cleanly, No returns), Preferences and Contents open their screens and come back, and Start New Game fades
+into chapter 1, whose opening book pages through with keys or clicks; the chapter cutscene after it plays
+to its end, the new game's state is loaded, the 3D world is set up, and its frames render: the sky, the
+hills, trees and road, sprites, and the game's screen around them (below). The world's loop then runs on;
+nothing after its first frames is checked yet. The whole tour runs clean under the ASan preset. The MIDI
+the game sends is not played yet: `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against a
+GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game
+data and checks that an incomplete folder is turned down cleanly.
 
 **Beyond the main menu** (M2):
 
@@ -87,6 +87,33 @@ field by field (`gstate_temp_read_gamestate` and the others in `GSTATE.C`). No l
 the game sets each one again after a read, and the party's `inner` is always 0 on disk. So pointers, the far
 ones too, read back as NULL and are written as 0, where DOS writes whatever they held. `test_gstate.py`
 checks the native fields against the original's offsets and the round trip.
+
+## Settings and folders
+
+- **The user folder** holds what the game writes (the saves in `GAMES`, `TEMP.GAM`, `KRONDOR.CFG`) and
+  the port's settings. It is SDL's per-user folder (`%APPDATA%\BetterAtKrondor` on Windows) unless
+  `--user` names another. The game's DOS paths are looked up in the user folder, then in the game
+  folder, and writes go to the user folder (`port/compat/bakrtl.c`), so the game folder is only read.
+  Until 2026-11-01 the user folder defaulted to the game folder, and a run wrote `TEMP.GAM` into the
+  installation.
+- **The game folder** is the one `--data` names. Without it the port takes the one remembered from the
+  last run, the current folder or the program's folder, and failing those asks with a folder dialog
+  (not under `BAK_HEADLESS`), again while the folder picked lacks the game. A folder holds the game when
+  `KRONDOR.RMF` is a resource index and the first archive it names is there. The folder found is
+  remembered (`port/platform/folders.c`).
+- **The DOS saves.** When the user folder has no `GAMES` and the game folder has one, it is copied over
+  at start-up, through `GAMES.new` so that a copy cut short is done again, and the saves made in DOS
+  load. From then on the user folder's saves are its own. (Saving and loading natively are not yet
+  exercised end to end.)
+- **`betterkrondor.ini`** in the user folder holds the port's settings; `KRONDOR.CFG` keeps the game's
+  own (its sound choices). Each key has a type and a default (`port/platform/settings.c`), and
+  `betterkrondor --help` lists them. A value the port changes is written back at once, on its own line:
+  comments and keys the port does not know stay as they are. `--set section.key=value` gives a value
+  for one run, which is never written back.
+
+| Key | Meaning |
+|---|---|
+| `paths.data` | the game folder last used |
 
 ## Where the game sources depart from the original
 
@@ -597,7 +624,7 @@ On the virtual clock the game reaches the world sooner than on the host's (its l
 | MSCDEX | `port/platform/cdrom.c`: absent (as without the disc) unless a drive is attached; drive check, IOCTL audio-track info, play, stop. Playing the GOG release's OGG tracks comes with the audio work |
 | Scripted input | `port/platform/inputscript.c`: `BAK_INPUT` lists timed key presses, pointer moves and clicks (in picture pixels), teleports and a quit, for runs without a user; times are on the platform's clock. A teleport fills in the game's own pending teleport (`port/platform/teleport.c`), which the world loop carries out at its next pass, as for TELEPORT.DAT's destinations: the zone's actors and encounters are loaded around the new place |
 | Clock | `port/platform/clock.c`: the host's monotonic clock, or (`BAK_CLOCK=virtual`) one that moves only as the game runs, for replays (below) |
-| Files | `port/compat/bakrtl.c`: the game's DOS paths (any case, backslashes, a drive letter) are looked up in the user folder, then in the game folder; writes go to the user folder. `chdir` tells whether the folder is there, looked for as reads are: the game asks it whether `GAMES` exists and makes one, with a first `SAVES.G01`, when not (`mainmenu_save_games_dir_exists`). Until 2026-11-01 it answered yes to everything, so a first save failed in a user folder without `GAMES`. Host paths are UTF-8, SDL's and the C runtime's alike: on Windows the executable's manifest (`port/platform/betterkrondor.manifest`) makes UTF-8 the process code page (Windows 10 1903 on) |
+| Files | `port/compat/bakrtl.c`: the game's DOS paths (any case, backslashes, a drive letter) are looked up in the user folder, then in the game folder; writes go to the user folder (see "Settings and folders"). `chdir` tells whether the folder is there, looked for as reads are: the game asks it whether `GAMES` exists and makes one, with a first `SAVES.G01`, when not (`mainmenu_save_games_dir_exists`). Until 2026-11-01 it answered yes to everything, so a first save failed in a user folder without `GAMES`. Host paths are UTF-8, SDL's and the C runtime's alike: on Windows the executable's manifest (`port/platform/betterkrondor.manifest`) makes UTF-8 the process code page (Windows 10 1903 on) |
 | MPU-401 | `port/platform/mpu401.c`, ports 330h/331h: UART mode, always ready, every command acknowledged. MIDI bytes go to a sink (`bak_midi_set_sink`); without one they are dropped, or written to the file `BAK_DUMP_MIDI` names |
 
 ## Known divergences from the original

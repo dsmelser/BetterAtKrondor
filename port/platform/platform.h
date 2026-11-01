@@ -6,12 +6,63 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Game data directory (the user's copy) and the writable user directory (saves, TEMP.GAM). */
+/* Game data directory (the user's copy, only read) and the writable user directory (saves,
+ * TEMP.GAM, KRONDOR.CFG, betterkrondor.ini). */
 void platform_set_dirs(const char *dataDir, const char *userDir);
 const char *platform_data_dir(void);
 const char *platform_user_dir(void);
 
-bool platform_init(int argc, char **argv);
+/* What the command line chose; NULL where it chose nothing. */
+typedef struct PlatformOptions {
+    const char *dataDir; /* --data */
+    const char *userDir; /* --user */
+    const char **sets;   /* each --set's "section.key=value", setCount of them */
+    int setCount;
+} PlatformOptions;
+
+/* The folders and the settings, SDL, the game folder's check, the window. False after
+ * reporting why the game cannot start (or the user declined to choose a game folder). */
+bool platform_init(const PlatformOptions *options);
+/* An error for the user: stderr, and a message box unless BAK_HEADLESS is set. */
+void platform_report_error(const char *msg);
+
+/*
+ * betterkrondor.ini (settings.c): the port's settings, in the user folder. Each has a type and
+ * a default; a changed one is written back at once, and lines the port does not know stay.
+ */
+typedef enum SettingId {
+    SETTING_PATHS_DATA, /* [paths] data: the game folder */
+    SETTING_COUNT
+} SettingId;
+/* Read <dir>/betterkrondor.ini (none: the defaults), where changes then go. False, with a
+ * message, when it exists but cannot be read; then nothing is written back. */
+bool settings_load(const char *dir);
+/* Settings from text, written back nowhere (the unit tests). */
+void settings_load_text(const char *text, size_t size);
+/* --set's "section.key=value": a value for this run only. False, with why, for an unknown key
+ * or a bad value. */
+bool settings_override(const char *assignment, char *why, size_t whySize);
+const char *settings_get_string(SettingId id);
+/* A new value, written back at once; false, with a message, if writing failed. */
+bool settings_set_string(SettingId id, const char *value);
+/* The file as written (SDL_free it). */
+char *settings_text(size_t *size);
+/* The settings, their meaning and defaults, on stderr (--help). */
+void settings_print_help(void);
+
+/* The folders (folders.c). The default user folder: SDL's per-user one, made if missing
+ * (SDL_free it), or NULL. */
+char *folders_default_user_dir(void);
+/* Whether dir holds the game's resources; if not, problem says what is missing. */
+bool folders_game_data_complete(const char *dir, char *problem, size_t size);
+/* The game folder (SDL_free it): dataArg if given, else the one remembered in the settings,
+ * the current folder or the program's; else, if canAsk, the one the user picks in a folder
+ * dialog. The folder found is remembered. NULL if none holds the game: report lists the folders
+ * looked at, each with its problem, or is empty when the user gave up on the dialog. */
+char *folders_choose_data_dir(const char *dataArg, bool canAsk, char *report, size_t reportSize);
+/* Copy the game folder's GAMES (the DOS game's saves) into a user folder that has none, so they
+ * load; false, with a message, if copying failed. */
+bool folders_import_saves(const char *dataDir, const char *userDir);
 
 /* Set by the test runner: no real-time waits and no presenting (vertical retrace is
  * always under way). */

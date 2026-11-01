@@ -19,7 +19,7 @@ jobs:
         shell: cmd
         run: port\tools\win-build.cmd win-x86-clangcl
 
-      - name: Smoke test (starts, and rejects a folder without the game's resources)
+      - name: Smoke test (starts, rejects a folder without the game's resources, writes nothing there)
         shell: pwsh
         env:
           BAK_HEADLESS: "1"
@@ -28,17 +28,34 @@ jobs:
           # The game cannot run without its resources, which CI does not have; the
           # executable must start, bring up SDL and turn down a folder whose KRONDOR.RMF
           # is not a resource index (exit 1). A crash or a hang fails the job.
+          function Invoke-Port([string[]] $arguments) {
+            $p = Start-Process build\win-x86-clangcl\betterkrondor.exe -ArgumentList $arguments `
+                   -NoNewWindow -PassThru -RedirectStandardError smoke.err
+            $null = $p.Handle
+            if (-not $p.WaitForExit(30000)) { $p.Kill(); Get-Content smoke.err; throw "hung" }
+            Get-Content smoke.err
+            if ($p.ExitCode -ne 1) { throw ("exit code 0x{0:X8}" -f $p.ExitCode) }
+            if (-not (Select-String -Quiet -Path smoke.err -Pattern "not a resource index")) {
+              throw "the incomplete game folder was not reported"
+            }
+          }
           $data = New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\fakedata"
           Set-Content "$data\KRONDOR.RMF" "" -NoNewline
-          $p = Start-Process build\win-x86-clangcl\betterkrondor.exe -ArgumentList '--data',$data `
-                 -NoNewWindow -PassThru -RedirectStandardError smoke.err
-          $null = $p.Handle
-          if (-not $p.WaitForExit(30000)) { $p.Kill(); Get-Content smoke.err; throw "hung" }
-          Get-Content smoke.err
-          if ($p.ExitCode -ne 1) { throw ("exit code 0x{0:X8}" -f $p.ExitCode) }
-          if (-not (Select-String -Quiet -Path smoke.err -Pattern "not a resource index")) {
-            throw "the incomplete game folder was not reported"
-          }
+          # No settings and no --user: the per-user folder is made, and nothing is remembered.
+          Invoke-Port @('--data', $data)
+          $prefs = "$env:APPDATA\BetterAtKrondor"
+          if (-not (Test-Path $prefs)) { throw "no per-user folder" }
+          if (Test-Path "$prefs\betterkrondor.ini") { throw "a folder without the game was remembered" }
+          # Settings naming the game folder, and no --data: that folder is checked, and the
+          # settings stay as they were.
+          $user = New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\fakeuser"
+          $ini = "; kept`r`n[paths]`r`ndata = $data`r`n[later]`r`nkey = value`r`n"
+          Set-Content "$user\betterkrondor.ini" $ini -NoNewline
+          Invoke-Port @('--user', $user)
+          if ((Get-Content -Raw "$user\betterkrondor.ini") -ne $ini) { throw "the settings changed" }
+          # The game folder is as it was.
+          $files = @(Get-ChildItem -Force -Recurse $data)
+          if ($files.Count -ne 1) { throw "the game folder was written: $($files.Name)" }
 
       - name: Unit tests (the port's own code; no game data needed)
         shell: cmd

@@ -98,6 +98,10 @@ int bakrtl_remove(const char *path);
 #define fopen(p, m) bakrtl_fopen((p), (m))
 #define remove(p) bakrtl_remove(p)
 
+/* For port code: the host path of a DOS path inside dir (its case as found there, on hosts
+ * whose names have case); nonzero if something is there. */
+int bakrtl_resolve_in(const char *dir, const char *dosPath, char *out, size_t outSize);
+
 /* ---- stdlib.h / string.h / mem.h extensions ---------------------------------------- */
 
 char *bakrtl_itoa(int value, char *buf, int radix);

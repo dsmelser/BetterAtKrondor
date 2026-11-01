@@ -12,7 +12,15 @@
     X(ai_sung_goes_to_an_ally_under_attack)                                                        \
     X(ai_heal_spell_follows_the_weakest_living_ally)                                               \
     X(paths_are_utf8_for_the_c_runtime)                                                            \
-    X(paths_chdir_finds_folders_as_dos_does)
+    X(paths_chdir_finds_folders_as_dos_does)                                                       \
+    X(settings_keep_what_they_do_not_know)                                                         \
+    X(settings_default_to_their_defaults)                                                          \
+    X(settings_set_rewrites_its_own_line)                                                          \
+    X(settings_override_for_the_run_only)                                                          \
+    X(settings_are_written_back_whole)                                                             \
+    X(folders_know_the_game_by_its_resources)                                                      \
+    X(folders_remember_the_game_folder)                                                            \
+    X(folders_copy_the_dos_saves_once)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

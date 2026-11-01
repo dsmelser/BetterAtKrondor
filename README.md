@@ -39,6 +39,11 @@ preset (SDL3 is downloaded and built automatically). A new game plays the intro,
 and the chapter's cutscene and enters the 3-D world; anything not ported yet stops with its
 name. See [docs/PORT_STATUS.md](docs/PORT_STATUS.md).
 
+The game folder is remembered, so later runs need no `--data`; without one the port asks for
+it. Saves and settings (`betterkrondor.ini`) go to `%APPDATA%\BetterAtKrondor`, or the folder
+`--user` names, and the game folder is never written to. `betterkrondor --help` lists the
+options and settings.
+
 The original DOS build (Borland C++ in FreeDOS under QEMU) is preserved at the
 `upstream-snapshot` tag and runs in CI (`.github/workflows/reference.yml`) to produce
 reference binaries and objects for testing. Its instructions are in

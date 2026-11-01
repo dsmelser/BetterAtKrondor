@@ -22,7 +22,7 @@ against the original where code still mirrors it (see Verification).
 
 ```
 port\tools\win-build.cmd [preset]                 # Windows: VS env + configure + build (default win-x86-clangcl)
-build\win-x86-clangcl\betterkrondor.exe --data <game dir> [--user <save dir>]
+build\win-x86-clangcl\betterkrondor.exe --data <game dir> [--user <dir>] [--set section.key=value]   # user folder: %APPDATA%\BetterAtKrondor
 port\tools\win-build.cmd win-x86-clangcl-asan     # AddressSanitizer: finds buffers sized for 16-bit pointers
 uv run --group difftest pytest -q port/tests       # differential tests (needs work/ref, see port/tests/README.md)
 build\win-x86-clangcl\bak_unittest.exe            # unit tests of the port's own code (no game data)

@@ -1,7 +1,6 @@
 /* Platform lifetime, event pumping, the idle hook and the unimplemented trap. */
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include <SDL3/SDL.h>
 
@@ -11,11 +10,11 @@
 #endif
 
 #include "bak_port.h"
-#include "bak_rtl.h"
 #include "platform.h"
 
 static const char *s_dataDir = ".";
 static const char *s_userDir = ".";
+static char *s_chosenData, *s_chosenUser; /* by platform_init, for the run */
 
 void platform_set_dirs(const char *dataDir, const char *userDir) {
     s_dataDir = dataDir;
@@ -31,7 +30,7 @@ const char *platform_user_dir(void) {
 }
 
 /* Errors go to stderr, and to a message box unless BAK_HEADLESS is set (CI, scripted runs). */
-static void report_error(const char *msg) {
+void platform_report_error(const char *msg) {
     fprintf(stderr, "%s\n", msg);
     if (SDL_getenv("BAK_HEADLESS") == NULL)
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "BetterAtKrondor", msg, NULL);
@@ -47,8 +46,8 @@ static void invalid_parameter(const wchar_t *expr, const wchar_t *func, const wc
     (void)file;
     (void)line;
     (void)reserved;
-    report_error("The C runtime rejected a call from the game code (most likely a game "
-                 "file is missing, e.g. drive.cfg or resource.cfg).");
+    platform_report_error("The C runtime rejected a call from the game code (most likely a "
+                          "game file is missing, e.g. drive.cfg or resource.cfg).");
     exit(4);
 }
 
@@ -65,57 +64,55 @@ static void install_crt_handlers(void) {
 }
 #endif
 
-/* KRONDOR.RMF, the resource index, must be readable and every archive it names present:
- * u16 archive count, u16 hash seed, u16 hash rotation, then per archive a 13-byte
- * NUL-padded file name and the entries. Only the first archive's name is checked. */
-static bool game_data_complete(char *problem, size_t size) {
-    FILE *rmf = bakrtl_fopen("krondor.rmf", "rb");
-    if (rmf == NULL) {
-        snprintf(problem, size, "no KRONDOR.RMF");
-        return false;
-    }
-    unsigned char head[6];
-    char archive[14] = {0};
-    bool ok = fread(head, sizeof head, 1, rmf) == 1 && (head[0] | head[1] << 8) > 0 &&
-              fread(archive, 13, 1, rmf) == 1 && memchr(archive, 0, 13) != NULL;
-    fclose(rmf);
-    if (!ok) {
-        snprintf(problem, size, "KRONDOR.RMF is not a resource index");
-        return false;
-    }
-    FILE *payload = bakrtl_fopen(archive, "rb");
-    if (payload == NULL) {
-        snprintf(problem, size, "KRONDOR.RMF indexes %s, which is missing", archive);
-        return false;
-    }
-    fclose(payload);
-    return true;
-}
-
-bool platform_init(int argc, char **argv) {
-    (void)argc;
-    (void)argv;
+bool platform_init(const PlatformOptions *options) {
 #ifdef _WIN32
     install_crt_handlers();
 #endif
     crash_reporter_install();
+    /* The user folder first: the settings live there. */
+    s_chosenUser =
+        options->userDir != NULL ? SDL_strdup(options->userDir) : folders_default_user_dir();
+    if (s_chosenUser == NULL || !SDL_CreateDirectory(s_chosenUser)) {
+        char msg[1500];
+        snprintf(msg, sizeof msg,
+                 "There is no folder for the saves and settings (%s: %s).\n\n"
+                 "Run with --user <folder>.",
+                 s_chosenUser != NULL ? s_chosenUser : "the per-user folder", SDL_GetError());
+        platform_report_error(msg);
+        return false;
+    }
+    settings_load(s_chosenUser);
+    for (int i = 0; i < options->setCount; i++) {
+        char why[200], msg[600];
+        if (!settings_override(options->sets[i], why, sizeof why)) {
+            snprintf(msg, sizeof msg, "--set %s: %s", options->sets[i], why);
+            platform_report_error(msg);
+            return false;
+        }
+    }
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
     /* The game assumes it runs from its install folder and does not survive missing
      * resources (it uses what it failed to load); check before it trips over that. */
-    char problem[256];
-    if (!game_data_complete(problem, sizeof problem)) {
-        char msg[1500];
-        snprintf(msg, sizeof msg,
-                 "Betrayal at Krondor's game files were not found in:\n%s\n(%s)\n\n"
-                 "Run with --data <folder>, pointing at the folder that contains KRONDOR.RMF.",
-                 platform_data_dir(), problem);
-        report_error(msg);
+    char report[3000];
+    s_chosenData = folders_choose_data_dir(options->dataDir, SDL_getenv("BAK_HEADLESS") == NULL,
+                                           report, sizeof report);
+    if (s_chosenData == NULL) {
+        if (report[0] != '\0') {
+            char msg[sizeof report + 200];
+            snprintf(msg, sizeof msg,
+                     "Betrayal at Krondor's game files were not found in:\n%s\n\n"
+                     "Run with --data <folder>, pointing at the folder that contains KRONDOR.RMF.",
+                     report);
+            platform_report_error(msg);
+        }
         SDL_Quit();
         return false;
     }
+    platform_set_dirs(s_chosenData, s_chosenUser);
+    folders_import_saves(s_chosenData, s_chosenUser);
     return video_open();
 }
 
