@@ -212,7 +212,7 @@ static void cmd_fill_spans(DtIn *in, DtOut *out) {
     bak_dos_free(spans);
 }
 
-/* vga.sprite slot(3/29) flags x y width height offset <pixels>: the record's segment is a
+/* vga.sprite slot(3/29/33) flags x y width height offset <pixels>: the record's segment is a
  * zeroed 64 KB block with the pixels at the offset. */
 static void cmd_sprite(DtIn *in, DtOut *out) {
     (void)out;
@@ -231,6 +231,8 @@ static void cmd_sprite(DtIn *in, DtOut *out) {
     rec.wImageData = FP_SEG(block);
     if (slot == 3)
         vga_blit_sprite(&rec, x, y);
+    else if (slot == 33)
+        vga_blit_sprite_simple(&rec, x, y);
     else
         vga_blit_sprite_master(&rec, x, y, flags);
     bak_dos_free(block);

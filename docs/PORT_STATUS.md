@@ -30,8 +30,8 @@ or a click (as the original does), then shows the main menu with its buttons and
 DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
 come back, and Start New Game fades into chapter 1, whose opening book pages through with keys or
 clicks; the chapter cutscene after it plays to its end, the new game's state is loaded, the 3D world is
-set up, and rendering its first frame sets up the camera, fills the sky's flat bands and stops at
-the sky's panorama (below).
+set up, and rendering its first frame sets up the camera, draws the sky and stops at the first actor
+(below).
 The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
 `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
@@ -45,7 +45,8 @@ and checks that an incomplete folder is turned down cleanly.
    core starts there), loads the region's encounter shapes and the zone's actors, scans the zone around
    the party, checks the zone's ground at its position, and enters the world's main loop
    (`world3d_main_loop`): its first frame sets up the camera (`r3d_camera_setup_view`), fills the
-   sky's flat bands (VGAFILL.ASM) and stops at the sky's panorama, in the VGA driver's slot 33.
+   sky's flat bands (VGAFILL.ASM) and its panorama (VGA slot 33), scans and sorts what is in view, and
+   stops at the first actor, in R3D.ASM's `r3d_setup_actor_in_camera_space`.
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -176,9 +177,9 @@ words, so the latches come from the access its memory hook sees.
 
 | Slots | Status |
 |---|---|
-| init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload | ✅ verified |
+| init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 33 opaque sprite, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload | ✅ verified |
 | 24 rect-buffer offset, 32 clear sprite cache | ported; verified with their consumers (23, 33) |
-| 17-19, 23, 30, 31, 33, 36-40 | ⬜ trap with the routine's name |
+| 17-19, 23, 30, 31, 36-40 | ⬜ trap with the routine's name |
 | 9, 12, 16, 25, 26, 28, 41-48 | empty in the original: no-ops |
 
 Slots the game calls with register arguments have native signatures in `port/drivers/vga.h` (`DrawLineFn`,
@@ -308,6 +309,11 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   game's sprites are multiples of 4 wide). The source position is kept as a quad-aligned offset plus a
   phase, so a record offset that is not a multiple of 4 shifts the picture, and a clip rectangle narrower
   than nothing (xmax < xmin) leaves a negative width whose plane lanes run 16K bytes a row.
+- **The VGA driver's opaque sprite blit starts a row early when cut at the top.** Slot 33 (the sky's
+  panorama) moves its source by one row less than it cuts off the top (it decrements the count before
+  its multiply), so the first visible row is the one above, and the sprite's last row is lost. It also
+  drops bit 14 of the row offset, which slot 29 keeps in its carry; the game's row offsets stay below
+  4000h.
 - **The VGA driver's span filler and line slot slip far off the screen.** The span filler (slot 27) treats a run as one
   byte when its ends differ only above bit 11 (it masks with 0FFCh where the run slots use FFFCh), and an
   upward vertical line (slot 2) loses bit 15 of its height, which it doubles and halves around a table read.

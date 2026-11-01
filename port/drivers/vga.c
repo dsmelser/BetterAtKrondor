@@ -116,7 +116,6 @@ TRAP(19, fill_textured_span_modey_b)
 TRAP(23, blit_rect_buffer)
 TRAP(30, blit_sprite_flip_h)
 TRAP(31, blit_sprite_flip_v)
-TRAP(33, blit_sprite_simple)
 TRAP(36, blit_sprite_planar_rotated)
 TRAP(37, blit_stretched)
 TRAP(38, blit_sprite_chunky_flip)
@@ -167,7 +166,7 @@ static void fill_slots(void) {
     t->pfn_blit_sprite_flip_h = SLOT(trap_blit_sprite_flip_h);
     t->pfn_blit_sprite_flip_v = SLOT(trap_blit_sprite_flip_v);
     t->pfn_clear_rect_state = SLOT(vga_clear_rect_state);
-    t->pfn_blit_sprite_simple = SLOT(trap_blit_sprite_simple);
+    t->pfn_blit_sprite_simple = SLOT(vga_blit_sprite_simple);
     t->pfn_palette_lerp_dac = SLOT(vga_palette_lerp_dac);
     t->pfn_dac_write_palette = SLOT(vga_dac_write_palette);
     t->pfn_blit_sprite_planar_rotated = SLOT(trap_blit_sprite_planar_rotated);
@@ -752,6 +751,93 @@ void vga_blit_sprite_master(const ImageRecord *sprite, s16 x, s16 y, u16 flags) 
 
 void vga_blit_sprite(const ImageRecord *sprite, s16 x, s16 y) {
     vga_blit_sprite_master(sprite, x, y, 0);
+}
+
+/* ---- slot 33: opaque sprites -------------------------------------------------------- */
+
+/*
+ * Slot 33 (the sky's panorama): slot 29's shape unflipped, but opaque, every pixel copied
+ * (0 too). Its top clip moves the source one row less than it cuts (it decrements the
+ * count before its multiply), so a sprite cut at the top starts a row early and loses its
+ * last row. The pixel index of (x, y) loses the row offset's bit 14, which slot 29 keeps.
+ */
+void vga_blit_sprite_simple(const ImageRecord *sprite, s16 x, s16 y) {
+    u16 width = (u16)sprite->nWidth, quads = width >> 2;
+    u16 rows = (u16)sprite->nHeight;
+    u16 si = 0;
+    u16 di = (u16)((u16)(row_offset(y) << 2) + x);
+    u16 dx = (u16)(quads << 2);
+    u16 skipped = 0; /* source pixels clipped off a row, right and left */
+    if (g_graphics_context.bClip_enabled) {
+        const ClipRect *c = &g_graphics_context.clip;
+        s16 over = (s16)(c->xmax - x - dx);
+        if (over < 0) {
+            u16 n = (u16)(-over - 1);
+            skipped = n;
+            dx = (u16)(dx - n);
+            if ((u16)(n >> 2) >= quads)
+                return;
+        }
+        over = (s16)(c->ymax - y - rows);
+        if (over < 0) {
+            u16 n = (u16)(-over - 1);
+            if (!(rows > n))
+                return;
+            rows = (u16)(rows - n);
+        }
+        if (c->ymin > y) {
+            u16 cut = (u16)(c->ymin - y);
+            rows = (u16)(rows - cut);
+            si = (u16)(si + (u16)((u16)((u16)(cut - 1) * quads) << 2));
+            di = (u16)((u16)(row_offset(c->ymin) << 2) + x);
+            if (rows == 0 || (s16)rows < 0)
+                return;
+        }
+        if (c->xmin > x) {
+            u16 cut = (u16)(c->xmin - x);
+            di = (u16)(di + cut);
+            skipped = (u16)(skipped + cut);
+            dx = (u16)(dx - cut);
+            si = (u16)(si + cut);
+            if ((u16)(cut >> 2) >= quads)
+                return;
+        }
+    }
+    u16 plane = di & 3;
+    u16 phase = si & 3;
+    u16 dst = di >> 2;
+    u16 quad = (u16)((si + sprite->wImageOff) & 0xfffc);
+
+    u16 seg = g_graphics_context.wGfxBlitDstPage;
+    const unsigned char *src = MK_FP(sprite->wImageData, 0);
+    u32 extent = bak_seg_extent(sprite->wImageData);
+    bak_port_out8(0x3C4, 2);
+    for (unsigned k = 0; k < 4; k++) {
+        if (k > 0 && phase == 0)
+            quad = (u16)(quad + 4);
+        unsigned p = next_plane(&plane, &dst);
+        si = (u16)(quad + phase);
+        phase = (u16)((phase + 1) & 3);
+
+        u16 n = (u16)((u16)(dx + 3 - k) >> 2);
+        u16 step = (u16)((skipped + k) & 0xfffc);
+        if (n == 0)
+            continue;
+        u16 d = dst;
+        u16 r = rows;
+        do {
+            for (u16 count = n; count != 0; count--) { /* MOVSB, then 3 more */
+                unsigned char al = sprite_byte(src, extent, si);
+                unsigned char *q = vram(seg, d);
+                if (q != NULL)
+                    q[p] = al;
+                si = (u16)(si + 4);
+                d++;
+            }
+            si = (u16)(si + step);
+            d = (u16)(d + 0x50 - n);
+        } while (--r != 0);
+    }
 }
 
 /* ---- slots 34-35: DAC ------------------------------------------------------------- */

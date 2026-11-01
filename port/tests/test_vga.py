@@ -375,8 +375,8 @@ def test_fill_spans(pair):
 
 
 def test_sprites(pair):
-    """Slots 29 (with flips) and 3. The record is at DS:0 of a segment of its own, the pixels
-    at its offset in a 64 KB segment that is otherwise zero, as on the native side."""
+    """Slots 29 (with flips), 3 and 33 (opaque). The record is at DS:0 of a segment of its own,
+    the pixels at its offset in a 64 KB segment that is otherwise zero, as on the native side."""
     rng = random.Random(16)
     pair.fill_vram(rng)
     record = pair.m.alloc(16)
@@ -386,13 +386,34 @@ def test_sprites(pair):
     # Each flip, cut on the left and on the right.
     cases += [(29, flags, x, 20, 24, 6, 0x10, (1, 10, 300, 0, 199))
               for flags in range(4) for x in (3, 5, 283, 290)]
+    # Slot 33 cut at the top by 1 to 3 rows (it moves the source a row less), at each edge,
+    # and the sky's panorama: 256 wide from a scroll position, under the 3-D view's clip.
+    cases += [(33, 0, 40, 10 - cut, 20, 8, 4, (1, 0, 319, 10, 199)) for cut in (0, 1, 2, 3)]
+    cases += [(33, 0, x, y, 24, 6, 0x10, (1, 10, 300, 8, 150))
+              for x in (3, 5, 283, 290) for y in (2, 6, 147, 149)]
+    cases += [(33, 0, rng.randrange(-256, 300), rng.randrange(0, 60), 256, 36, 0,
+               (1, 13, 306, 11, 131)) for _ in range(6)]
+    # At the clip's edges: cut on the left or the right by 4 * (width / 4) + 0..4 pixels
+    # (from + 1 the rest is a negative width, and the routine must give up), and starting a
+    # row above, on or below the bottom.
+    for slot in (29, 33):
+        cases += [(slot, 0, 10 - 24 - d, 50, 24, 6, 0x10, (1, 10, 300, 0, 199)) for d in range(5)]
+        cases += [(slot, 0, 300 + d, 50, 24, 6, 0x10, (1, 10, 300, 0, 199)) for d in range(5)]
+        cases += [(slot, 0, 100, 149 + d, 24, 6, 0x10, (1, 10, 300, 0, 150)) for d in range(5)]
+    # A row offset with bit 14 set (the game's never have it), as a case's sixth element:
+    # slot 29 keeps the bit in the carry of its pixel index, slot 33 drops it.
+    cases += [(slot, 0, 40, 100, 24, 6, 0x10, (0, 0, 319, 0, 199), 0x4000 | 8000)
+              for slot in (29, 33)]
     for _ in range(200):
         width, height = rng.randrange(1, 70), rng.randrange(1, 50)
         clip = (rng.choice((0, 1, 1, 0x80)), rng.randrange(-20, 200), 0, rng.randrange(-20, 150), 0)
         clip = (clip[0], clip[1], clip[1] + rng.randrange(0, 200), clip[3], clip[3] + rng.randrange(0, 120))
-        cases.append((rng.choice((29, 29, 29, 3)), rng.randrange(4), rng.randrange(-80, 330),
+        cases.append((rng.choice((29, 29, 29, 3, 33, 33)), rng.randrange(4), rng.randrange(-80, 330),
                       rng.randrange(-60, 220), width, height, rng.choice((0, 4, 0x10, 0x123)), clip))
-    for i, (slot, flags, x, y, width, height, off, clip) in enumerate(cases):
+    for i, (slot, flags, x, y, width, height, off, clip, *row) in enumerate(cases):
+        lut_y = 0x6F2 + 2 * y  # pRow_offset_lut[y]
+        if row:
+            pair.set_ctx_u16(lut_y, row[0])
         page = rng.choice(PAGES)
         pair.set_ctx_u16(OFF_DST, page)
         pair.set_ctx_u8(0x03, clip[0])
@@ -403,10 +424,12 @@ def test_sprites(pair):
         segment[off:off + len(data)] = data
         pair.m.write((pixels_seg, 0), bytes(segment))
         pair.m.write((record, 0), _u16s(pixels_seg, off, 0, width, height))
-        if slot == 3:
-            pair.chunk.call(3, 0, x, y, ds=record)
+        if slot in (3, 33):
+            pair.chunk.call(slot, 0, x, y, ds=record)
         else:
             pair.chunk.call(29, 0, x, y, flags, ds=record)
         pair.native.call("vga.sprite", _u16s(slot, flags, x, y, width, height, off) + data)
         pair.assert_same(f"after sprite {i}: slot {slot} flags {flags} {width}x{height}+{off:#x} "
                          f"at ({x}, {y}) clip {clip} on {page:04X}")
+        if row:
+            pair.set_ctx_u16(lut_y, 80 * y)
