@@ -135,7 +135,8 @@ that runs the original routines from the reference build against the translation
 | `GEN/GFXCTX.ASM` | `port/asm/gfxctx_data.c` | `test_vga.py::test_context_initial_values`: the whole 2742-byte block |
 | `GEN/RNDVTBL.ASM` | `port/asm/rndvtbl_data.c` | data only: every slot starts at `gfx_retf_stub` |
 | `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM`, `GFX/SPRITE/SPRTHNKS.ASM`, `GFX/SPRITE/BLITCHNK.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c`, `sprthnks.c`, `blitchnk.c` | no logic: each routine forwards to a vtable slot (SPRTHNKS's `blit_sprite` and `blit_stretched_dispatch` and BLITCHNK's `blit_chunky_planar_4bit` have no caller and trap) |
-| `GFX/RASTER/POLYGON.ASM` | `port/asm/polygon.c`: `fill_spans_dispatch` (the polygon rasterizer, `draw_polygon` and its edge walkers, still traps; `blit_rect_buf_dispatch` has no caller and traps) | no logic: it forwards the span table to slot 27 |
+| `GFX/RASTER/POLYGON.ASM` | `port/asm/polygon.c`: `draw_polygon` with its edge walkers, and `fill_spans_dispatch` (the edge walkers' register-argument entry points trap: `draw_polygon` calls their C forms; `blit_rect_buf_dispatch` has no caller and traps) | `test_polygon.py`: 1500 random polygons (convex and scattered, with repeated vertices, level, upright and 45-degree edges), the edge cases (two vertices, one row, one point, collinear, the same slope on both sides of the top vertex, which fills twice) both ways round, counts from -8000h to 3, 20 vertices, two vertices left by the clipper, level top edges across more than 32767 in x (where the stand-in slopes decide the chains' order), clipped or not, filled or outlined, with an outline colour of their own or not, in the 640x200 mode or not, with the line and span slots probed: what reaches them, the result, the module's state words, the graphics context and the span buffer (a whole segment of random bytes) |
+| `GFX/RASTER/POLYCLIP.ASM` | `port/asm/polyclip.c` | `test_polygon.py`: the clipper alone over 1500 polygons (convex and scattered, vertices on the bounds) against rectangles around, inside, across them and inverted, and 600 across the 16-bit range whose quotients overflow (through the divide-error handler's rule): the graphics context |
 | `INPUT/MOUSE.ASM` | `port/asm/mouse.c`, `mouse_data.c` | `test_mouse.py`: INT 33h call sequences of install/clip/restore/set-position, queries, the event callback's register save/restore and latch parking on a planar VGA |
 | `SYS/FARPTR.ASM` | `port/asm/farptr.c` | `test_farptr.py`: fills and copies across chunk and 64 KB boundaries, overlapping copies at both parities, pointer compare and normalize |
 | `GFX/SPRITE/DECOMP.ASM` | `port/asm/decomp.c` (the refill pump reads through `res_fread`) | `test_decomp.py`: LZSS and RLE streams (back-references to earlier output, overlapping, and anywhere in the segment, of every length; literal and repeat runs) whole, cut short, or shorter than the caller's count so that stale buffer bytes decode, through buffers of 1 to 2500 bytes, RLE output wrapping at 64 KB: the bytes read, the buffer and the whole 64 KB segment, against the original reading through a hooked `res_fread` |
@@ -343,6 +344,19 @@ with user-supplied ROMs) comes after M1, behind a toggle.
   its multiply), so the first visible row is the one above, and the sprite's last row is lost. It also
   drops bit 14 of the row offset, which slot 29 keeps in its carry; the game's row offsets stay below
   4000h.
+- **A polygon's vertex arrays hold 20 vertices, closed by a 21st.** `draw_polygon` closes the
+  outline's copy of the polygon with a copy of its first vertex one past the end, so with 20
+  vertices and an outline colour of its own the 21st y lands on the vertex count, which becomes the
+  first vertex's y; with fill off the 21st x lands on the first y. The clipper writes as many
+  vertices as it makes, on into the next arrays. The game's polygons are far smaller.
+- **A polygon whose top vertex has the same slope on both sides is filled twice.** `draw_polygon`
+  cannot tell its two chains apart, so it fills the polygon, then fills it again with its vertices
+  reversed. For that it saves the vertex list over the outline's copy, so an outline of its own
+  colour is drawn twice from a mix: the reversed vertices, then the rest of the outline's closed
+  copy.
+- **The 640x200 outline halves the clip rectangle's y bounds without their sign.** `draw_polygon`'s
+  outline halves ymin and ymax with an unsigned shift for the length of the outline and doubles them
+  back with a left shift: a negative bound turns huge meanwhile, and an odd one comes back even.
 - **The VGA driver's span filler and line slot slip far off the screen.** The span filler (slot 27) treats a run as one
   byte when its ends differ only above bit 11 (it masks with 0FFCh where the run slots use FFFCh), and an
   upward vertical line (slot 2) loses bit 15 of its height, which it doubles and halves around a table read.
@@ -431,6 +445,10 @@ modes.
   writes on into the arrays after them and into the vertex count; a near-plane clip of 0 vertices stops
   too, where the original goes round 32768 times. A convex polygon gains at most one vertex per bound,
   so only one of 17 or more vertices can get there.
+- **Polygons past their tables.** An edge of more than 400 rows (the end of `draw_polygon`'s chain of
+  400 row stubs: the original jumps into its own code), a row past the span buffer (the original
+  writes past it) and a vertex past the graphics context (the original reaches other DGROUP data)
+  stop with a message. The game's polygons are clipped to the 3-D view or the screen first.
 - **The sky's shaded strip past its ramp.** A strip taller than VGAFILL.ASM's 34 shades stops with a
   message; the original takes the colours from its own code. The game's strips are 27 or 29 rows with
   a level horizon.
