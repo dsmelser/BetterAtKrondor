@@ -3,8 +3,10 @@
 BetterAtKrondor is a hard fork of
 [canassa/betrayal-at-krondor](https://github.com/canassa/betrayal-at-krondor), the
 byte-perfect reconstruction of *Betrayal at Krondor* (1993, DOS), turning it into a
-**native SDL3 port**. Upstream's "stay byte-identical" rule does **not** apply on `main`:
-behaviour is checked against the original instead (see Verification).
+**native SDL3 port**. Upstream's "stay byte-identical" rule does **not** apply on `main`, and
+byte-identity is no goal at all: the reconstruction was the starting point, the real source.
+The aim is a game that looks and feels modern, by whatever means. Behaviour is checked against
+the original instead (see Verification).
 
 ## Layout
 
@@ -25,7 +27,7 @@ uv run --group difftest pytest -q port/tests       # differential tests (needs w
 uv run python -I port/tools/dosbox_golden.py run main-menu --data <game dir>   # the original in DOSBox Staging vs the port
 python -I port/tools/gen_asm_stubs.py              # regenerate placeholders for unported ASM modules
 python -I port/tools/asm_publics.py                # inventory of the in-EXE ASM modules
-gh workflow run reference.yml -f ref=<ref>         # Borland build of <ref>: byte-identity check + reference objects
+gh workflow run reference.yml -f ref=<ref>         # Borland build of <ref>: the reference objects (test fixtures)
 ```
 
 Environment: `BAK_HEADLESS=1` (no dialogs; errors to stderr), `BAK_TRACE=1` (platform milestones),
@@ -39,6 +41,9 @@ stack on Windows. Unprompted, the intro and credits loop like the original's att
 - **Faithful by default.** At default settings the port must behave like the original
   release whose data it runs (1.00 or 1.02). Every enhancement is a runtime toggle, and the
   "Original" setting stays exact.
+- **Change the game code directly.** `main` need not build with Borland, so a change to
+  `bak/` needs no `#ifdef BAK_NATIVE` branch and no Borland-neutral idiom (`gtypes.h`); the
+  existing ones can stay or go.
 - **Mechanical vs semantic.** Sweeps (retyping, renames, removing `far`) never share a
   commit with behaviour changes, so a regression bisects to one kind of change.
 - **Integer widths are explicit.** Game code uses `s16`/`u16`/`s32`/`u32`
@@ -72,8 +77,9 @@ stack on Windows. Unprompted, the intro and credits loop like the original's att
 ## Verification
 
 - **Reference build** (CI, manual): `reference.yml` builds a ref with the period Borland
-  toolchain, verifies the binaries by sha256, and uploads every `.OBJ`, map and binary. Use
-  it to prove a change to `bak/` is byte-neutral, and as the source of test fixtures.
+  toolchain, verifies the binaries by sha256, and uploads every `.OBJ`, map and binary: the
+  original routines the differential tests run. Build `upstream-snapshot` or an older ref
+  for them; byte-neutrality of `main` is not checked.
 - **Differential tests**: original routine (from the reference objects) vs its C translation.
 - **Black box**: the original EXE from the user's copy, running in DOSBox Staging.
   `port/tools/dosbox_golden.py` runs it headless next to the port and compares the pictures.

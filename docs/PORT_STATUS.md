@@ -70,11 +70,13 @@ checks the native fields against the original's offsets and the round trip.
 
 ## Native-only code in the game sources
 
-Each site is an `#ifdef BAK_NATIVE` branch next to the untouched original, or one of the idioms in
-`bak/INCLUDE/gtypes.h` (`NearPtr`/`NearWord`, `NEAR_PTR_SIZE`/`NEAR_PTR_SHIFT` for tables of near pointers,
-`RECORD_SIZE` for records holding them, `FP_OFF_ADD`, `RETURN_AX`, `NEAR_STR` for a string pointer that may be
-null, `FP_SEG_NORM` for the segment of a pointer the original holds normalized) that expand to the original
-under Borland.
+Byte-identity with the original build is no longer kept, so new native code may replace the original's
+outright. The sites below predate that: each is an `#ifdef BAK_NATIVE` branch next to the untouched
+original, or one of the idioms in `bak/INCLUDE/gtypes.h` (`NearPtr`/`NearWord`, `NEAR_PTR_SIZE`/`NEAR_PTR_SHIFT`
+for tables of near pointers, `RECORD_SIZE` for records holding them, `FP_OFF_ADD`, `RETURN_AX`, `NEAR_STR` for
+a string pointer that may be null, `FP_SEG_NORM` for the segment of a pointer the original holds normalized)
+that expand to the original under Borland. The table lists where the native code departs from the original
+source.
 
 | File | Native branch |
 |---|---|

@@ -46,9 +46,9 @@ enhancement code in `port/` where possible, and hook into game code at a single,
 ## Verification
 
 - Native build and tests in CI on every push.
-- `reference.yml` (manual) builds any ref with the period Borland toolchain and verifies the
-  binaries by sha256. Use it to prove a change to `bak/` is byte-neutral when it should be.
-  Its uploaded objects feed the differential tests.
+- `reference.yml` (manual) builds a ref with the period Borland toolchain and verifies the
+  binaries by sha256. Its uploaded objects feed the differential tests. Byte-identity is not
+  a goal on `main`, which need not build with Borland: change `bak/` code directly.
 - When behaviour is in doubt, compare with the original EXE from your own copy of the game
   in DOSBox Staging.
 

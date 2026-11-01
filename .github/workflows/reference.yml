@@ -4,11 +4,9 @@ name: reference build
 # and TASM in FreeDOS under QEMU), verifies them by sha256 against the shipped
 # 1.00 and 1.02 releases, and uploads every object file, link map and binary.
 #
-# Two uses:
-#   - test fixtures: the native port's differential tests run original routines
-#     from these objects (build `upstream-snapshot`);
-#   - proof that a change to bak/ is byte-neutral for the DOS build (build the
-#     commit in question; the job fails on any byte difference).
+# The native port's differential tests run original routines from these objects
+# (build `upstream-snapshot`). The job fails on any byte difference, so later
+# commits of main, which no longer keep byte-identity, are not expected to pass.
 
 on:
   workflow_dispatch:
