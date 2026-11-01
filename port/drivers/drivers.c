@@ -68,7 +68,9 @@ DudeDigitalEntry *dude_digital_entry(const unsigned char *chunk) {
     dude_device_name(chunk, name, sizeof name);
     if (g_dudeTestDigital != NULL && strcmp(name, "difftest") == 0)
         return g_dudeTestDigital;
-    return NULL; /* none ported yet */
+    if (strcmp(name, "CMS Sound Blaster") == 0)
+        return asb_dispatch;
+    return NULL;
 }
 
 uint16_t dude_digital_call(unsigned char *chunk, uint16_t cmd, void *args) {

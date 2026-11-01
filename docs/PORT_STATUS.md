@@ -434,13 +434,14 @@ the original's offsets: the driver's state and power-on values are the original'
 |---|---|
 | `M32` Roland MT-32 | ✅ `port/drivers/m32.c`; `test_m32.py`: `M32.EXE` and the translation on the same MPU-401 model, a generated bank, then thousands of random slot calls: registers, MIDI bytes and the whole chunk after each |
 | `ADL` AdLib (OPL2) | ✅ `port/drivers/adl.c`, translated register for register (a slot's AX and CX are what the original leaves there); `test_adl.py`: `ADL.EXE` and the translation on the same OPL2 model, generated banks, then thousands of random slot calls (notes past the nine voices, the reserved voices of controller 75, the sustain pedal, bends, the master volume and enable): AX and CX, the register writes and the whole chunk after each |
-| `NLD`, `SBP`, `GMD`, `PRO`, `PS1`, `STD`; digital `ASB`, `APA`, `ADS` | ⬜ stop with "Not implemented yet: the SX.OVL sound driver \"<device name>\"" |
+| `ASB` "CMS Sound Blaster", digital | ✅ `port/drivers/asb.c`, on the platform's card (`sbdsp.c`); `test_asb.py`: `ASB.EXE` and the translation on the same card, through the install (the DSP there or not, on IRQ 2, 3, 4, 5 or 7, versions 1.00 to 2.01 and 8001h, other bases, the CD-ROM check) and then hundreds of random blocks (looping or not, some across a 64 KB page or ending on it, rates under 16 Hz), polls, stops and their interrupts: AX, every port access, the arguments, the whole chunk, the card and the vectors after each. The game sends commands 0-5 only; 6, 7, 8, 12, 14 and 15 are as simple, and 9, 10, 11 and 13 (streaming from a file) trap. Natively it does not hook INT 10h, 0Dh and 74h, which serve only that streaming |
+| `NLD`, `SBP`, `GMD`, `PRO`, `PS1`, `STD`; digital `APA`, `ADS` | ⬜ stop with "Not implemented yet: the SX.OVL sound driver \"<device name>\"" |
 
 The MIDI the MT-32 driver sends goes to the emulated MPU-401 and no further yet. The 1.02 release's
-music plays from the CD's tracks (see "The CD's music" below). The AdLib's OPL2 is emulated (see
-"Platform services"); next come its driver and the Sound Blaster's digital one for the sound effects
-(the AdLib tracks cover all 179 pieces, and 41 effects exist only as digital samples), then MT-32
-music through Munt with user-supplied ROMs.
+music plays from the CD's tracks (see "The CD's music" below). The Sound Blaster setting's two
+drivers run natively: ADL on the emulated OPL2 (music and effects; its tracks cover all 179 pieces)
+and ASB on the emulated card (the 41 effects that exist only as digital samples). MT-32 music
+through Munt with user-supplied ROMs comes later.
 
 ### The CD's music
 
@@ -692,6 +693,26 @@ The `music` and `music-menu` replays play the GOG copy's.
   256 rows or 2048 pixels wide on, and the bottom and top tests look at a difference's sign only. A row
   takes (width + 7) / 8 bytes of a plane but rows are width / 8 bytes apart, so a width that is not a
   multiple of 8 reads into the next row. The translation keeps all of it.
+
+- **The Sound Blaster driver's probe leaves IRQ 2, 3 and 5 unmasked.** ASB.ASM finds its IRQ by
+  hooking lines 2, 3, 5 and 7 and playing a one-sample block. Each hook saves the 8259's mask before
+  unmasking its line, over the save before, so the four unhooks all restore the mask the fourth hook
+  found: lines 2, 3 and 5 stay unmasked, with their vectors back to what they were.
+- **The Sound Blaster driver's probe needs its interrupt to come late.** It sends the one-sample
+  block, then clears the byte its handlers set, then waits for it: an interrupt in between would be
+  lost. On the card the sample takes 156 µs (time constant 64h), far longer.
+- **A failed install of the Sound Blaster driver leaves the machine broken.** When slot 0 fails, the
+  game shuts the driver down (SNDINST.C calls slot 2). That waits for the DSP to take its halt
+  command with no limit, so with no card at the base the game hangs at start-up. With a card whose IRQ
+  the probe missed (or a DSP older than 1.01), it restores line 0's vector, the timer's INT 08h, from
+  a save slot nothing wrote, 0000:0000 (and with a too old DSP the 8259's mask from another, 00h), and
+  it closes DOS handle 0: the file handle it keeps is set to FFFFh only at the end of a successful
+  install. Natively the card is always there and answers.
+- **The Sound Blaster driver adds to DL alone.** Most of its DSP ports are the base plus a register
+  in DL (the carry lost; read data then the status port less 4, the borrow lost), some in DX. Bases
+  from xF2h on reach other ports; the card's bases (210h-280h) do not.
+- **The Sound Blaster driver's last byte is a CD-ROM check.** When the byte at 16FBh is CDh, slot 0
+  refuses to install unless MSCDEX says the current drive is a CD; the shipped image has DCh.
 
 ## Black-box comparison with the original
 

@@ -61,4 +61,10 @@ void m32_dispatch(unsigned char *chunk, uint16_t slot, DudeRegs *regs);
 /* DRIVERS/SX/ADL.ASM: the AdLib's OPL2 at 388h. */
 void adl_dispatch(unsigned char *chunk, uint16_t slot, DudeRegs *regs);
 
+/* DRIVERS/SX/ASB.ASM: the Sound Blaster's digital side ("CMS Sound Blaster"). asb_isr_offset
+ * names a handler it installed by the original's offset (0: none, -1: not the driver's), for
+ * the tests. */
+uint16_t asb_dispatch(unsigned char *chunk, uint16_t cmd, void *args);
+int asb_isr_offset(void (*isr)(void));
+
 #endif
