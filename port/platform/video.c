@@ -7,7 +7,8 @@
  * four planes, mapped through the attribute controller's palette. It goes through the
  * emulated DAC and is shown scaled to a 4:3 picture, as on a VGA monitor (or with square
  * pixels), the scaling as the settings ask. The window keeps its place and size between runs;
- * Alt+Enter and F11 switch it to and from the full screen.
+ * Alt+Enter and F11 switch it to and from the full screen. A picture goes to the window only
+ * when it differs from the last, and at most once per refresh of the display.
  */
 #include <inttypes.h>
 #include <stdio.h>
@@ -36,6 +37,12 @@ static bool s_offscreen; /* SDL's dummy video driver: nobody sees the window */
 static SDL_Rect s_windowed; /* the window's place and size when last neither full nor maximized */
 static bool s_placed;       /* s_windowed's place is known */
 static bool s_keyEaten[SDL_SCANCODE_COUNT]; /* pressed for the window: its release is too */
+static uint32_t s_last[MAX_WIDTH * MAX_HEIGHT]; /* the last picture scanned out that differed */
+static int s_lastW, s_lastH;                    /* its size; 0 before the first */
+static bool s_stale = true;    /* the window lacks the last picture (or was uncovered, resized) */
+static uint64_t s_presentedNs; /* on the host's clock, when the window last got a picture */
+static uint64_t s_refreshNs;   /* the display's refresh period; 0 when it does not say */
+static unsigned s_presents, s_pictures; /* for BAK_TRACE */
 
 uint8_t *bak_video_page(uint16_t pageSeg) {
     if (pageSeg < 0xA000) {
@@ -146,9 +153,27 @@ bool video_handle_key(const SDL_Event *e) {
     return true;
 }
 
+/* The refresh period of the display the window is on. */
+static void note_display(void) {
+    const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(s_window));
+    s_refreshNs = mode != NULL && mode->refresh_rate > 0.0f
+                      ? (uint64_t)(1e9 / (double)mode->refresh_rate)
+                      : 0;
+}
+
 void video_handle_window_event(const SDL_Event *e) {
-    if (e->type == SDL_EVENT_WINDOW_MOVED || e->type == SDL_EVENT_WINDOW_RESIZED)
+    switch (e->type) {
+    case SDL_EVENT_WINDOW_MOVED:
+    case SDL_EVENT_WINDOW_RESIZED:
         note_windowed();
+        break;
+    case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
+        note_display();
+        break;
+    default:
+        break;
+    }
+    s_stale = true; /* uncovered, resized or moved: draw it again */
 }
 
 bool video_open(void) {
@@ -187,6 +212,7 @@ bool video_open(void) {
     SDL_HideCursor(); /* the game draws its own */
     const char *driver = SDL_GetCurrentVideoDriver();
     s_offscreen = driver != NULL && SDL_strcmp(driver, "dummy") == 0;
+    note_display();
     if (SDL_getenv("BAK_TRACE") != NULL) {
         SDL_ScaleMode mode = SDL_SCALEMODE_INVALID;
         SDL_GetTextureScaleMode(s_texture, &mode);
@@ -210,6 +236,8 @@ bool video_window_to_picture(float wx, float wy, float *px, float *py) {
 void video_close(void) {
     if (s_window != NULL)
         save_window();
+    if (SDL_getenv("BAK_TRACE") != NULL)
+        fprintf(stderr, "trace: %u pictures, %u of them presented\n", s_pictures, s_presents);
     SDL_DestroyTexture(s_texture);
     SDL_DestroyRenderer(s_renderer);
     SDL_DestroyWindow(s_window);
@@ -237,12 +265,11 @@ static void save_bmp(const char *path) {
     }
 }
 
+/* A picture that differs from the one before it. */
 static void record_frame(void) {
     static const char *dumpPath, *dumpDir;
     static FILE *log;
-    static bool checked, written;
-    static uint32_t last[MAX_WIDTH * MAX_HEIGHT];
-    static int lastW, lastH;
+    static bool checked;
     static unsigned count;
     if (!checked) {
         checked = true;
@@ -257,12 +284,6 @@ static void record_frame(void) {
     if (dumpPath == NULL && dumpDir == NULL && log == NULL)
         return;
     size_t bytes = (size_t)s_width * (size_t)s_height * sizeof s_picture[0];
-    if (written && s_width == lastW && s_height == lastH && memcmp(last, s_picture, bytes) == 0)
-        return;
-    written = true;
-    memcpy(last, s_picture, bytes);
-    lastW = s_width;
-    lastH = s_height;
     uint32_t hash = platform_hash(0, s_picture, bytes);
     count++;
     if (dumpPath != NULL)
@@ -339,6 +360,22 @@ static void scan_out(const uint32_t *pal) {
     }
 }
 
+void video_flush(void) {
+    if (!s_stale || s_offscreen || s_texture == NULL || s_lastW == 0)
+        return;
+    uint64_t now = SDL_GetTicksNS();
+    if (s_presentedNs != 0 && now - s_presentedNs < s_refreshNs)
+        return; /* the display has not shown the last one yet */
+    s_presentedNs = now;
+    s_stale = false;
+    s_presents++;
+    SDL_UpdateTexture(s_texture, NULL, s_last, s_lastW * 4);
+    SDL_RenderClear(s_renderer);
+    SDL_FRect dst = {0, 0, (float)s_lastW, (float)s_shownHeight};
+    SDL_RenderTexture(s_renderer, s_texture, NULL, &dst);
+    SDL_RenderPresent(s_renderer);
+}
+
 /* Show the picture the CRTC is scanning out. */
 void video_present(void) {
     if (s_texture == NULL)
@@ -350,12 +387,14 @@ void video_present(void) {
         pal[i] = (r << 2 | r >> 4) << 16 | (g << 2 | g >> 4) << 8 | (b << 2 | b >> 4);
     }
     scan_out(pal);
-    record_frame();
-    if (s_offscreen)
-        return;
-    SDL_UpdateTexture(s_texture, NULL, s_picture, s_width * 4);
-    SDL_RenderClear(s_renderer);
-    SDL_FRect dst = {0, 0, (float)s_width, (float)(s_width * 3 / 4)};
-    SDL_RenderTexture(s_renderer, s_texture, NULL, &dst);
-    SDL_RenderPresent(s_renderer);
+    size_t bytes = (size_t)s_width * (size_t)s_height * sizeof s_picture[0];
+    if (s_width != s_lastW || s_height != s_lastH || memcmp(s_last, s_picture, bytes) != 0) {
+        memcpy(s_last, s_picture, bytes);
+        s_lastW = s_width;
+        s_lastH = s_height;
+        s_stale = true;
+        s_pictures++;
+        record_frame();
+    }
+    video_flush();
 }

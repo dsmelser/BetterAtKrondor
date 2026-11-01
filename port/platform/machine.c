@@ -189,6 +189,8 @@ static bool poll(void) {
     if (frame != s_lastFrame) {
         s_lastFrame = frame;
         video_present();
+    } else {
+        video_flush(); /* a picture held back for the display's refresh */
     }
     return busy;
 }

@@ -120,7 +120,10 @@ bool platform_pump_events(void);
 /* The game window (video.c): made as the settings say, its place and size saved on closing. */
 bool video_open(void);
 void video_close(void);
+/* The picture the CRTC scans out, to the window if it changed (the frame log's moments). */
 void video_present(void);
+/* The last picture to the window if it lacks it, once the display's refresh allows. */
+void video_flush(void);
 /* A window position as a position on the 320x200 picture; false outside any window. */
 bool video_window_to_picture(float wx, float wy, float *px, float *py);
 /* To and from the full screen, remembered. */
@@ -129,7 +132,7 @@ void video_toggle_fullscreen(void);
  * game does not see it. */
 union SDL_Event;
 bool video_handle_key(const union SDL_Event *e);
-/* The window moved or was resized. */
+/* The window moved, was resized or uncovered, or went to another display. */
 void video_handle_window_event(const union SDL_Event *e);
 
 /* Feed a host mouse event to the emulated INT 33h driver (mouse.c), a key to the

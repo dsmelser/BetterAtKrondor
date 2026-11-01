@@ -141,6 +141,9 @@ bool platform_pump_events(void) {
             break;
         case SDL_EVENT_WINDOW_MOVED:
         case SDL_EVENT_WINDOW_RESIZED:
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+        case SDL_EVENT_WINDOW_EXPOSED:
+        case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
             video_handle_window_event(&e);
             break;
         default:
