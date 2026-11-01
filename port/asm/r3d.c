@@ -13,6 +13,7 @@
 #include "bak_game_begin.h"
 #include "structs.h"
 #include "r3d.h"
+#include "SRC/GEN/GFXCTX.H"
 #include "SRC/R3D/CORE/R3D.H"
 #include "bak_game_end.h"
 
@@ -131,6 +132,156 @@ s16 *r3d_mat3_xform_vec3_wrap(s16 *vec, Mat3x3 *matrix, s16 *out_vec) {
     return out_vec;
 }
 
+/* Swaps the three pairs across the diagonal, each pair's lower element first. */
+Mat3x3 *r3d_matrix3x3_transpose(Mat3x3 *m) {
+    s16 *p = m->pM;
+    s16 t;
+    t = p[3];
+    p[3] = p[1];
+    p[1] = t;
+    t = p[6];
+    p[6] = p[2];
+    p[2] = t;
+    t = p[7];
+    p[7] = p[5];
+    p[5] = t;
+    return m;
+}
+
+/* One element of a product: row r of a times column c of b, over the first n terms. */
+static s16 dot_rc(const s16 *a, const s16 *b, int r, int c, int n) {
+    u32 sum = 0;
+    int k;
+    for (k = 0; k < n; k++)
+        sum += mul(a[3 * r + k], b[3 * k + c]);
+    return q14(sum);
+}
+
+/*
+ * out = a * b. Both type bytes are read first. An identity (type 0) copies the other
+ * matrix, its type byte first; type 1 (a turn about Z) takes the shorter products, and any
+ * other type is a full matrix: the product of two turns about Z is one (type 1), any other
+ * product is type 3. The elements are stored in the original's order, the type byte last.
+ */
+Mat3x3 *r3d_matrix3x3_multiply(Mat3x3 *pMatA, Mat3x3 *pMatB, Mat3x3 *pOut) {
+    const s16 *a = pMatA->pM;
+    const s16 *b = pMatB->pM;
+    s16 *o = pOut->pM;
+    unsigned char typeA = pMatA->bType;
+    unsigned char typeB = pMatB->bType;
+    int i;
+
+    if (typeA == MAT3T_IDENTITY || typeB == MAT3T_IDENTITY) {
+        const s16 *src = typeA == MAT3T_IDENTITY ? b : a;
+        pOut->bType = typeA == MAT3T_IDENTITY ? typeB : typeA;
+        for (i = 0; i < 9; i++) /* REP MOVSW: a word at a time, forwards */
+            o[i] = src[i];
+    } else if (typeA == MAT3T_ZROT && typeB == MAT3T_ZROT) {
+        o[0] = dot_rc(a, b, 0, 0, 2);
+        o[1] = dot_rc(a, b, 0, 1, 2);
+        o[3] = dot_rc(a, b, 1, 0, 2);
+        o[4] = dot_rc(a, b, 1, 1, 2);
+        o[2] = 0;
+        o[5] = 0;
+        o[6] = 0;
+        o[7] = 0;
+        o[8] = Q14_ONE;
+        pOut->bType = MAT3T_ZROT;
+    } else if (typeA == MAT3T_ZROT) {
+        for (i = 0; i < 6; i++)
+            o[i] = dot_rc(a, b, i / 3, i % 3, 2);
+        o[6] = b[6];
+        o[7] = b[7];
+        o[8] = b[8];
+        pOut->bType = MAT3T_FULL;
+    } else if (typeB == MAT3T_ZROT) {
+        for (i = 0; i < 9; i++)
+            o[i] = i % 3 == 2 ? a[i] : dot_rc(a, b, i / 3, i % 3, 2);
+        pOut->bType = MAT3T_FULL;
+    } else {
+        for (i = 0; i < 9; i++)
+            o[i] = dot_rc(a, b, i / 3, i % 3, 3);
+        pOut->bType = MAT3T_FULL;
+    }
+    return pOut;
+}
+
+/*
+ * The three angles of a rotation matrix: the first from asin(m[5]); with it at +-90
+ * degrees the other two fold into one (the second 0), else each comes from atan2 of a
+ * pair. out[1] is stored before the reads for out[2].
+ */
+s16 *r3d_matrix_to_euler(Mat3x3 *matrix3x3, s16 *out_xyz) {
+    const s16 *m = matrix3x3->pM;
+    s16 angle = r3d_tbl_asin(m[5]);
+    out_xyz[0] = angle;
+    if (angle < 0)
+        angle = (s16)-angle;
+    if (angle == 0x4000) {
+        out_xyz[1] = 0;
+        out_xyz[2] = r3d_tbl_atan2(m[0], m[1]);
+    } else {
+        out_xyz[1] = r3d_tbl_atan2(m[8], (s16)-m[2]);
+        out_xyz[2] = r3d_tbl_atan2(m[4], (s16)-m[3]);
+    }
+    return out_xyz;
+}
+
+/* ---- the camera -------------------------------------------------------------------- */
+
+/*
+ * The frame's camera from a view: its position and angles, the projection's shift, the
+ * viewport as the clip rectangle and its centre, and the world-to-view matrix. A view
+ * rotation other than none is composed onto the camera's angles, which then take the
+ * composed matrix's angles. The matrix ends transposed.
+ */
+void r3d_camera_setup_view(ViewContext *widget) {
+    R3dRendererState *st = &g_abR3dState;
+    WorldEntity *camera = widget->camera;
+    const Rect *vp = &widget->viewport;
+    s16 *angles = &st->nCamViewYaw; /* with nCamViewPitch and nCamViewHeading after it */
+    u16 zoom;
+
+    st->camCurWorldPos[0] = camera->base.pos.xy.nWorld_x;
+    st->camCurWorldPos[1] = camera->base.pos.xy.nWorld_y;
+    st->camCurWorldPos[2] = camera->base.pos.nWorld_z;
+    camera = widget->camera;
+    angles[0] = camera->base.orientation.pitch;
+    angles[1] = camera->base.orientation.roll;
+    angles[2] = camera->base.orientation.yaw;
+
+    /* a word store: the zoom's high byte lands in the byte after the shift. The shift's
+     * count is the low byte, masked to 5 bits as a 386 does */
+    zoom = (u16)widget->zoom;
+    st->bScreenShift = (unsigned char)zoom;
+    st->bScreenShiftHi = (unsigned char)(zoom >> 8);
+    st->nActorFarClipThreshold = (s16)(u16)(1u << (zoom & 31));
+    g_r3d.pFaceMaterialTable = widget->faceMaterials;
+    g_pColorRemapTable = widget->colorRemap;
+
+    g_graphics_context.clip.xmin = vp->x;
+    g_graphics_context.clip.xmax = (s16)(vp->x + vp->width - 1);
+    g_graphics_context.clip.ymin = vp->y;
+    g_graphics_context.clip.ymax = (s16)(vp->y + vp->height - 1);
+    st->nViewportCenterX = (s16)(((u16)vp->width >> 1) + vp->x);
+    st->nViewportCenterY = (s16)(((u16)vp->height >> 1) + vp->y);
+    st->bSkipFarEdgeCull = 0;
+    st->bCamSetupResetFlag = 0;
+
+    g_r3d.matIn[0] = widget->viewRotation.pitch;
+    g_r3d.matIn[1] = widget->viewRotation.roll;
+    g_r3d.matIn[2] = widget->viewRotation.yaw;
+    r3d_build_rotation_matrix(g_r3d.matIn, &g_r3d.mat3x3ScratchRot);
+    if (g_r3d.mat3x3ScratchRot.bType == MAT3T_IDENTITY) {
+        r3d_build_rotation_matrix(angles, &st->mat3x3ViewRot);
+    } else {
+        r3d_build_rotation_matrix(angles, &st->mat3x3ActorRot);
+        r3d_matrix3x3_multiply(&g_r3d.mat3x3ScratchRot, &st->mat3x3ActorRot, &st->mat3x3ViewRot);
+        r3d_matrix_to_euler(&st->mat3x3ViewRot, angles);
+    }
+    r3d_matrix3x3_transpose(&st->mat3x3ViewRot);
+}
+
 /* ---- lighting ---------------------------------------------------------------------- */
 
 /* The world's light: +Y (200h, Q9) turned by the elevation about X and the azimuth about Z. */
@@ -173,29 +324,6 @@ void r3d_mesh_part_polygons(unsigned char *part_header) {
 
 void r3d_poly_emit_screen_or_world(void) {
     BAK_UNIMPLEMENTED("R3D.ASM: r3d_poly_emit_screen_or_world");
-}
-
-void r3d_camera_setup_view(ViewContext *widget) {
-    (void)widget;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_camera_setup_view");
-}
-
-s16 *r3d_matrix_to_euler(Mat3x3 *matrix3x3, s16 *out_xyz) {
-    (void)matrix3x3;
-    (void)out_xyz;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_matrix_to_euler");
-}
-
-Mat3x3 *r3d_matrix3x3_transpose(Mat3x3 *m) {
-    (void)m;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_matrix3x3_transpose");
-}
-
-Mat3x3 *r3d_matrix3x3_multiply(Mat3x3 *pMatA, Mat3x3 *pMatB, Mat3x3 *pOut) {
-    (void)pMatA;
-    (void)pMatB;
-    (void)pOut;
-    BAK_UNIMPLEMENTED("R3D.ASM: r3d_matrix3x3_multiply");
 }
 
 void r3d_polygon_resolve_shade_color(void) {

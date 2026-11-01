@@ -1121,7 +1121,9 @@ struct R3dRendererState {
     short nMeshNormOriginX;
     short nActorFarClipThreshold;
     unsigned char bScreenShift;
-    unsigned char _pad_0xa8[1];
+    /* r3d_camera_setup_view stores the zoom as a word over bScreenShift, so this holds its
+       high byte; the mesh producers read the two as the count of their projection loop */
+    unsigned char bScreenShiftHi;
     short nViewportCenterX;
     short nViewportCenterY;
 };

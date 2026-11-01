@@ -1612,7 +1612,9 @@ g_vec3LightDirWorld	dw 3 dup(0)	; 0x63e: world-space directional-light vector (p
 ;       for (i = 3; i != 0; i--)
 ;           *dst++ = *src++;
 ;
-;       g_nScreenShift = (unsigned char)widget->zoom;
+;       /* a word store: the zoom's high byte lands in the byte after the
+;          shift, and the mesh producers read both as their loop count */
+;       *(short *)&g_nScreenShift = widget->zoom;
 ;       g_nActorFarClipThreshold = 1 << g_nScreenShift;
 ;       g_pFaceMaterialTable = widget->faceMaterials;
 ;       g_pColorRemapTable = widget->colorRemap;
@@ -1627,7 +1629,7 @@ g_vec3LightDirWorld	dw 3 dup(0)	; 0x63e: world-space directional-light vector (p
 ;       g_nViewportCenterY = widget->viewport.y + ((unsigned)widget->viewport.height >> 1);
 ;
 ;       g_bSkipFarEdgeCull = 0;
-;       g_bActorViewportClip = 0;
+;       g_bCamSetupResetFlag = 0;
 ;
 ;       /* copy the view-rotation angles pitch/roll/yaw (3 words) into the matrix builder input */
 ;       src = (short *)&widget->viewRotation;

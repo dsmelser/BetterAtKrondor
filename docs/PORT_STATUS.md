@@ -30,7 +30,7 @@ or a click (as the original does), then shows the main menu with its buttons and
 DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
 come back, and Start New Game fades into chapter 1, whose opening book pages through with keys or
 clicks; the chapter cutscene after it plays to its end, the new game's state is loaded, the 3D world is
-set up, and rendering its first frame stops in the R3D core (below).
+set up, and rendering its first frame sets up the camera and stops at the sky's bands (below).
 The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
 `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
@@ -43,7 +43,8 @@ and checks that an incomplete folder is turned down cleanly.
    byte for byte), reads the party from it and sets up the 3D world: `ts_init` sets the light (M3's R3D
    core starts there), loads the region's encounter shapes and the zone's actors, scans the zone around
    the party, checks the zone's ground at its position, and enters the world's main loop
-   (`world3d_main_loop`): its first frame stops at R3D.ASM's `r3d_camera_setup_view`.
+   (`world3d_main_loop`): its first frame sets up the camera (`r3d_camera_setup_view`) and stops at
+   VGAFILL.ASM's `vgaplanar_fill_band`, which the sky and ground bands (`SKYREND.C`) draw with.
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -148,7 +149,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/VGABLIT.ASM` | `port/asm/vgablit.c` (`vga_planar_fill_rects`, which nothing calls, traps) | `test_vgablit.py`: 360 random span tables through the tiled and untiled copiers with random texture parameters and pages, 150 lines through the line-slot stand-in, on a planar VGA model: display memory, the map mask and the graphics mode left behind |
 | `R3D/CORE/DISTDIR.ASM` | `port/asm/distdir.c`: the octagonal distance from two points and from two deltas (`distdir_vec3_distance_dir_approx` has no caller in the game and traps) | `test_distdir.py`: 3000 random cases each and the edges of the 32-bit range, where the differences, their magnitudes and 3 * min overflow |
 | `R3D/CORE/R3DDATA.ASM` | `port/asm/r3ddata_data.c`, `r3ddata.h`: the state block, as `g_abR3dState` (the part C code reads) and `g_r3d` (R3D.ASM's own, in the original's order, with the words R3D.ASM keeps between its routines); the cosine table is R3DTRIG's | `test_r3d.py`: the lighting ramp |
-| `R3D/CORE/R3D.ASM` | `port/asm/r3d.c`, so far `r3d_light_set_direction`, `r3d_build_rotation_matrix`, `r3d_matrix3x3_transform_vec3` (with its far wrapper) and `r3d_imul_full32`; the rest traps | `test_r3d.py`: the multiply over the 16-bit edges and 2000 random pairs; the rotation matrix of every kind over angles at the cosine table's folds and 600 random ones, the vector transform over every type byte and 1500 random matrices and vectors, with inputs and outputs overlapping (the original reads its inputs again after each store); the light direction for `ts_init`'s angles and 500 pairs |
+| `R3D/CORE/R3D.ASM` | `port/asm/r3d.c`, so far `r3d_light_set_direction`, `r3d_build_rotation_matrix`, `r3d_matrix3x3_transform_vec3` (with its far wrapper), `r3d_imul_full32`, and the camera: `r3d_camera_setup_view`, `r3d_matrix3x3_multiply`, `r3d_matrix3x3_transpose`, `r3d_matrix_to_euler`; the rest traps | `test_r3d.py`: the multiply over the 16-bit edges and 2000 random pairs; the rotation matrix of every kind over angles at the cosine table's folds and 600 random ones, the vector transform over every type byte and 1500 random matrices and vectors, with inputs and outputs overlapping (the original reads its inputs again after each store); the light direction for `ts_init`'s angles and 500 pairs; the matrix product over every pair of type bytes and 1200 random pairs, Q14 or overflowing, with the product apart, on or across either operand; the transpose; the angles of 1500 matrices, at and around +-90 degrees, written over the matrix too; the camera of 1200 views, turned or not, with viewports and zooms over the 16-bit range: every word it sets, the clip rectangle and the three matrices |
 | `R3D/CORE/R3DTRIG.ASM` | `port/asm/r3dtrig.c` (with R3DDATA.ASM's cosine table) | `test_r3dtrig.py`: every entry of the cosine, arcsine and arctangent tables through sin, cos, asin and the raw lookup; atan2 over 3000 vectors of three magnitudes, the axes, diagonals and -8000h |
 | `GFX/RASTER/POLYRAST.ASM` | `port/asm/polyrast.c` (quads with slanted sides go on to GOURAUD.ASM, not in C yet) | `test_polyrast.py`: the edge stepper over 3000 start/end/step cases; scaled sprites, plain and RLE, at random places, scales, flips, modes (copy, fill, outline, remap through the fog and cursor tables), clip rectangles and pages, on a planar VGA model: display memory, the steppers, the map mask and the RLE scratch after each. Reaches all 40 of the routine's checkpoints. The textured quad blit (the intro's page turn) over 360 quads with vertical sides, either way round, clipped or not: the same, and the corners it swaps |
 
@@ -294,6 +295,11 @@ with user-supplied ROMs) comes after M1, behind a toggle.
 - **The renderer's vector transform tests a matrix's type with a signed compare.** A type byte from 80h
   up takes the identity's path (the vector is copied), where the full rotation's would be expected.
   The matrix builder writes 0-3 only.
+- **The camera stores the view's zoom as a word.** `r3d_camera_setup_view` writes it over the
+  projection's shift count and the byte after it, and the mesh producers load the two as the count of
+  their projection loop, so a zoom from 256 on would shift by far more than its low byte. The game's
+  zooms are small. (R3D.ASM's C equivalent named the flag it clears `g_bActorViewportClip`; the code
+  clears `g_bCamSetupResetFlag`.)
 - **The VGA driver's sprite blit draws rows of width & ~3 pixels.** Slot 29 steps its source rows by the
   width rounded down to a multiple of 4, so a sprite's last width & 3 pixels in a row are never drawn (the
   game's sprites are multiples of 4 wide). The source position is kept as a quad-aligned offset plus a

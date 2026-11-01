@@ -126,6 +126,156 @@ def test_vector_transform(krondor, native):
         )
 
 
+def matrix_bytes(rng, kind: int | None = None) -> bytes:
+    """A matrix: Q14 values or any 16-bit ones (whose sums overflow), and a type byte."""
+    if rng.random() < 0.6:
+        values = [rng.randrange(-0x4000, 0x4001) for _ in range(9)]
+    else:
+        values = [rng.choice((-0x8000, 0x7FFF, rng.randrange(0x10000))) for _ in range(9)]
+    if kind is None:
+        kind = rng.choice(MAT3T) if rng.random() < 0.8 else rng.randrange(256)
+    return words(*values) + bytes([kind])
+
+
+def test_matrix_multiply(krondor, native):
+    # Every pair of types (0 and 1 have paths of their own, any other is a full matrix),
+    # the product apart, on either operand, overlapping one, and both operands the same.
+    rng = random.Random(5)
+    kinds = [0, 1, 2, 3, 0x80, 0xFF]
+    cases = [(ka, kb) for ka in kinds for kb in kinds for _ in range(25)]
+    cases += [(None, None)] * 1200
+    for i, (ka, kb) in enumerate(cases):
+        mem = bytearray(rng.randbytes(MEM))
+        a, b = 0x20, 0x60
+        mem[a : a + 19] = matrix_bytes(rng, ka)
+        mem[b : b + 19] = matrix_bytes(rng, kb)
+        if i % 9 == 0:
+            b = a
+        out = rng.choice(
+            (
+                0xA0,
+                a,
+                b,
+                a + 2 * rng.randrange(-9, 10),
+                b + 2 * rng.randrange(-9, 10),
+                rng.randrange(0, MEM - 20, 2),
+            )
+        )
+        check(krondor, native, "r3d_matrix3x3_multiply", "r3d.mul", bytes(mem), a, b, out)
+
+
+def test_matrix_transpose(krondor, native):
+    rng = random.Random(6)
+    for _ in range(200):
+        mem = rng.randbytes(MEM)
+        check(
+            krondor,
+            native,
+            "r3d_matrix3x3_transpose",
+            "r3d.transpose",
+            mem,
+            rng.randrange(0, MEM - 20, 2),
+        )
+
+
+def test_matrix_to_euler(krondor, native):
+    # m[5] over the arcsine table's range (past it the original reads its code), most
+    # often near +-1.0, where the first angle reaches +-90 degrees and the other two fold
+    # into one; the angles apart from the matrix or over it (out[1] is stored before the
+    # reads for out[2]).
+    rng = random.Random(7)
+    sines = [0, 1, -1, 0x3FC0, 0x3FDF, 0x3FE0, 0x3FFF, 0x4000, 0x401F, -0x3FE0, -0x4000, -0x401F]
+    for i in range(1500):
+        mem = bytearray(rng.randbytes(MEM))
+        matrix = 0x40
+        mem[matrix : matrix + 19] = matrix_bytes(rng)
+        if i < 300:
+            sine = sines[i % len(sines)]
+        elif rng.random() < 0.3:
+            sine = rng.randrange(0x3F00, 0x4020) * rng.choice((1, -1))
+        else:
+            sine = rng.randrange(-0x401F, 0x4020)
+        mem[matrix + 10 : matrix + 12] = words(sine)
+        for k in (0, 1, 2, 3, 4, 8):  # the elements atan2 reads: the extremes too
+            if rng.random() < 0.1:
+                mem[matrix + 2 * k : matrix + 2 * k + 2] = words(rng.choice((0, -0x8000, 0x7FFF)))
+        out = 0xA0 if i % 3 else matrix + 2 * rng.randrange(-2, 9)
+        check(krondor, native, "r3d_matrix_to_euler", "r3d.euler", bytes(mem), matrix, out)
+
+
+VIEW_AT, CAMERA_AT = 0xFE00, 0xFE40  # in DGROUP, under the test's stack
+
+
+def camera_state(m) -> bytes:
+    ctx_seg, ctx_off = m.sym("g_graphics_context")
+    return (
+        m.read("g_camCurWorldPos", 12)
+        + m.read("g_camViewYaw", 6)
+        + m.read("g_nScreenShift", 2)
+        + m.read("g_nViewPlaneDist", 2)
+        + m.read("g_pFaceMaterialTable", 2)
+        + m.read("g_pColorRemapTable", 2)
+        + m.read((ctx_seg, ctx_off + 4), 8)  # clip.xmin, xmax, ymin, ymax
+        + m.read("g_nViewportCenterX", 4)
+        + m.read("g_bCamSetupResetFlag", 3)  # g_bSkipFarEdgeCull, g_bActorViewportClip
+        + m.read("g_matXIn", 6)
+        + m.read("g_mat3x3ScratchRot", 19)
+        + m.read("g_mat3x3ViewRot", 19)
+        + m.read("g_mat3x3ActorRot", 19)
+    )
+
+
+def test_camera_setup(krondor, native):
+    # The game's views (no view rotation: the camera's angles give the matrix) and turned
+    # ones (composed, the camera's angles recovered from the product), over random
+    # cameras, viewports anywhere in the 16-bit range, and zooms whose shift passes 15 or
+    # 31 or has a high byte (stored with it).
+    rng = random.Random(8)
+    zooms = [7, 8, 0, 1, 15, 16, 31, 32, 0x107, 0xFFFF]
+    for i in range(1200):
+        zoom = zooms[i % len(zooms)] if i < 200 else rng.randrange(0x10000)
+        kind = i % 4
+        rotation = [0, 0, 0]
+        if kind == 1:
+            rotation[2] = rng.randrange(1, 0x10000)
+        elif kind == 2:
+            rotation[1:] = [rng.randrange(1, 0x10000), rng.randrange(0x10000)]
+        elif kind == 3:
+            rotation = [rng.randrange(1, 0x10000), rng.randrange(0x10000), rng.randrange(0x10000)]
+        if rng.random() < 0.5:
+            viewport = [
+                rng.randrange(320),
+                rng.randrange(200),
+                rng.randrange(1, 321),
+                rng.randrange(1, 201),
+            ]
+        else:
+            viewport = [rng.randrange(0x10000) for _ in range(4)]
+        face, remap = rng.randrange(0x10000), rng.randrange(0x10000)
+        position = [rng.randrange(-0x80000000, 0x80000000) for _ in range(3)]
+        orientation = [rng.choice((0, rng.randrange(0x10000))) for _ in range(3)]
+        actor = rng.randbytes(19)
+        flags = rng.randbytes(3)  # before: cleared, cleared, kept
+
+        view = words(zoom, CAMERA_AT, *rotation, *viewport, face, remap)
+        camera = words(rng.randrange(0x10000)) + struct.pack("<3i", *position) + words(*orientation)
+        krondor.write((krondor.data_seg, VIEW_AT), view)
+        krondor.write((krondor.data_seg, CAMERA_AT), camera)
+        krondor.write("g_mat3x3ActorRot", actor)
+        krondor.write("g_bCamSetupResetFlag", flags)
+        krondor.call_far("r3d_camera_setup_view", VIEW_AT)
+
+        payload = (
+            words(zoom, *rotation, *viewport, face, remap)
+            + struct.pack("<3i", *position)
+            + words(*orientation)
+            + actor
+            + flags
+        )
+        got = native.call("r3d.camera", payload)
+        assert got == camera_state(krondor), (zoom, rotation, viewport, position, orientation)
+
+
 def light_state(m) -> bytes:
     seg, off = m.sym("r3d_camera_setup_view")  # the light vector is the 6 bytes before it
     return m.read("g_matXIn", 6) + m.read("g_mat3x3ScratchRot", 19) + m.read((seg, off - 6), 6)
