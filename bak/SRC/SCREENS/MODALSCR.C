@@ -77,11 +77,11 @@ s16 far modalscreen_pending_scene_trans(void) {
             spawn = *(PlayerSpawnRecord *)g_gameState.abTeleportRecord;
             g_gameState.abTeleportRecord[0] = '\0';
         }
-        if ((spawn.bZoneId != 0xff) &&
-            ((((spawn.bZoneId != g_gameState.nZoneId ||
-                (spawn.bTileX != g_gameState.nPlayerTileX)) ||
-               (spawn.bTileY == g_gameState.nPlayerTileY)) ||
-              (spawn.wCameraHeading != g_gameState.wZoneDefaultCameraHeading)))) {
+        /* The original skips the move to a destination in the party's zone and tile column, on
+           another row, at the heading kept from the zone's entry: its test of the row, meant to
+           skip a teleport to where the party is, reads == where != was meant. A destination in
+           the party's own tile moves it all the same, so the port moves it to every one. */
+        if (spawn.bZoneId != 0xff) {
             if (spawn.bZoneId != g_gameState.nZoneId) {
                 zone_world_scene_teardown();
                 zone_set_plr_pos_rec(&spawn);

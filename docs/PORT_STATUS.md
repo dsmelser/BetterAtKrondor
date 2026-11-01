@@ -195,6 +195,13 @@ The quirks below (what the port has taught us) stay unless they are listed here.
   table. Bytes that matched the school and kind sought would spend a random draw there and could cast a
   spell that does not exist. The search starts at the last spell, and so does
   `cspell_paged_record_lookup_by_id`'s (nothing calls it).
+- **A teleport to another row of the party's tile column is ignored.** `modalscreen_pending_scene_trans`
+  carries out the pending teleport (TELEPORT.DAT's destinations: the dialogs' and the temples'). It
+  skips the move when the destination's zone, tile x and heading are the party's, the heading being
+  the one kept from the zone's entry or the last visit to the main menu, and its tile *y* is the
+  party's too, but that test reads `==` where `!=` was meant. So it skips a destination on another row
+  of the party's tile column, and moves the party into its own tile all the same. The port moves the
+  party to every destination, as the original does everywhere but there (`teleport` replay).
 
 ## ASM modules
 
@@ -407,11 +414,6 @@ only as digital samples), then MT-32 music through Munt with user-supplied ROMs.
 - **Loops and tests on pointers.** `hotspotevt_done_reset_all` clears every zone's 400 hotspot flags
   counting with a near pointer, whose + 200 steps 400 bytes. IMGLOAD.C's image loader tests the file it
   opened for failure as `(u16)pointer < 0`, which never holds.
-- **A teleport within the zone can be skipped.** `modalscreen_pending_scene_trans` moves the party
-  when the destination's zone or tile x differs from the party's, or its heading from the one kept
-  at the zone's entry, or when its tile *y* is the party's (`==` where `!=` was meant). So a
-  destination in the party's zone and tile column, on another row, at the kept heading, is
-  ignored. Not fixed yet; scripted teleports arrive at another heading.
 - **File opens are unchecked.** A missing `drive.cfg` (1.02) or `resource.cfg` passes a NULL `FILE *` to
   `fscanf`; natively the C runtime's invalid-parameter handler reports it.
 - **The sequencer's priority change re-sorts with a MOV where a CMP was meant.** `midi_chord_propagate_setting`
@@ -562,6 +564,7 @@ folder, and compares two logs with a baseline recorded in `work/replay/<scenario
 | `walk`: the world, then three steps, a turn left, a step, two turns right, a step | ✅ identical logs; the state log shows each 400-unit step and each 1024-unit turn |
 | `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state at 128 s |
 | `spawns`: the world, then a teleport into zone 4 (tile 10,14) among the sixteen stones chapter 1 spawns there, and a full turn about | ✅ identical logs, the ASan build's too; the stones live in the visible pool, past the zone pool's first 64 KB natively, and did not show before the visible list held pointers |
+| `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
 41 s of game time), since decoding and drawing take no game time; the golden scripts still work.
