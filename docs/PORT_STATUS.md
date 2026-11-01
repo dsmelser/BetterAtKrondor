@@ -433,7 +433,8 @@ the original's offsets: the driver's state and power-on values are the original'
 | Driver | Status |
 |---|---|
 | `M32` Roland MT-32 | ✅ `port/drivers/m32.c`; `test_m32.py`: `M32.EXE` and the translation on the same MPU-401 model, a generated bank, then thousands of random slot calls: registers, MIDI bytes and the whole chunk after each |
-| `NLD`, `ADL`, `SBP`, `GMD`, `PRO`, `PS1`, `STD`; digital `ASB`, `APA`, `ADS` | ⬜ stop with "Not implemented yet: the SX.OVL sound driver \"<device name>\"" |
+| `ADL` AdLib (OPL2) | ✅ `port/drivers/adl.c`, translated register for register (a slot's AX and CX are what the original leaves there); `test_adl.py`: `ADL.EXE` and the translation on the same OPL2 model, generated banks, then thousands of random slot calls (notes past the nine voices, the reserved voices of controller 75, the sustain pedal, bends, the master volume and enable): AX and CX, the register writes and the whole chunk after each |
+| `NLD`, `SBP`, `GMD`, `PRO`, `PS1`, `STD`; digital `ASB`, `APA`, `ADS` | ⬜ stop with "Not implemented yet: the SX.OVL sound driver \"<device name>\"" |
 
 The MIDI the MT-32 driver sends goes to the emulated MPU-401 and no further yet. The 1.02 release's
 music plays from the CD's tracks (see "The CD's music" below). The AdLib's OPL2 is emulated (see
@@ -579,6 +580,20 @@ The `music` and `music-menu` replays play the GOG copy's.
 - **A seek hangs the next tick.** `midi_seek_with_volume_preserve` (unused) restarts the track through
   `midi_track_init`, which releases it first (state FFh) and, while seeking, does not reset its state. The
   scheduler then takes it for a track that stopped during its tick and plays it again, forever.
+- **The AdLib driver's bank runs past its buffer.** Slot 1 copies 1507h (5383) bytes into a 5320-byte
+  buffer of 190 patches of 28 bytes: programs 0-127, then the rhythm channel's notes 1Bh-58h as programs
+  80h-BDh. The next 62 bytes land on the table after the buffer, which ADL.ASM calls a constant velocity
+  table (all 3Ch in the file): they are the rhythm notes' pitches, which the render reads in its place.
+  The last byte lands on the patch staging buffer, which the reset that follows overwrites. The game's
+  bank, SX.OVL's `SSM:003:`, unpacks to 5384 bytes and is passed past a header of two bytes or more, so
+  the copy reads at least a byte past it; natively that byte is in the DOS block's slack.
+- **A high pitch keys an AdLib voice on.** The render puts the octave less one (a note times 4, bent,
+  over 48) in register B0h's bits 2-4 by shifting it left by 2, so a pitch value from 432 up (note 6Bh
+  bent up by four steps, or a rhythm note's pitch from 6Ch) reaches bit 5, the key-on: the voice plays
+  eight octaves down, and a note-off does not release it while the pitch stays. Its test for a pitch of
+  FFFFh, meant to give up on the note, never holds: the bend keeps the pitch at 1FCh or below.
+- **The AdLib driver's reset swaps BX and CX.** It pushes BX then CX and pops BX then CX, so slot 2
+  returns the caller's BX in CX; the sequencer reads neither (`DudeRegs` passes BX, as 0).
 - **The MT-32 driver's slot 1 result is used.** M32.ASM's comment calls AX = 0961h, CL = 1, CH = 8 leftover
   scratch; the sequencer keeps CL..CH as the voices its arbiter may give out (1-8: the MT-32's parts).
 - **Without a digital driver `snddrv_dispatch_cached` returns DGROUP's segment** (it loads it for DS

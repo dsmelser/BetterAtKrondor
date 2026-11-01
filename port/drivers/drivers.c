@@ -35,6 +35,7 @@ static const struct {
     DudeEntry *entry;
 } s_synths[] = {
     {"Roland MT32 with MPU interface", m32_dispatch},
+    {"AdLib Music Synthesizer Card", adl_dispatch},
 };
 
 /* The DUDE header: entry jump (3 bytes), a pad byte, magic 87654321h, the interface

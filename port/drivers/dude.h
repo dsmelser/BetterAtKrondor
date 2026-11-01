@@ -27,6 +27,7 @@ typedef struct DudeRegs {
     uint16_t ax;
     uint16_t cx;
     const unsigned char *bank; /* slot 1: ES:AX */
+    uint16_t bx;               /* the AdLib driver's reset returns it in CX (the sequencer: 0) */
 } DudeRegs;
 
 /* A synth driver's entry: the chunk it was loaded as, the slot (BP) and the registers. */
@@ -57,5 +58,7 @@ extern DudeDigitalEntry *g_dudeTestDigital;
 
 /* DRIVERS/SX/M32.ASM: Roland MT-32 over an MPU-401 at 330h. */
 void m32_dispatch(unsigned char *chunk, uint16_t slot, DudeRegs *regs);
+/* DRIVERS/SX/ADL.ASM: the AdLib's OPL2 at 388h. */
+void adl_dispatch(unsigned char *chunk, uint16_t slot, DudeRegs *regs);
 
 #endif
