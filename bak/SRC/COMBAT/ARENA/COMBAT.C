@@ -723,7 +723,7 @@ static void far combat_arena_burn_terr_cutsc(void) {
 
     bDone = 0;
 
-    g_pTerrainBackupGrid = galloc_safe_zcalloc(0x10);
+    g_pTerrainBackupGrid = galloc_safe_zcalloc(8 * sizeof(unsigned short *));
     for (y = 0; y < 8; y++) {
         g_pTerrainBackupGrid[y] = galloc_safe_zcalloc(0x1a);
     }
