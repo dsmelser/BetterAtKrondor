@@ -12,8 +12,9 @@ identical; a change to the presentation only leaves the state log identical.
 
 `record` keeps a run's logs as the scenario's baseline, `check` runs again and compares with it.
 Runs go to work/replay/<scenario>/, never committed: the logs and the last frame come from the
-game's art. The scenarios are the golden screenshots' (dosbox_golden.py), a walk, a fight, the
-spawned objects of zone 4 and a teleport within the zone.
+game's art. The scenarios are the golden screenshots' (dosbox_golden.py), walks on keys, a
+gamepad and held buttons, a fight, the spawned objects of zone 4, a teleport within the zone and
+the map's riddle chest.
 """
 
 from __future__ import annotations
@@ -87,6 +88,14 @@ SCENARIOS["spawns"] = world_then(
 # scenario's place, two cells north of the fight (the next row, 10,15, draws Gouraud-shaded
 # shapes: GOURAUD.ASM is not translated yet). The party arrives and waits.
 SCENARIOS["teleport"] = world_then("90000:teleport:1,10,14,28,12,8000;", 93000)
+# The map's hidden riddle chest (MAP.C): on the map (M), the grave key held half a second with
+# the right Shift and an Alt shows the Moredhel lock vision, whose dialog waits for a sound to
+# end, then the chest's word lock (CIPHER.C): Space through its dialogs, the first dial turned
+# (a click), Exit (a click) and Space through the two dialogs after it, back on the map.
+SCENARIOS["riddle"] = world_then(
+    "90000:key:M;92000:key:Right Shift,3000;92100:key:Left Alt,2900;92200:key:`,1000;"
+    "96000:key:Space;100000:key:Space;104000:key:Space;106000:click:136,93;"
+    "108000:click:268,176;111000:key:Space;114000:key:Space;", 117000)
 
 
 def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> None:

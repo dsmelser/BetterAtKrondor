@@ -428,7 +428,10 @@ s16 far audio_sfx_play_n_times(s16 sfx_id, s16 extra_repeats, s16 blocking) {
             g_nFrameTickCountdown = 5;
             while (g_nFrameTickCountdown != 0) {
             }
+            /* The sequencer ends the sound in the timer interrupt, which natively runs
+             * only where the game polls. */
             while (audio_channel_for_id(sfx_id) != -1) {
+                BAK_IDLE();
             }
         }
         return 0;
@@ -443,6 +446,7 @@ s16 far audio_sfx_play_n_times(s16 sfx_id, s16 extra_repeats, s16 blocking) {
                 while (g_nFrameTickCountdown != 0) {
                 }
                 while (audio_channel_for_id(sfx_id) != -1) {
+                    BAK_IDLE();
                 }
             }
         }

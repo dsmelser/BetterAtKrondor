@@ -157,8 +157,8 @@ natively 46 steps in the 1.45 s the `hold-button` replay holds the button, again
 The map's hidden riddle-chest test (the grave key held with the right Shift and an Alt down, MAP.C)
 waits for half a second of holding on the platform's clock (`bak_clock_ms`). The original counted
 500,000 polls of the key, which lasted about that long on a 386 and natively as long as the host's
-polls. Scripted, a 0.3 s hold does nothing and a 1 s hold shows the Moredhel lock vision after 0.5 s;
-the chest screen after it then stops drawing and polling (not yet investigated).
+polls. Scripted, a 0.3 s hold does nothing and a 1 s hold shows the Moredhel lock vision after 0.5 s,
+then the chest's word lock (the `riddle` replay).
 
 ## Where the game sources depart from the original
 
@@ -232,6 +232,7 @@ at the `upstream-snapshot` tag.
 | `GAME/ENC/HOTSPOT.C`, `STREAM/RESLOAD/IMGLOAD.C`, `R3D/TBLSTORE/SHAPEBLD.C` | an integer counter where the original counts with a near pointer (`hotspotevt_done_reset_all`), a test that is never true left out (below), a far pointer rebuilt from its parts taken whole (`ts_project_shape`, which nothing calls) |
 | `SCREENS/MAINMENU.C` | the save listings pass `findfirst` a `struct ffblk` and read its `ff_name`; the original passes a `char[30]` and reads the name from the local after it (below) |
 | `GFX/SCREEN/SCREEN.C` | where the game would draw its cursor into the picture (`screen_frame_present`, `screen_cur_refr_during_long_op`, `screen_wipe_horizontal`), it first hands it to the system cursor (`bak_cursor_system`), and draws it only when that declines (`video.cursor = game`) |
+| `AUDIO/ENGINE/AUDIO.C`, `AUDDRVST.C` | the waits for a sound to end (a blocking sound effect, a track stopped) poll (`BAK_IDLE`); the original spins while the sequencer's timer interrupt ends the sound. Natively that interrupt runs only where the game polls, so the dialogs' blocking sounds hung the game (the riddle chest's vision) |
 | `SCREENS/PICKLOCK.C`, `PICKLOCK.H` | the lockpick screen's copy of the party's inventory is one buffer, its record and item slots; the original copies it over two locals (below) |
 | `R3D/ACTOR/ACTRENDR.C`, `GAME/ACTOR/ACTORREC.C`, `UI/UIWIDGET.C`, `STREAM/RESLOAD/FONTLOAD.C` | pointers step by pointer arithmetic where the original adds to the far pointer's offset word: a mesh part's polygon variant, an actor record's subrecords, a glyph's rows. Natively that word is the address's low half, whose carry would be lost. FONTLOAD.C's own `FP_OFF`, the same word, is gone |
 | `SCRIPT/ANIMSCR.C`, `ANIMSCR.H`, `SCREENS/TOWNSCN.C` | the animation scripts' last condition result and a town scene's chapter are variables of their own; the original keeps them in the two words of `g_anim_slots[1]` (below) |
@@ -654,6 +655,7 @@ folder, and compares two logs with a baseline recorded in `work/replay/<scenario
 | `walk`: the world, then three steps, a turn left, a step, two turns right, a step | ✅ identical logs; the state log shows each 400-unit step and each 1024-unit turn |
 | `combat`: the world, then a scripted teleport beside chapter 1's first fight (the assassin, zone 1's tile 10,14), seven steps into it, its dialog paged through, auto-combat (A) to the end, two steps past the corpse | ✅ identical logs, the ASan build's too; the fight's result shows in TEMP.GAM and the random state at 128 s. Since the fixes of the AI's healing, Owyn takes the Gift of Sung action on his turns and reaches the healer's choice three times (lowest ally health 55, rolls 77, 11 and 36: Gift of Sung once), but Locklear, whom the assassin attacks, keeps all his health: nothing is cast and the logs are unchanged |
 | `spawns`: the world, then a teleport into zone 4 (tile 10,14) among the sixteen stones chapter 1 spawns there, and a full turn about | ✅ identical logs, the ASan build's too; the stones live in the visible pool, past the zone pool's first 64 KB natively, and did not show before the visible list held pointers |
+| `riddle`: the world, then the map (M) and its hidden riddle chest: the grave key held with the right Shift and the left Alt shows the Moredhel lock vision, whose dialog plays a sound and waits for its end, then the chest's word lock: its dialogs, the first dial turned, Exit, the two dialogs after it, back on the map | ✅ identical logs, the ASan build's too. Before the waits for a sound polled, the run stopped at the vision: the sound never ended |
 | `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs, the ASan build's too; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
@@ -667,7 +669,7 @@ tool passes `--set` on to the port) all seven frame logs matched the earlier bas
 
 | Service | Implementation |
 |---|---|
-| Interrupts | `port/platform/machine.c`: host events and a virtual 8253 become interrupts when the game polls (`bak_poll`: its wait loops, input and timer reads, retrace waits). Vectors 08h/09h/1Ch are a table the install routines replace and chain through; the BIOS INT 8 handler counts time and calls 1Ch. Reading the variables the timer advances (`g_nFrameTickCountdown`, `g_timer_ticks`, `g_dwSysTickCount`) polls first, so bare spins on them work, and so do the mouse queries (`mouse_button_pressed`, `mouse_get_position`): the book waits in a bare loop for the buttons' release |
+| Interrupts | `port/platform/machine.c`: host events and a virtual 8253 become interrupts when the game polls (`bak_poll`: its wait loops, input and timer reads, retrace waits). Vectors 08h/09h/1Ch are a table the install routines replace and chain through; the BIOS INT 8 handler counts time and calls 1Ch. Reading the variables the timer advances (`g_nFrameTickCountdown`, `g_timer_ticks`, `g_dwSysTickCount`) polls first, so bare spins on them work, and so do the mouse queries (`mouse_button_pressed`, `mouse_get_position`): the book waits in a bare loop for the buttons' release. The waits for a sound to end poll too (`BAK_IDLE`: on the host's clock it sleeps a little when nothing was due) |
 | INT 33h mouse | `port/platform/mouse.c`: the host pointer's position over the picture, in the ranges the game sets (four units per pixel); the driver calls the game's handler as an interrupt |
 | Keyboard | `port/platform/scancode.c`: host keys as scan code set 1 bytes (E0h-prefixed for the 101-key additions), one IRQ 1 each, read by the game's handler at port 60h |
 | BIOS data area | `bak_bios_data()`, also at segment 0040h: keyboard buffer and shift state, CRTC port, time of day |

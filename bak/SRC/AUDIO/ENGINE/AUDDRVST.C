@@ -19,7 +19,7 @@ s16 audio_driver_stop(s16 id) {
             if (p->pHandle != 0) {
                 music_handle_stop(p->pHandle, 0);
                 while (p->pHandle->bActive != 0xff)
-                    ;
+                    BAK_IDLE(); /* a stop the driver finishes in the timer interrupt */
                 release_buffer(p->pHandle, 2);
                 p->pHandle = 0;
                 p = 0;
@@ -47,7 +47,7 @@ s16 audio_driver_stop(s16 id) {
                 if (p->pHandle != 0) {
                     music_handle_stop(p->pHandle, 0);
                     while (p->pHandle->bActive != 0xff)
-                        ;
+                        BAK_IDLE();
                     release_buffer(p->pHandle, 2);
                     p->pHandle = 0;
                 }
