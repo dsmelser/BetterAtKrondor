@@ -20,8 +20,9 @@
 #endif
 
 short g_nVisibleEntryCount;
-unsigned short g_wVisibleEntrySegment;
-unsigned short *g_pwVisibleEntryOffsets;
+/* The entries in view. The original keeps their 16-bit offsets in the zone pool's segment,
+   which natively is larger than 64 KB. */
+WorldObject far **g_ppVisibleEntries;
 s32 g_aFilterTable[43];
 s32 *g_pVisibleEntryDistances;
 
@@ -45,12 +46,12 @@ void far proxscan_filter_table_load(void) {
 
 void far proxscan_scratch_alloc(void) {
 
-    g_pwVisibleEntryOffsets = galloc_safe_zcalloc(0x4b0);
+    g_ppVisibleEntries = galloc_safe_zcalloc(600 * sizeof(WorldObject far *));
     return;
 }
 
 void proxscan_scratch_free(void) {
-    galloc_zfree(g_pwVisibleEntryOffsets);
+    galloc_zfree(g_ppVisibleEntries);
     return;
 }
 
@@ -59,7 +60,6 @@ void proxscan_full(ViewContext *widget) {
     s32 *party_pos;
 
     party_pos = &widget->camera->base.pos.xy.nWorld_x;
-    g_wVisibleEntrySegment = FP_SEG(g_apCombat_zone_actor_lists[0]->pEntries);
     g_nVisibleEntryCount = 0;
     for (i = 0; i < g_nCombat_zone_count; i = i + 1) {
         proxscan_run(g_apCombat_zone_actor_lists[i], party_pos);
@@ -76,14 +76,14 @@ void proxscan_run(VisibleEntryList *list, s32 *party_pos) {
     Shape far *prec;
     s32 threshold;
     s32 metric;
-    unsigned short *puOff;
+    WorldObject far **puOff;
     OctPos local_pos;
     register s32 *plDist;
 
     count = list->wEntry_count;
     entry_ptr = list->pEntries;
     plDist = g_pVisibleEntryDistances + g_nVisibleEntryCount;
-    puOff = g_pwVisibleEntryOffsets + g_nVisibleEntryCount;
+    puOff = g_ppVisibleEntries + g_nVisibleEntryCount;
 
     for (i = 0; g_nVisibleEntryCount < 600 && i < count; i++) {
         prec = ts_get_shape(entry_ptr->shapeId);
@@ -104,7 +104,7 @@ void proxscan_run(VisibleEntryList *list, s32 *party_pos) {
                 worldframe_enc_rec_prox(&list->bZone, i);
             }
             if (metric < threshold) {
-                *puOff = FP_OFF(entry_ptr);
+                *puOff = entry_ptr;
                 puOff++;
                 plDist++;
                 g_nVisibleEntryCount++;
@@ -123,12 +123,12 @@ void proxscan_filter_by_distance(s32 *origin) {
     s32 metric;
     OctPos local_pos;
     register s32 *plDist;
-    register unsigned short *puOff;
+    register WorldObject far **puOff;
 
     max_count = g_nVisible_entry_count;
     entry_ptr = (WorldObject far *)g_pVisible_entry_pool;
     plDist = g_pVisibleEntryDistances + g_nVisibleEntryCount;
-    puOff = g_pwVisibleEntryOffsets + g_nVisibleEntryCount;
+    puOff = g_ppVisibleEntries + g_nVisibleEntryCount;
     for (i = 0; g_nVisibleEntryCount < 600 && i < max_count; i++) {
         prec = ts_get_shape(entry_ptr->shapeId);
         threshold = g_aFilterTable[prec->kind];
@@ -142,7 +142,7 @@ void proxscan_filter_by_distance(s32 *origin) {
                 metric = 0;
             }
             if (metric < threshold) {
-                *puOff = FP_OFF(entry_ptr);
+                *puOff = entry_ptr;
                 puOff++;
                 plDist++;
                 g_nVisibleEntryCount++;
@@ -160,13 +160,13 @@ void proxscan_object_list(s32 *origin) {
     s32 metric;
     OctPos local_pos;
     register s32 *plDist;
-    register unsigned short *puOff;
+    register WorldObject far **puOff;
 
     max_count = g_nFixed_object_count;
     record_ptr = g_pFixed_object_entries;
     plDist = g_pVisibleEntryDistances + g_nVisibleEntryCount;
     score = g_aFilterTable[16];
-    puOff = g_pwVisibleEntryOffsets + g_nVisibleEntryCount;
+    puOff = g_ppVisibleEntries + g_nVisibleEntryCount;
     for (i = 0; g_nVisibleEntryCount < 600 && i < max_count; i++) {
         if (score != -1) {
             local_pos = *(OctPos far *)&record_ptr->pos.xy.nWorld_x;
@@ -177,7 +177,7 @@ void proxscan_object_list(s32 *origin) {
                 metric = 0;
             }
             if (metric < score) {
-                *puOff = FP_OFF(record_ptr);
+                *puOff = record_ptr;
                 puOff++;
                 plDist++;
                 g_nVisibleEntryCount++;
@@ -192,7 +192,6 @@ void proxscan_all_zones_for_encounter(ViewContext *pContext) {
     s16 i;
 
     party_pos = &pContext->camera->base.pos.xy.nWorld_x;
-    g_wVisibleEntrySegment = FP_SEG(g_apCombat_zone_actor_lists[0]->pEntries);
     g_nVisibleEntryCount = 0;
     for (i = 0; i < g_nCombat_zone_count; i = i + 1) {
         proxscan_encounter_records(g_apCombat_zone_actor_lists[i], party_pos);
@@ -207,14 +206,14 @@ void proxscan_encounter_records(VisibleEntryList *list, s32 *party_pos) {
     Shape far *prec;
     s32 threshold;
     s32 metric;
-    unsigned short *puOff;
+    WorldObject far **puOff;
     OctPos local_pos;
     register s32 *plDist;
 
     count = list->wEntry_count;
     entry_ptr = list->pEntries;
     plDist = g_pVisibleEntryDistances + g_nVisibleEntryCount;
-    puOff = g_pwVisibleEntryOffsets + g_nVisibleEntryCount;
+    puOff = g_ppVisibleEntries + g_nVisibleEntryCount;
     for (i = 0; g_nVisibleEntryCount < 600 && i < count; i++) {
         prec = ts_get_shape(entry_ptr->shapeId);
         if ((prec->kind <= 4 || prec->kind == 7 || prec->kind == 10 || prec->kind == 0xe ||
@@ -236,7 +235,7 @@ void proxscan_encounter_records(VisibleEntryList *list, s32 *party_pos) {
                 worldframe_enc_rec_prox(&list->bZone, i);
             }
             if (metric < threshold) {
-                *puOff = FP_OFF(entry_ptr);
+                *puOff = entry_ptr;
                 puOff++;
                 plDist++;
                 g_nVisibleEntryCount++;
@@ -248,19 +247,19 @@ void proxscan_encounter_records(VisibleEntryList *list, s32 *party_pos) {
 
 s16 proxscan_vis_rec_kind_0e3e(void) {
     WorldObject far *entry_ptr;
-    unsigned short *puOff;
+    WorldObject far **puOff;
     s32 *plDist;
     register s16 i;
 
-    puOff = g_pwVisibleEntryOffsets;
+    puOff = g_ppVisibleEntries;
     plDist = g_pVisibleEntryDistances;
     proxscan_full(g_world_widget);
-    vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+    vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
     i = 0;
     if (i < g_nVisibleEntryCount) {
         do {
-            entry_ptr = MK_FP(g_wVisibleEntrySegment, *puOff);
+            entry_ptr = *puOff;
             if (g_game_mode != 2 || *plDist <= 0x2134) {
                 if (entry_ptr->shapeId == g_nProximityTableCount) {
                     if (rgnenc_slot_actor_kind_eq_placed(entry_ptr) != 0) {
@@ -280,7 +279,7 @@ s16 far proxscan_paged_find_next_type0f(WorldObject far **out_entry) {
     s16 i;
 
     for (i = g_nVisibleEntryCount - 1; i >= 0; i--) {
-        *out_entry = MK_FP(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets[i]);
+        *out_entry = g_ppVisibleEntries[i];
         if (ts_get_shape((*out_entry)->shapeId)->kind == 0x0f) {
             return 1;
         }
@@ -293,7 +292,6 @@ void proxscan_visibility(ViewContext *pViewContext) {
     s32 *party_pos;
 
     party_pos = &pViewContext->camera->base.pos.xy.nWorld_x;
-    g_wVisibleEntrySegment = FP_SEG(g_apCombat_zone_actor_lists[0]->pEntries);
     g_nVisibleEntryCount = 0;
     for (i = 0; i < g_nCombat_zone_count; i = i + 1) {
         proxscan_region_bucket(g_apCombat_zone_actor_lists[i], party_pos);
@@ -313,12 +311,12 @@ void proxscan_region_bucket(VisibleEntryList *region, s32 *party_pos) {
     s16 view_xy[3];
     OctPos local_pos;
     register s32 *plDist;
-    register unsigned short *puOff;
+    register WorldObject far **puOff;
 
     count = region->wEntry_count;
     entry_ptr = region->pEntries;
     plDist = g_pVisibleEntryDistances + g_nVisibleEntryCount;
-    puOff = g_pwVisibleEntryOffsets + g_nVisibleEntryCount;
+    puOff = g_ppVisibleEntries + g_nVisibleEntryCount;
     for (i = 0; g_nVisibleEntryCount < 600 && i < count; i++) {
         prec = ts_get_shape(entry_ptr->shapeId);
         local_pos = *(OctPos far *)&entry_ptr->pos;
@@ -343,7 +341,7 @@ void proxscan_region_bucket(VisibleEntryList *region, s32 *party_pos) {
                 metric = 0;
             }
             if (metric < threshold) {
-                *puOff = FP_OFF(entry_ptr);
+                *puOff = entry_ptr;
                 puOff++;
                 plDist++;
                 g_nVisibleEntryCount++;
@@ -355,7 +353,7 @@ void proxscan_region_bucket(VisibleEntryList *region, s32 *party_pos) {
 
 void proxscan_world_objects(s32 *p_pos) {
     register s32 *plDist;
-    register unsigned short *puOff;
+    register WorldObject far **puOff;
     short count;
     s16 i;
     s16 keep;
@@ -369,7 +367,7 @@ void proxscan_world_objects(s32 *p_pos) {
     count = g_nVisible_entry_count;
     entry_ptr = (WorldObject far *)g_pVisible_entry_pool;
     plDist = g_pVisibleEntryDistances + g_nVisibleEntryCount;
-    puOff = g_pwVisibleEntryOffsets + g_nVisibleEntryCount;
+    puOff = g_ppVisibleEntries + g_nVisibleEntryCount;
     for (i = 0; g_nVisibleEntryCount < 600 && i < count; i++) {
         prec = ts_get_shape(entry_ptr->shapeId);
         local_pos = *(OctPos far *)&entry_ptr->pos;
@@ -395,7 +393,7 @@ void proxscan_world_objects(s32 *p_pos) {
                     metric = 0;
                 }
                 if (metric < threshold) {
-                    *puOff = FP_OFF(entry_ptr);
+                    *puOff = entry_ptr;
                     puOff++;
                     plDist++;
                     g_nVisibleEntryCount++;

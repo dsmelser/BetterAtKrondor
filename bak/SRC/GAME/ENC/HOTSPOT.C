@@ -554,7 +554,7 @@ void far hotspotevt_type1_encounter_run(ZoneHotspot *pHotspot, s16 *out_moved) {
         g_world_camera->base.pos.xy.nWorld_y = (u32)tileY * 64000 + landingY;
         g_world_camera->base.orientation.yaw = landingHeading;
         proxscan_full(g_world_widget);
-        vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+        vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                      g_nVisibleEntryCount);
         worldmove_camera_crossing_apply();
         worldloop_party_move_done_clr();
@@ -827,7 +827,7 @@ void far hotspotevt_trap_main_fire(ZoneHotspot *pHotspot, unsigned short *pOut_s
 
     if ((combat_status != 0) && (combat_status != 3)) {
         proxscan_full(g_world_widget);
-        vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+        vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                      g_nVisibleEntryCount);
         worldmove_camera_crossing_apply();
         worldloop_party_move_done_clr();

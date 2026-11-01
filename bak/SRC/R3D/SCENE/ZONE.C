@@ -164,7 +164,7 @@ void far zone_load(void) {
     zone_load_shape_sprite();
     zone_load_audio_proximity();
     proxscan_full(g_world_widget);
-    vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+    vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
     worldmove_camera_crossing_apply();
     if (g_gameState.nZoneId != g_gameState.nPrevZoneId) {
@@ -230,7 +230,7 @@ void far zone_combat_camera_set_world_pos(PlayerSpawnRecord *pos) {
     czone_spell_state_reset_pair();
     czone_region_encounters_load();
     proxscan_full(g_world_widget);
-    vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+    vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
     worldmove_camera_crossing_apply();
     worldloop_party_move_done_clr();
@@ -272,7 +272,7 @@ void far zone_refresh_visible(s16 reload_shapes) {
     }
     zone_load_audio_proximity();
     proxscan_full(g_world_widget);
-    vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+    vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
 }
 

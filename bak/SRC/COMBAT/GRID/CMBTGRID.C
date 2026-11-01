@@ -181,8 +181,7 @@ s16 far combatgrid_prox_check_kind_set(WorldPos2 *pos) {
     u16 kindCopy;
     u16 kind;
 
-    if ((char)proximity_scan_list(&hit, pos, g_wVisibleEntrySegment, g_pwVisibleEntryOffsets,
-                                  g_nVisibleEntryCount) != '\0') {
+    if ((char)proximity_scan_list(&hit, pos, g_ppVisibleEntries, g_nVisibleEntryCount) != '\0') {
         kind = kindCopy = (u16)ts_get_shape((hit.pRecord)->wRecord_id)->kind;
         switch (kind) {
         case 0:

@@ -17,22 +17,20 @@ void vislist_free(void) {
     return;
 }
 
-void vislist_sort(unsigned short seg, unsigned short *ids, s32 *vals, s16 count) {
-    s16 far *pId;
+void vislist_sort(WorldObject far **ids, s32 *vals, s16 count) {
     Shape far *rec;
     s32 tmpVal;
     s32 best;
     s16 pivot;
     s16 best_i;
     s16 prio;
-    unsigned short tmpId;
+    WorldObject far *tmpId;
     s16 i;
     s16 j;
 
     if (count >= 2) {
         for (i = 0, j = 0; i < count; i++) {
-            pId = (s16 far *)MK_FP(seg, ids[i]);
-            rec = ts_get_shape(*pId);
+            rec = ts_get_shape(ids[i]->shapeId);
             if (rec->priority != 0) {
                 tmpId = ids[j];
                 ids[j] = ids[i];
@@ -45,13 +43,11 @@ void vislist_sort(unsigned short seg, unsigned short *ids, s32 *vals, s16 count)
         }
         pivot = j;
         for (i = 0; i < pivot - 1; i++) {
-            pId = (s16 far *)MK_FP(seg, ids[i]);
-            rec = ts_get_shape(*pId);
+            rec = ts_get_shape(ids[i]->shapeId);
             prio = rec->priority;
             best_i = i;
             for (j = i + 1; j < pivot; j++) {
-                pId = (s16 far *)MK_FP(seg, ids[j]);
-                rec = ts_get_shape(*pId);
+                rec = ts_get_shape(ids[j]->shapeId);
                 if (prio < rec->priority) {
                     prio = rec->priority;
                     best_i = j;

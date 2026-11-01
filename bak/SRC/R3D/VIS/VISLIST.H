@@ -5,6 +5,6 @@
 
 extern void vislist_alloc(void);
 extern void vislist_free(void);
-extern void vislist_sort(unsigned short seg, unsigned short *ids, s32 *vals, s16 count);
+extern void vislist_sort(WorldObject far **ids, s32 *vals, s16 count);
 
 #endif

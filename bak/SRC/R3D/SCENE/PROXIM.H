@@ -9,8 +9,8 @@ extern ProximityZone far *far *g_pProximityTable;
 
 extern void proximity_table_load(char *file);
 extern void proximity_table_free(void);
-extern unsigned char proximity_scan_list(ProximityScanHit *out_hit, WorldPos2 *pos, unsigned short record_seg,
-                                 unsigned short *record_offsets, s16 count);
+extern unsigned char proximity_scan_list(ProximityScanHit *out_hit, WorldPos2 *pos,
+                                         WorldObject far **records, s16 count);
 extern char proximity_check_index(ProximityScanHit *out_hit, WorldPos2 *pos,
                                   ProximityRecord far *pRecord);
 extern void proximity_vec2_long_rotate_q14(s32 *xy, s16 angle);

@@ -40,18 +40,18 @@ void far proximity_table_free(void) {
     return;
 }
 
-unsigned char far proximity_scan_list(ProximityScanHit *out_hit, WorldPos2 *pos, unsigned short record_seg,
-                              unsigned short *record_offsets, s16 count) {
+unsigned char far proximity_scan_list(ProximityScanHit *out_hit, WorldPos2 *pos,
+                                      WorldObject far **records, s16 count) {
     s16 i;
     ProximityRecord far *pRecord;
-    unsigned short *pOffset;
+    WorldObject far **pOffset;
 
-    pOffset = record_offsets + (count - 1);
+    pOffset = records + (count - 1);
     if (g_pProximityTable != (ProximityZone far *far *)0) {
         out_hit->pZone_rec = (ProximityZone far *)0;
         out_hit->pRecord = (ProximityRecord far *)0;
         for (i = count - 1; i >= 0; i--) {
-            pRecord = (ProximityRecord far *)MK_FP(record_seg, *pOffset);
+            pRecord = (ProximityRecord far *)*pOffset;
             pOffset--;
             if ((s16)pRecord->wRecord_id < (s16)g_nProximityTableCount) {
                 if (proximity_check_index(out_hit, pos, pRecord))

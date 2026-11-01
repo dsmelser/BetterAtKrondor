@@ -146,21 +146,21 @@ void world_render_scene_dispatch(s16 animate) {
 
 void far world_render_frame(s16 animate) {
     WorldObject far *pVis;
-    unsigned short *pOff;
+    WorldObject far **pOff;
     s16 i;
 
-    pOff = g_pwVisibleEntryOffsets;
+    pOff = g_ppVisibleEntries;
     r3d_camera_setup_view(g_world_widget);
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
         g_graphics_context.wVgaPage2Base;
     skyrender_sky_and_ground(g_wSkyColorR, g_wSkyColorG, g_wSkyColorB, g_camViewAngles.yaw,
                              g_camViewAngles.pitch);
     proxscan_full(g_world_widget);
-    vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+    vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
     for (i = 0; i < g_nVisibleEntryCount; i++, pOff++) {
         unsigned char bKind;
-        pVis = MK_FP(g_wVisibleEntrySegment, *pOff);
+        pVis = *pOff;
         bKind = ts_get_shape(pVis->shapeId)->kind;
         if (pVis->shapeId == g_nProximityTableCount) {
             rgnenc_render_object(pVis, animate);
@@ -190,14 +190,14 @@ void world_render_sky_texture_free(void) {
 }
 
 void world_render_frame_full(void) {
-    unsigned short *pOff;
+    WorldObject far **pOff;
     WorldObject entry;
     WorldObject far *pVis;
     WorldObject far *pEntry;
     s16 i;
 
     pEntry = &entry;
-    pOff = g_pwVisibleEntryOffsets;
+    pOff = g_ppVisibleEntries;
     g_nPolygonTextureMode = 0;
     r3d_camera_setup_view(g_world_widget);
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
@@ -209,7 +209,7 @@ void world_render_frame_full(void) {
                      g_world_widget->viewport.width, g_world_widget->viewport.height);
     g_graphics_context.bGfx_dither_color = 0;
     proxscan_all_zones_for_encounter(g_world_widget);
-    vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+    vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
 
     entry.shapeId = 0xb5;
@@ -225,7 +225,7 @@ void world_render_frame_full(void) {
         }
     }
     for (i = 0; i < g_nVisibleEntryCount; i++, pOff++) {
-        pVis = MK_FP(g_wVisibleEntrySegment, *pOff);
+        pVis = *pOff;
         actorrender_entity(pVis);
         if (i & 1) {
             screen_cur_refr_during_long_op();
@@ -263,9 +263,9 @@ void far world_render_frame_with_hittest(void) {
     s32 *dist;
     u16 kind;
     WorldObject far *pVis;
-    unsigned short *pOff;
+    WorldObject far **pOff;
 
-    pOff = g_pwVisibleEntryOffsets;
+    pOff = g_ppVisibleEntries;
     dist = g_pVisibleEntryDistances;
     g_nHitTestEntryCount = 0;
     g_nHitTestWriteSlot = 0;
@@ -277,11 +277,11 @@ void far world_render_frame_with_hittest(void) {
     skyrender_sky_and_ground(g_wSkyColorR, g_wSkyColorG, g_wSkyColorB, g_camViewAngles.yaw,
                              g_camViewAngles.pitch);
     proxscan_full(g_world_widget);
-    vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+    vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
 
     for (i = 0; (s16)i < g_nVisibleEntryCount; i++, pOff++, dist++) {
-        pVis = MK_FP(g_wVisibleEntrySegment, *pOff);
+        pVis = *pOff;
         kind = ts_get_shape(pVis->shapeId)->kind;
         g_nBillboardScrX = -1;
 
@@ -534,7 +534,7 @@ void far world_render_view(s16 force_overlay, s16 chapter_split) {
 
     r3d_camera_setup_view(g_active_window);
     proxscan_visibility(g_active_window);
-    vislist_sort(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets, g_pVisibleEntryDistances,
+    vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
 
     if (force_overlay != 0) {
@@ -542,7 +542,7 @@ void far world_render_view(s16 force_overlay, s16 chapter_split) {
     }
 
     for (i = 0; i < g_nVisibleEntryCount; i++) {
-        pVis = MK_FP(g_wVisibleEntrySegment, g_pwVisibleEntryOffsets[i]);
+        pVis = g_ppVisibleEntries[i];
         bKind = ts_get_shape(pVis->shapeId)->kind;
         if (!g_engine_prefs->detail_level && bKind == 4) {
             g_nPolygonTextureMode = 0;

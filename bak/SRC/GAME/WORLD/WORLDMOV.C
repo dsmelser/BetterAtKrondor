@@ -177,9 +177,7 @@ void worldmove_plr_hdg_align_grid(void) {
 void worldmove_camera_crossing_apply(void) {
     ProximityScanHit scan_hit_tag;
 
-    if ((char)proximity_scan_list(&scan_hit_tag, &g_world_camera->base.pos.xy,
-                                  g_wVisibleEntrySegment, g_pwVisibleEntryOffsets,
-                                  g_nVisibleEntryCount) != '\0') {
+    if ((char)proximity_scan_list(&scan_hit_tag, &g_world_camera->base.pos.xy, g_ppVisibleEntries, g_nVisibleEntryCount) != '\0') {
         g_nWorldCrossingKind = ts_get_shape((scan_hit_tag.pRecord)->wRecord_id)->kind;
         g_dwWorldCrossingCoord = scan_hit_tag.nZ_delta;
         if (g_full_redraw_needed == 0) {
@@ -504,8 +502,7 @@ s16 far worldmove_probe_walkable_at(WorldPos *pos, s16 angle, s32 scale, u16 *ou
 
     probe_pos = *pos;
     worldmove_vec2_rotate_add_q14(&probe_pos.xy.nWorld_x, angle, scale);
-    if ((char)proximity_scan_list(&hit, &probe_pos.xy, g_wVisibleEntrySegment,
-                                  g_pwVisibleEntryOffsets, g_nVisibleEntryCount) != '\0') {
+    if ((char)proximity_scan_list(&hit, &probe_pos.xy, g_ppVisibleEntries, g_nVisibleEntryCount) != '\0') {
         *out_kind = ts_get_shape((hit.pRecord)->wRecord_id)->kind;
         *out_coord = hit.nZ_delta;
         switch (*out_kind) {
@@ -524,8 +521,7 @@ s16 far worldmove_probe_walkable_at(WorldPos *pos, s16 angle, s32 scale, u16 *ou
 s16 worldmove_prox_query_at_cell(WorldPos *pos, u16 *out_type, s32 *out_coord) {
     ProximityScanHit hit;
 
-    if ((char)proximity_scan_list(&hit, &pos->xy, g_wVisibleEntrySegment, g_pwVisibleEntryOffsets,
-                                  g_nVisibleEntryCount)) {
+    if ((char)proximity_scan_list(&hit, &pos->xy, g_ppVisibleEntries, g_nVisibleEntryCount)) {
         *out_type = ts_get_shape((hit.pRecord)->wRecord_id)->kind;
         *out_coord = hit.nZ_delta;
         if ((*out_type == 1) || (*out_type == 2)) {
