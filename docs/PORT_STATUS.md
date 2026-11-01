@@ -30,7 +30,8 @@ or a click (as the original does), then shows the main menu with its buttons and
 DOS asks for confirmation (Yes quits cleanly, No returns), Preferences and Contents open their screens and
 come back, and Start New Game fades into chapter 1, whose opening book pages through with keys or
 clicks; the chapter cutscene after it plays to its end, the new game's state is loaded, the 3D world is
-set up, and rendering its first frame sets up the camera and stops at the sky's bands (below).
+set up, and rendering its first frame sets up the camera, fills the sky's flat bands and stops at
+the sky's panorama (below).
 The whole tour runs clean under the ASan preset. The MIDI the game sends is not played yet:
 `BAK_DUMP_MIDI=<file>` writes it to a file. Development runs against
 a GOG copy of 1.02 (`KRONDOR.EXE` matches upstream's 1.02 hash), configured for the MT-32; CI has no game data
@@ -43,8 +44,8 @@ and checks that an incomplete folder is turned down cleanly.
    byte for byte), reads the party from it and sets up the 3D world: `ts_init` sets the light (M3's R3D
    core starts there), loads the region's encounter shapes and the zone's actors, scans the zone around
    the party, checks the zone's ground at its position, and enters the world's main loop
-   (`world3d_main_loop`): its first frame sets up the camera (`r3d_camera_setup_view`) and stops at
-   VGAFILL.ASM's `vgaplanar_fill_band`, which the sky and ground bands (`SKYREND.C`) draw with.
+   (`world3d_main_loop`): its first frame sets up the camera (`r3d_camera_setup_view`), fills the
+   sky's flat bands (VGAFILL.ASM) and stops drawing the sky's panorama (`emsimg_putsprite_ems_swap`).
 2. **The game state**: see `TEMP.GAM` below; the new game's start reads the party through it.
 3. **Records read straight into structs with pointers.** Menu pages are done (`menupage_load`, below).
    Other loaders that `res_fread` a struct holding pointers need the same treatment, as the plan foresaw
@@ -147,6 +148,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/DRAWLINE.ASM` | `port/asm/drawline.c` | `test_drawline.py`: 1500 lines against random clip rectangles and 600 far-flung ones whose clipping overflows IDIV, with probes in the line and span slots: what reaches the driver |
 | `GFX/SPRITE/DRAWRECT.ASM` | `port/asm/drawrect.c` | `test_drawline.py`: 1000 rectangles, filled or not, clipped or not: the span table and the outline's lines |
 | `GFX/RASTER/VGABLIT.ASM` | `port/asm/vgablit.c` (`vga_planar_fill_rects`, which nothing calls, traps) | `test_vgablit.py`: 360 random span tables through the tiled and untiled copiers with random texture parameters and pages, 150 lines through the line-slot stand-in, on a planar VGA model: display memory, the map mask and the graphics mode left behind |
+| `GFX/RASTER/VGAFILL.ASM` | `port/asm/vgafill.c`: the sky's flat bands, through the VGA's write path (a shaded strip taller than its 34-row ramp stops with a message) | `test_vgafill.py`: 260 bands and 200 shaded strips on a planar VGA model, from Mode Y's registers or scrambled ones (set/reset, rotation, logical operation, write mode, bit mask, map mask, latches), in every page, at the game's rows and any others (past the page, across the 64 KB wrap, more rows than a page holds): display memory and every register |
 | `R3D/CORE/DISTDIR.ASM` | `port/asm/distdir.c`: the octagonal distance from two points and from two deltas (`distdir_vec3_distance_dir_approx` has no caller in the game and traps) | `test_distdir.py`: 3000 random cases each and the edges of the 32-bit range, where the differences, their magnitudes and 3 * min overflow |
 | `R3D/CORE/R3DDATA.ASM` | `port/asm/r3ddata_data.c`, `r3ddata.h`: the state block, as `g_abR3dState` (the part C code reads) and `g_r3d` (R3D.ASM's own, in the original's order, with the words R3D.ASM keeps between its routines); the cosine table is R3DTRIG's | `test_r3d.py`: the lighting ramp |
 | `R3D/CORE/R3D.ASM` | `port/asm/r3d.c`, so far `r3d_light_set_direction`, `r3d_build_rotation_matrix`, `r3d_matrix3x3_transform_vec3` (with its far wrapper), `r3d_imul_full32`, and the camera: `r3d_camera_setup_view`, `r3d_matrix3x3_multiply`, `r3d_matrix3x3_transpose`, `r3d_matrix_to_euler`; the rest traps | `test_r3d.py`: the multiply over the 16-bit edges and 2000 random pairs; the rotation matrix of every kind over angles at the cosine table's folds and 600 random ones, the vector transform over every type byte and 1500 random matrices and vectors, with inputs and outputs overlapping (the original reads its inputs again after each store); the light direction for `ts_init`'s angles and 500 pairs; the matrix product over every pair of type bytes and 1200 random pairs, Q14 or overflowing, with the product apart, on or across either operand; the transpose; the angles of 1500 matrices, at and around +-90 degrees, written over the matrix too; the camera of 1200 views, turned or not, with viewports and zooms over the 16-bit range: every word it sets, the clip rectangle and the three matrices |
@@ -389,6 +391,9 @@ modes.
 - **The bytes before the ctype table** keep the values the original's image starts with; in the game
   most of them are variables (the audio state, the EMS counters). Only text with a byte from 80h up
   after an ellipsis or an '@' could tell, and the game's has none.
+- **The sky's shaded strip past its ramp.** A strip taller than VGAFILL.ASM's 34 shades stops with a
+  message; the original takes the colours from its own code. The game's strips are 27 or 29 rows with
+  a level horizon.
 - **Trig tables read out of range.** `r3d_tbl_asin` of a value past +-1.0 (beyond 401Fh) and
   `r3d_tbl_atan_lookup_raw` past index 1FFh stop with a message; the original reads the code after the table.
 

@@ -127,26 +127,26 @@ _shade_table:					; frame 0x0c: shade ramp, palette idx 0xd0..0xd7
 ;   void vgaplanar_clear_column_strip(int vga_base_offset, int row_count)
 ;
 ;   Paints a vertical strip of `row_count` scanlines in Mode-X planar VRAM
-;   with a vertical SHADE GRADIENT: row 0 gets shade-table[0], row 1 gets
-;   shade-table[1], and so on (the table at _shade_table below is the ramp).
-;   This is the "clear to a shaded backdrop" primitive -- e.g. the vertical
-;   dimming band behind a UI panel.
+;   with a vertical SHADE GRADIENT: row 0 (the bottom one) gets shade-table[0],
+;   the row above it shade-table[1], and so on (the table at _shade_table above
+;   is the ramp). SKYREND.C draws the sky's band with it at the lowest detail
+;   level, from the horizon up.
 ;
 ;   The strip is exactly one full scanline wide (0x50 bytes per plane) and is
 ;   painted in three left-to-right passes, because a Mode-X scanline does not
 ;   start on a 4-pixel boundary: an unaligned left edge (planes 1,2,3 only),
-;   an aligned middle run (all four planes, 0x24 words = 0x90 bytes), and an
+;   an aligned middle run (all four planes, 0x24 words = 0x48 bytes), and an
 ;   unaligned right edge (planes 0,1,2 only).  Each pass walks bottom-to-top
 ;   (DI/SI decrease by one stride per row), re-reading the row's shade byte
 ;   from the CS-resident table.
 ;
 ;   Type:        Subroutine (Mode-X planar fill primitive)
 ;   Category:    VGA Mode-X VRAM fill
-;   Callers:     far CALL from outside the segment (game UI code)
+;   Callers:     far CALL from outside the segment (SKYREND.C)
 ;   Callees:     none
 ;
 ;   Inputs:
-;     [bp+6]  --  vga_base_offset: byte offset of the strip's TOP row within
+;     [bp+6]  --  vga_base_offset: byte offset of the strip's BOTTOM row within
 ;                 the destination page (a plane-relative VRAM offset)
 ;     [bp+8]  --  row_count: number of scanlines to paint
 ;     CS:_shade_table  --  per-row shade gradient (read, not an argument)
@@ -190,7 +190,7 @@ L_ccs_pass1:
 	inc	bx
 	loop	L_ccs_pass1
 
-	; --- pass 2: middle run, all four planes, 0x24 words (0x90 bytes) -------
+	; --- pass 2: middle run, all four planes, 0x24 words (0x48 bytes) -------
 	mov	ax,0f02h			; 0f02h out dx,ax Map-Mask AL=2,AH=0f all planes
 	out	dx,ax
 	mov	si,word ptr [bp+6]
@@ -246,7 +246,7 @@ L_ccs_pass3:
 ;
 ;   Type:        Subroutine (Mode-X planar fill primitive)
 ;   Category:    VGA Mode-X VRAM fill
-;   Callers:     far CALL from outside the segment (game UI code)
+;   Callers:     far CALL from outside the segment (SKYREND.C)
 ;   Callees:     none
 ;
 ;   Inputs:
@@ -302,7 +302,7 @@ L_fb_left:
 	sub	di,51h				; up one scanline: undo STOSB's +1, then -0x50
 	loop	L_fb_left
 
-	; --- pass 2: middle run, all four planes, 0x24 words (0x90 bytes) -------
+	; --- pass 2: middle run, all four planes, 0x24 words (0x48 bytes) -------
 	mov	ax,0f02h			; 0f02h out dx,ax Map-Mask AL=2,AH=0f all planes
 	out	dx,ax
 	mov	si,word ptr [bp+6]
