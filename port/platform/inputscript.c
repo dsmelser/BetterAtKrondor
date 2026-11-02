@@ -18,6 +18,12 @@
  *
  * For example BAK_INPUT="20000:key:Escape;30000:click:160,100". The steps run in time
  * order, each once its time has come; a malformed one stops the run with a message.
+ *
+ * A click or hold moves the pointer and presses in one step. A menu page reads where the
+ * pointer is before it reads the buttons (MENUPAGE.C's menupage_input_poll), so a press that
+ * comes between the two takes the entry under the pointer's last place: a drag from the shop's
+ * wares then carried the first item, not the one pressed. When the pointer comes from
+ * elsewhere, move it there a step before the press.
  */
 #include <stdio.h>
 #include <stdlib.h>

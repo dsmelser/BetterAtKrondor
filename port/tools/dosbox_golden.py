@@ -586,6 +586,23 @@ class Click:
 
 
 @dataclass
+class Move:
+    """The pointer moved to pixel (x, y) with no button down, through the position Click
+    writes: what the game's queries read next, as after the user moved the mouse there."""
+    x: int
+    y: int
+
+    def run(self, box: DosBox) -> None:
+        at = box.symbol("_G_MOUSE_X_MICKEYS")
+        pos = struct.pack("<HH", self.x * 4, self.y * 4)
+        box.until_the_picture_changes(lambda: box.write(at, pos),
+                                      f"the pointer to ({self.x}, {self.y})")
+
+    def port_step(self) -> str:
+        return f"move:{self.x},{self.y}"
+
+
+@dataclass
 class WaitForWorld:
     """Waits for the world (DosBox.wait_for_world), expected by `expected` seconds from
     start-up, and when it comes later (a slow host) says how much: the steps after this one
@@ -615,9 +632,11 @@ class Scenario:
     # What the original is told after AUTOTYPE (above): (seconds, Key, Teleport, Click or
     # WaitForWorld). The steps over the world come after a WaitForWorld; when the world comes
     # later than it expects (a slow host), the steps after it and the capture move with it.
-    late: list[tuple[float, Key | Teleport | Click | WaitForWorld]] = field(default_factory=list)
+    late: list[tuple[float, Key | Teleport | Click | Move | WaitForWorld]] = field(
+        default_factory=list)
     # Rectangles (x0, y0, x1, y1, inclusive) whose differences do not count, and why: a text
-    # field's caret, which blinks on the game's timer, so each side shows its own phase.
+    # field's caret, which blinks on the game's timer, so each side shows its own phase. They
+    # are set apart while the original's picture settles, too.
     ignore: list[tuple[int, int, int, int]] = field(default_factory=list)
     ignore_why: str = ""
     # The picture holds a dialog box, whose parchment pattern starts where a random draw says
@@ -663,7 +682,8 @@ SCENARIOS = {
 # Scan codes and ASCII of the keys pressed over the world.
 KEYS = {"M": (0x32, ord("m")), "1": (0x02, ord("1")), "E": (0x12, ord("e")), "O": (0x18, ord("o")),
         "S": (0x1F, ord("s")), "R": (0x13, ord("r")), "T": (0x14, ord("t")), "N": (0x31, ord("n")),
-        "Tab": (0x0F, 9), "Return": (0x1C, 13)}
+        "Tab": (0x0F, 9), "Return": (0x1C, 13), "F": (0x21, ord("f")), "C": (0x2E, ord("c")),
+        "5": (0x06, ord("5"))}
 
 
 def from_the_world(description: str, *keys: str) -> Scenario:
@@ -681,17 +701,17 @@ def from_the_world(description: str, *keys: str) -> Scenario:
                     + [(240.0 + 10 * i, Key(*KEYS[k])) for i, k in enumerate(keys)])
 
 
-def in_lamut(description: str, scene: int, *clicks: tuple[int, int], parchment: bool = False
-             ) -> Scenario:
+def in_lamut(description: str, scene: int, *clicks: tuple[int, int], parchment: bool = False,
+             town: int = 1) -> Scenario:
     """The world, then a teleport into one of LaMut's scenes (town 1: GDS1A.DAT is the town,
-    B the Blue Wheel Inn, C the Fletcher's Post), the party staying where it is, then clicks
-    in it: in DOSBox the teleport at 240 s and the clicks from 255 s, 10 s apart; on the port
-    the teleport at 90 s and the clicks from 95 s, 4 s apart (a dialog opens with a wipe that
-    takes 3 s, and ignores a click for a moment after a page)."""
+    B the Blue Wheel Inn, C the Fletcher's Post) or another town's, the party staying where it
+    is, then clicks in it: in DOSBox the teleport at 240 s and the clicks from 255 s, 10 s
+    apart; on the port the teleport at 90 s and the clicks from 95 s, 4 s apart (a dialog opens
+    with a wipe that takes 3 s, and ignores a click for a moment after a page)."""
     world = SCENARIOS["world"]
     end = "90000:quit"
     assert world.port_input.endswith(end), world.port_input
-    into = Teleport(255, scene_kind=1, scene_index=scene)
+    into = Teleport(255, scene_kind=town, scene_index=scene)
     steps = [(90, into)] + [(95 + 4 * i, Click(x, y)) for i, (x, y) in enumerate(clicks)]
     port = "".join(f"{at}000:{step.port_step()};" for at, step in steps)
     return Scenario(description=description, keys=world.keys, settle=260.0 + 10 * len(clicks),
@@ -709,8 +729,14 @@ SCENARIOS["map"] = from_the_world("The world, then M: the zone's map", "M")
 SCENARIOS["inventory"] = from_the_world("The world, then 1: Locklear's inventory", "1")
 SCENARIOS["camp"] = from_the_world("The world, then E: the camp and its clock", "E")
 SCENARIOS["options"] = from_the_world("The world, then O: the Options menu", "O")
+# The cast screen (C) on its fifth symbol page (5): Scent of Sarig, and the highlight over the
+# caster's portrait (Owyn's, the party's only caster in chapter 1).
+SCENARIOS["cast"] = from_the_world("The world, then C and 5: the cast screen's fifth page, "
+                                   "the caster's portrait highlighted", "C", "5")
 SCENARIOS["save"] = from_the_world("The world, then O and S: the Save Game dialog", "O", "S")
-SCENARIOS["save"].ignore = [(147, 129, 147, 139)]
+# The field is empty: the caret blinks at its start (until AUTOTYPE's timing was right,
+# spare Spaces from the world's script had been typed into it, the caret at x 147).
+SCENARIOS["save"].ignore = [(127, 129, 127, 139)]
 SCENARIOS["save"].ignore_why = "the Games field's caret, which blinks"
 # The town scenes and what opens from them: LaMut, its Fletcher's Post with the purchasing
 # counter clicked (the merchant's screen, straight from the counter: its actor has no dialog).
@@ -719,6 +745,11 @@ SCENARIOS["shop"] = in_lamut("LaMut's Fletcher's Post (GDS1C.DAT), its counter c
                              "merchant's screen", 3, (47, 33))
 # The Blue Wheel Inn (GDS1B.DAT): its patrons are drawn stretched (VGA slot 37).
 SCENARIOS["inn"] = in_lamut("LaMut's Blue Wheel Inn (GDS1B.DAT): its patrons drawn stretched", 2)
+# Town 2's Rainbow Parrot Inn (GDS2C.DAT): its idle animation hangs a lute on the wall, a 39x22
+# sprite drawn turned upright (ROTBLIT.ASM, VGA slot 36). Until 2026-11-02 entering it stopped
+# the port.
+SCENARIOS["tavern"] = in_lamut("Town 2's Rainbow Parrot Inn (GDS2C.DAT): a lute on the wall, drawn "
+                               "rotated", 3, town=2)
 # A talk with a portrait: the Blue Wheel Inn's dwarf (its actor 6) clicked, and his tale paged by
 # clicks on the parchment to his third page: Dubal An Loch drawn over the scene (BLITAA's
 # anti-aliased edges, PALBLEND's colours), his name, his words.
@@ -789,6 +820,26 @@ SCENARIOS["road"] = in_zone("The road south of the start: its trees are GOURAUD.
                             10, 15, 18, 30, 0x8400)
 SCENARIOS["labyrinth"] = in_zone("A labyrinth (zone 10): its walls are GOURAUD.ASM's quads", 10,
                                  10, 16, 21, 2, 0)
+
+
+# Screens first run natively on 2026-11-02. fullmap: the world, then F: the full map (FMAP.C),
+# the pointer over Krondor, whose label the map draws above it (FMAP_TWN.DAT's hotspots are 9
+# pixels square around each town). The party's marker cycles through its icons every few
+# ticks, so its box is set apart.
+SCENARIOS["fullmap"] = Scenario(
+    description="The world, then F: the full map, the pointer over Krondor and its label",
+    keys=SCENARIOS["world"].keys, settle=280.0,
+    port_input=_WORLD + "90000:key:F;94000:move:168,148;100000:quit",
+    late=[(60.0, WaitForWorld(220.0)), (240.0, Key(*KEYS["F"])), (255.0, Move(168, 148))],
+    ignore=[(112, 74, 120, 79)], ignore_why="the party's marker, which cycles through its icons")
+# rest: the Blue Wheel Inn's stairs (GDS1B.DAT's actor 2, of kind 7) clicked: the night's
+# price asked over the camp's clock (MODALSCR.C's modalscreen_rest_until_time).
+SCENARIOS["rest"] = in_lamut("The Blue Wheel Inn's stairs clicked: the nightmaster's price over "
+                             "the camp's clock", 2, (186, 69), parchment=True)
+# bard: the inn's lute (actor 3, of kind 9) clicked: the party's best at barding plays, and is
+# not good enough (TOWNSCN.C's townscene_resolv_enc_outcome: no random draw).
+SCENARIOS["bard"] = in_lamut("The Blue Wheel Inn's lute clicked: the party plays and is thrown "
+                             "out", 2, (280, 102), parchment=True)
 
 
 # ---- the saves ----------------------------------------------------------------------------
@@ -946,15 +997,23 @@ def compare_saves_left(overlay: Path, user: Path, saves: list[str]) -> int:
 # ---- commands -----------------------------------------------------------------------------
 
 
-def capture_stable(box: DosBox, tries: int = 6, gap: float = 1.0) -> Capture:
-    """Capture until two pictures in a row agree (a fade or a redraw may be in progress). Then
-    again closer together: a text field's caret blinks, so one second apart they never agree."""
+def capture_stable(box: DosBox, tries: int = 6, gap: float = 1.0,
+                   ignore: list[tuple[int, int, int, int]] = ()) -> Capture:
+    """Capture until two pictures in a row agree outside the rectangles ignored (a fade or a
+    redraw may be in progress). Then again closer together: a text field's caret blinks, so one
+    second apart they never agree."""
+
+    def kept(cap: Capture) -> list:
+        w, _h, px = cap.rgb6()
+        return [c for i, c in enumerate(px)
+                if not any(x0 <= i % w <= x1 and y0 <= i // w <= y1 for x0, y0, x1, y1 in ignore)]
+
     for gap_now in (gap, gap / 5):
         prev = box.capture()
         for _ in range(tries if gap_now == gap else 5 * tries):
             time.sleep(gap_now)
             cur = box.capture()
-            if cur.rgb6() == prev.rgb6():
+            if kept(cur) == kept(prev):
                 return cur
             prev = cur
     raise RuntimeError("the picture did not settle")
@@ -1011,7 +1070,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         wait = s.settle + shift - box.elapsed()
         if wait > 0:
             time.sleep(wait)
-        cap = capture_stable(box)
+        cap = capture_stable(box, ignore=s.ignore)
         parchment = None
         if s.parchment:  # where the last dialog box started its parchment (DIALOG.C)
             (parchment,) = struct.unpack("<H", box.read(box.symbol("_G_VGABLIT_SI_BASE"), 2))
