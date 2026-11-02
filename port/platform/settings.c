@@ -35,6 +35,7 @@ typedef struct SettingDef {
 } SettingDef;
 
 static const char *const s_scalings[] = {"pixelart", "nearest", "linear", NULL};
+static const char *const s_renderers[] = {"gl", "sdl", NULL};
 static const char *const s_aspects[] = {"4:3", "square", NULL};
 static const char *const s_cursors[] = {"system", "game", NULL};
 static const char *const s_devices[] = {"sb", "adlib", "mt32", "none", "game", NULL};
@@ -46,6 +47,10 @@ static const SettingDef s_defs[SETTING_COUNT] = {
                                   "fill the screen (Alt+Enter or F11 switches)"},
     [SETTING_VIDEO_SCALING] = {"video", "scaling", SETTING_CHOICE, "pixelart",
                                "how the picture is scaled up", .choices = s_scalings},
+    [SETTING_VIDEO_RENDERER] = {"video", "renderer", SETTING_CHOICE, "gl",
+                                "what draws the window: gl (OpenGL 3.3; SDL's renderer where "
+                                "the driver has none), or sdl (SDL's renderer)",
+                                .choices = s_renderers},
     [SETTING_VIDEO_INTEGER] = {"video", "integer", SETTING_BOOL, "false",
                                "scale by whole multiples only"},
     [SETTING_VIDEO_ASPECT] = {"video", "aspect", SETTING_CHOICE, "4:3",

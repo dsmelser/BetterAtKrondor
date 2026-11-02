@@ -6,9 +6,10 @@
  * pixels to a planar byte (Mode Y), or 16 colours with eight pixels to a byte across the
  * four planes, mapped through the attribute controller's palette. It goes through the
  * emulated DAC and is shown scaled to a 4:3 picture, as on a VGA monitor (or with square
- * pixels), the scaling as the settings ask. The window keeps its place and size between runs;
- * Alt+Enter and F11 switch it to and from the full screen. A picture goes to the window only
- * when it differs from the last, and at most once per refresh of the display.
+ * pixels), the scaling as the settings ask: through OpenGL (glpresent.c), or SDL's renderer
+ * where there is no OpenGL 3.3 or the settings ask for it. The window keeps its place and size
+ * between runs; Alt+Enter and F11 switch it to and from the full screen. A picture goes to the
+ * window only when it differs from the last, and at most once per refresh of the display.
  */
 #include <inttypes.h>
 #include <stdio.h>
@@ -28,7 +29,10 @@
 uint8_t g_bakVram[BAK_VRAM_SIZE];
 
 static SDL_Window *s_window;
-static SDL_Renderer *s_renderer;
+static bool s_gl;                /* OpenGL draws the window (glpresent.c), else SDL's renderer */
+static int s_scaling;            /* SCALING_* */
+static bool s_integer;           /* scaled by whole multiples only */
+static SDL_Renderer *s_renderer; /* SDL's renderer and its texture of the picture */
 static SDL_Texture *s_texture;
 static int s_width = BAK_VGA_WIDTH, s_height = BAK_VGA_HEIGHT; /* the picture's pixels */
 static int s_shownHeight; /* the height the picture is shown at, in its pixels' widths */
@@ -65,8 +69,15 @@ static SDL_ScaleMode scale_mode(void) {
 }
 
 /* A texture and logical size for a w x h picture: at 4:3 the logical size is w x 3w/4, the
- * picture stretched vertically; with square pixels it is w x h. */
+ * picture stretched vertically; with square pixels it is w x h. (OpenGL makes its texture when
+ * it draws.) */
 static bool set_picture_size(int w, int h) {
+    if (s_gl) {
+        s_width = w;
+        s_height = h;
+        s_shownHeight = settings_get_choice(SETTING_VIDEO_ASPECT) == ASPECT_SQUARE ? h : w * 3 / 4;
+        return true;
+    }
     SDL_DestroyTexture(s_texture);
     s_texture = SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_XRGB8888,
                                   SDL_TEXTUREACCESS_STREAMING, w, h);
@@ -176,13 +187,8 @@ void video_handle_window_event(const SDL_Event *e) {
     s_stale = true; /* uncovered, resized or moved: draw it again */
 }
 
-bool video_open(void) {
-    s_windowed = (SDL_Rect){0, 0, 960, 720};
-    settings_get_int(SETTING_WINDOW_WIDTH, &s_windowed.w);
-    settings_get_int(SETTING_WINDOW_HEIGHT, &s_windowed.h);
-    s_placed = settings_get_int(SETTING_WINDOW_X, &s_windowed.x) &&
-               settings_get_int(SETTING_WINDOW_Y, &s_windowed.y) &&
-               on_a_display(s_windowed.x, s_windowed.y, s_windowed.w);
+/* The window, where the settings left it; for OpenGL or for SDL's renderer. */
+static SDL_Window *create_window(bool opengl) {
     SDL_PropertiesID props = SDL_CreateProperties();
     SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "BetterAtKrondor");
     SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, s_windowed.w);
@@ -196,34 +202,87 @@ bool video_open(void) {
                            settings_get_bool(SETTING_WINDOW_MAXIMIZED));
     SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN,
                            settings_get_bool(SETTING_VIDEO_FULLSCREEN));
-    s_window = SDL_CreateWindowWithProperties(props);
+    SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, opengl);
+    SDL_Window *window = SDL_CreateWindowWithProperties(props);
     SDL_DestroyProperties(props);
-    if (s_window == NULL) {
+    if (window == NULL)
         fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
-        return false;
+    return window;
+}
+
+bool video_open(void) {
+    s_windowed = (SDL_Rect){0, 0, 960, 720};
+    settings_get_int(SETTING_WINDOW_WIDTH, &s_windowed.w);
+    settings_get_int(SETTING_WINDOW_HEIGHT, &s_windowed.h);
+    s_placed = settings_get_int(SETTING_WINDOW_X, &s_windowed.x) &&
+               settings_get_int(SETTING_WINDOW_Y, &s_windowed.y) &&
+               on_a_display(s_windowed.x, s_windowed.y, s_windowed.w);
+    s_scaling = settings_get_choice(SETTING_VIDEO_SCALING);
+    s_integer = settings_get_bool(SETTING_VIDEO_INTEGER);
+    const char *driver = SDL_GetCurrentVideoDriver();
+    s_offscreen = driver != NULL && SDL_strcmp(driver, "dummy") == 0;
+    /* OpenGL 3.3 core, unless nobody sees the window (SDL's dummy driver has none) or the
+     * settings ask for SDL's renderer; without it, SDL's renderer in a window made again. */
+    if (!s_offscreen && settings_get_choice(SETTING_VIDEO_RENDERER) == RENDERER_GL) {
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        s_window = create_window(true);
+        s_gl = s_window != NULL && glpresent_open(s_window);
+        if (!s_gl && s_window != NULL) {
+            fprintf(stderr, "the window goes to SDL's renderer\n");
+            SDL_DestroyWindow(s_window);
+            s_window = NULL;
+        }
     }
-    s_renderer = SDL_CreateRenderer(s_window, NULL);
-    if (s_renderer == NULL) {
-        fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+    if (s_window == NULL)
+        s_window = create_window(false);
+    if (s_window == NULL)
         return false;
+    if (!s_gl) {
+        s_renderer = SDL_CreateRenderer(s_window, NULL);
+        if (s_renderer == NULL) {
+            fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
+            return false;
+        }
     }
     if (!set_picture_size(BAK_VGA_WIDTH, BAK_VGA_HEIGHT))
         return false;
     SDL_HideCursor(); /* until the game shows its own (cursor.c) */
-    const char *driver = SDL_GetCurrentVideoDriver();
-    s_offscreen = driver != NULL && SDL_strcmp(driver, "dummy") == 0;
     note_display();
     if (SDL_getenv("BAK_TRACE") != NULL) {
         SDL_ScaleMode mode = SDL_SCALEMODE_INVALID;
-        SDL_GetTextureScaleMode(s_texture, &mode);
+        if (!s_gl)
+            SDL_GetTextureScaleMode(s_texture, &mode);
+        /* The scale mode: SDL's (asked and got), or the settings' (SCALING_*, the shader's). */
         fprintf(stderr, "trace: video driver %s, renderer %s, scale mode %d (asked %d)\n",
-                driver != NULL ? driver : "?", SDL_GetRendererName(s_renderer), (int)mode,
-                (int)scale_mode());
+                driver != NULL ? driver : "?",
+                s_gl ? glpresent_name() : SDL_GetRendererName(s_renderer),
+                s_gl ? s_scaling : (int)mode, s_gl ? s_scaling : (int)scale_mode());
     }
     return true;
 }
 
+/* Where the picture is in the window's pixels (OpenGL). */
+static bool gl_rect(SDL_FRect *r) {
+    int outW = 0, outH = 0;
+    if (!SDL_GetWindowSizeInPixels(s_window, &outW, &outH) || outW <= 0 || outH <= 0)
+        return false;
+    glpresent_layout(outW, outH, s_width, s_shownHeight, s_integer, r);
+    return true;
+}
+
 bool video_window_to_picture(float wx, float wy, float *px, float *py) {
+    if (s_gl) {
+        SDL_FRect r;
+        if (!gl_rect(&r))
+            return false;
+        float density = SDL_GetWindowPixelDensity(s_window);
+        *px = (wx * density - r.x) * (float)s_width / r.w;
+        *py = (wy * density - r.y) * (float)s_height / r.h;
+        return true;
+    }
     float lx, ly;
     if (s_renderer == NULL || !SDL_RenderCoordinatesFromWindow(s_renderer, wx, wy, &lx, &ly))
         return false;
@@ -238,9 +297,14 @@ void video_close(void) {
         save_window();
     if (SDL_getenv("BAK_TRACE") != NULL)
         fprintf(stderr, "trace: %u pictures, %u of them presented\n", s_pictures, s_presents);
-    SDL_DestroyTexture(s_texture);
-    SDL_DestroyRenderer(s_renderer);
+    if (s_gl)
+        glpresent_close();
+    if (s_texture != NULL)
+        SDL_DestroyTexture(s_texture);
+    if (s_renderer != NULL)
+        SDL_DestroyRenderer(s_renderer);
     SDL_DestroyWindow(s_window);
+    s_gl = false;
     s_texture = NULL;
     s_renderer = NULL;
     s_window = NULL;
@@ -361,7 +425,7 @@ static void scan_out(const uint32_t *pal) {
 }
 
 void video_flush(void) {
-    if (!s_stale || s_offscreen || s_texture == NULL || s_lastW == 0)
+    if (!s_stale || s_offscreen || (!s_gl && s_texture == NULL) || s_lastW == 0)
         return;
     uint64_t now = SDL_GetTicksNS();
     if (s_presentedNs != 0 && now - s_presentedNs < s_refreshNs)
@@ -369,6 +433,10 @@ void video_flush(void) {
     s_presentedNs = now;
     s_stale = false;
     s_presents++;
+    if (s_gl) {
+        glpresent_draw(s_last, s_lastW, s_lastH, s_shownHeight, s_scaling, s_integer);
+        return;
+    }
     SDL_UpdateTexture(s_texture, NULL, s_last, s_lastW * 4);
     SDL_RenderClear(s_renderer);
     SDL_FRect dst = {0, 0, (float)s_lastW, (float)s_shownHeight};
@@ -378,10 +446,18 @@ void video_flush(void) {
 
 void video_warp_pointer(float px, float py) {
     float wx, wy;
-    if (s_offscreen || s_renderer == NULL || !cursor_shown() ||
+    if (s_offscreen || (!s_gl && s_renderer == NULL) || !cursor_shown() ||
         (SDL_GetMouseFocus() != s_window && SDL_GetKeyboardFocus() != s_window))
         return;
     /* The middle of the pixel, so the pointer maps back to it. */
+    if (s_gl) {
+        SDL_FRect r;
+        float density = SDL_GetWindowPixelDensity(s_window);
+        if (gl_rect(&r) && density > 0.0f)
+            SDL_WarpMouseInWindow(s_window, (r.x + (px + 0.5f) * r.w / (float)s_width) / density,
+                                  (r.y + (py + 0.5f) * r.h / (float)s_height) / density);
+        return;
+    }
     if (SDL_RenderCoordinatesToWindow(s_renderer, px + 0.5f,
                                       (py + 0.5f) * (float)s_shownHeight / (float)s_height, &wx,
                                       &wy))
@@ -391,13 +467,15 @@ void video_warp_pointer(float px, float py) {
 /* The system cursor at the picture's scale: window pixels per picture pixel. */
 static void update_cursor(void) {
     SDL_FRect r;
-    if (!s_offscreen && SDL_GetRenderLogicalPresentationRect(s_renderer, &r) && r.w > 0.0f)
+    if (!s_offscreen &&
+        (s_gl ? gl_rect(&r) : SDL_GetRenderLogicalPresentationRect(s_renderer, &r)) &&
+        r.w > 0.0f)
         cursor_update(r.w / (float)s_width, r.h / (float)s_height);
 }
 
 /* Show the picture the CRTC is scanning out. */
 void video_present(void) {
-    if (s_texture == NULL)
+    if (!s_gl && s_texture == NULL)
         return;
     update_cursor();
     uint32_t pal[256];

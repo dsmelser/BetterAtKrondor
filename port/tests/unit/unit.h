@@ -63,7 +63,9 @@
     X(autosave_holds_the_machine_still)                                                            \
     X(memory_plain_blocks_have_offsets)                                                            \
     X(memory_images_sit_in_plain_blocks)                                                           \
-    X(memory_ems_is_plain_blocks)
+    X(memory_ems_is_plain_blocks)                                                                  \
+    X(glpresent_letterboxes_the_picture)                                                           \
+    X(glpresent_draws_the_picture)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

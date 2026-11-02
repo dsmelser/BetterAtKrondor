@@ -34,6 +34,7 @@ typedef enum SettingId {
     SETTING_PATHS_DATA,       /* [paths] data: the game folder */
     SETTING_VIDEO_FULLSCREEN, /* [video] fullscreen */
     SETTING_VIDEO_SCALING,    /* [video] scaling: SCALING_* */
+    SETTING_VIDEO_RENDERER,   /* [video] renderer: RENDERER_* */
     SETTING_VIDEO_INTEGER,    /* [video] integer: whole multiples only */
     SETTING_VIDEO_ASPECT,     /* [video] aspect: ASPECT_* */
     SETTING_VIDEO_CURSOR,     /* [video] cursor: CURSOR_* */
@@ -62,6 +63,7 @@ typedef enum SettingId {
     SETTING_COUNT
 } SettingId;
 enum { SCALING_PIXELART, SCALING_NEAREST, SCALING_LINEAR };
+enum { RENDERER_GL, RENDERER_SDL };
 enum { ASPECT_4_3, ASPECT_SQUARE };
 enum { CURSOR_SYSTEM, CURSOR_GAME };
 enum { DEVICE_SB, DEVICE_ADLIB, DEVICE_MT32, DEVICE_NONE, DEVICE_GAME };
@@ -166,6 +168,27 @@ uint8_t video_attribute_color(unsigned value);
 /* The host's pointer to a place on the picture (the game moved the mouse), while the system
  * cursor shows and the window has the mouse. */
 void video_warp_pointer(float px, float py);
+
+/*
+ * The window's picture through OpenGL 3.3 (glpresent.c). glpresent_open makes the context of a
+ * window made with SDL_WINDOW_OPENGL; false, having said why, when it cannot. glpresent_draw
+ * shows a w x h picture of XRGB words in the window, at a shown height of shownH picture pixels
+ * (4:3: 3w/4), letterboxed and scaled as SCALING_* says, by whole multiples if integer.
+ * glpresent_layout is where in an outW x outH output the picture goes; glpresent_render draws
+ * it into the framebuffer bound, glpresent_render_offscreen into a new one, read back into
+ * outW x outH RGBA bytes, the top row first (the tests). glpresent_name says what draws.
+ */
+struct SDL_Window;
+struct SDL_FRect;
+bool glpresent_open(struct SDL_Window *window);
+void glpresent_close(void);
+const char *glpresent_name(void);
+void glpresent_layout(int outW, int outH, int w, int shownH, bool integer, struct SDL_FRect *r);
+void glpresent_render(const uint32_t *xrgb, int w, int h, int shownH, int outW, int outH,
+                      int scaling, bool integer);
+void glpresent_draw(const uint32_t *xrgb, int w, int h, int shownH, int scaling, bool integer);
+bool glpresent_render_offscreen(const uint32_t *xrgb, int w, int h, int shownH, int outW,
+                                int outH, int scaling, bool integer, uint8_t *rgba);
 
 /*
  * The system cursor (cursor.c). cursor_decode turns a game cursor image of the VGA driver's
