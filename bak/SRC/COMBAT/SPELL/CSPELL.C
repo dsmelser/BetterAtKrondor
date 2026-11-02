@@ -2151,9 +2151,11 @@ static void far cspell_cast_menu_open_transition(void) {
     return;
 }
 
-#define CASTFACE_FRAME(slot)                                                                       \
-    (*(unsigned short *)((char *)&g_nSpellSymbolAnimFrame + 4 + (slot) * 4))
-#define CASTFACE_SPRITE(slot) (*(unsigned short *)((char *)__dat_15dc + 0x82 + (slot) * 4))
+/* Where the caster's highlight goes on the world's cast screen, by party slot: __dat_165e's x and
+ * y words (the party's portraits). The original reads them 82h past __dat_15dc and 4 past
+ * g_nSpellSymbolAnimFrame, which DGROUP lays out just before the table. */
+#define CASTFACE_X(slot) (((unsigned short *)__dat_165e)[(slot) * 2])
+#define CASTFACE_Y(slot) (((unsigned short *)__dat_165e)[(slot) * 2 + 1])
 
 s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_caster_slot,
                           s16 *preselect_spell) {
@@ -2229,13 +2231,13 @@ s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_cas
     menupage_draw_entries(page->pEntries, page->wEntry_count, page->rect.x, page->rect.y);
     if (save_flag != 0) {
         emsimg_map_then_call_180c(g_pCastfaceSpriteTable[6],
-                                  CASTFACE_SPRITE(casterSlot), CASTFACE_FRAME(casterSlot), 0);
+                                  CASTFACE_X(casterSlot), CASTFACE_Y(casterSlot), 0);
     }
     screen_frame_present();
     menupage_draw_entries(page->pEntries, page->wEntry_count, page->rect.x, page->rect.y);
     if (save_flag != 0) {
         emsimg_map_then_call_180c(g_pCastfaceSpriteTable[6],
-                                  CASTFACE_SPRITE(casterSlot), CASTFACE_FRAME(casterSlot), 0);
+                                  CASTFACE_X(casterSlot), CASTFACE_Y(casterSlot), 0);
         save_flag = 0;
     }
     saved_palblend = g_nPalBlendMode;
@@ -2376,7 +2378,7 @@ s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_cas
             if (save_flag != 0) {
                 cga_rect_paste_from_buffer(pDest, 0xf, 0x8e, 0xa8, 0x2d);
                 emsimg_map_then_call_180c(g_pCastfaceSpriteTable[6],
-                                          CASTFACE_SPRITE(casterSlot), CASTFACE_FRAME(casterSlot),
+                                          CASTFACE_X(casterSlot), CASTFACE_Y(casterSlot),
                                           0);
             }
             screen_frame_present();
@@ -2384,7 +2386,7 @@ s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_cas
             if (save_flag != 0) {
                 cga_rect_paste_from_buffer(pDest, 0xf, 0x8e, 0xa8, 0x2d);
                 emsimg_map_then_call_180c(g_pCastfaceSpriteTable[6],
-                                          CASTFACE_SPRITE(casterSlot), CASTFACE_FRAME(casterSlot),
+                                          CASTFACE_X(casterSlot), CASTFACE_Y(casterSlot),
                                           0);
                 save_flag = 0;
             }

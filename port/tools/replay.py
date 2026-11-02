@@ -199,6 +199,25 @@ SCENARIO_CHECKS["autosave"] = autosave_is_the_bookmark
 # hours from 08:00, the clock's hand drawn by VGA slot 39 as it moves; a rest to a chosen hour
 # ends the camp by itself. Then a step.
 SCENARIOS["camp-rest"] = world_then("90000:key:E;94000:click:97,21;100000:key:Up;", 103000)
+# The lockpick screen (PICKLOCK.C): the locked house a tile east of the start (zone 1's tile
+# 11,16; its lock 32h), the party teleported beside it facing south, the house clicked in the
+# view, and Y to the question whether to try the lock: the lock and the party's key ring. The
+# pointer moves before each press: a menu page reads the pointer before the buttons
+# (inputscript.c).
+SCENARIOS["lockpick"] = world_then(
+    "90000:teleport:1,11,16,18,25,8000;93000:move:160,61;93500:click:160,61;97000:key:Y;", 103000)
+# Spells cast by hand. In the world: C, the fifth symbol page (5), Scent of Sarig (Owyn's,
+# chapter 1's only spell for the outdoors) and Space past its message.
+SCENARIOS["cast-world"] = world_then(
+    "90000:key:C;92000:key:5;94000:move:51,62;94500:click:51,62;98000:key:Space;", 101000)
+# In chapter 1's first fight (the combat scenario's way in): Owyn, the fastest, acts first. C,
+# the second symbol page (2), Despair Thy Eyes, and the moredhel's square clicked (its feet):
+# the cast ends his turn, and Locklear's comes.
+SCENARIOS["cast-combat"] = world_then(
+    "90000:teleport:1,10,14,28,12,8400;91000:key:Right;"
+    + "".join(f"{92000 + 400 * i}:key:Up;{92200 + 400 * i}:key:Space;" for i in range(8))
+    + "96000:key:C;98000:key:2;100000:move:47,52;100500:click:47,52;102000:move:117,58;"
+    "102500:hold:117,58,300;", 110000)
 # The world's script with the CD's music on (the GOG copy's music\bakNN.ogg): the intro's, the
 # book's, the cutscene's and the world's tracks.
 SCENARIOS["music"] = SCENARIOS["world"]
