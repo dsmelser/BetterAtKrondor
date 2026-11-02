@@ -470,6 +470,10 @@ class Scenario:
     port_input: str                 # BAK_INPUT for the port; its last frame is compared
     # Keys put straight into the BIOS keyboard buffer (DosBox.press): (seconds, scancode, ASCII).
     late: list[tuple[float, int, int]] = field(default_factory=list)
+    # Rectangles (x0, y0, x1, y1, inclusive) whose differences do not count, and why: a text
+    # field's caret, which blinks on the game's timer, so each side shows its own phase.
+    ignore: list[tuple[int, int, int, int]] = field(default_factory=list)
+    ignore_why: str = ""
 
 
 SCENARIOS = {
@@ -494,48 +498,66 @@ SCENARIOS = {
 }
 
 
-def from_the_world(description: str, scan: int, ascii: int, port_key: str) -> Scenario:
-    """The world scenario, then one key once the party stands in the world: at 240 s in DOSBox
-    (the Spaces past the book page through the cutscene, and the world comes near 175 s), put in
-    the keyboard buffer; at 90 s on the port (41 s)."""
+# Scan codes and ASCII of the keys pressed over the world.
+KEYS = {"M": (0x32, ord("m")), "1": (0x02, ord("1")), "E": (0x12, ord("e")), "O": (0x18, ord("o")),
+        "S": (0x1F, ord("s")), "R": (0x13, ord("r"))}
+
+
+def from_the_world(description: str, *keys: str) -> Scenario:
+    """The world scenario, then keys (KEYS' names) once the party stands in the world, 10 s
+    apart: from 240 s in DOSBox (the Spaces past the book page through the cutscene, and the world
+    comes near 175 s), put in the keyboard buffer; from 90 s on the port (41 s), 3 s apart."""
     world = SCENARIOS["world"]
     end = "90000:quit"
     assert world.port_input.endswith(end), world.port_input
-    return Scenario(description=description, keys=world.keys, settle=270.0,
-                    port_input=world.port_input[: -len(end)] + f"90000:key:{port_key};100000:quit",
-                    late=[(240.0, scan, ascii)])
+    port = "".join(f"{90 + 3 * i}000:key:{k};" for i, k in enumerate(keys))
+    return Scenario(description=description, keys=world.keys, settle=260.0 + 10 * len(keys),
+                    port_input=world.port_input[: -len(end)] + port
+                    + f"{90 + 3 * len(keys) + 7}000:quit",
+                    late=[(240.0 + 10 * i, *KEYS[k]) for i, k in enumerate(keys)])
 
 
 # The 2-D screens over the world (M6's parity step): the map (M), the first party member's
-# inventory (1: Locklear's), the camp (E) and the Options menu (O).
-SCENARIOS["map"] = from_the_world("The world, then M: the zone's map", 0x32, ord("m"), "M")
-SCENARIOS["inventory"] = from_the_world("The world, then 1: Locklear's inventory", 0x02, ord("1"),
-                                        "1")
-SCENARIOS["camp"] = from_the_world("The world, then E: the camp and its clock", 0x12, ord("e"), "E")
-SCENARIOS["options"] = from_the_world("The world, then O: the Options menu", 0x18, ord("o"), "O")
+# inventory (1: Locklear's), the camp (E), the Options menu (O) and its Save Game dialog (S).
+# (Restore Game is off while there is no save.)
+SCENARIOS["map"] = from_the_world("The world, then M: the zone's map", "M")
+SCENARIOS["inventory"] = from_the_world("The world, then 1: Locklear's inventory", "1")
+SCENARIOS["camp"] = from_the_world("The world, then E: the camp and its clock", "E")
+SCENARIOS["options"] = from_the_world("The world, then O: the Options menu", "O")
+SCENARIOS["save"] = from_the_world("The world, then O and S: the Save Game dialog", "O", "S")
+SCENARIOS["save"].ignore = [(147, 129, 147, 139)]
+SCENARIOS["save"].ignore_why = "the Games field's caret, which blinks"
 
 
 # ---- commands -----------------------------------------------------------------------------
 
 
 def capture_stable(box: DosBox, tries: int = 6, gap: float = 1.0) -> Capture:
-    """Capture until two pictures in a row agree (a fade or a redraw may be in progress)."""
-    prev = box.capture()
-    for _ in range(tries):
-        time.sleep(gap)
-        cur = box.capture()
-        if cur.rgb6() == prev.rgb6():
-            return cur
-        prev = cur
+    """Capture until two pictures in a row agree (a fade or a redraw may be in progress). Then
+    again closer together: a text field's caret blinks, so one second apart they never agree."""
+    for gap_now in (gap, gap / 5):
+        prev = box.capture()
+        for _ in range(tries if gap_now == gap else 5 * tries):
+            time.sleep(gap_now)
+            cur = box.capture()
+            if cur.rgb6() == prev.rgb6():
+                return cur
+            prev = cur
     raise RuntimeError("the picture did not settle")
 
 
-def compare(dos: tuple[int, int, list], port: tuple[int, int, list], diff_png: Path) -> int:
+def compare(dos: tuple[int, int, list], port: tuple[int, int, list], diff_png: Path,
+            ignore: list[tuple[int, int, int, int]] = ()) -> int:
+    """The pixels that differ outside the ignored rectangles (the diff shows them all)."""
     (w, h, a), (w2, h2, b) = dos, port
     if (w, h) != (w2, h2):
         print(f"size differs: DOSBox {w}x{h}, port {w2}x{h2}")
         return w * h
-    bad = [i for i in range(w * h) if a[i] != b[i]]
+    every = [i for i in range(w * h) if a[i] != b[i]]
+    bad = [i for i in every if not any(x0 <= i % w <= x1 and y0 <= i // w <= y1
+                                       for x0, y0, x1, y1 in ignore)]
+    if len(bad) != len(every):
+        print(f"{len(every) - len(bad)} pixels differ where they may")
     img = []
     for i in range(w * h):
         if a[i] != b[i]:
@@ -599,8 +621,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     port = read_bmp_rgb6(bmp)
     write_png(out / "port.png", port[0], port[1], [to8(c) for c in port[2]])
 
-    n = compare(dos, port, out / "diff.png")
-    print(f"{args.scenario}: {'identical' if n == 0 else 'DIFFERENT'} ({out})")
+    n = compare(dos, port, out / "diff.png", s.ignore)
+    but = f" but for {s.ignore_why}" if n == 0 and s.ignore else ""
+    print(f"{args.scenario}: {'identical' + but if n == 0 else 'DIFFERENT'} ({out})")
     return 0 if n == 0 else 1
 
 
