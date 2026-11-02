@@ -20,6 +20,7 @@
 #include "bak_game_begin.h"
 #include "structs.h"
 #include "SRC/GEN/GFXCTX.H"
+#include "SRC/GFX/RASTER/POLYFILL.H"
 #include "bak_game_end.h"
 
 #define PLANAR_ROW 80    /* bytes per row in a plane */
@@ -119,7 +120,6 @@ TRAP(31, blit_sprite_flip_v)
 TRAP(36, blit_sprite_planar_rotated)
 TRAP(37, blit_stretched)
 TRAP(38, blit_sprite_chunky_flip)
-TRAP(39, fill_world_textured_span_modey)
 TRAP(40, fill_textured_span_modey)
 
 static void vga_clear_rect_state(void) {
@@ -172,7 +172,7 @@ static void fill_slots(void) {
     t->pfn_blit_sprite_planar_rotated = SLOT(trap_blit_sprite_planar_rotated);
     t->pfn_blit_stretched = SLOT(trap_blit_stretched);
     t->pfn_blit_sprite_chunky_flip = SLOT(trap_blit_sprite_chunky_flip);
-    t->pfn_fill_world_textured_span_modey = SLOT(trap_fill_world_textured_span_modey);
+    t->pfn_fill_world_textured_span_modey = SLOT(vga_fill_world_textured_span_modey);
     t->pfn_fill_textured_span_modey = SLOT(trap_fill_textured_span_modey);
     t->slot_41_unimplemented = noop;
     t->slot_42_unimplemented = noop;
@@ -514,6 +514,48 @@ void vga_fill_spans_dithered_modey(const unsigned char *spans) {
         bp = (u16)(bp + 2);
         swapped = dither != 0 && !swapped;
     }
+}
+
+/*
+ * Slot 39, in slot 27's place while draw_polygon_textured runs (the camp clock's hand): the
+ * pixels under each span translated through a 256-byte table, one at a time. The spans are slot
+ * 27's: the first row, the number of rows (0 is 65536), then each row's x_start and x_end, x_end
+ * not drawn; a row is drawn when x_end is above x_start, signed. Rows follow each other 80 bytes
+ * apart from the first one's offset in the row table. A pixel is read through the read map
+ * select and written under the map mask, both its plane, so the write goes through the graphics
+ * controller as the original's does, and the registers are left as it leaves them. The table is
+ * g_pTexturedSpanLut; the original reads it through SS at the context's wTextureIdx.
+ */
+void vga_fill_world_textured_span_modey(const unsigned char *spans) {
+    static const unsigned char planeMask[4] = {0x01, 0x02, 0x04, 0x08};
+    const unsigned char *si = spans;
+    const unsigned char *lut = g_pTexturedSpanLut;
+    u16 seg = g_graphics_context.wGfxBlitDstPage;
+    u16 di = row_offset((s16)(si[0] | si[1] << 8));
+    bak_port_out8(0x3C4, 2);
+    bak_port_out8(0x3CE, 4);
+    u16 rows = (u16)(si[2] | si[3] << 8);
+    si += 4;
+    do {
+        u16 x0 = (u16)(si[0] | si[1] << 8), x1 = (u16)(si[2] | si[3] << 8);
+        u16 row = di;
+        if ((s16)x1 > (s16)x0) { /* SUB CX,AX; JLE */
+            u16 count = (u16)(x1 - x0);
+            unsigned char plane = (unsigned char)(x0 & 3);
+            di = (u16)(di + (x0 >> 2));
+            do {
+                bak_port_out8(0x3CF, plane);
+                bak_port_out8(0x3C5, planeMask[plane]);
+                unsigned char px = bak_vga_read(seg, di);
+                bak_vga_write(seg, di, lut[px]);
+                plane = (unsigned char)((plane + 1) & 3);
+                if (plane == 0)
+                    di++;
+            } while (--count != 0);
+        }
+        di = (u16)(row + 0x50);
+        si += 4;
+    } while (--rows != 0);
 }
 
 /* One pixel of a diagonal: di counts pixels from the page start (row * 320 + x). The

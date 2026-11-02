@@ -175,6 +175,10 @@ def autosave_is_the_bookmark(user: Path) -> bool:
 
 
 SCENARIO_CHECKS["autosave"] = autosave_is_the_bookmark
+# The camp (E): a click on the dial's 14:00 (ENCAMP.DAT's hour spots), and the party rests the six
+# hours from 08:00, the clock's hand drawn by VGA slot 39 as it moves; a rest to a chosen hour
+# ends the camp by itself. Then a step.
+SCENARIOS["camp-rest"] = world_then("90000:key:E;94000:click:97,21;100000:key:Up;", 103000)
 # The world's script with the CD's music on (the GOG copy's music\bakNN.ogg): the intro's, the
 # book's, the cutscene's and the world's tracks.
 SCENARIOS["music"] = SCENARIOS["world"]

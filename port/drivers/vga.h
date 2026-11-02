@@ -40,9 +40,11 @@ void vga_draw_line(u16 seg, u16 x0, u16 y0, u16 x1, u16 y1); /* 2: ES BX CX DX S
  * in colour AL, or dithered with AH (0: none) on the row whose parity DX gives. */
 void vga_fill_run_a(u16 seg, u16 di, u16 x, u16 count, u16 colors, u16 dx);
 void vga_fill_run_b(u16 seg, u16 di, u16 x, u16 count, u16 colors, u16 dx);
-/* 27: ES:SI = the spans: the first row, the number of rows, then x0 and x1 of each. */
+/* 27: ES:SI = the spans: the first row, the number of rows, then x0 and x1 of each. 39: the
+ * pixels under such spans, translated through g_pTexturedSpanLut. */
 typedef void FillSpansFn(const unsigned char *spans);
 void vga_fill_spans_dithered_modey(const unsigned char *spans);
+void vga_fill_world_textured_span_modey(const unsigned char *spans);
 /* 3, 29, 33: a sprite from its record (a near pointer in the original), 29 with flip flags,
  * 33 opaque. */
 typedef void SpriteMasterFn(const ImageRecord *sprite, s16 x, s16 y, u16 flags);

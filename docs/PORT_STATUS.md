@@ -423,14 +423,18 @@ words, so the latches come from the access its memory hook sees.
 
 | Slots | Status |
 |---|---|
-| init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 33 opaque sprite, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload | ✅ verified |
+| init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 33 opaque sprite, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload, 39 spans translated through a table (the camp clock's hand; since 2026-11-01) | ✅ verified |
 | 24 rect-buffer offset, 32 clear sprite cache | ported; verified with their consumers (23, 33) |
-| 17-19, 23, 30, 31, 36-40 | ⬜ trap with the routine's name |
+| 17-19, 23, 30, 31, 36-38, 40 | ⬜ trap with the routine's name |
 | 9, 12, 16, 25, 26, 28, 41-48 | empty in the original: no-ops |
 
 Slots the game calls with register arguments have native signatures in `port/drivers/vga.h` (`DrawLineFn`,
 `FillSpansFn`). The routines the game swaps into them take the same form: VGABLIT.ASM's texture copiers
-(dialog backgrounds and the sky), and slot 39 for textured polygons when it is ported.
+(dialog backgrounds and the sky), and slot 39, which `draw_polygon_textured` puts in slot 27's place
+(POLYFILL.C): it reads each pixel under the spans through the read map select and writes it, translated
+through `g_pTexturedSpanLut`, under the map mask, so it runs through the platform's graphics controller as
+the original's does. `test_vga.py` checks it with the controller set at random in some cases, and the
+registers after it.
 
 The books' HEG chunk (`DRIVERS/VMCODE/HEG.ASM`) is `port/drivers/heg.c`: 640 pixels across in 16 colours,
 eight to a byte in each plane. It keeps every register write and display-memory access of the original
@@ -772,7 +776,7 @@ plane in turn while the API reads A000h. Captures and diffs go to `work/golden/<
 | `main-menu`: Escape during the intro | ✅ identical (the original shows the page at 4000h) |
 | `book`: N (Start New Game) after the intro, chapter 1's first page | ✅ identical, 640x350 in 16 colours (the original shows the page at 8000h) |
 | `world`: N, Space through the book, the chapter cutscene played out: the 3-D world's first view | ✅ identical: the sky and its panorama, the hills, trees and road, a sprite, the compass and the party (in DOSBox the view comes after about 4 minutes; the capture waits 7) |
-| `map`, `inventory`, `camp`, `options`: the world, then M, 1, E or O (in DOSBox at 240 s, in the keyboard buffer; the world comes near 175 s there, the Spaces past the book paging through the cutscene) | `map` ✅ identical: the zone's map, its terrain and the party's mark (2026-11-01). `inventory` ✅ identical: Locklear's, his sword, armour and pack, the party's gold. `options` ✅ identical: the Options menu over the world, Restore Game off (no save). `camp` ⬜ the port stops at the camp's clock hand: `draw_polygon_textured` reaches VGA driver slot 39 (`vga_fill_world_textured_span_modey`), still a trap, so natively the party cannot camp yet |
+| `map`, `inventory`, `camp`, `options`: the world, then M, 1, E or O (in DOSBox at 240 s, in the keyboard buffer; the world comes near 175 s there, the Spaces past the book paging through the cutscene) | `map` ✅ identical: the zone's map, its terrain and the party's mark (2026-11-01). `inventory` ✅ identical: Locklear's, his sword, armour and pack, the party's gold. `options` ✅ identical: the Options menu over the world, Restore Game off (no save). `camp` ✅ identical: the clock's dial with its hand (VGA driver slot 39, ported for it the same day: until then the port stopped there, and the party could not camp), the party's health, stamina and rations |
 
 The capture also reads the attribute controller, and the decoder handles Mode Y and the 16-colour planar
 modes.
@@ -813,6 +817,7 @@ run left in its user folder (`SCENARIO_CHECKS`).
 | `quicksave-first`: the world, F5 as the first save of a fresh user folder, two steps, F9 | ✅ identical logs, the ASan build's too: F5 makes `GAMES\SAVES.G01` for its Bookmark, and F9 brings the party back |
 | `world-autosave`, `combat-autosave`, `spawns-autosave`: those scripts with autosaves on, one a minute while the game's time moves (`saves.autosave_minutes=1`), checked against their baselines | ✅ identical logs, the ASan build's too: autosaves leave the game where it was. The world saves the chapter's start on its first pass; the fight saves it too and, a minute on, the party past the fight (the corpse's tile, after the victory); the teleport saves on arriving in zone 4, among the spawned stones. Each `AUTOSAVE.G20` holds two, the newest first |
 | `autosave`: the world (its chapter's start saved), two steps, a teleport into zone 4 (saved on arriving), F5 there; then Restore Game, the AUTOSAVE folder and its second save clicked, Return, Space through the load, a step | ✅ identical logs, the ASan build's too. The zone 4 autosave is byte for byte the Bookmark F5 saved at the same place, but for its title ("Autosave: day 3, 08:02"; checked after the run), and the load puts the party back at the chapter's start (669600,1064800). The dialog lists the folder after SAVES. The folder is clicked: its keys cannot reach the folder list (below) |
+| `camp-rest`: the world, E, a click on the camp dial's 14:00: the party rests six hours from 08:00 and the camp ends by itself, then a step | ✅ identical logs, the ASan build's too: the clock's hand moves an hour at a time (slot 39 for each picture), and the game state after the camp has the six hours |
 | `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs, the ASan build's too; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at

@@ -10,6 +10,7 @@
 #include "structs.h"
 #include "SRC/GEN/GFXCTX.H"
 #include "SRC/STREAM/RESLOAD/IMGLOAD.H"
+#include "SRC/GFX/RASTER/POLYFILL.H"
 #include "bak_game_end.h"
 
 #define PALETTE_CACHE 0x600
@@ -213,6 +214,19 @@ static void cmd_fill_spans(DtIn *in, DtOut *out) {
     bak_dos_free(spans);
 }
 
+/* vga.fill_world_textured <256-byte table> <span table>: slot 39 */
+static void cmd_fill_world_textured(DtIn *in, DtOut *out) {
+    (void)out;
+    static unsigned char lut[256];
+    memcpy(lut, dt_bytes(in, sizeof lut), sizeof lut);
+    size_t n = dt_remaining(in);
+    unsigned char *spans = bak_dos_alloc((uint32_t)n, 0);
+    memcpy(spans, dt_bytes(in, n), n);
+    g_pTexturedSpanLut = lut;
+    vga_fill_world_textured_span_modey(spans);
+    bak_dos_free(spans);
+}
+
 /* vga.sprite slot(3/29/33) flags x y width height offset <pixels>: the record's segment is a
  * zeroed 64 KB block with the pixels at the offset. */
 static void cmd_sprite(DtIn *in, DtOut *out) {
@@ -260,6 +274,7 @@ const DtEntry dt_vga_entries[] = {
     DT_COMMAND("vga.draw_line", cmd_draw_line),
     DT_COMMAND("vga.fill_run", cmd_fill_run),
     DT_COMMAND("vga.fill_spans", cmd_fill_spans),
+    DT_COMMAND("vga.fill_world_textured", cmd_fill_world_textured),
     DT_COMMAND("vga.sprite", cmd_sprite),
     DT_GLOBAL(g_gfxContextBlock),
     DT_GLOBAL(g_bakVram),

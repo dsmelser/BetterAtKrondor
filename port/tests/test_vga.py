@@ -374,6 +374,55 @@ def test_fill_spans(pair):
         pair.assert_same(f"after spans {i}: {count} rows from {first} on {page:04X}")
 
 
+OFF_TEXTURE = 0x6BC  # wTextureIdx: slot 39's table, an offset in SS
+
+
+def test_fill_world_textured(pair):
+    """Slot 39 (the camp clock's hand): the pixels under slot 27's spans translated through a
+    256-byte table, each read through the read map select and written under the map mask, so the
+    graphics controller's state counts (some cases set it at random on both sides) and the
+    registers end as the original leaves them. The original reads the table through SS at the
+    context's wTextureIdx: SS is a segment of its own here, the table at 100h, the stack at the
+    top."""
+    rng = random.Random(17)
+    pair.fill_vram(rng)
+    spans = pair.m.alloc(0x1000)
+    lut_seg = pair.m.alloc(0x10000)
+    pair.set_ctx_u16(OFF_TEXTURE, 0x100)
+    cases = [(0xA000, 0, 1, [(-30000, 30000)], False)]  # x1 > x0 compared signed: 60000 pixels
+    for _ in range(120):
+        page = rng.choice(PAGES)
+        lo_x, hi_x, _, _ = _extent(page)
+        first = rng.randrange(200)
+        count = rng.randrange(1, 201 - first)
+        rows = []
+        for _ in range(count):
+            x0 = rng.randrange(lo_x, hi_x)
+            x1 = rng.randrange(lo_x, hi_x) if rng.random() < 0.2 else rng.randrange(x0, hi_x)
+            rows.append((x0, x1))
+        cases.append((page, first, count, rows, rng.random() < 0.3))
+    for i, (page, first, count, rows, odd_gc) in enumerate(cases):
+        pair.set_ctx_u16(OFF_DST, page)
+        lut = rng.randbytes(256)
+        pair.m.write((lut_seg, 0x100), lut)
+        regs = bytearray(pair.chunk.vga.regs())
+        if odd_gc:  # gc[0] set/reset, [1] its enable, [3] rotation and function, [5] modes, [8] mask
+            for reg in (0, 1, 3, 8):
+                regs[40 + reg] = rng.randrange(256)
+            regs[40 + 5] = rng.randrange(4) | (rng.randrange(2) << 3)
+        else:
+            regs[40 + 3], regs[40 + 5], regs[40 + 8] = 0, 0, 0xFF
+        pair.chunk.vga.load_regs(bytes(regs))
+        pair.native.call("heg.regs", bytes(regs))
+        table = _u16s(first, count, *(v for xs in rows for v in xs))
+        pair.m.write((spans, 0), table)
+        pair.chunk.call(39, es=spans, si=0, ss=lut_seg)
+        pair.native.call("vga.fill_world_textured", lut + table)
+        what = f"after textured spans {i}: {count} rows from {first} on {page:04X}"
+        pair.assert_same(what)
+        assert pair.native.call("heg.regs") == pair.chunk.vga.regs(), f"VGA registers {what}"
+
+
 def test_sprites(pair):
     """Slots 29 (with flips), 3 and 33 (opaque). The record is at DS:0 of a segment of its own,
     the pixels at its offset in a 64 KB segment that is otherwise zero, as on the native side."""
