@@ -3,7 +3,9 @@
 The black-box check from the port plan. The original KRONDOR.EXE from the user's copy runs in
 DOSBox Staging, the port runs on the same data, both get the same keys, teleports and clicks (the
 original through its memory, the port through BAK_INPUT), and the pictures they show are compared
-pixel by pixel. Captures go to work/golden/<scenario>/ (never committed: they are the game's art).
+pixel by pixel, as are the saves they leave (TEMP.GAM, the working save, after every scenario; a
+scenario may save, or start both sides from a save the port made). Captures go to
+work/golden/<scenario>/ (never committed: they are the game's art).
 
     uv run python -I port/tools/dosbox_golden.py run main-menu --data "E:/GOG/Betrayal at Krondor"
     uv run python -I port/tools/dosbox_golden.py trace --data "E:/GOG/Betrayal at Krondor" --seconds 30
@@ -117,11 +119,17 @@ class DosBox:
         self.block = 0  # linear address of the capture block
         self.publics: dict[str, tuple[int, int]] | None = None  # the game's map (GameMap)
 
-    def start(self, data: Path, work: Path, keys: list[tuple[float, str]], pace: float) -> None:
+    def start(self, data: Path, work: Path, keys: list[tuple[float, str]], pace: float,
+              seed: dict[str, Path] | None = None) -> None:
+        """Starts the game in the folder, the files of seed (a save to load, by its path under
+        the game's folder) laid in the overlay, so the game finds them from its start."""
         overlay = work / "overlay"
         if overlay.exists():
             shutil.rmtree(overlay)
         overlay.mkdir(parents=True)
+        for rel, src in (seed or {}).items():
+            (overlay / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, overlay / rel)
         lines = [
             f'mount c "{data}"',
             f'mount c "{overlay}" -t overlay',
@@ -504,7 +512,8 @@ class GameMap:
 #
 # After AUTOTYPE stops, the original is driven through its memory: keys into the BIOS keyboard
 # buffer, and the game's own records where the port's script writes them too (teleport.c,
-# mouse.c), found by the reference build's map.
+# mouse.c), found by the reference build's map. A step's run may return seconds that the steps
+# after it and the capture wait longer (the world came late).
 
 
 @dataclass
@@ -575,6 +584,21 @@ class Click:
         return f"click:{self.x},{self.y}"
 
 
+@dataclass
+class WaitForWorld:
+    """Waits for the world (DosBox.wait_for_world), expected by `expected` seconds from
+    start-up, and when it comes later (a slow host) says how much: the steps after this one
+    and the capture wait as much longer."""
+    expected: float
+
+    def run(self, box: DosBox) -> float:
+        ready = box.wait_for_world()
+        late = max(0.0, ready - self.expected)
+        print(f"the world at {ready:.0f} s"
+              + (f": the steps wait {late:.0f} s longer" if late else ""))
+        return late
+
+
 # ---- scenarios ----------------------------------------------------------------------------
 
 
@@ -587,10 +611,10 @@ class Scenario:
     keys: list[tuple[float, str]]   # (seconds, AUTOTYPE key name)
     settle: float                   # seconds from start-up before the first capture
     port_input: str                 # BAK_INPUT for the port; its last frame is compared
-    # What the original is told after AUTOTYPE (above): (seconds, Key, Teleport or Click). It
-    # counts on the world being there; when the world comes late (a slow host), the steps and
-    # the capture move with it (cmd_run).
-    late: list[tuple[float, Key | Teleport | Click]] = field(default_factory=list)
+    # What the original is told after AUTOTYPE (above): (seconds, Key, Teleport, Click or
+    # WaitForWorld). The steps over the world come after a WaitForWorld; when the world comes
+    # later than it expects (a slow host), the steps after it and the capture move with it.
+    late: list[tuple[float, Key | Teleport | Click | WaitForWorld]] = field(default_factory=list)
     # Rectangles (x0, y0, x1, y1, inclusive) whose differences do not count, and why: a text
     # field's caret, which blinks on the game's timer, so each side shows its own phase.
     ignore: list[tuple[int, int, int, int]] = field(default_factory=list)
@@ -599,6 +623,15 @@ class Scenario:
     # (DIALOG.C): the original's draw is read from its memory after the capture, and the port
     # draws from the same place (BAK_PARCHMENT).
     parchment: bool = False
+    # A script the port runs first, on the virtual clock from a fresh user folder (a quicksave
+    # made two steps from the start), and the files it leaves, by their path under the user
+    # folder, that both sides then start with: laid in the port's user folder and in the
+    # original's folder (the overlay).
+    prelude: str = ""
+    seed: list[str] = field(default_factory=list)
+    # The saves both sides leave, by their path under the game's folder, compared byte for
+    # byte after the pictures (the working save, TEMP.GAM, always is).
+    saves: list[str] = field(default_factory=list)
 
 
 SCENARIOS = {
@@ -625,7 +658,8 @@ SCENARIOS = {
 
 # Scan codes and ASCII of the keys pressed over the world.
 KEYS = {"M": (0x32, ord("m")), "1": (0x02, ord("1")), "E": (0x12, ord("e")), "O": (0x18, ord("o")),
-        "S": (0x1F, ord("s")), "R": (0x13, ord("r"))}
+        "S": (0x1F, ord("s")), "R": (0x13, ord("r")), "T": (0x14, ord("t")), "N": (0x31, ord("n")),
+        "Tab": (0x0F, 9), "Return": (0x1C, 13)}
 
 
 def from_the_world(description: str, *keys: str) -> Scenario:
@@ -639,7 +673,8 @@ def from_the_world(description: str, *keys: str) -> Scenario:
     return Scenario(description=description, keys=world.keys, settle=260.0 + 10 * len(keys),
                     port_input=world.port_input[: -len(end)] + port
                     + f"{90 + 3 * len(keys) + 7}000:quit",
-                    late=[(240.0 + 10 * i, Key(*KEYS[k])) for i, k in enumerate(keys)])
+                    late=[(60.0, WaitForWorld(220.0))]
+                    + [(240.0 + 10 * i, Key(*KEYS[k])) for i, k in enumerate(keys)])
 
 
 def in_lamut(description: str, scene: int, *clicks: tuple[int, int], parchment: bool = False
@@ -658,8 +693,8 @@ def in_lamut(description: str, scene: int, *clicks: tuple[int, int], parchment: 
     return Scenario(description=description, keys=world.keys, settle=260.0 + 10 * len(clicks),
                     port_input=world.port_input[: -len(end)] + port
                     + f"{95 + 4 * len(clicks) + 5}000:quit",
-                    late=[(240.0, into)] + [(255.0 + 10 * i, Click(x, y))
-                                            for i, (x, y) in enumerate(clicks)],
+                    late=[(60.0, WaitForWorld(220.0)), (240.0, into)]
+                    + [(255.0 + 10 * i, Click(x, y)) for i, (x, y) in enumerate(clicks)],
                     parchment=parchment)
 
 
@@ -686,6 +721,191 @@ SCENARIOS["inn"] = in_lamut("LaMut's Blue Wheel Inn (GDS1B.DAT): its patrons dra
 SCENARIOS["talk"] = in_lamut("The Blue Wheel Inn (GDS1B.DAT), its dwarf clicked and paged: Dubal "
                              "An Loch's portrait over the scene, his name and his words", 2,
                              (118, 73), (160, 180), (160, 180), (160, 180), parchment=True)
+# The saves. savegame: the world, then the Save Game dialog (O, S), which opens on its Games
+# field with the first folder, SAVES, chosen: "test" typed as the save's name, Tab to the
+# Directories field and "one" typed over the folder's, and Save clicked (REQ_SAVE's button at
+# 242,158): the folder GAMES\ONE.G02 is made, the game saved there as SAVE01.GAM, and the world
+# is back. Both sides' save files are compared, as the working saves are after every scenario.
+# In DOSBox the keys are typed 2 s apart from 260 s; on the port 0.3 s apart from 96 s.
+_WORLD = SCENARIOS["world"].port_input[: -len("90000:quit")]
+_TYPED = ["T", "E", "S", "T", "Tab", "O", "N", "E"]
+SCENARIOS["savegame"] = Scenario(
+    description="The world, then the Save Game dialog: the save test in a new folder one, and "
+                "the world again",
+    keys=SCENARIOS["world"].keys, settle=300.0,
+    port_input=_WORLD + "90000:key:O;93000:key:S;96000:key:T;96300:key:E;96600:key:S;"
+    "96900:key:T;97500:key:Tab;98000:key:O;98300:key:N;98600:key:E;99500:click:242,158;"
+    "106000:quit",
+    late=[(60.0, WaitForWorld(220.0)), (240.0, Key(*KEYS["O"])), (250.0, Key(*KEYS["S"]))]
+    + [(260.0 + 2 * i, Key(*KEYS[k])) for i, k in enumerate(_TYPED)]
+    + [(280.0, Click(242, 158))],
+    saves=["GAMES/ONE.G02/SAVE01.GAM"])
+# load: a quicksave of the port loaded by the original, and by the port. The prelude makes it on
+# the virtual clock (the world, two steps, a turn left, F5: GAMES\SAVES.G01\SAVE00.GAM, the
+# Bookmark of the first folder, which F5 makes in a fresh user folder), and both sides start
+# with it. From the main menu, Restore Game (R) lists its folder, chosen at the start, and the
+# Bookmark: the Bookmark clicked (the Games list's first row), Return, the full map with the
+# chapter's caption while the zone loads, then the world where the party was, which is captured.
+SCENARIOS["load"] = Scenario(
+    description="Restore Game from the main menu: the port's quicksave, two steps and a turn "
+                "from the start, loaded",
+    keys=[(18.0, "esc"), (28.0, "r")], settle=90.0,
+    port_input="6000:key:Escape;9000:key:R;12000:click:170,57;16000:key:Return;40000:quit",
+    late=[(40.0, Click(170, 57)), (45.0, Key(*KEYS["Return"])), (47.0, WaitForWorld(70.0))],
+    prelude=_WORLD + "90000:key:Up;91000:key:Up;92000:key:Left;94000:key:F5;97000:quit",
+    seed=["GAMES/SAVES.G01/SAVE00.GAM"])
+
+
+# ---- the saves ----------------------------------------------------------------------------
+
+# TEMP.GAM's regions: GSTATE.H's GAM_* offsets (the 1.02 write guard's bounds agree).
+GAM_REGIONS = [(0x0, "the game state"), (0xAD7, "the encounter table"),
+               (0x113F, "the objfixed directory"), (0x12F7, "the gold stashes"),
+               (0x131F, "the encounter rosters"), (0x3967, "the encounters' fought times"),
+               (0x4457, "the encounters' visited times"),
+               (0x4F47, "the encounter object states"), (0x90E7, "the combatants"),
+               (0x312E5, "the combatant states"), (0x3A791, "the actor pool")]
+TEMP_GAM_SIZE = 0x51AA9
+# A save file: the title (90 bytes), the chapter, the map place, the compass icon, 16h, then
+# TEMP.GAM (SAVEGAME.C).
+SAVE_HEADER = 100
+# The pointers in TEMP.GAM's records (GSTATE.C), which the original writes as its addresses
+# and the port as 0, and which no loader reads (each is set again after a read): in each
+# Combatant (5Fh bytes: the game state's six party members, then the 1730 of the combatants'
+# region) the name (a near pointer, at 0), the actor record (far, at 59h) and the inner state
+# (near, at 5Dh); in each CombatantState (16h bytes) the target (near, at 0); and in the game
+# state's tail the shared inventory and the ground pile (far, at 2B5h and 2B9h). Compared
+# saves set them apart: the original's hold its DGROUP offsets (the party's names are its
+# characterNames) and the segments of its far blocks (the actor records, 144 bytes each, lie
+# in a row), with 0 in every far pointer's offset word and in the party's inner pointers.
+COMBATANT_POINTERS = [(0x00, 2, "name"), (0x59, 4, "actor record"), (0x5D, 2, "inner state")]
+STATE_POINTERS = [(0x00, 2, "target")]
+GAMESTATE_POINTERS = [(0x2B5, 4, "shared inventory"), (0x2B9, 4, "ground pile")]
+
+
+def pointer_fields() -> dict[int, str]:
+    """TEMP.GAM's pointer bytes, by offset: the field's name."""
+    fields = {}
+
+    def mark(base: int, pointers: list[tuple[int, int, str]]) -> None:
+        for at, size, name in pointers:
+            for k in range(size):
+                fields[base + at + k] = name
+
+    for i in range(6):
+        mark(0x77 + i * 0x5F, COMBATANT_POINTERS)
+    mark(0, GAMESTATE_POINTERS)
+    for i in range(1730):
+        mark(0x90E7 + i * 0x5F, COMBATANT_POINTERS)
+        mark(0x312E5 + i * 0x16, STATE_POINTERS)
+    return fields
+
+
+def region(off: int) -> str:
+    """Where in TEMP.GAM an offset falls."""
+    base, name = GAM_REGIONS[0]
+    for b, n in GAM_REGIONS:
+        if b > off:
+            break
+        base, name = b, n
+    return f"{name} + {off - base:#x}"
+
+
+def run_prelude(exe: str, data: Path, s: Scenario, folder: Path) -> dict[str, Path]:
+    """The port on the virtual clock from a fresh user folder, headless and silent, with the
+    scenario's prelude script: the files it leaves that both sides start with, by their path
+    under the game's folder."""
+    if folder.exists():
+        shutil.rmtree(folder)
+    folder.mkdir()
+    env = dict(os.environ, BAK_CLOCK="virtual", BAK_HEADLESS="1", SDL_VIDEO_DRIVER="dummy",
+               SDL_AUDIO_DRIVER="dummy", BAK_INPUT=s.prelude)
+    r = subprocess.run([exe, "--data", str(data), "--user", str(folder),
+                        "--set", "saves.autosave=false"], env=env, check=False, timeout=600)
+    if r.returncode != 0:
+        raise RuntimeError(f"the prelude exited with {r.returncode:#x}")
+    for rel in s.seed:
+        if not (folder / rel).is_file():
+            raise RuntimeError(f"the prelude left no {rel} in {folder}")
+    print(f"the prelude left {', '.join(s.seed)}")
+    return {rel: folder / rel for rel in s.seed}
+
+
+def find_file(root: Path, rel: str) -> Path | None:
+    """The file at rel under root, whatever the case of its name (DOS writes upper case)."""
+    at = root
+    for part in rel.replace("\\", "/").split("/"):
+        if not at.is_dir():
+            return None
+        found = [p for p in at.iterdir() if p.name.upper() == part.upper()]
+        if not found:
+            return None
+        at = found[0]
+    return at if at.is_file() else None
+
+
+def compare_saves(dos: bytes, port: bytes, what: str) -> int:
+    """The bytes that differ between two saves (TEMP.GAM, or a save file: its header, then
+    TEMP.GAM) outside the records' pointers, each run of them placed in its region; the
+    pointers that differ are counted apart, by field."""
+    if len(dos) != len(port):
+        print(f"  {what}: {len(dos)} bytes from the original, {len(port)} from the port")
+        return max(len(dos), len(port))
+    head = SAVE_HEADER if len(dos) == TEMP_GAM_SIZE + SAVE_HEADER else 0
+    pointers = pointer_fields() if len(dos) == TEMP_GAM_SIZE + head else {}
+    runs = []
+    i = 0
+    while i < len(dos):
+        if dos[i] == port[i]:
+            i += 1
+            continue
+        j = i
+        while j < len(dos) and dos[j] != port[j]:
+            j += 1
+        runs.append((i, j))
+        i = j
+    fields: dict[str, int] = {}  # the pointer fields that differ, by name
+    bad = []
+    for i, j in runs:
+        names = {pointers.get(k - head) for k in range(i, j)}
+        if None in names:
+            bad.append((i, j))
+        else:
+            for name in names:
+                fields[name] = fields.get(name, 0) + 1  # type: ignore[index]
+    if fields:
+        print(f"  {what}: the pointers differ as the port writes them 0, "
+              + ", ".join(f"{n} {name}" for name, n in sorted(fields.items())))
+    if not bad:
+        print(f"  {what}: identical ({len(dos)} bytes)"
+              + (" but for the pointers" if fields else ""))
+        return 0
+    total = sum(j - i for i, j in bad)
+    print(f"  {what}: {total} bytes differ, in {len(bad)} runs")
+    for i, j in bad[:20]:
+        where = f"the header + {i:#x}" if i < head else region(i - head)
+        print(f"    {i:#08x} ({j - i} bytes), {where}: original {dos[i:j][:12].hex(' ')}, "
+              f"port {port[i:j][:12].hex(' ')}")
+    return total
+
+
+def compare_saves_left(overlay: Path, user: Path, saves: list[str]) -> int:
+    """The saves both sides left, the working save and the scenario's: the bytes that differ,
+    one for a file one side alone left."""
+    bad = 0
+    for rel in ["TEMP.GAM", *saves]:
+        d, p = find_file(overlay, rel), find_file(user, rel)
+        if d is None and p is None:
+            if rel in saves:
+                print(f"  {rel}: neither side left it")
+                bad += 1
+            continue
+        if d is None or p is None:
+            print(f"  {rel}: only {'the original' if d else 'the port'} left it")
+            bad += 1
+            continue
+        bad += compare_saves(d.read_bytes(), p.read_bytes(), rel)
+    return bad
 
 
 # ---- commands -----------------------------------------------------------------------------
@@ -738,25 +958,21 @@ def cmd_run(args: argparse.Namespace) -> int:
     out.mkdir(parents=True, exist_ok=True)
     data = Path(args.data)
 
+    # What both sides start with: what the port's prelude leaves.
+    seed = run_prelude(args.exe, data, s, out / "prelude") if s.prelude else {}
+
     # The original.
     box = DosBox(Path(args.dosbox), args.api_port)
     if s.late:
         box.publics = GameMap(data).publics
     try:
-        box.start(data, out, s.keys, args.pace)
-        shift = 0.0
-        if s.late:
-            # The late steps count on the world at about 175 s and leave it time; when it comes
-            # later than that (a slow host), they and the capture wait as much longer.
-            ready = box.wait_for_world()
-            shift = max(0.0, ready + 20 - s.late[0][0])
-            print(f"the world at {ready:.0f} s"
-                  + (f": the steps wait {shift:.0f} s longer" if shift else ""))
+        box.start(data, out, s.keys, args.pace, seed)
+        shift = 0.0  # how much longer the steps wait: the world came late
         for at, step in s.late:
             wait = at + shift - box.elapsed()
             if wait > 0:
                 time.sleep(wait)
-            step.run(box)
+            shift += step.run(box) or 0.0
         wait = s.settle + shift - box.elapsed()
         if wait > 0:
             time.sleep(wait)
@@ -781,12 +997,17 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.skip_port:
         return 0
 
-    # The port.
+    # The port, from a fresh user folder with the prelude's files.
     bmp = out / "port.bmp"
     if bmp.exists():
         bmp.unlink()
     user = out / "user"
-    user.mkdir(exist_ok=True)
+    if user.exists():
+        shutil.rmtree(user)
+    user.mkdir()
+    for rel, src in seed.items():
+        (user / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, user / rel)
     # The port runs on the host's clock, and silent: its sound would otherwise play.
     env = dict(os.environ, BAK_HEADLESS="1", SDL_VIDEO_DRIVER="dummy", SDL_AUDIO_DRIVER="dummy",
                BAK_INPUT=s.port_input, BAK_DUMP_FRAME=str(bmp))
@@ -805,8 +1026,11 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     n = compare(dos, port, out / "diff.png", s.ignore)
     but = f" but for {s.ignore_why}" if n == 0 and s.ignore else ""
-    print(f"{args.scenario}: {'identical' + but if n == 0 else 'DIFFERENT'} ({out})")
-    return 0 if n == 0 else 1
+    print(f"{args.scenario}: the picture is {'identical' + but if n == 0 else 'DIFFERENT'} "
+          f"({out})")
+    bad = compare_saves_left(out / "overlay", user, s.saves)
+    print(f"{args.scenario}: the saves are {'identical' if bad == 0 else 'DIFFERENT'}")
+    return 0 if n == 0 and bad == 0 else 1
 
 
 def cmd_trace(args: argparse.Namespace) -> int:

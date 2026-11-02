@@ -19,7 +19,8 @@ so the game folder's own file, if any, plays no part.
 Runs go to work/replay/<scenario>/, never committed: the logs and the last frame come from the
 game's art. The scenarios are the golden screenshots' (dosbox_golden.py), walks on keys, a
 gamepad and held buttons, a fight, the spawned objects of zone 4, a teleport within the zone,
-the map's riddle chest, saves and loads, and autosaves (off in the others).
+the map's riddle chest, saves and loads, and autosaves (off in the others). A golden scenario
+with a prelude (a quicksave the port makes first) starts from what it leaves, as the golden does.
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dosbox_golden import SCENARIOS as GOLDEN  # noqa: E402  (the golden scenarios' scripts)
+from dosbox_golden import run_prelude  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = ROOT / "work" / "replay"
@@ -187,6 +189,39 @@ SCENARIOS["music-menu"] = "6000:key:Escape;60000:quit"
 SCENARIO_PREFS = {"music": PREFS_CD_MUSIC, "music-menu": PREFS_CD_MUSIC}
 
 
+# The golden scenarios of the saves. savegame: the world, the Save Game dialog, the save "test"
+# in a new folder "one", and the world again; the dialog made GAMES\SAVES.G01 first, so the
+# folder is ONE.G02, and the working save is the save's body.
+def savegame_is_test(user: Path) -> bool:
+    save = user / "GAMES" / "one.G02" / "SAVE01.GAM"
+    if not save.exists():
+        print(f"  no {save.relative_to(user)}")
+        return False
+    b = save.read_bytes()
+    title = b[:90].split(b"\0")[0].decode("latin-1")
+    temp = (user / "TEMP.GAM").read_bytes()
+    body = temp == b[100:]
+    print(f'  one.G02\\SAVE01.GAM, "{title}", {len(b)} bytes; the working save is '
+          f"{'its body' if body else 'not its body'}")
+    return title == "test" and len(b) == 334605 and body
+
+
+SCENARIO_CHECKS["savegame"] = savegame_is_test
+
+
+# load: the prelude's quicksave (two steps and a turn from the start) restored from the main
+# menu: the working save after the load is its body.
+def load_restored_the_quicksave(user: Path) -> bool:
+    save = user.parent / "prelude" / "GAMES" / "SAVES.G01" / "SAVE00.GAM"
+    temp = user / "TEMP.GAM"
+    same = temp.exists() and save.exists() and temp.read_bytes() == save.read_bytes()[100:]
+    print(f"  TEMP.GAM is {'the' if same else 'not the'} game of the quicksave loaded")
+    return same
+
+
+SCENARIO_CHECKS["load"] = load_restored_the_quicksave
+
+
 def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> None:
     out.mkdir(parents=True, exist_ok=True)
     user = out / "user"
@@ -194,6 +229,12 @@ def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> Non
         shutil.rmtree(user)
     user.mkdir()
     (user / "KRONDOR.CFG").write_bytes(SCENARIO_PREFS.get(scenario, PREFS))
+    # What the golden scenario's prelude leaves for the run to start with (a save to load).
+    golden = GOLDEN.get(scenario)
+    if golden is not None and golden.prelude:
+        for rel, src in run_prelude(str(exe), data, golden, out / "prelude").items():
+            (user / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, user / rel)
     for name in LOGS:
         (out / f"{name}.log").unlink(missing_ok=True)
     (out / "last.bmp").unlink(missing_ok=True)

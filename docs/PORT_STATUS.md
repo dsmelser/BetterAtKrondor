@@ -91,7 +91,18 @@ checks the native fields against the original's offsets and the round trip.
 **Saving and loading natively** (2026-11-01, first exercised): the Save Game dialog makes its folder
 (`GAMES\<name>.Gnn`) and writes `SAVEnn.GAM`, and the world's quicksave and quickload (below) write
 the Bookmark and load it as Restore Game does: TEMP.GAM after the load is the TEMP.GAM written at
-the save (the `quicksave` replay). A saved game loading in DOSBox comes with the save-state golden.
+the save (the `quicksave` replay).
+
+**The saves are the original's, byte for byte, but for the records' pointers** (2026-11-02, the
+save-state goldens `savegame` and `load`). A save made through the Save Game dialog on both sides
+is identical in all its 334605 bytes except fourteen words, the pointers the original writes as
+its addresses and the port as 0 (above): the six party members' name pointers (DGROUP offsets of
+the game state's `characterNames`) and the segments of their far actor records (144-byte blocks
+lying in a row), and the segments of the shared inventory and the ground pile; every far
+pointer's offset word and the party's `inner` pointers are 0 in the original's too. The original
+in DOSBox loads a quicksave of the port's and stands where it was saved, its working save the
+quicksave's body as the port's is. And the working save every golden scenario leaves is
+identical on both sides: TEMP.GAM is compared after each, the pointers set apart.
 
 **Quicksave and quickload.** In the world, F5 saves the Bookmark (`SAVE00.GAM` in the save folder
 chosen, as the original's B does) without its question; with no folder chosen (a fresh user folder
@@ -791,6 +802,14 @@ which its queries read. The picture is read through
 DOSBox's HTTP API: a small routine hooked on IRQ 0 saves the VGA registers and the DAC, and selects each
 plane in turn while the API reads A000h. Captures and diffs go to `work/golden/<scenario>/`.
 
+The saves both sides leave are compared too (2026-11-02): TEMP.GAM, the working save, after every
+scenario (the overlay holds the original's), and the save files a scenario names, byte for byte,
+each run of differing bytes placed in TEMP.GAM's regions (GSTATE.H's offsets) and the records'
+pointer fields set apart (the original writes its addresses there, the port 0: "TEMP.GAM and
+saves"). A scenario may have a prelude, a script the port runs first on the virtual clock from a
+fresh user folder, whose files (a quicksave) both sides then start with: laid in the port's user
+folder and in the overlay, where the original finds them as its own.
+
 | Scenario | Result |
 |---|---|
 | `main-menu`: Escape during the intro | ✅ identical (the original shows the page at 4000h) |
@@ -801,6 +820,8 @@ plane in turn while the API reads A000h. Captures and diffs go to `work/golden/<
 | `town`, `shop`: the world, then a teleport record with a town scene and zone 255 (as TELEPORT.DAT's records for the scenes: the party stays), written into the original at 240 s and scripted on the port: LaMut's town scene (GDS1A.DAT), and the Fletcher's Post (GDS1C.DAT) with its purchasing counter clicked (at 255 s in DOSBox, 95 s on the port): the merchant's screen | ✅ identical (2026-11-02): the town's picture and its description; the shop's wares, their prices (the base prices times the shop's markup: the random roll is the haggle's), the party's portraits, gold and the cursor over the counter |
 | `talk`: the Blue Wheel Inn (GDS1B.DAT), its dwarf clicked and his tale paged by three clicks on the parchment: Dubal An Loch drawn over the scene, his name and his words | ✅ identical (2026-11-02): Dubal An Loch's sprite over the inn with its anti-aliased edges (BLITAA, PALBLEND), his name's banner, his words on the parchment (this page draws its parchment from a fixed start, so the pin below was not needed), and the cursor where the last click was |
 | `inn`: the Blue Wheel Inn (GDS1B.DAT) itself | ✅ identical (2026-11-02), once the rasterizer's edge stepper took the quotient's sign as DOSBox gives it (see "Flags after IDIV" under what the port has taught us): until then its three mirrored patrons, drawn shrunk by `polyrast_spr_scaled_blit_planar`, were sampled a column off in strips every six columns (596 pixels), their edges and the fourth, unmirrored patron right |
+| `load`: the port's quicksave, made by the scenario's prelude (the world, two steps, a turn left, F5, on the virtual clock), laid in both folders as `GAMES\SAVES.G01\SAVE00.GAM`; from the main menu Restore Game (R), the Bookmark clicked in the Games list, Return: the full map with the chapter's caption while the zone loads, then the world | ✅ identical (2026-11-02): the world two steps south of the start facing west, the party where the save was taken; both working saves are the quicksave's body |
+| `savegame`: the world, then the Save Game dialog (O, S), "test" typed as the save's name, Tab, "one" as the folder's, Save clicked (242,158): the world again | ✅ identical (2026-11-02): the picture, and both `GAMES\ONE.G02\SAVE01.GAM` and the working saves but for the records' fourteen pointers ("TEMP.GAM and saves") |
 
 The capture also reads the attribute controller, and the decoder handles Mode Y and the 16-colour planar
 modes.
@@ -844,6 +865,7 @@ run left in its user folder (`SCENARIO_CHECKS`).
 | `camp-rest`: the world, E, a click on the camp dial's 14:00: the party rests six hours from 08:00 and the camp ends by itself, then a step | ✅ identical logs, the ASan build's too: the clock's hand moves an hour at a time (slot 39 for each picture), and the game state after the camp has the six hours |
 | `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs, the ASan build's too; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
 | `town`, `shop`, `inn`, `talk` (the golden scenarios' scripts): the world, then a teleport record naming a town scene with zone 255 (the scene only: the party stays): LaMut's town, the Fletcher's Post with its counter clicked (the merchant's screen), the Blue Wheel Inn, and the inn with its dwarf clicked and his tale paged by clicks 4 s apart (Dubal An Loch's portrait over the scene) | ✅ identical logs, the ASan build's too (2026-11-02). The scenes' pictures settle within a second of game time; the state log has the world's first pass and the scene's entry only. The inn's patrons are drawn stretched (VGA slot 37 for TVRN2.BMX's pieces, the rasterizer's scaled blit for the people: until the same day the inn stopped the port at slot 37). The rasterizer's stepper fix changed one picture of `combat` (a fight frame with a flipped sprite; its states stayed) and a frame of the shop scene's entry; both were recorded again |
+| `savegame`, `load` (the golden scenarios' scripts): the Save Game dialog's save and the world again; the port's quicksave, made by the scenario's prelude, restored from the main menu | ✅ identical logs, the ASan build's too (2026-11-02): `savegame` leaves `GAMES\one.G02\SAVE01.GAM` titled "test" with the working save its body, and after `load` the working save is the quicksave's body (both checked after each run) |
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at
 41 s of game time), since decoding and drawing take no game time; the golden scripts still work.
