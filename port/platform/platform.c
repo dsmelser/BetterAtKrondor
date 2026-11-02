@@ -97,11 +97,13 @@ bool platform_init(const PlatformOptions *options) {
         return false;
     }
 #ifndef BAK_ASAN
-    /* (ASan on Windows takes SDL's string moves in its gamepad mappings for overlapping copies,
-     * the C runtime's memmove being its memcpy: ASan builds go without gamepads. Scripted ones
-     * need no subsystem.) */
-    if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) /* the game plays without one */
-        fprintf(stderr, "no gamepads: %s\n", SDL_GetError());
+    /* A scripted run (BAK_INPUT) takes nothing from the host's gamepads: a pad connected to the
+     * machine would play along (a stick's drift, a press), and the run would not repeat (on
+     * 2026-11-02 one paged a replay's book early). Its pad steps go to the input layer itself.
+     * (ASan on Windows takes SDL's string moves in its gamepad mappings for overlapping copies,
+     * the C runtime's memmove being its memcpy: ASan builds go without gamepads.) */
+    if (SDL_getenv("BAK_INPUT") == NULL && !SDL_InitSubSystem(SDL_INIT_GAMEPAD))
+        fprintf(stderr, "no gamepads: %s\n", SDL_GetError()); /* the game plays without one */
 #endif
     /* The game assumes it runs from its install folder and does not survive missing
      * resources (it uses what it failed to load); check before it trips over that. */

@@ -199,7 +199,9 @@ gamepad (SDL's, any make) the d-pad and the left stick are the arrows, as keys t
 Return. The `walk-pad` replay plays the `walk` on the d-pad and is checked against `walk`'s baseline:
 identical. ASan builds leave SDL's gamepad subsystem out: on Windows ASan takes SDL's string moves in
 its gamepad mappings for overlapping copies (the C runtime's memmove is its memcpy), and scripted pads
-need no subsystem.
+need no subsystem. Nor do scripted runs (`BAK_INPUT`) take it: a gamepad connected to the machine
+plays along otherwise, SDL delivering its events under the dummy video driver too, and on 2026-11-02
+one paged a replay's book early, so that two runs of a scenario no longer agreed.
 
 The world's and the map's arrow buttons held down with the mouse step at the same rate
 (`bak_input_hold_start`, `bak_input_hold_step`, from WORLDLP.C and MAP.C), the first after the same
