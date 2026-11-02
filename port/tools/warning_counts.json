@@ -1,6 +1,6 @@
 {
   "clang 20": {
-    "array-bounds-pointer-arithmetic": 6,
+    "array-bounds-pointer-arithmetic": 2,
     "bad-function-cast": 11,
     "c23-extensions": 1,
     "cast-align": 205,

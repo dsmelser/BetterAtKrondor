@@ -308,6 +308,7 @@ at the `upstream-snapshot` tag.
 | `GAME/WORLD/WORLDMOV.C`, `WORLDMOV.H`, `R3D/SCENE/WORLDFRM.C` | smooth steps: a step's or turn's in-between frames (`worldmove_smooth_from`, as many as `bak_smooth_frames` gives), during which the labyrinths' record of what is near the party is left alone (see "Controls") |
 | `GFX/SPRITE/RECTSPR.C` | ⬜ trap: driver slots called with register arguments |
 | `GFX/SPRITE/STRBLIT.C` | each row of a stretched sprite through SPRTHNKS's `blit_stretched_dispatch`, slot 37 in its native form (the original called the slot with its registers) |
+| `GFX/SPRITE/ROTBLIT.H` | ROTBLIT.ASM's data as two blocks laid out as in DGROUP, the old names macros into them: the corners and which is which (`g_anRotBlitState`), and the X and Y source tables STRBLIT.C shares (`g_aStretchSrcTables`). The original's tables of its octants' code addresses and the pointer to its own body are gone |
 
 ## Changes from the original
 
@@ -425,6 +426,7 @@ that runs the original routines from the reference build against the translation
 | `R3D/CORE/R3DTRIG.ASM` | `port/asm/r3dtrig.c` (with R3DDATA.ASM's cosine table) | `test_r3dtrig.py`: every entry of the cosine, arcsine and arctangent tables through sin, cos, asin and the raw lookup; atan2 over 3000 vectors of three magnitudes, the axes, diagonals and -8000h |
 | `GFX/RASTER/POLYRAST.ASM` | `port/asm/polyrast.c` (quads with slanted sides go on to GOURAUD.ASM's) | `test_polyrast.py`: the edge stepper over 3000 start/end/step cases, the harness setting the flags after its IDIV as DOSBox does (`Machine.model_division_flags`; see "Flags after IDIV" under what the port has taught us); scaled sprites, plain and RLE, at random places, scales, flips, modes (copy, fill, outline, remap through the fog and cursor tables), clip rectangles and pages, on a planar VGA model: display memory, the steppers, the map mask and the RLE scratch after each. Reaches all 40 of the routine's checkpoints. The textured quad blit (the intro's page turn) over 360 quads with vertical sides, either way round, clipped or not: the same, and the corners it swaps |
 | `GFX/RASTER/GOURAUD.ASM` | `port/asm/gouraud.c`: the textured quad rasterizer for quads with slanted sides (the trees of the road south of the start, the labyrinths' walls), column by column along the two chains of edges from the leftmost corner, with 16.16 steppers for the span and for the texture column and row at its ends; the corners' texture coordinates (corner 1 at column width - 2, corner 2 at row height - 2 as well: the texture's last column and row are never sampled), the slope comparison (CWD, then an unsigned DIV) and the edge stepper, over count + 1 steps. One fix ("Bugs of the original, fixed"): each column's top-clip skip count starts at 0 | `test_gouraud.py`: 300 quads of random corners (often sharing one), textures, clip rectangles, pages and remap tables drawn the original's way, both GOURAUDs called directly and the original's display memory adopted where it read its stack, the harness setting the flags after the stepper's IDIV as DOSBox does; 200 more with no corner above the clip rectangle through `polyrast_gouraud_blit_clipped`, the port's way, identical; the fix on its own (a quad clipped at the top shows, from that row down, its unclipped picture); the stepper over 3000 cases, the slope comparison over 3000, every ordered pair of corners. 16 of 17 mutants killed; the survivor compares a span's last row with the clip's bottom by <= instead of <, which is equivalent: on equality the clamp gives the same count |
+| `GFX/SPRITE/ROTBLIT.ASM` | `port/asm/rotblit.c`, `rotblit_data.c`: a sprite drawn rotated and scaled (the TTM scripts' opcode A5A7h: the shops' and the taverns' animations, chapter 8's ending), one span at a time through VGA slot 36. The quad's corners from the angle and the two scales, the walk round it from the corner highest on the screen (its octant picks how a step becomes a source offset), the left edge's x by row, the source offsets across the quad's width and the tables of the step each source row and column starts on; each row a span, clipped. The scratch frame is an array laid out as the original's, and the corners and the source tables (STRBLIT.C's too) are blocks laid out as in DGROUP: the original reads past the ends of its tables | `test_rotblit.py`: 1500 random sprites (the scripts' sizes and others, any angle, the axes and near them, scales from tiny to far past the screen, about their centres or from a corner, any clip rectangle, page and adapter) with slot 36 a stand-in on both sides: every span (page, row offset, x, count, row base, the source table's words), the corners' block, the source tables, the VGA's registers and what `read_4words_from_2tables` gives; 300 more whose centre's IDIVs overflow (the divide-error handler's halving); 300 wide flat sprites a degree or a few off an axis, whose ratio passes 16 bits and saturates. 26 of 31 mutants killed; the 5 survivors are equivalent: a top row of 0 clamped to 0 or not, a fill of 0 words done or skipped (twice), a level right edge's product (always 0 then: the bottom corner is the lowest), and the clamp at 320 (the ratio stays under the other scale, so the quotient stays under the sprite's width or height, which the tables keep under 320) |
 
 Two codec modules stay placeholders, because the game cannot reach them. A stream starts with its
 codec's number, and every stream the game opens is a file's, opened for reading:
@@ -462,7 +464,7 @@ words, so the latches come from the access its memory hook sees.
 |---|---|
 | init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 33 opaque sprite, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload, 39 spans translated through a table (the camp clock's hand; since 2026-11-01), 37 a row of a sprite stretched or shrunk (the town scenes' and the cutscenes' zooms; since 2026-11-02), 36 a row of a sprite rotated (ROTBLIT.ASM's spans; since 2026-11-02) | ✅ verified |
 | 24 rect-buffer offset, 32 clear sprite cache | ported; verified with their consumers (23, 33) |
-| 17-19, 23, 30, 31, 38, 40 | ⬜ trap with the routine's name |
+| 17-19, 23, 30, 31, 38, 40 | ⬜ trap with the routine's name; none is reached (2026-11-02): no code calls 17-19, 30, 31 or 40, slot 23's only caller (POLYGON.ASM's `blit_rect_buf_dispatch`) has none, and slot 38's (RECTSPR.C's `blit_sprite_flipped_clipped`) is named only by a far pointer nothing reads (TIMER.ASM's `_dgroup_farptr_2c50`) |
 | 9, 12, 16, 25, 26, 28, 41-48 | empty in the original: no-ops |
 
 Slots the game calls with register arguments have native signatures in `port/drivers/vga.h` (`DrawLineFn`,
@@ -746,6 +748,11 @@ The `music` and `music-menu` replays play the GOG copy's.
 - **The perspective divide writes its result through BP.** `r3d_vec2_perspective_divide` pops the
   scaled values into `[BP+n]`, an SS-relative address, with BP holding the DS offset of the result: it
   relies on SS = DS, as the game has.
+- **The rotated blit keeps the left edge's rows up to the screen's width.** `stretch_walk_x_clipped`
+  records the quad's left edge row by row for the rows from 0 up to `g_wScreen_width` (320), not
+  the height, and clamps each x at the clip rectangle's right only. Of two corners level at the
+  top it takes the first in order, then the one before it at exactly 90 degrees, and the one after
+  it when the bottom two lie level at an angle under 180 degrees. The translation keeps it.
 - **The VGA driver's sprite blit draws rows of width & ~3 pixels.** Slot 29 steps its source rows by the
   width rounded down to a multiple of 4, so a sprite's last width & 3 pixels in a row are never drawn (the
   game's sprites are multiples of 4 wide). The source position is kept as a quad-aligned offset plus a
@@ -998,6 +1005,10 @@ tool passes `--set` on to the port) all seven frame logs matched the earlier bas
   only while the value plus the part's group is under 4.
 - **Trig tables read out of range.** `r3d_tbl_asin` of a value past +-1.0 (beyond 401Fh) and
   `r3d_tbl_atan_lookup_raw` past index 1FFh stop with a message; the original reads the code after the table.
+- **ROTBLIT past its tables.** A table read past `jmp_via_2f48`'s frame (into its caller's) and a
+  source table read or written past its 1040 words (into other DGROUP data) stop with a message.
+  A quad whose corners all lie at row 32000 or below draws nothing: the original takes its top
+  corner from whatever DX held. Within the frame the port's reads find what the original's find.
 
 Placeholder values to revisit: the remaining ASM data tables (zero), the emulated DOS free memory
 (640 KB) and the EMS pages counted (8 MB).
