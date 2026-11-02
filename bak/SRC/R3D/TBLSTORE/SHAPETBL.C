@@ -140,6 +140,11 @@ void far ts_free_shape_tbl(s16 tblIdx) {
 Shape far *ts_get_shape(s16 shapeIdx) {
     s16 i;
 
+    /* An index past every table is no shape. The original took one of 8000h and up for a
+       negative index and read the far pointer before its table (zone 9's tile 10,11 has such
+       records: czone_load_actors). */
+    if (shapeIdx < 0)
+        return NULL;
     if (g_shapeOverride != 0) {
         if (shapeIdx < g_shapeOverrideLen) {
             return g_shapeOverride[shapeIdx];
@@ -158,6 +163,8 @@ Shape far *ts_get_shape(s16 shapeIdx) {
 Shape far *ts_set_shape(s16 shapeIdx, Shape far *shape) {
     s16 i;
 
+    if (shapeIdx < 0)
+        return NULL;
     if (g_shapeOverride != 0) {
         if (shapeIdx < g_shapeOverrideLen) {
             return g_shapeOverride[shapeIdx] = shape;

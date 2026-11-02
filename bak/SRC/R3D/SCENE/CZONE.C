@@ -139,7 +139,15 @@ void far czone_load_actors(unsigned char zone, unsigned char x, unsigned char y,
         do {
             res_fread(&rec, 0x14, 1, fp);
             prec = ts_get_shape(rec.wId);
-            if (prec->kind != 5 || throttle-- > 0) {
+            if (prec == NULL) {
+                /* A record whose shape is in no table is dropped. The shipped T091011.WLD
+                   (zone 9's tile 10,11) holds seven of noise among its 275 (ids 1600 to
+                   60136, the zone has 222 shapes), after one whose place is noise too (kept:
+                   it lies far out of sight). The original read their kind from whatever its
+                   lookup reached (a far pointer before its table, or the interrupt vectors
+                   through a null one); natively the lookup faulted. */
+                list->wEntry_count--;
+            } else if (prec->kind != 5 || throttle-- > 0) {
                 cur->shapeId = rec.wId;
                 cur->orientation = rec.variant;
                 cur->pos = rec.worldpos;

@@ -374,6 +374,16 @@ The quirks below (what the port has taught us) stay unless they are listed here.
   The port takes the lowest health among the caster's living allies other than itself, skipping the
   dead as the cast that follows does, and still draws one roll a call. `bak_unittest` checks the choice
   and the draw.
+- **Records of noise in zone 9's tile 10,11.** The shipped T091011.WLD (1.02) holds, among its 275
+  records, eight whose bytes are noise: one with a real shape (141) at a place far outside the zone,
+  then seven whose shape ids (1600 to 60136) are in none of the zone's tables (222 shapes). The original
+  looks them up all the same as the tile's objects load (`czone_load_actors`): an id from 8000h up as a
+  negative index, reading a far pointer from before its table, and the others past every table, which
+  give a null pointer, so their kind is read from the interrupt vectors; whatever it finds, they lie
+  far out of sight. Natively the lookup faulted, and the port stopped whenever the party came within a
+  tile of 10,11 in zone 9 (found by the zone sweep, 2026-11-02). `ts_get_shape` answers no shape for an
+  index below 0, as for one past the tables, and `czone_load_actors` drops a record without a shape,
+  as it drops the objects its detail level leaves out. The record far away stays, as in the original.
 - **A column clipped at the top shifts the texture of every column after it.** GOURAUD.ASM's
   rasterizer (the textured quads with slanted sides: the trees of the road south of the start,
   the labyrinths' walls) skips as many steps of a clipped column's texture walk as rows were
