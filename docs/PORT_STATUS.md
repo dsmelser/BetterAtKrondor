@@ -759,7 +759,11 @@ The `music` and `music-menu` replays play the GOG copy's.
 `port/tools/dosbox_golden.py` runs the user's KRONDOR.EXE in DOSBox Staging (0.84 or later) and the port
 on the same data, and compares the pictures they end on, pixel by pixel in DAC colours. DOSBox runs headless,
 on its own settings and with sound off. The game folder is mounted under an overlay, so the original's
-writes stay out of it. Keys go in through DOSBox's `AUTOTYPE`. The picture is read through
+writes stay out of it. Keys go in through DOSBox's `AUTOTYPE`, which stops typing somewhere between
+168 s and 200 s after start-up (a third key at 200 s, the book waiting, never arrived), so keys after
+that are put straight into the BIOS keyboard buffer through the API (`DosBox.press`: the key, then the
+tail, moved only if the game left it where it was), where the game's keyboard interrupt queues them and
+`kbhit_read` takes them. The picture is read through
 DOSBox's HTTP API: a small routine hooked on IRQ 0 saves the VGA registers and the DAC, and selects each
 plane in turn while the API reads A000h. Captures and diffs go to `work/golden/<scenario>/`.
 
@@ -768,6 +772,7 @@ plane in turn while the API reads A000h. Captures and diffs go to `work/golden/<
 | `main-menu`: Escape during the intro | ✅ identical (the original shows the page at 4000h) |
 | `book`: N (Start New Game) after the intro, chapter 1's first page | ✅ identical, 640x350 in 16 colours (the original shows the page at 8000h) |
 | `world`: N, Space through the book, the chapter cutscene played out: the 3-D world's first view | ✅ identical: the sky and its panorama, the hills, trees and road, a sprite, the compass and the party (in DOSBox the view comes after about 4 minutes; the capture waits 7) |
+| `map`, `inventory`, `camp`, `options`: the world, then M, 1, E or O (in DOSBox at 240 s, in the keyboard buffer; the world comes near 175 s there, the Spaces past the book paging through the cutscene) | `map` ✅ identical: the zone's map, its terrain and the party's mark (2026-11-01). `inventory` ✅ identical: Locklear's, his sword, armour and pack, the party's gold. `options` ✅ identical: the Options menu over the world, Restore Game off (no save). `camp` ⬜ the port stops at the camp's clock hand: `draw_polygon_textured` reaches VGA driver slot 39 (`vga_fill_world_textured_span_modey`), still a trap, so natively the party cannot camp yet |
 
 The capture also reads the attribute controller, and the decoder handles Mode Y and the 16-colour planar
 modes.

@@ -34,7 +34,7 @@ import time
 import urllib.error
 import urllib.request
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -211,6 +211,24 @@ class DosBox:
         if expect is not None:
             hdrs["If-Match"] = base64.b64encode(expect).decode()
         self.request(f"/memory/{addr:#x}", method="PUT", body=data, headers=hdrs)
+
+    def press(self, scan: int, ascii: int) -> None:
+        """A key in the BIOS keyboard buffer (0040:001E-003D), where the game's keyboard interrupt
+        queues scancode:ASCII and kbhit_read takes it (KEYBOARD.ASM). AUTOTYPE stops typing about
+        three minutes after DOSBox starts, so keys after the world come this way. The key goes in
+        first and the tail moves after it, only if the game did not move it meanwhile."""
+        for _ in range(20):
+            head, tail = struct.unpack("<HH", self.read(0x41A, 4))
+            after = tail + 2 if tail + 2 < 0x3E else 0x1E
+            if after == head:
+                raise RuntimeError("the keyboard buffer is full")
+            self.write(0x400 + tail, struct.pack("<H", scan << 8 | ascii))
+            try:
+                self.write(0x41C, struct.pack("<H", after), expect=struct.pack("<H", tail))
+                return
+            except urllib.error.HTTPError:
+                continue
+        raise RuntimeError("the keyboard buffer kept moving")
 
     def registers(self) -> dict[str, int]:
         return self.json("/cpu/state")["registers"]
@@ -450,6 +468,8 @@ class Scenario:
     keys: list[tuple[float, str]]   # (seconds, AUTOTYPE key name)
     settle: float                   # seconds from start-up before the first capture
     port_input: str                 # BAK_INPUT for the port; its last frame is compared
+    # Keys put straight into the BIOS keyboard buffer (DosBox.press): (seconds, scancode, ASCII).
+    late: list[tuple[float, int, int]] = field(default_factory=list)
 
 
 SCENARIOS = {
@@ -472,6 +492,27 @@ SCENARIOS = {
             f"{t}000:key:Space;" for t in (16, 19, 22, 25, 28, 31, 34, 37, 40, 45, 50, 55, 60, 70, 80))
         + "90000:quit"),
 }
+
+
+def from_the_world(description: str, scan: int, ascii: int, port_key: str) -> Scenario:
+    """The world scenario, then one key once the party stands in the world: at 240 s in DOSBox
+    (the Spaces past the book page through the cutscene, and the world comes near 175 s), put in
+    the keyboard buffer; at 90 s on the port (41 s)."""
+    world = SCENARIOS["world"]
+    end = "90000:quit"
+    assert world.port_input.endswith(end), world.port_input
+    return Scenario(description=description, keys=world.keys, settle=270.0,
+                    port_input=world.port_input[: -len(end)] + f"90000:key:{port_key};100000:quit",
+                    late=[(240.0, scan, ascii)])
+
+
+# The 2-D screens over the world (M6's parity step): the map (M), the first party member's
+# inventory (1: Locklear's), the camp (E) and the Options menu (O).
+SCENARIOS["map"] = from_the_world("The world, then M: the zone's map", 0x32, ord("m"), "M")
+SCENARIOS["inventory"] = from_the_world("The world, then 1: Locklear's inventory", 0x02, ord("1"),
+                                        "1")
+SCENARIOS["camp"] = from_the_world("The world, then E: the camp and its clock", 0x12, ord("e"), "E")
+SCENARIOS["options"] = from_the_world("The world, then O: the Options menu", 0x18, ord("o"), "O")
 
 
 # ---- commands -----------------------------------------------------------------------------
@@ -520,6 +561,11 @@ def cmd_run(args: argparse.Namespace) -> int:
     box = DosBox(Path(args.dosbox), args.api_port)
     try:
         box.start(data, out, s.keys, args.pace)
+        for at, scan, ascii in s.late:
+            wait = at - box.elapsed()
+            if wait > 0:
+                time.sleep(wait)
+            box.press(scan, ascii)
         wait = s.settle - box.elapsed()
         if wait > 0:
             time.sleep(wait)
