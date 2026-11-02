@@ -94,9 +94,12 @@ int bakrtl_chdir(const char *path);
 
 FILE *bakrtl_fopen(const char *path, const char *mode);
 int bakrtl_remove(const char *path);
+/* Within the user folder; fails, as DOS's does, when the new name is taken. */
+int bakrtl_rename(const char *from, const char *to);
 
 #define fopen(p, m) bakrtl_fopen((p), (m))
 #define remove(p) bakrtl_remove(p)
+#define rename(from, to) bakrtl_rename((from), (to))
 
 /* For port code: the host path of a DOS path inside dir (its case as found there, on hosts
  * whose names have case); nonzero if something is there. */

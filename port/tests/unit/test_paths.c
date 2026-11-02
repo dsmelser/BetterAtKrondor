@@ -84,3 +84,30 @@ void unit_paths_unfinished_searches_are_dropped(void) {
     platform_set_dirs(".", ".");
     unit_remove_tree(root);
 }
+
+/* The autosaves move up a key at a time (MAINMENU.C): rename, within the user folder, never over
+ * a file that is there. */
+void unit_paths_rename_within_the_user_folder(void) {
+    const char *root = unit_temp_dir("paths-rename");
+    char games[1100], file[1100];
+    SDL_snprintf(games, sizeof games, "%s/GAMES", root);
+    UNIT_CHECK(SDL_CreateDirectory(games));
+    SDL_snprintf(file, sizeof file, "%s/SAVE01.GAM", games);
+    UNIT_CHECK(SDL_SaveFile(file, "1", 1));
+    SDL_snprintf(file, sizeof file, "%s/SAVE02.GAM", games);
+    UNIT_CHECK(SDL_SaveFile(file, "2", 1));
+    platform_set_dirs(root, root);
+    UNIT_CHECK(bakrtl_rename("GAMES\\SAVE01.GAM", "GAMES\\SAVE02.GAM") == -1);
+    UNIT_CHECK(bakrtl_rename("games\\save02.gam", "GAMES\\SAVE03.GAM") == 0);
+    UNIT_CHECK(bakrtl_rename("GAMES\\SAVE01.GAM", "GAMES\\SAVE02.GAM") == 0);
+    size_t size;
+    char *text = SDL_LoadFile(file, &size); /* SAVE02.GAM, the first one now */
+    UNIT_CHECK(text != NULL && size == 1 && text[0] == '1');
+    SDL_free(text);
+    SDL_snprintf(file, sizeof file, "%s/SAVE03.GAM", games);
+    text = SDL_LoadFile(file, &size);
+    UNIT_CHECK(text != NULL && size == 1 && text[0] == '2');
+    SDL_free(text);
+    platform_set_dirs(".", ".");
+    unit_remove_tree(root);
+}

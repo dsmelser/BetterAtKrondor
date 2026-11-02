@@ -32,6 +32,7 @@ extern s16 mainmenu_save_any_exists(void);
 extern void mainmenu_save_bookmark(void);
 extern void mainmenu_save_quick(void);
 extern s16 mainmenu_save_quick_load_ready(void);
+extern void mainmenu_save_auto(void);
 extern void mainmenu_save_party_to_tmp(void);
 extern s16 mainmenu_save_file_read_header(char *path, void *sig_block, s16 *ds_state_1,
                                           s16 *ds_state_2, s16 *ds_state_3, s16 *ds_state_4);

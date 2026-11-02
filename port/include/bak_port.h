@@ -118,6 +118,24 @@ int bak_smooth_frames(void);
 int16_t bak_sound_driver(int16_t configured);
 
 /*
+ * Autosaves (port/platform/autosave.c; the saves.autosave settings), written by MAINMENU.C.
+ * One is asked for when the party enters a zone (zone_load: a chapter's start too) and on the
+ * platform's clock while the game's time moves; the world loop asks whether one is due at a pass
+ * where the player could save (WORLDLP.C), and the save says when it is done. Starting the world
+ * again (GMAIN.C) forgets what was asked.
+ */
+void bak_autosave_reset(void);
+void bak_autosave_zone_entered(void);
+_Bool bak_autosave_due(uint32_t gameTime);
+void bak_autosave_done(_Bool written, uint32_t gameTime);
+/* How many autosaves are kept, the newest first. */
+int bak_autosave_slots(void);
+/* The machine stands still between these: polls do nothing, so no time passes and no interrupt
+ * runs (an autosave writes meanwhile). */
+void bak_poll_hold(void);
+void bak_poll_release(void);
+
+/*
  * MSCDEX (INT 2Fh AH=15h, port/platform/cdrom.c): absent unless a CD drive is attached.
  * 150Bh drive check (AX result, BX = ADADh) and 1510h device request on a request
  * header; attaching gives a drive letter and its audio tracks' start positions.

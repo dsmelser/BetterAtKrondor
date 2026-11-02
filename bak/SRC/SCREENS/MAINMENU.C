@@ -42,6 +42,9 @@
 #include "SRC/R3D/SCENE/CZONE.H"
 #include "SRC/R3D/SCENE/ZONE.H"
 #include "SRC/SYS/CFGPARSE.H"
+#include "SRC/GAME/ENC/RGNENC.H"
+#include "SRC/GAME/ACTOR/ACTORREC.H"
+#include "SRC/INPUT/TIMER.H"
 #include "defines.h"
 
 EnginePrefs *g_engine_prefs = {0};
@@ -1541,6 +1544,197 @@ s16 far mainmenu_save_quick_load_ready(void) {
     return 1;
 }
 
+/* The port's autosaves (bak_autosave_due, from WORLDLP.C): what the Bookmark would save, written
+ * into a folder of their own, GAMES\AUTOSAVE.Gnn, as SAVE01.GAM, SAVE02.GAM and on, the newest
+ * first and as many as the settings keep. A new folder takes the highest key free, so that it
+ * comes after the player's in the lists, and the folder chosen at the start is never it
+ * (mainmenu_save_request_load_game). */
+#define AUTOSAVE_FOLDER "AUTOSAVE"
+#define AUTOSAVE_TITLE "Autosave"
+/* The file a new one is written to before it becomes SAVE01.GAM: no list shows it. */
+#define AUTOSAVE_NEW 99
+
+/* The autosaves' folder key; 0 when there is none and none can be made. */
+static s16 mainmenu_save_auto_folder(void) {
+    struct ffblk dta;
+    char name[50];
+    char path[50];
+    s16 key;
+    s16 found;
+    u32 taken;
+    s16 rc;
+
+    if (mainmenu_save_games_dir_exists() == 0 && mkdir("GAMES") != 0) {
+        return 0;
+    }
+    found = 0;
+    taken = 0;
+    sprintf(path, "%s\\*.G??", "GAMES");
+    for (rc = (s16)findfirst(path, &dta, 0x10); rc == 0; rc = (s16)findnext(&dta)) {
+        if (mainmenu_save_parse_filename(dta.ff_name, name, &key) != 0) {
+            taken |= 1UL << key;
+            if (found == 0 && stricmp(name, AUTOSAVE_FOLDER) == 0) {
+                found = key;
+            }
+        }
+    }
+    if (found != 0) {
+        return found;
+    }
+    for (key = 20; key >= 1 && (taken >> key & 1) != 0; key--)
+        ;
+    if (key < 1) {
+        return 0;
+    }
+    sprintf(path, "%s\\%s.G%02d", "GAMES", AUTOSAVE_FOLDER, key);
+    return mkdir(path) == 0 ? key : 0;
+}
+
+/* The new autosave becomes SAVE01.GAM, the ones before it each moving up a key, and the oldest
+ * beyond the number kept are dropped (autosaves only, past it: the setting may have been
+ * larger). */
+static void mainmenu_save_auto_rotate(s16 folder) {
+    char from[50];
+    char to[50];
+    char title[90];
+    s16 scratch;
+    s16 slots;
+    s16 key;
+
+    slots = (s16)bak_autosave_slots();
+    for (key = 20; key >= slots; key--) {
+        sprintf(from, "%s\\%s.G%02d\\SAVE%02d.GAM", "GAMES", AUTOSAVE_FOLDER, folder, key);
+        if (key == slots ||
+            (mainmenu_save_file_read_header(from, title, &scratch, &scratch, &scratch, &scratch) !=
+                 0 &&
+             strncmp(title, AUTOSAVE_TITLE, strlen(AUTOSAVE_TITLE)) == 0)) {
+            remove(from);
+        }
+    }
+    for (key = slots - 1; key >= 0; key--) {
+        sprintf(from, "%s\\%s.G%02d\\SAVE%02d.GAM", "GAMES", AUTOSAVE_FOLDER, folder,
+                key != 0 ? key : AUTOSAVE_NEW);
+        sprintf(to, "%s\\%s.G%02d\\SAVE%02d.GAM", "GAMES", AUTOSAVE_FOLDER, folder, key + 1);
+        rename(from, to);
+    }
+}
+
+/* An autosave the game does not notice. A save snapshots the party's place, the zone's objects
+ * and the party's inventories into the game state and TEMP.GAM (mainmenu_save_party_to_tmp), and
+ * the world started again from TEMP.GAM (after the Contents, or the cutscene that ends the world
+ * loop on event 7541h) puts the party where the last save was taken. So everything the save
+ * changed is put back once its copy is written, TEMP.GAM too, and the machine stands still
+ * meanwhile: no time passes and no interrupt runs. */
+void far mainmenu_save_auto(void) {
+    enum { ACTORS = CHARACTER_POOL_SIZE + 2 };
+    GameState state;
+    unsigned char objects[0x1a4]; /* g_pEncounterObjectState's 35 */
+    Actor far *actors[ACTORS];
+    bool8 needsFlush[ACTORS];
+    ActorSubrec10_LastTouch far *touch[ACTORS];
+    u32 touchTime[ACTORS];
+    unsigned char header[sizeof g_abSaveFileHeader];
+    s16 fmapX;
+    s16 fmapY;
+    unsigned short icon;
+    unsigned short fileValid;
+    s16 encounterCount;
+    unsigned char refPair;
+    TempWriteRegion region;
+    s16 countdown;
+    unsigned char *temp;
+    s32 size;
+    s32 off;
+    u16 chunk;
+    u16 heading;
+    s16 folder;
+    s16 written;
+    s16 i;
+    char path[50];
+
+    written = 0;
+    bak_poll_hold();
+    folder = mainmenu_save_auto_folder();
+    size = g_tempGamFP != NULL ? res_filelength(g_tempGamFP) : 0;
+    temp = folder != 0 && size > 0 ? malloc((size_t)size) : NULL;
+    if (temp != NULL) {
+        state = g_gameState;
+        memcpy(objects, g_pEncounterObjectState, sizeof objects);
+        encounterCount = g_nCombatTempZoneEncounterCount;
+        refPair = g_bCombatTempZoneRefPair;
+        actors[0] = g_gameState.shared_inventory;
+        actors[1] = g_gameState.ground_pile;
+        for (i = 0; i < CHARACTER_POOL_SIZE; i++) {
+            actors[i + 2] = g_gameState.characters[i].actor_record;
+        }
+        for (i = 0; i < ACTORS; i++) {
+            needsFlush[i] = actors[i]->needsFlush;
+            touch[i] = (ActorSubrec10_LastTouch far *)actorrec_get_subrecord(actors[i],
+                                                                            SUBREC_LAST_TOUCH);
+            touchTime[i] = touch[i] != NULL ? touch[i]->dwLast_touch_time : 0;
+        }
+        memcpy(header, g_abSaveFileHeader, sizeof header);
+        fmapX = g_wBookmarkFmapX;
+        fmapY = g_wBookmarkFmapY;
+        icon = g_wBookmarkCompassIcon;
+        fileValid = g_wSaveFileValid;
+        region = g_pendingTempWriteRegion;
+        countdown = g_nFrameTickCountdownValue;
+        for (off = 0; off < size; off += chunk) {
+            chunk = (u16)(size - off > 0x4000 ? 0x4000 : size - off);
+            gstate_temp_file_read_at(temp + off, off, chunk);
+        }
+
+        /* The Bookmark's save (mainmenu_save_bookmark), titled with the game's day and hour */
+        mainmenu_save_party_to_tmp();
+        sprintf((char *)g_abSaveFileHeader, "%s: day %lu, %02u:%02u", AUTOSAVE_TITLE,
+                (unsigned long)(state.game_time / 0xa8c0UL + 1),
+                (unsigned)(state.game_time % 0xa8c0UL / 0x708),
+                (unsigned)(state.game_time % 0x708 / 30));
+        if (fmap_xy_lookup_for_chapter(&g_wBookmarkFmapX, &g_wBookmarkFmapY) != 0) {
+            heading = g_world_camera->base.orientation.yaw;
+            fmap_farptr_normalize(&heading);
+            g_wBookmarkCompassIcon = (unsigned short)((heading >> 0xd) << 2);
+        } else {
+            g_wBookmarkFmapX = g_wBookmarkFmapY = -1;
+            g_wBookmarkCompassIcon = 0;
+        }
+        sprintf(path, "%s\\%s.G%02d\\SAVE%02d.GAM", "GAMES", AUTOSAVE_FOLDER, folder,
+                AUTOSAVE_NEW);
+        written = savegame_write(path);
+
+        /* All it changed, put back */
+        for (off = 0; off < size; off += chunk) {
+            chunk = (u16)(size - off > 0x4000 ? 0x4000 : size - off);
+            g_pendingTempWriteRegion = TWR_NONE;
+            gstate_temp_file_write_at(temp + off, off, chunk);
+        }
+        g_gameState = state;
+        memcpy(g_pEncounterObjectState, objects, sizeof objects);
+        g_nCombatTempZoneEncounterCount = encounterCount;
+        g_bCombatTempZoneRefPair = refPair;
+        for (i = 0; i < ACTORS; i++) {
+            actors[i]->needsFlush = needsFlush[i];
+            if (touch[i] != NULL) {
+                touch[i]->dwLast_touch_time = touchTime[i];
+            }
+        }
+        memcpy(g_abSaveFileHeader, header, sizeof header);
+        g_wBookmarkFmapX = fmapX;
+        g_wBookmarkFmapY = fmapY;
+        g_wBookmarkCompassIcon = icon;
+        g_wSaveFileValid = fileValid;
+        g_pendingTempWriteRegion = region;
+        g_nFrameTickCountdownValue = countdown;
+        free(temp);
+        if (written != 0) {
+            mainmenu_save_auto_rotate(folder);
+        }
+    }
+    bak_poll_release();
+    bak_autosave_done(written != 0, g_gameState.game_time);
+}
+
 void mainmenu_save_party_to_tmp(void) {
     s16 i;
 
@@ -1648,6 +1842,7 @@ void mainmenu_save_request_load_game(void) {
     ListWidget *list;
     unsigned short slotKey;
     char *slotText;
+    s16 i;
 
     if (mainmenu_save_games_dir_exists() == 0)
         goto done;
@@ -1655,10 +1850,15 @@ void mainmenu_save_request_load_game(void) {
     menupage_begin(page);
     list = listwidget_attach(0x21, 0x31, 0x55, 5, 0x14, page, 0);
     mainmenu_save_enum_directories(list);
-    if (listwidget_get_current_entry(list, &slotText, &slotKey) != 0) {
-        strcpy(g_szSaveSlotDirName_51cc, slotText);
-        g_wCurrentSaveSlotKey = slotKey;
-        g_wSaveSlotDirValid = 1;
+    /* The first folder, as the original chose, but never the port's autosaves' (a Bookmark
+     * goes where the player saves). */
+    for (i = 0; listwidget_get_entry_at(list, i, &slotText, &slotKey) != 0; i++) {
+        if (stricmp(slotText, AUTOSAVE_FOLDER) != 0) {
+            strcpy(g_szSaveSlotDirName_51cc, slotText);
+            g_wCurrentSaveSlotKey = slotKey;
+            g_wSaveSlotDirValid = 1;
+            break;
+        }
     }
     listwidget_destroy(list);
     menupage_end(page);

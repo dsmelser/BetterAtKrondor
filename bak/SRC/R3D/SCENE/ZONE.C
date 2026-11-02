@@ -169,6 +169,7 @@ void far zone_load(void) {
     worldmove_camera_crossing_apply();
     if (g_gameState.nZoneId != g_gameState.nPrevZoneId) {
         worldmove_step_tick_reset();
+        bak_autosave_zone_entered(); /* the port's autosave, a chapter's start too */
     } else {
         if (g_gameState.nWorldStepPending != 0) {
             worldloop_step_or_final_movement();

@@ -225,8 +225,19 @@ uint64_t machine_next_due_ns(void) {
 
 void (*g_platformFreeRunningPoll)(void);
 
+static int s_holds; /* bak_poll_hold calls not yet released */
+
+void bak_poll_hold(void) {
+    s_holds++;
+}
+
+void bak_poll_release(void) {
+    if (s_holds > 0)
+        s_holds--;
+}
+
 void bak_poll(void) {
-    if (s_inIsr)
+    if (s_inIsr || s_holds != 0)
         return;
     if (g_platformFreeRunning) {
         if (g_platformFreeRunningPoll != NULL)
@@ -242,7 +253,7 @@ void bak_poll(void) {
 }
 
 void bak_idle(void) {
-    if (s_inIsr)
+    if (s_inIsr || s_holds != 0)
         return;
     if (g_platformFreeRunning) {
         if (g_platformFreeRunningPoll != NULL)

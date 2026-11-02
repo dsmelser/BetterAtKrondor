@@ -41,6 +41,16 @@ MenuPage *g_pReqMainPage = {0};
 short g_nSceneReloadPending = 0;
 short g_nHotspotActivateRequest = 0;
 
+/* Whether the port's autosave may run at this pass, where nothing was pressed: nothing waits for
+ * the next pass (a teleport, a zone's entry, the scene drawn again, the party's changes, items
+ * on the ground, the loop's end). */
+static s16 worldloop_autosave_safe(void) {
+    return g_gameState.abTeleportRecord[0] == '\0' && g_bZoneEntryInProgress == 0 &&
+           g_nSceneReloadPending == 0 && g_nHotspotActivateRequest == 0 &&
+           g_gameState.bPartyDirtyFlags == '\0' && g_gameState.ground_pile->itemCount == '\0' &&
+           g_gameState.nWorldLoopExitRequest == '\0' && g_gameState.bCombatExitRequest == '\0';
+}
+
 void far worldloop_req_main_screen_load(void) {
     g_pReqMainPage = menupage_load("req_main.dat");
     map_req_map_screen_load();
@@ -256,6 +266,8 @@ short far world3d_main_loop(void) {
         after_scan1:
             if (action_id != 0) {
                 refusal_mode = (menupage_state_0e7c() == 2) ? 1 : 0;
+            } else if (worldloop_autosave_safe() && bak_autosave_due(g_gameState.game_time)) {
+                mainmenu_save_auto(); /* the port's, where the player could save */
             }
 
             switch (action_id) {

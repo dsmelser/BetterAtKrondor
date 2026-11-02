@@ -18,8 +18,8 @@ so the game folder's own file, if any, plays no part.
 `record` keeps a run's logs as the scenario's baseline, `check` runs again and compares with it.
 Runs go to work/replay/<scenario>/, never committed: the logs and the last frame come from the
 game's art. The scenarios are the golden screenshots' (dosbox_golden.py), walks on keys, a
-gamepad and held buttons, a fight, the spawned objects of zone 4, a teleport within the zone and
-the map's riddle chest.
+gamepad and held buttons, a fight, the spawned objects of zone 4, a teleport within the zone,
+the map's riddle chest, saves and loads, and autosaves (off in the others).
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -62,8 +63,12 @@ SAME_AS: dict[str, str] = {}
 # other moments and with other pictures (the presentation changed): only their state logs are
 # compared with its baseline, the times set aside.
 SAME_STATES_AS: dict[str, str] = {}
-# Settings a scenario runs with (as --set), besides the command line's.
+# Settings a scenario runs with (as --set), besides the command line's. Every scenario runs with
+# the autosaves off unless it turns them on: they make a folder the save dialogs list.
+DEFAULT_SETS = ["saves.autosave=false"]
 SCENARIO_SETS: dict[str, list[str]] = {}
+# Checks of what a run left in its user folder, after its logs.
+SCENARIO_CHECKS: dict[str, Callable[[Path], bool]] = {}
 # Up steps forward, Left and Right turn: three steps along the road, a turn, a step, two turns
 # back, a step.
 WALK = ("90000:key:Up;91000:key:Up;92000:key:Up;93000:key:Left;94000:key:Up;"
@@ -132,6 +137,44 @@ SCENARIOS["quicksave"] = world_then(
 SCENARIOS["quicksave-first"] = world_then(
     "90000:key:F5;92000:key:Up;93000:key:Up;95000:key:F9;"
     "100000:key:Space;104000:key:Space;108000:key:Space;", 112000)
+# Autosaves leave the game where it was: the world's script, the fight and the teleport into zone
+# 4 with them on (one a minute while the game's time moves) play out as without them. The world
+# saves on its first pass (a chapter's start), the fight after its victory, a minute on, and the
+# teleport on arriving in zone 4.
+for name in ("world", "combat", "spawns"):
+    SCENARIOS[f"{name}-autosave"] = SCENARIOS[name]
+    SCENARIO_SETS[f"{name}-autosave"] = ["saves.autosave=true", "saves.autosave_minutes=1"]
+    SAME_AS[f"{name}-autosave"] = name
+# An autosave and its load. The world's first pass saves the chapter's start
+# (GAMES\AUTOSAVE.G20\SAVE01.GAM); two steps and a teleport into zone 4, saved on arriving (the
+# start moves to SAVE02); F5 there saves the Bookmark into a new GAMES\SAVES.G01, the same game
+# as the autosave (checked). Then Restore Game (O, R): a click on the AUTOSAVE folder (the
+# second of the list at 33,49, rows 14 pixels apart), one on its second save, Return, Space
+# through the load's map and caption, and a step from the start.
+SCENARIOS["autosave"] = world_then(
+    "90000:key:Up;91000:key:Up;92000:teleport:4,10,14,14,10,0;96000:key:F5;98000:key:O;"
+    "101000:key:R;104000:click:60,71;106000:click:170,71;108000:key:Return;"
+    "113000:key:Space;117000:key:Space;121000:key:Space;126000:key:Up;", 130000)
+SCENARIO_SETS["autosave"] = ["saves.autosave=true"]
+
+
+def autosave_is_the_bookmark(user: Path) -> bool:
+    """The autosave made on arriving in zone 4 holds the game F5's Bookmark saved there: the two
+    files are the same past their titles."""
+    folder = user / "GAMES" / "AUTOSAVE.G20"
+    names = sorted(p.name.upper() for p in folder.iterdir()) if folder.is_dir() else []
+    print(f"  {folder.name}: {', '.join(names) or 'nothing'}")
+    auto = folder / "SAVE01.GAM"
+    mark = user / "GAMES" / "SAVES.G01" / "SAVE00.GAM"
+    a = auto.read_bytes() if auto.exists() else b""
+    b = mark.read_bytes() if mark.exists() else b""
+    title = a[:90].split(b"\0")[0].decode("latin-1")
+    same = len(a) > 90 and a[90:] == b[90:]
+    print(f'  SAVE01.GAM, "{title}": {"the" if same else "not the"} game of the Bookmark')
+    return names == ["SAVE01.GAM", "SAVE02.GAM"] and same
+
+
+SCENARIO_CHECKS["autosave"] = autosave_is_the_bookmark
 # The world's script with the CD's music on (the GOG copy's music\bakNN.ogg): the intro's, the
 # book's, the cutscene's and the world's tracks.
 SCENARIOS["music"] = SCENARIOS["world"]
@@ -155,7 +198,8 @@ def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> Non
                BAK_STATE_LOG=str(out / "state.log"), BAK_AUDIO_LOG=str(out / "audio.log"),
                BAK_DUMP_AUDIO=str(out / "audio.wav"), BAK_DUMP_FRAME=str(out / "last.bmp"))
     start = time.monotonic()
-    settings = [arg for pair in SCENARIO_SETS.get(scenario, []) + sets for arg in ("--set", pair)]
+    pairs = DEFAULT_SETS + SCENARIO_SETS.get(scenario, []) + sets  # a later one wins
+    settings = [arg for pair in pairs for arg in ("--set", pair)]
     r = subprocess.run([str(exe), "--data", str(data), "--user", str(user), *settings], env=env,
                        capture_output=True, text=True, timeout=900, check=False)
     seconds = time.monotonic() - start
@@ -213,7 +257,12 @@ def main() -> int:
         print(f"{args.scenario} is checked against {base.name}'s baseline: record that one")
         return 2
     run(args.scenario, Path(args.data), Path(args.exe), out, args.set)
+    checked = SCENARIO_CHECKS[args.scenario](out / "user") if args.scenario in SCENARIO_CHECKS \
+        else True
     if args.cmd == "record":
+        if not checked:
+            print("  not recorded: the run fails its check")
+            return 1
         for name in LOGS:
             if (out / f"{name}.log").exists():
                 shutil.copyfile(out / f"{name}.log", out / f"baseline-{name}.log")
@@ -223,9 +272,9 @@ def main() -> int:
         print(f"  against {base.name}'s baseline")
     if args.scenario in SAME_STATES_AS:
         ok = compare(base / "baseline-state.log", out / "state.log", "states", untimed=True)
-        return 0 if ok else 1
+        return 0 if ok and checked else 1
     ok = [compare(base / f"baseline-{name}.log", out / f"{name}.log", f"{name} log") for name in LOGS]
-    return 0 if all(ok) else 1
+    return 0 if all(ok) and checked else 1
 
 
 if __name__ == "__main__":

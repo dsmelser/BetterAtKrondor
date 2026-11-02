@@ -135,6 +135,7 @@ static int is_directory(const char *path) {
 
 #undef fopen
 #undef remove
+#undef rename
 
 FILE *bakrtl_fopen(const char *path, const char *mode) {
     char host[PATH_MAX_LEN];
@@ -153,6 +154,18 @@ int bakrtl_remove(const char *path) {
     char host[PATH_MAX_LEN];
     resolve_write(path, host, sizeof host);
     return remove(host);
+}
+
+int bakrtl_rename(const char *from, const char *to) {
+    char hostFrom[PATH_MAX_LEN], hostTo[PATH_MAX_LEN];
+    resolve_write(from, hostFrom, sizeof hostFrom);
+    resolve_write(to, hostTo, sizeof hostTo);
+    struct stat st;
+    if (stat(hostTo, &st) == 0) { /* POSIX's rename replaces it */
+        errno = EEXIST;
+        return -1;
+    }
+    return rename(hostFrom, hostTo);
 }
 
 /* ---- io.h ------------------------------------------------------------------------------ */

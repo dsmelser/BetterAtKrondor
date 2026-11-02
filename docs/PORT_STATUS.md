@@ -99,10 +99,31 @@ has no GAMES) it first makes the Save Game dialog's first one, `GAMES\SAVES.G01`
 the game does at its start (`mainmenu_save_quick`). F9 loads that folder's Bookmark as Restore Game
 loads a save (the world loop ends with mode 3): the full map with the chapter's caption, then the
 world where the party was; without a Bookmark F9 does nothing. Neither key meant anything in the
-world. Saving takes no draw from the game's random generator. Autosaves
-are not done yet: a save snapshots the party's place into the game state (`zoneDefaultCameraPos`),
-which `zone_load` reads after every fight, so a save the player did not ask for must leave the live
-state alone.
+world. Saving takes no draw from the game's random generator.
+
+**Autosaves.** On entering a zone (a chapter's start enters its first zone: `zone_load`) and every
+`saves.autosave_minutes` on the platform's clock while the game's time moves, the world loop saves
+at its next pass where nothing was pressed and nothing waits for the next one (a teleport, a zone's
+entry, the scene drawn again, the party's changes, items on the ground: `worldloop_autosave_safe`).
+The saves go to `GAMES\AUTOSAVE.Gnn`, a folder of their own made with the highest key free, so that
+it comes after the player's: `SAVE01.GAM` is the newest, and each older one moves up a key, as many
+as `saves.autosave_slots` keeps (the folder's first saves are the autosaves'). Each is titled with the
+game's day, counted from its first, and hour ("Autosave: day 3, 14:20"); Restore Game lists and
+loads them as any save. The folder chosen at the start is the first that is not the autosaves', so
+B and F5 save where the player saves; loading an autosave makes its folder the one chosen, as any
+load does.
+
+An autosave is the Bookmark's save (`mainmenu_save_auto`) that the game does not notice. A save
+snapshots into the game state and TEMP.GAM the party's place (`zoneDefaultCameraPos`, its heading
+and tile), the places of the zone's objects (`rgnenc_persist_zone_snapshot`) and the party's
+inventories (written out, their last-touch time set), and the world started again from TEMP.GAM
+puts the party where the last save was taken: after the Contents (mode 4, which saves first) and
+after the cutscene that ends the world loop on event 7541h = 2 (mode 7). A fight tears the zone down
+and refreshes it without `zone_load`, so it reads no saved place (until 2026-11-01 these notes said
+it did). So all that the save changed is put back once its copy is written: TEMP.GAM whole, the
+game state, the objects' states, the inventories' flags, the save dialog's title and map place. The
+machine stands still meanwhile (`bak_poll_hold`; `savegame_write` sets `g_nFrameTickCountdown`,
+which polls), so no time passes and no interrupt runs.
 
 ## Settings and folders
 
@@ -143,6 +164,9 @@ state alone.
 | `audio.volume` | the sound's volume in percent (100) |
 | `audio.device` | the sound card the game drives: `sb` (the default: the Sound Blaster, the AdLib's synthesizer and digital samples), `adlib`, `mt32` (its MIDI goes nowhere yet), `none`, or `game` (RESOURCE.CFG's choice, the GOG copy's MT-32) |
 | `audio.music_volume`, `audio.effects_volume` | the CD music's, and the synthesizer's and the samples', in percent of `audio.volume` (100) |
+| `saves.autosave` | autosaves on entering a zone and on the clock (true; see "TEMP.GAM and saves") |
+| `saves.autosave_minutes` | minutes between the clock's autosaves, while the game's time moves (10; 0: none) |
+| `saves.autosave_slots` | the autosaves kept, the newest first (3, up to 20) |
 
 ## Controls
 
@@ -267,6 +291,7 @@ at the `upstream-snapshot` tag.
 | `R3D/ACTOR/ACTRENDR.C`, `GAME/ACTOR/ACTORREC.C`, `UI/UIWIDGET.C`, `STREAM/RESLOAD/FONTLOAD.C` | pointers step by pointer arithmetic where the original adds to the far pointer's offset word: a mesh part's polygon variant, an actor record's subrecords, a glyph's rows. Natively that word is the address's low half, whose carry would be lost. FONTLOAD.C's own `FP_OFF`, the same word, is gone |
 | `SCRIPT/ANIMSCR.C`, `ANIMSCR.H`, `SCREENS/TOWNSCN.C` | the animation scripts' last condition result and a town scene's chapter are variables of their own; the original keeps them in the two words of `g_anim_slots[1]` (below) |
 | `GAME/WORLD/WORLDLP.C`, `SCREENS/MAINMENU.C`, `MAINMENU.H` | the world's F5 (quicksave: the Bookmark without its question) and F9 (quickload of the Bookmark), see "TEMP.GAM and saves" |
+| `GAME/WORLD/WORLDLP.C`, `R3D/SCENE/ZONE.C`, `GAME/GMAIN.C`, `SCREENS/MAINMENU.C`, `MAINMENU.H` | autosaves: asked for on entering a zone (`zone_load`), forgotten as the world starts again (`gmain_start_dispatch`), written at a world-loop pass where nothing was pressed (`mainmenu_save_auto`); the folder chosen at the start is the first that is not theirs (`mainmenu_save_request_load_game`), see "TEMP.GAM and saves" |
 | `GAME/WORLD/WORLDMOV.C`, `WORLDMOV.H`, `R3D/SCENE/WORLDFRM.C` | smooth steps: a step's or turn's in-between frames (`worldmove_smooth_from`, as many as `bak_smooth_frames` gives), during which the labyrinths' record of what is near the party is left alone (see "Controls") |
 | `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
 
@@ -487,6 +512,11 @@ The `music` and `music-menu` replays play the GOG copy's.
   `resblit_load_asset_table` turns every `"name.bmp"` it is given into `"name.bmx"` in place). DOS had no
   memory protection and Borland's `-d` (merge duplicate strings) is off, so every literal is its own
   writable copy. The game library is compiled the same way (`/GF-`, `-fwritable-strings`).
+- **Restore Game's folder list does not move by keys.** The dialog scrolls it on Up or Down with Ctrl
+  held (`mainmenu_save_load_game_dialog`, `key_is_down(1Dh)`), the games list without; but
+  `menupage_run` gives a page that asks for the arrows as keys (REQ_LOAD.DAT's first word, 2) only
+  those pressed while Ctrl is up, and with it down moves the pointer between the page's buttons. The
+  folders are chosen with the mouse (the `autosave` replay clicks).
 - **The EMS globals are misnamed.** In `SYS/EMSDET.C`, `g_ems_free_pages` receives the page-frame segment
   (INT 67h AH=41h), `g_ems_total_pages` the free page count (AH=42h) and `g_ems_frame_segment` the handle
   (AH=43h). Not renamed yet.
@@ -744,6 +774,9 @@ modes.
 folder, and compares three logs with a baseline recorded in `work/replay/<scenario>/`. The fresh user folder gets
 the game's preferences the baselines were recorded with (KRONDOR.CFG: step and combat step speed 0,
 detail 3, CD music off unless the scenario wants it), so the game folder's own file plays no part.
+Autosaves are off unless a scenario turns them on (`saves.autosave=false`; their folder would show in
+the save dialogs), and so they are in the DOSBox goldens' port runs. A scenario may also check what the
+run left in its user folder (`SCENARIO_CHECKS`).
 
 - **The virtual clock** (`BAK_CLOCK=virtual`, `port/platform/clock.c`): each poll costs 1 µs, and where the
   game waits (an idle poll, the retrace) the clock jumps to the next timer tick or look at the host's
@@ -769,6 +802,8 @@ detail 3, CD music off unless the scenario wants it), so the game folder's own f
 | `music-menu`: the main menu with CD music on, a minute | ✅ identical logs, the ASan build's too: track 16 plays out its 3348 frames |
 | `quicksave`: the world; the Save Game dialog (O, S, a folder and a save name typed, Save); F9, which finds no Bookmark; two steps, F5, two steps, F9, and Space through the load's map and caption | ✅ identical logs, the ASan build's too: the dialog writes `GAMES\one.G02\SAVE01.GAM` and F5 `SAVE00.GAM`, saving leaves the random state alone, and F9 puts the party back at F5's place, not the dialog's: TEMP.GAM's hash and the game state after the load are those right after F5 |
 | `quicksave-first`: the world, F5 as the first save of a fresh user folder, two steps, F9 | ✅ identical logs, the ASan build's too: F5 makes `GAMES\SAVES.G01` for its Bookmark, and F9 brings the party back |
+| `world-autosave`, `combat-autosave`, `spawns-autosave`: those scripts with autosaves on, one a minute while the game's time moves (`saves.autosave_minutes=1`), checked against their baselines | ✅ identical logs, the ASan build's too: autosaves leave the game where it was. The world saves the chapter's start on its first pass; the fight saves it too and, a minute on, the party past the fight (the corpse's tile, after the victory); the teleport saves on arriving in zone 4, among the spawned stones. Each `AUTOSAVE.G20` holds two, the newest first |
+| `autosave`: the world (its chapter's start saved), two steps, a teleport into zone 4 (saved on arriving), F5 there; then Restore Game, the AUTOSAVE folder and its second save clicked, Return, Space through the load, a step | ✅ identical logs, the ASan build's too. The zone 4 autosave is byte for byte the Bookmark F5 saved at the same place, but for its title ("Autosave: day 3, 08:02"; checked after the run), and the load puts the party back at the chapter's start (669600,1064800). The dialog lists the folder after SAVES. The folder is clicked: its keys cannot reach the folder list (below) |
 | `teleport`: the world, then a teleport two rows south in the party's tile column (zone 1's tile 10,14) at the heading kept from the zone's entry | ✅ identical logs, the ASan build's too; the state log shows the party at the destination (685600,916000) and the random state moved by the actors loaded around it. Without the fix of the teleport test the party stays at the start (669600,1064800) |
 
 On the virtual clock the game reaches the world sooner than on the host's (its last new picture comes at

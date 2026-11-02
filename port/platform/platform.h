@@ -55,7 +55,10 @@ typedef enum SettingId {
     SETTING_AUDIO_VOLUME,           /* [audio] volume, music_volume, effects_volume: 0-100 */
     SETTING_AUDIO_MUSIC_VOLUME,
     SETTING_AUDIO_EFFECTS_VOLUME,
-    SETTING_AUDIO_DEVICE, /* [audio] device: DEVICE_* */
+    SETTING_AUDIO_DEVICE,           /* [audio] device: DEVICE_* */
+    SETTING_SAVES_AUTOSAVE,         /* [saves] autosave: on entering a zone and on the clock */
+    SETTING_SAVES_AUTOSAVE_MINUTES, /* [saves] autosave_minutes: between them (0: none) */
+    SETTING_SAVES_AUTOSAVE_SLOTS,   /* [saves] autosave_slots: how many are kept */
     SETTING_COUNT
 } SettingId;
 enum { SCALING_PIXELART, SCALING_NEAREST, SCALING_LINEAR };

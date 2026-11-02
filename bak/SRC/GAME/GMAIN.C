@@ -211,6 +211,7 @@ s16 far gmain_start_dispatch(s16 mode) {
     worldloop_req_main_screen_load();
     boot_start_dat_load();
     combatgrid_cmbts_tbl_alloc();
+    bak_autosave_reset(); /* the port's autosave: asked for anew, its clock started again */
     zone_load();
     palette_set_scaled(0, 0x100, 0, 0x3f);
     font_activate(g_wGameFontSlot);

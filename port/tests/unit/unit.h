@@ -14,6 +14,7 @@
     X(paths_are_utf8_for_the_c_runtime)                                                            \
     X(paths_chdir_finds_folders_as_dos_does)                                                       \
     X(paths_unfinished_searches_are_dropped)                                                       \
+    X(paths_rename_within_the_user_folder)                                                         \
     X(settings_keep_what_they_do_not_know)                                                         \
     X(settings_default_to_their_defaults)                                                          \
     X(settings_set_rewrites_its_own_line)                                                          \
@@ -57,7 +58,9 @@
     X(sbdsp_held_block_is_silent)                                                                  \
     X(sbdsp_hold_and_go_on)                                                                        \
     X(sbdsp_dma_wraps_within_its_page)                                                             \
-    X(sbdsp_free_running_polls_end_blocks)
+    X(sbdsp_free_running_polls_end_blocks)                                                         \
+    X(autosave_due_on_a_zone_and_the_clock)                                                        \
+    X(autosave_holds_the_machine_still)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

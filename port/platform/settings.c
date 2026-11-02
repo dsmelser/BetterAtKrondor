@@ -103,6 +103,15 @@ static const SettingDef s_defs[SETTING_COUNT] = {
                               "synthesizer and digital samples), adlib, mt32 (its MIDI goes "
                               "nowhere yet), none, or game (RESOURCE.CFG's choice)",
                               .choices = s_devices},
+    [SETTING_SAVES_AUTOSAVE] = {"saves", "autosave", SETTING_BOOL, "true",
+                                "save on entering a zone (and a chapter) and on the clock, into "
+                                "the AUTOSAVE folder"},
+    [SETTING_SAVES_AUTOSAVE_MINUTES] = {"saves", "autosave_minutes", SETTING_INT, "10",
+                                        "minutes between the clock's autosaves, while the "
+                                        "game's time moves (0: none)",
+                                        .min = 0, .max = 600},
+    [SETTING_SAVES_AUTOSAVE_SLOTS] = {"saves", "autosave_slots", SETTING_INT, "3",
+                                      "autosaves kept, the newest first", .min = 1, .max = 20},
 };
 
 static char *s_values[SETTING_COUNT];
