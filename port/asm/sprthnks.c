@@ -1,6 +1,7 @@
 /*
- * SPRTHNKS.ASM in C: tail jumps through the renderer's sprite slots. blit_stretched_dispatch
- * (slot 37) has no caller in the game and stays a trap.
+ * SPRTHNKS.ASM in C: tail jumps through the renderer's sprite slots. The original's
+ * blit_stretched_dispatch (slot 37) had no caller, STRBLIT.C calling the slot itself with its
+ * registers; natively STRBLIT.C calls it, with the slot's native arguments.
  */
 #include "../drivers/vga.h"
 
@@ -29,6 +30,9 @@ void gfx_putsprite_fp(ImageRecord *sprite, s16 x, s16 y) {
     ((PutSpriteFn *)g_renderer_vtable.pfn_blit_sprite_simple)(sprite, x, y);
 }
 
-void blit_stretched_dispatch(void) {
-    BAK_UNIMPLEMENTED("SPRTHNKS.ASM: blit_stretched_dispatch (no caller in the game)");
+/* Slot 37. */
+void blit_stretched_dispatch(u16 dst_seg, u16 dst_off, const unsigned char *src_row,
+                             const s16 *columns, u16 count, u16 x) {
+    ((BlitStretchedFn *)g_renderer_vtable.pfn_blit_stretched)(dst_seg, dst_off, src_row, columns,
+                                                               count, x);
 }

@@ -118,7 +118,6 @@ TRAP(23, blit_rect_buffer)
 TRAP(30, blit_sprite_flip_h)
 TRAP(31, blit_sprite_flip_v)
 TRAP(36, blit_sprite_planar_rotated)
-TRAP(37, blit_stretched)
 TRAP(38, blit_sprite_chunky_flip)
 TRAP(40, fill_textured_span_modey)
 
@@ -170,7 +169,7 @@ static void fill_slots(void) {
     t->pfn_palette_lerp_dac = SLOT(vga_palette_lerp_dac);
     t->pfn_dac_write_palette = SLOT(vga_dac_write_palette);
     t->pfn_blit_sprite_planar_rotated = SLOT(trap_blit_sprite_planar_rotated);
-    t->pfn_blit_stretched = SLOT(trap_blit_stretched);
+    t->pfn_blit_stretched = SLOT(vga_blit_stretched);
     t->pfn_blit_sprite_chunky_flip = SLOT(trap_blit_sprite_chunky_flip);
     t->pfn_fill_world_textured_span_modey = SLOT(vga_fill_world_textured_span_modey);
     t->pfn_fill_textured_span_modey = SLOT(trap_fill_textured_span_modey);
@@ -556,6 +555,47 @@ void vga_fill_world_textured_span_modey(const unsigned char *spans) {
         di = (u16)(row + 0x50);
         si += 4;
     } while (--rows != 0);
+}
+
+/*
+ * Slot 37, one row of a sprite stretched or shrunk (STRBLIT.C: the town scenes' and the
+ * cutscenes' zooms): count pixels from x on the row at byte offset di, pixel i from the source
+ * row at the column the i-th word of the table names, a zero left out. The pixels of a plane
+ * are a byte apart, so the four planes are drawn one after another, from x's plane on, each
+ * from every fourth word of the table from its own: the map mask moves along with the plane,
+ * and carries into the next byte when it leaves the four. Plane p draws a pixel while its
+ * countdown, from count + 4 - p by 4 each, stays above 0 (the original tests the countdown
+ * signed after a pixel left out and unsigned after one written: the same, since it cannot pass
+ * 8000h on its way down). A write goes through the graphics controller under the map mask, as
+ * the original's STOSB does.
+ */
+void vga_blit_stretched(u16 seg, u16 di, const unsigned char *src, const s16 *columns, u16 count,
+                        u16 x) {
+    unsigned char mask = (unsigned char)(1u << (x & 3));
+    bak_port_out8(0x3C4, 2);
+    bak_port_out8(0x3C5, mask);
+    di = (u16)(di + (x >> 2));
+    for (unsigned plane = 0; plane < 4; plane++) {
+        if (plane != 0) {
+            mask = (unsigned char)(mask << 1);
+            if ((mask & 0x0f) == 0) {
+                mask = 1;
+                di++;
+            }
+            bak_port_out8(0x3C5, mask);
+        }
+        const s16 *col = columns + plane;
+        u16 at = di;
+        for (u16 left = (u16)(count + 4 - plane);; at++) {
+            left = (u16)(left - 4);
+            if ((s16)left <= 0)
+                break;
+            unsigned char px = src[(u16)*col];
+            col += 4;
+            if (px != 0)
+                bak_vga_write(seg, at, px);
+        }
+    }
 }
 
 /* One pixel of a diagonal: di counts pixels from the page start (row * 320 + x). The

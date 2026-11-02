@@ -423,6 +423,64 @@ def test_fill_world_textured(pair):
         assert pair.native.call("heg.regs") == pair.chunk.vga.regs(), f"VGA registers {what}"
 
 
+def test_blit_stretched(pair):
+    """Slot 37 (STRBLIT.C's rows: a sprite stretched or shrunk): count pixels from x on the row at
+    byte offset di, pixel i from the source row at the column the i-th table word names, a zero
+    left out; the map mask moves with the plane and carries into the next byte. The table is read
+    through SS (a segment of its own here, the stack at its top) and the row through DS, in a
+    segment that is otherwise zero, as on the native side. Writes go through the graphics
+    controller, set at random in some cases, and the registers end as the original leaves them."""
+    rng = random.Random(18)
+    pair.fill_vram(rng)
+    table_seg = pair.m.alloc(0x10000)
+    src_seg = pair.m.alloc(0x10000)
+    # Every count up to 13 at every x mod 4 (the carry of the map mask into the next byte, and
+    # which planes get a pixel more), on the first page.
+    cases = [(0xA000, 40 + k, 50, count, 16, False) for count in range(14) for k in range(4)]
+    # The caller's rows: up to 320 pixels on the screen; a zoom past the left edge, whose
+    # columns start into the table; x past 320 and a negative x on the first page, whose
+    # window holds every address that gives; the last rows of a page.
+    cases += [(0xA000, 0, 0, 320, 64, False), (0xA000, -3, 10, 20, 8, False),
+              (0xA000, 326, 199, 12, 8, False), (0xAC00, 300, 199, 20, 40, False)]
+    for _ in range(160):
+        page = rng.choice(PAGES)
+        lo_x, hi_x, lo_y, hi_y = _extent(page)
+        x = rng.randrange(lo_x, hi_x)
+        count = rng.randrange(0, hi_x - x + 1) if rng.random() < 0.5 else rng.randrange(0, 40)
+        cases.append((page, x, rng.randrange(lo_y, hi_y), count, rng.randrange(1, 300),
+                      rng.random() < 0.3))
+    for i, (page, x, y, count, width, odd_gc) in enumerate(cases):
+        di = rng.randrange(0x10000) if rng.random() < 0.1 else 80 * y
+        row = bytes(0 if rng.random() < 0.3 else rng.randrange(1, 256) for _ in range(width))
+        if rng.random() < 0.5:  # a stretch or a shrink: the columns run up, or down (a mirror)
+            columns = sorted(rng.randrange(width) for _ in range(count))
+            if rng.random() < 0.3:
+                columns.reverse()
+        else:
+            columns = [rng.randrange(width) for _ in range(count)]
+        si = rng.randrange(0, 0xF000)
+        segment = bytearray(0x10000)
+        segment[si:si + width] = row
+        pair.m.write((src_seg, 0), bytes(segment))
+        bp = 2 * rng.randrange(0, 0x800)
+        pair.m.write((table_seg, bp), _u16s(*columns, *(rng.randrange(0x10000) for _ in range(8))))
+        regs = bytearray(pair.chunk.vga.regs())
+        if odd_gc:  # gc[0] set/reset, [1] its enable, [3] rotation and function, [5] modes, [8] mask
+            for reg in (0, 1, 3, 8):
+                regs[40 + reg] = rng.randrange(256)
+            regs[40 + 5] = rng.randrange(4) | (rng.randrange(2) << 3)
+        else:
+            regs[40 + 3], regs[40 + 5], regs[40 + 8] = 0, 0, 0xFF
+        pair.chunk.vga.load_regs(bytes(regs))
+        pair.native.call("heg.regs", bytes(regs))
+        pair.chunk.call(37, ds=src_seg, si=si, es=page, di=di, bp=bp, ss=table_seg, cx=count,
+                        dx=x & 0xFFFF)
+        pair.native.call("vga.blit_stretched", _u16s(page, di, count, x, *columns) + row)
+        what = f"after stretched row {i}: {count} pixels from ({x}, {y}) di {di:#x} on {page:04X}"
+        pair.assert_same(what)
+        assert pair.native.call("heg.regs") == pair.chunk.vga.regs(), f"VGA registers {what}"
+
+
 def test_sprites(pair):
     """Slots 29 (with flips), 3 and 33 (opaque). The record is at DS:0 of a segment of its own,
     the pixels at its offset in a 64 KB segment that is otherwise zero, as on the native side."""

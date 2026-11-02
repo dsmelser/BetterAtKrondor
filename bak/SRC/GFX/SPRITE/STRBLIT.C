@@ -1,73 +1,64 @@
 #include "SRC/GEN/GFXCTX.H"
-#include "SRC/GEN/RNDVTBL.H"
 #include "SRC/INPUT/KEYBOARD.H"
 #include "SRC/GFX/SPRITE/ROTBLIT.H"
+#include "SRC/GFX/SPRITE/SPRTHNKS.H"
 #include "structs.h"
 #include "SRC/GFX/SPRITE/STRBLIT.H"
 #include "SRC/GFX/RASTER/VGARESET.H"
+#include <conio.h>
 
-s16 stretch_step_init(register s16 *step, register s16 dest_steps) {
+/* The step from the first source pixel (pos's high word) to the last (step's) over dest_steps
+ * destination pixels, and where the walk starts: half a pixel in when a step is under half a
+ * pixel (a stretch), else the step's fraction. */
+s16 stretch_step_init(register StretchStep *step, register s16 dest_steps) {
     char negate = 0;
 
     if (dest_steps <= 0) {
-        step[3] = 0;
-        step[2] = 0;
-        return (*step = 0);
+        step->w[3] = 0;
+        step->w[2] = 0;
+        return (step->w[0] = 0);
     }
-    *step = 0;
-    step[2] = 0;
-    *(s32 *)&step[2] -= *(s32 *)&step[0];
-    *(s32 *)&step[2] = *(s32 *)&step[2] / (s32)dest_steps;
-    if (*(s32 *)&step[2] < 0) {
-        *(s32 *)&step[2] = -*(s32 *)&step[2];
+    step->w[0] = 0;
+    step->w[2] = 0;
+    step->l[1] -= step->l[0];
+    step->l[1] = step->l[1] / (s32)dest_steps;
+    if (step->l[1] < 0) {
+        step->l[1] = -step->l[1];
         negate = 1;
     }
-    if ((*(u32 *)&step[2] & 0xffff8000UL) == 0)
-        *step = 0x8000;
+    if (((u32)step->l[1] & 0xffff8000UL) == 0)
+        step->w[0] = 0x8000;
     else
-        *step = step[2];
+        step->w[0] = step->w[2];
     if (negate)
-        *(s32 *)&step[2] = -*(s32 *)&step[2];
+        step->l[1] = -step->l[1];
     return 1;
 }
 
-#ifdef BAK_NATIVE
+/* A sprite drawn dst_w by dst_h pixels (a negative size mirrors it), clipped: each row's
+ * pixels come from the source row and columns the two stretch tables name, drawn by the
+ * driver's slot 37 (the original called the slot with its registers; natively through
+ * SPRTHNKS's thunk). */
 void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s16 dst_w,
                           s16 dst_h) {
-    BAK_UNIMPLEMENTED("blit_image_stretched: native VGA driver stretch blit");
-}
-#else
-void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s16 dst_w,
-                          s16 dst_h) {
-    unsigned short srcSeg;
-    unsigned short srcOff;
+    const unsigned char *src;
     s16 i;
     s16 row;
     s16 rowStride;
-    s16 imageBytes;
     s16 dstRight;
     s16 dstBottom;
     s16 srcY;
     s16 local_16;
     s16 local_18;
     s16 dstLeft;
-    s16 step[4];
+    StretchStep step;
 
     if (dst_w < 0) {
-
-        asm mov ax, dst_w;
-        asm cwd;
-        asm xor ax, dx;
-        asm sub ax, dx;
-        asm mov dst_w, ax;
+        dst_w = (s16)-dst_w;
         flags |= 2;
     }
     if (dst_h < 0) {
-        asm mov ax, dst_h;
-        asm cwd;
-        asm xor ax, dx;
-        asm sub ax, dx;
-        asm mov dst_h, ax;
+        dst_h = (s16)-dst_h;
         flags |= 1;
     }
 
@@ -75,28 +66,27 @@ void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s
     dstBottom = (dst_h < 0x190) ? dst_h : 0x190;
 
     if (flags & 2) {
-        step[1] = image->nWidth - 1;
-        step[3] = 0;
+        step.w[1] = image->nWidth - 1;
+        step.w[3] = 0;
     } else {
-        step[1] = 0;
-        step[3] = image->nWidth - 1;
+        step.w[1] = 0;
+        step.w[3] = image->nWidth - 1;
     }
-    stretch_step_init(step, dst_w - 1);
+    stretch_step_init(&step, dst_w - 1);
     for (i = 0; i < dstRight; i++) {
-        g_aStretchXSrcTable[i] = step[1];
-        *(s32 *)&step[0] += *(s32 *)&step[2];
+        g_aStretchXSrcTable[i] = step.w[1];
+        step.l[0] += step.l[1];
     }
     g_aStretchXSrcTable[i]++;
 
-    step[1] = 0;
-    step[3] = image->nHeight - 1;
-    stretch_step_init(step, dst_h - 1);
+    step.w[1] = 0;
+    step.w[3] = image->nHeight - 1;
+    stretch_step_init(&step, dst_h - 1);
     rowStride = image->nWidth >> g_abAdapterRowStrideShift[(char)g_graphics_context.bVideoAdapter];
-    imageBytes = image->nHeight * rowStride;
     row = local_16 = local_18 = 0;
     for (; row < dstBottom; row++) {
-        srcY = step[1];
-        *(s32 *)&step[0] += *(s32 *)&step[2];
+        srcY = step.w[1];
+        step.l[0] += step.l[1];
         while (srcY > local_16) {
             local_16++;
             local_18 += rowStride;
@@ -125,57 +115,22 @@ void blit_image_stretched(ImageRecord *image, s16 dst_x, s16 dst_y, u16 flags, s
         }
     }
 
-    *(s32 *)&srcOff = ((s32)(short)image->wImageData << 16) | image->wImageOff;
+    src = image->pImageBase + image->wImageOff;
     if (0 < dstBottom - local_18 && 1 < dstRight - dstLeft) {
         if (g_graphics_context.bActiveVgaMode == 0x10) {
-
-            asm mov dx, 0x3ce;
-            asm mov ax, 1;
-            asm out dx, ax;
-            asm mov ax, 5;
-            asm out dx, ax;
-            asm mov al, 8;
-            asm out dx, al;
+            outpw(0x3ce, 1);
+            outpw(0x3ce, 5);
+            outp(0x3ce, 8);
         }
-        asm mov ax, word ptr[g_wGfxBlitDstPage];
-        asm mov es, ax;
-        asm mov ax, local_18;
-        asm mov row, ax;
-    draw_loop:
-        asm mov ax, ss;
-        asm mov ds, ax;
-        asm mov bx, row;
-        asm mov cx, bx;
-        asm shl bx, 1;
-        asm mov di, word ptr[bx + g_pRow_offset_lut];
-        asm mov ax, dst_y;
-        asm shl ax, 1;
-        asm sub bx, ax;
-        asm mov ax, imageBytes;
-        asm mov si, word ptr[bx + g_aStretchYSrcTable];
-        asm mov bx, cx;
-        asm add si, srcOff;
-        asm mov ds, srcSeg;
-        asm mov dx, dstLeft;
-        asm mov cx, dstRight;
-        asm sub cx, dx;
-        asm push bp;
-        asm mov bp, local_16;
-        asm shl bp, 1;
-        asm lea bp, [bp + g_aStretchXSrcTable];
-        asm call dword ptr ss : [g_pfn_blit_stretched];
-        asm pop bp;
-        asm mov ax, row;
-        asm inc ax;
-        asm cmp ax, dstBottom;
-        asm mov row, ax;
-        asm jl draw_loop;
-        asm mov ax, ss;
-        asm mov ds, ax;
+        for (row = local_18; row < dstBottom; row++) {
+            blit_stretched_dispatch(g_wGfxBlitDstPage, g_pRow_offset_lut[row],
+                                    src + (u16)g_aStretchYSrcTable[row - dst_y],
+                                    &g_aStretchXSrcTable[local_16], (u16)(dstRight - dstLeft),
+                                    (u16)dstLeft);
+        }
         vga_reset_gc_default();
     }
 }
-#endif
 
 void blit_image_scaled_centered(register ImageRecord *image, s16 cx, s16 cy, u32 scale_q16) {
     register s16 scale_hi;

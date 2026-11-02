@@ -227,6 +227,23 @@ static void cmd_fill_world_textured(DtIn *in, DtOut *out) {
     bak_dos_free(spans);
 }
 
+/* vga.blit_stretched seg di count x <count column words> <the source row's bytes>: slot 37.
+ * The row sits in a zeroed 64 KB block, as its segment is on the other side. */
+static void cmd_blit_stretched(DtIn *in, DtOut *out) {
+    (void)out;
+    static s16 columns[0x400];
+    static unsigned char row[0x10000];
+    u16 seg = dt_u16(in), di = dt_u16(in), count = dt_u16(in), x = dt_u16(in);
+    if (count > sizeof columns / sizeof columns[0])
+        dt_fail("too many columns");
+    for (u16 i = 0; i < count; i++)
+        columns[i] = (s16)dt_u16(in);
+    size_t n = dt_remaining(in);
+    memset(row, 0, sizeof row);
+    memcpy(row, dt_bytes(in, n), n);
+    vga_blit_stretched(seg, di, row, columns, count, x);
+}
+
 /* vga.sprite slot(3/29/33) flags x y width height offset <pixels>: the record's segment is a
  * zeroed 64 KB block with the pixels at the offset. */
 static void cmd_sprite(DtIn *in, DtOut *out) {
@@ -276,6 +293,7 @@ const DtEntry dt_vga_entries[] = {
     DT_COMMAND("vga.fill_spans", cmd_fill_spans),
     DT_COMMAND("vga.fill_world_textured", cmd_fill_world_textured),
     DT_COMMAND("vga.sprite", cmd_sprite),
+    DT_COMMAND("vga.blit_stretched", cmd_blit_stretched),
     DT_GLOBAL(g_gfxContextBlock),
     DT_GLOBAL(g_bakVram),
     DT_END,

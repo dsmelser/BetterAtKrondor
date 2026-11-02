@@ -226,7 +226,7 @@ at the `upstream-snapshot` tag.
 - These `bak/INCLUDE/gtypes.h` idioms remain: `NearPtr`/`NearWord` (a pointer the original held in a
   16-bit word), `NEAR_STR` (a string pointer that may be null) and `FP_SEG_NORM` (the segment of a pointer
   the original holds normalized).
-- Two `#ifdef BAK_NATIVE` branches remain: RECTSPR.C and STRBLIT.C, whose native side is still a trap.
+- One `#ifdef BAK_NATIVE` branch remains: RECTSPR.C, whose native side is still a trap.
 
 | File | Native branch |
 |---|---|
@@ -294,7 +294,8 @@ at the `upstream-snapshot` tag.
 | `GAME/WORLD/WORLDLP.C`, `SCREENS/MAINMENU.C`, `MAINMENU.H` | the world's F5 (quicksave: the Bookmark without its question) and F9 (quickload of the Bookmark), see "TEMP.GAM and saves" |
 | `GAME/WORLD/WORLDLP.C`, `R3D/SCENE/ZONE.C`, `GAME/GMAIN.C`, `SCREENS/MAINMENU.C`, `MAINMENU.H` | autosaves: asked for on entering a zone (`zone_load`), forgotten as the world starts again (`gmain_start_dispatch`), written at a world-loop pass where nothing was pressed (`mainmenu_save_auto`); the folder chosen at the start is the first that is not theirs (`mainmenu_save_request_load_game`), see "TEMP.GAM and saves" |
 | `GAME/WORLD/WORLDMOV.C`, `WORLDMOV.H`, `R3D/SCENE/WORLDFRM.C` | smooth steps: a step's or turn's in-between frames (`worldmove_smooth_from`, as many as `bak_smooth_frames` gives), during which the labyrinths' record of what is near the party is left alone (see "Controls") |
-| `GFX/SPRITE/RECTSPR.C`, `GFX/SPRITE/STRBLIT.C` | ⬜ traps: driver slots called with register arguments |
+| `GFX/SPRITE/RECTSPR.C` | ⬜ trap: driver slots called with register arguments |
+| `GFX/SPRITE/STRBLIT.C` | each row of a stretched sprite through SPRTHNKS's `blit_stretched_dispatch`, slot 37 in its native form (the original called the slot with its registers) |
 
 ## Changes from the original
 
@@ -376,7 +377,7 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/PIXEL.ASM` | `port/asm/pixel.c` | `test_pixel.py`: the clipping decision, against probes in the pixel slots |
 | `GEN/GFXCTX.ASM` | `port/asm/gfxctx_data.c` | `test_vga.py::test_context_initial_values`: the whole 2742-byte block |
 | `GEN/RNDVTBL.ASM` | `port/asm/rndvtbl_data.c` | data only: every slot starts at `gfx_retf_stub` |
-| `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM`, `GFX/SPRITE/SPRTHNKS.ASM`, `GFX/SPRITE/BLITCHNK.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c`, `sprthnks.c`, `blitchnk.c` | no logic: each routine forwards to a vtable slot (SPRTHNKS's `blit_stretched_dispatch` and BLITCHNK's `blit_chunky_planar_4bit` have no caller and trap) |
+| `GFX/DRIVER/VTHUNKS.ASM`, `GFX/RASTER/PRESENT.ASM`, `GFX/DRIVER/CGAPASTE.ASM`, `GFX/SPRITE/SPRTHNKS.ASM`, `GFX/SPRITE/BLITCHNK.ASM` | `port/asm/vthunks.c`, `present.c`, `cgapaste.c`, `sprthnks.c`, `blitchnk.c` | no logic: each routine forwards to a vtable slot (SPRTHNKS's `blit_stretched_dispatch` had no caller, STRBLIT.C calling slot 37 with its registers: natively STRBLIT.C calls it, with the slot's native arguments; BLITCHNK's `blit_chunky_planar_4bit` has no caller and traps) |
 | `GFX/SPRITE/PALBLEND.ASM` | `port/asm/palblend.c`: the colour between two palette entries and the entry from 10h to E6h nearest to it, for the anti-aliased edges of the dialogs' portraits (the palette is read at the pointer; the original reads it from the segment's start, where `alloc_far`'s palettes begin) | `test_palblend.py`: palettes of 6-bit values and of full bytes, 1500 random pairs each (some with a high byte, which the original masks off); 400 palettes built around a pair's average: exact matches, totals of 2 and 3 (the early return), channels at the threshold, best totals of 26h-29h, runs of ever closer entries; the scan's first and last entries. Its threshold only drops to the best total, so it rejects nothing the total's test accepts: mutants without the drop are equivalent |
 | `GFX/RASTER/POLYGON.ASM` | `port/asm/polygon.c`: `draw_polygon` with its edge walkers, and `fill_spans_dispatch` (the edge walkers' register-argument entry points trap: `draw_polygon` calls their C forms; `blit_rect_buf_dispatch` has no caller and traps) | `test_polygon.py`: 1500 random polygons (convex and scattered, with repeated vertices, level, upright and 45-degree edges), the edge cases (two vertices, one row, one point, collinear, the same slope on both sides of the top vertex, which fills twice) both ways round, counts from -8000h to 3, 20 vertices, two vertices left by the clipper, level top edges across more than 32767 in x (where the stand-in slopes decide the chains' order), clipped or not, filled or outlined, with an outline colour of their own or not, in the 640x200 mode or not, with the line and span slots probed: what reaches them, the result, the module's state words, the graphics context and the span buffer (a whole segment of random bytes) |
 | `GFX/RASTER/POLYCLIP.ASM` | `port/asm/polyclip.c` | `test_polygon.py`: the clipper alone over 1500 polygons (convex and scattered, vertices on the bounds) against rectangles around, inside, across them and inverted, and 600 across the 16-bit range whose quotients overflow (through the divide-error handler's rule): the graphics context |
@@ -423,9 +424,9 @@ words, so the latches come from the access its memory hook sees.
 
 | Slots | Status |
 |---|---|
-| init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 33 opaque sprite, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload, 39 spans translated through a table (the camp clock's hand; since 2026-11-01) | ✅ verified |
+| init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 33 opaque sprite, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload, 39 spans translated through a table (the camp clock's hand; since 2026-11-01), 37 a row of a sprite stretched or shrunk (the town scenes' and the cutscenes' zooms; since 2026-11-02) | ✅ verified |
 | 24 rect-buffer offset, 32 clear sprite cache | ported; verified with their consumers (23, 33) |
-| 17-19, 23, 30, 31, 36-38, 40 | ⬜ trap with the routine's name |
+| 17-19, 23, 30, 31, 36, 38, 40 | ⬜ trap with the routine's name |
 | 9, 12, 16, 25, 26, 28, 41-48 | empty in the original: no-ops |
 
 Slots the game calls with register arguments have native signatures in `port/drivers/vga.h` (`DrawLineFn`,

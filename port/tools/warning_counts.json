@@ -3,7 +3,7 @@
     "array-bounds-pointer-arithmetic": 6,
     "bad-function-cast": 11,
     "c23-extensions": 1,
-    "cast-align": 215,
+    "cast-align": 205,
     "cast-function-type-strict": 3,
     "comma": 5,
     "comment": 1,

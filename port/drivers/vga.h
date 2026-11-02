@@ -45,6 +45,13 @@ void vga_fill_run_b(u16 seg, u16 di, u16 x, u16 count, u16 colors, u16 dx);
 typedef void FillSpansFn(const unsigned char *spans);
 void vga_fill_spans_dithered_modey(const unsigned char *spans);
 void vga_fill_world_textured_span_modey(const unsigned char *spans);
+/* 37: DS:SI ES:DI SS:BP CX DX: one row of a sprite stretched or shrunk (STRBLIT.C): count
+ * pixels from x on the row at byte offset di, pixel i from the source row at si at the column
+ * the i-th word of the table at bp names; a zero pixel is left out. */
+typedef void BlitStretchedFn(u16 seg, u16 di, const unsigned char *src, const s16 *columns,
+                             u16 count, u16 x);
+void vga_blit_stretched(u16 seg, u16 di, const unsigned char *src, const s16 *columns, u16 count,
+                        u16 x);
 /* 3, 29, 33: a sprite from its record (a near pointer in the original), 29 with flip flags,
  * 33 opaque. */
 typedef void SpriteMasterFn(const ImageRecord *sprite, s16 x, s16 y, u16 flags);
