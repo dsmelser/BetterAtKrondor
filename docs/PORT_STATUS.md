@@ -425,6 +425,20 @@ that runs the original routines from the reference build against the translation
 | `GFX/RASTER/POLYRAST.ASM` | `port/asm/polyrast.c` (quads with slanted sides go on to GOURAUD.ASM's) | `test_polyrast.py`: the edge stepper over 3000 start/end/step cases, the harness setting the flags after its IDIV as DOSBox does (`Machine.model_division_flags`; see "Flags after IDIV" under what the port has taught us); scaled sprites, plain and RLE, at random places, scales, flips, modes (copy, fill, outline, remap through the fog and cursor tables), clip rectangles and pages, on a planar VGA model: display memory, the steppers, the map mask and the RLE scratch after each. Reaches all 40 of the routine's checkpoints. The textured quad blit (the intro's page turn) over 360 quads with vertical sides, either way round, clipped or not: the same, and the corners it swaps |
 | `GFX/RASTER/GOURAUD.ASM` | `port/asm/gouraud.c`: the textured quad rasterizer for quads with slanted sides (the trees of the road south of the start, the labyrinths' walls), column by column along the two chains of edges from the leftmost corner, with 16.16 steppers for the span and for the texture column and row at its ends; the corners' texture coordinates (corner 1 at column width - 2, corner 2 at row height - 2 as well: the texture's last column and row are never sampled), the slope comparison (CWD, then an unsigned DIV) and the edge stepper, over count + 1 steps. One fix ("Bugs of the original, fixed"): each column's top-clip skip count starts at 0 | `test_gouraud.py`: 300 quads of random corners (often sharing one), textures, clip rectangles, pages and remap tables drawn the original's way, both GOURAUDs called directly and the original's display memory adopted where it read its stack, the harness setting the flags after the stepper's IDIV as DOSBox does; 200 more with no corner above the clip rectangle through `polyrast_gouraud_blit_clipped`, the port's way, identical; the fix on its own (a quad clipped at the top shows, from that row down, its unclipped picture); the stepper over 3000 cases, the slope comparison over 3000, every ordered pair of corners. 16 of 17 mutants killed; the survivor compares a span's last row with the clip's bottom by <= instead of <, which is equivalent: on equality the clamp gives the same count |
 
+Two codec modules stay placeholders, because the game cannot reach them. A stream starts with its
+codec's number, and every stream the game opens is a file's, opened for reading:
+- `STREAM/CODEC/LZHUF.ASM` (codec 3, LZH, both ways) is used by no stream in the data.
+- `STREAM/CODEC/BLITRLE.ASM` (`blit_rle_sprite`) decodes codec 1 only for a stream in memory
+  (`stream_open_from_memory`), and nothing opens one. A file's RLE stream goes through CODEC.C's own
+  decoder.
+
+The tally from a scan of the GOG copy's 1.02 data on 2026-11-02 covers the archive and the loose
+`VMCODE.OVL`, `SX.OVL` and `FRP.SX`, wherever the game opens a stream:
+- codec 0: the 179 sound records of FRP.SX;
+- codec 1: the TTM scripts' 42 `TT3:` chunks and the 5 fonts;
+- codec 2: the other 393 streams (the BMX payloads DECOMP.ASM does not unpack, the screens, the ADS
+  scripts, BOOK.BMX's `BMP:BIN:` and the drivers in VMCODE.OVL and SX.OVL).
+
 ## Video drivers (VMCODE.OVL)
 
 The VGA chunk (`DRIVERS/VMCODE/VGA.ASM`) is `port/drivers/vga.c`. Display memory is the 256 KB chunky
