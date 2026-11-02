@@ -26,7 +26,6 @@
 #include "bak_game_begin.h"
 #include "structs.h"
 #include "SRC/GEN/GFXCTX.H"
-#include "SRC/STREAM/RESLOAD/IMGLOAD.H"
 #include "bak_game_end.h"
 
 #define PLANAR_ROW 80        /* bytes per row in a plane */
@@ -650,17 +649,16 @@ static void write_planes(u16 es, u16 di, const unsigned char planes[4]) {
 }
 
 /*
- * heg_chunky_to_planar: count groups of 8 packed pixels from seg:off to the planes at
- * IMAGE_SCRATCH:0000. The source offset steps 4 bytes a group, and the segment advances
- * 64 KB when the second word's step carries out of the offset (a wrap at the first word
+ * heg_chunky_to_planar: count groups of 8 packed pixels from seg:off (seg's paragraph at base)
+ * to the planes at IMAGE_SCRATCH:0000. The source offset steps 4 bytes a group, and the segment
+ * advances 64 KB when the second word's step carries out of the offset (a wrap at the first word
  * reads the same segment's start, as the original does).
  */
-static void chunky_to_planar(u16 seg, u16 off, u16 count) {
+static void chunky_to_planar(const unsigned char *base, u16 off, u16 count) {
     bak_port_out16(0x3CE, 0x0205);
     bak_port_out16(0x3CE, 0xFF08);
     bak_port_out16(0x3CE, 0x0005);
     bak_port_out16(0x3C4, 0x0102);
-    const unsigned char *base = MK_FP(seg, 0);
     u16 si = off, di = 0;
     do {
         unsigned char px[4], planes[4];
@@ -672,10 +670,8 @@ static void chunky_to_planar(u16 seg, u16 off, u16 count) {
         bool carry = si >= 0xFFFE;
         si = (u16)(si + 2);
         transpose(px, planes);
-        if (carry) {
-            seg = (u16)(seg + 0x1000);
-            base = MK_FP(seg, 0);
-        }
+        if (carry)
+            base += 0x10000;
         write_planes(IMAGE_SCRATCH, di++, planes);
     } while (--count != 0);
     bak_port_out16(0x3CE, 0x0205);
@@ -683,9 +679,8 @@ static void chunky_to_planar(u16 seg, u16 off, u16 count) {
 }
 
 /* heg_install_image_planes: n bytes of each plane, 0 to 3 (read map select), from the
- * scratch area to seg:di, one after the other. */
-static void copy_planes(u16 si, u16 seg, u16 di, u16 n) {
-    unsigned char *es = MK_FP(seg, 0);
+ * scratch area to seg:di (seg's paragraph at es), one after the other. */
+static void copy_planes(u16 si, unsigned char *es, u16 di, u16 n) {
     for (uint8_t plane = 0; plane < 4; plane++) {
         bak_port_out16(0x3CE, (u16)(plane << 8 | 4));
         u16 s = si;
@@ -694,10 +689,9 @@ static void copy_planes(u16 si, u16 seg, u16 di, u16 n) {
     }
 }
 
-/* heg_read_planar_to_buffer: n mask bytes at seg:di, set where a pixel is colour 0 in all
- * planes (transparent). */
-static void build_mask(u16 si, u16 seg, u16 di, u16 n) {
-    unsigned char *es = MK_FP(seg, 0);
+/* heg_read_planar_to_buffer: n mask bytes at seg:di (seg's paragraph at es), set where a pixel
+ * is colour 0 in all planes (transparent). */
+static void build_mask(u16 si, unsigned char *es, u16 di, u16 n) {
     bak_port_out16(0x3CE, 0x0004);
     do {
         uint8_t any = 0;
@@ -714,36 +708,45 @@ static void build_mask(u16 si, u16 seg, u16 di, u16 n) {
  * Install packed images: the whole set goes to bit planes in the scratch area of display
  * memory first, then each image comes back in place of the packed data as its four planes
  * and a transparency mask (a quarter more than the packed size). Each record gets the
- * planes' segment and offset and the mask's offset. The trailing arguments are for other
- * adapters' drivers.
+ * planes' segment and offset and the mask's offset. The data is at the far pointer seg:off,
+ * seg's paragraph at base with extent bytes from there to its block's end.
  */
-void heg_image_decode(ImageRecord **images, unsigned char *data, u32 packedSize, unsigned char *aux,
-                      u32 total) {
-    (void)aux;
-    (void)total;
-    u16 off = FP_OFF(data), seg = FP_SEG(data);
+void heg_image_decode_at(ImageRecord **images, unsigned char *base, u32 extent, u16 off,
+                         u32 packedSize) {
     u16 count = (u16)(packedSize >> 2);
     if (count == 0)
         BAK_UNIMPLEMENTED("heg_install_image_set with under 4 packed bytes (the original "
                           "converts 65536 groups)");
-    chunky_to_planar(seg, off, count);
+    chunky_to_planar(base, off, count);
     u16 di = 0;
     for (; *images != NULL; images++) {
         ImageRecord *r = *images;
         u16 n = (u16)((u16)((u16)((u16)r->nWidth >> 1) * (u16)r->nHeight) >> 2);
         u16 mask = (u16)((u16)(n << 2) + off);
-        imgload_set_far(r, seg, off);
+        r->pImageBase = base;
+        r->nImageExtent = extent;
+        r->wImageOff = off;
         r->wUnk4 = mask;
         if (n == 0)
             BAK_UNIMPLEMENTED("heg_install_image_set: an image under 8 pixels (the original "
                               "builds a 64 KB mask)");
-        copy_planes(di, seg, off, n);
-        build_mask(di, seg, mask, n);
+        copy_planes(di, base, off, n);
+        build_mask(di, base, mask, n);
         di = (u16)(di + n);
         u16 next = (u16)(n + mask);
-        seg = (u16)(seg + (next >> 4));
+        u32 paragraphs = (u32)(next >> 4) << 4;
+        base += paragraphs;
+        extent = extent > paragraphs ? extent - paragraphs : 0;
         off = (u16)(next & 15);
     }
+}
+
+/* Slot 14: the images in a block of plain memory, from its start (IMGLOAD.C). total, an
+ * argument for other adapters' drivers in the original, is the block's size. */
+void heg_image_decode(ImageRecord **images, unsigned char *data, u32 packedSize, unsigned char *aux,
+                      u32 total) {
+    (void)aux;
+    heg_image_decode_at(images, data, (total + 15) & ~15u, 0, packedSize);
 }
 
 /* ---- slot 17: packed rows --------------------------------------------------------- */

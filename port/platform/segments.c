@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "bak_port.h"
+#include "platform.h"
 
 typedef struct SegBlock {
     uint16_t seg;
@@ -137,6 +138,49 @@ static uint32_t offset_in_block(const void *p, SegBlock **out) {
     return (uint32_t)((const uint8_t *)p - b->base);
 }
 
+/*
+ * Plain blocks (bak_plain_alloc): no segment, but a pointer into one has an offset in it, which
+ * FP_OFF gives as it does for a DOS block. The routines that normalize a far pointer before a
+ * copy read it (heg.c's), and the buffers the original kept in EMS are plain. FP_SEG of one
+ * stops with a message.
+ */
+typedef struct PlainBlock {
+    const uint8_t *base;
+    uint32_t size;
+} PlainBlock;
+
+static PlainBlock *s_plain;
+static int s_plainCount, s_plainCapacity;
+
+void segments_note_plain(const void *base, uint32_t size) {
+    if (s_plainCount == s_plainCapacity) {
+        s_plainCapacity = s_plainCapacity ? 2 * s_plainCapacity : 256;
+        s_plain = realloc(s_plain, sizeof *s_plain * (size_t)s_plainCapacity);
+        if (s_plain == NULL) {
+            fprintf(stderr, "out of memory for the plain blocks' table\n");
+            abort();
+        }
+    }
+    s_plain[s_plainCount++] = (PlainBlock){base, size};
+}
+
+void segments_forget_plain(const void *base) {
+    for (int i = 0; i < s_plainCount; i++) {
+        if (s_plain[i].base == base) {
+            s_plain[i] = s_plain[--s_plainCount];
+            return;
+        }
+    }
+}
+
+static const PlainBlock *find_plain(const void *p) {
+    const uint8_t *q = p;
+    for (int i = 0; i < s_plainCount; i++)
+        if (q >= s_plain[i].base && q <= s_plain[i].base + s_plain[i].size)
+            return &s_plain[i];
+    return NULL;
+}
+
 uint16_t bak_ptr_seg(const void *p) {
     if ((uintptr_t)p < 0x10000)
         return 0;
@@ -152,7 +196,13 @@ uint16_t bak_ptr_seg_norm(const void *p) {
 uint16_t bak_ptr_off(const void *p) {
     if ((uintptr_t)p < 0x10000)
         return (uint16_t)(uintptr_t)p;
-    SegBlock *b;
-    uint32_t off = offset_in_block(p, &b);
+    uint32_t off;
+    const PlainBlock *plain = find_by_ptr(p) == NULL ? find_plain(p) : NULL;
+    if (plain != NULL) {
+        off = (uint32_t)((const uint8_t *)p - plain->base);
+    } else {
+        SegBlock *b;
+        off = offset_in_block(p, &b);
+    }
     return off < 0x10000 ? (uint16_t)off : (uint16_t)(off & 15);
 }

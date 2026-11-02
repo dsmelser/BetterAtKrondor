@@ -20,8 +20,19 @@ void unpack_2bpp_to_byte_per_pixel(unsigned char huge *src, unsigned char huge *
 void imgload_set_far(ImageRecord *rec, u16 seg, u16 off) {
     rec->pImageBase = (unsigned char *)MK_FP(seg, 0);
     rec->nImageExtent = bak_seg_extent(seg);
-    rec->wEmsChain = 0;
     rec->wImageOff = off;
+}
+
+/* An image's pixels at offset in a block of plain memory of size bytes, as a far pointer to
+ * them would be in a DOS block: the block's segment and the offset while it is under 64 KB, the
+ * paragraph and the rest past it (a huge pointer, normalized). Images live in plain memory. */
+void imgload_set_plain(ImageRecord *rec, unsigned char *block, u32 size, u32 offset) {
+    u32 base;
+
+    base = offset < 0x10000UL ? 0 : offset & ~15UL;
+    rec->pImageBase = block + base;
+    rec->nImageExtent = ((size + 15) & ~15UL) - base;
+    rec->wImageOff = (u16)(offset - base);
 }
 
 /*
@@ -117,7 +128,7 @@ NearPtr bak_load_image_record_chunked(FileRef *fname) {
         size =
             (*(u32(far *)(unsigned short *, s16 *))g_renderer_vtable.pfn_image_install)(
                 image, &aux_size);
-        if (!(buf = alloc_far(size, 0L)))
+        if (!(buf = bak_plain_alloc(size)))
             goto cleanup;
         if (aux_size != 0) {
             if (!(aux = alloc_far((s32)aux_size, 0L)))
@@ -187,7 +198,7 @@ cleanup:
     }
     if (mode == 0) {
         if (buf != 0)
-            _freemem(buf);
+            bak_plain_free(buf);
         if (stream != 0)
             stream_close(stream);
         free_container_pair((s16 *)image);
@@ -209,10 +220,12 @@ void free_container_pair(s16 *container) {
     my_free(container);
 }
 
-/* The pixels' block is the first image's: the original frees its far pointer. */
+/* The pixels' block (plain memory) is the first image's: the original frees its far pointer,
+ * a DOS block. */
 void far free_image_record(register ImageRecord **record) {
     if (record) {
-        _freemem((*record)->pImageBase + (*record)->wImageOff);
+        if (*record != NULL)
+            bak_plain_free((*record)->pImageBase + (*record)->wImageOff);
         free_container_pair((s16 *)record);
     }
 }

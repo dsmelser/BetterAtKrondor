@@ -60,7 +60,10 @@
     X(sbdsp_dma_wraps_within_its_page)                                                             \
     X(sbdsp_free_running_polls_end_blocks)                                                         \
     X(autosave_due_on_a_zone_and_the_clock)                                                        \
-    X(autosave_holds_the_machine_still)
+    X(autosave_holds_the_machine_still)                                                            \
+    X(memory_plain_blocks_have_offsets)                                                            \
+    X(memory_images_sit_in_plain_blocks)                                                           \
+    X(memory_ems_is_plain_blocks)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

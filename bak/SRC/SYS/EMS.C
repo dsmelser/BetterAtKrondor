@@ -2,40 +2,34 @@
 #include "structs.h"
 #include "defines.h"
 #include "SRC/SYS/EMS.H"
-#include "SRC/SYS/FARTHUNK.H"
-#include "SRC/SYS/EMSDET.H"
-#include "SRC/SYS/BOOT.H"
 
-unsigned short g_free_memory_kb;
-unsigned short g_wEmsFreeListHead;
-s16 *g_pEmsPageNextTbl;
-s16 g_anEmsPageMap[8];
+/*
+ * EMS, natively: each allocation is a block of plain memory of its own (bak_plain_alloc,
+ * outside the segment table), and mapping one gives the block whole, with no page frame and no
+ * copying. The original keeps its allocations as chains of 16 KB pages in the EMS memory
+ * INT 67h gives it (every free page, taken at start-up) and maps four pages at a time into the
+ * 64 KB page frame, so a caller maps an allocation again before each use, as they all do. The
+ * allocations are numbered from 1 as its chains are (0: none), and its count of free pages is
+ * kept as it keeps it: the start-up check reads it (BOOT.C).
+ */
+#define EMS_PAGE_SIZE 0x4000UL
+#define EMS_TOTAL_PAGES 512 /* the 8 MB the emulated driver offered */
+#define EMS_MAX_ALLOCS 299  /* numbers under 300, as the original's chains mostly were */
 
+typedef struct EmsAlloc {
+    unsigned char *block;
+    s16 pages;
+} EmsAlloc;
+
+static EmsAlloc s_allocs[EMS_MAX_ALLOCS + 1];
+
+unsigned short g_free_memory_kb; /* free 16 KB pages, whatever the name says */
 s16 g_ems_present = 0;
-unsigned short g_ems_total_pages = 0x0000;
-unsigned short g_ems_free_pages = 0x0000;
-unsigned short g_ems_frame_segment = 0x0000;
-char s_ems_driver_signature[8] = "EMMXXXX0";
 
 s16 ems_init(void) {
-    s16 *p;
-    s16 i;
-
-    if (ems_detect_driver() != 0) {
-        g_pEmsPageNextTbl = my_malloc(g_ems_total_pages << 1);
-        if (g_pEmsPageNextTbl == 0)
-            boot_engine_exit(0);
-
-        p = g_pEmsPageNextTbl;
-        for (i = 0; i < g_ems_total_pages; i++)
-            *p++ = i + 1;
-        *(p - 1) = -1;
-
-        g_wEmsFreeListHead = 0;
-        g_free_memory_kb = g_ems_total_pages;
-        return 1;
-    }
-    return 0;
+    g_free_memory_kb = EMS_TOTAL_PAGES;
+    g_ems_present = 1;
+    return 1;
 }
 
 unsigned short ems_get_free_memory(void) {
@@ -43,18 +37,19 @@ unsigned short ems_get_free_memory(void) {
 }
 
 void ems_shutdown(void) {
+    s16 i;
+
     if (g_ems_present) {
-        if (g_pEmsPageNextTbl != 0)
-            my_free(g_pEmsPageNextTbl);
-        bak_ems_release(g_ems_frame_segment); /* AH=45h; the global holds the handle */
+        for (i = 1; i <= EMS_MAX_ALLOCS; i++) {
+            ems_free_pages(i);
+        }
         g_ems_present = 0;
     }
 }
 
 s16 ems_alloc_pages(u32 size_bytes) {
     s16 pages;
-    s16 idx;
-    s16 first;
+    s16 id;
 
     if (g_ems_present == 0 || size_bytes == 0)
         return 0;
@@ -65,89 +60,39 @@ s16 ems_alloc_pages(u32 size_bytes) {
     if (pages <= 0 || pages > (s16)g_free_memory_kb)
         return 0;
 
-    first = g_wEmsFreeListHead + 1;
+    for (id = 1; id <= EMS_MAX_ALLOCS && s_allocs[id].block != NULL; id++)
+        ;
+    if (id > EMS_MAX_ALLOCS)
+        return 0;
+    if ((s_allocs[id].block = bak_plain_alloc((u32)pages * EMS_PAGE_SIZE)) == NULL)
+        return 0;
+    s_allocs[id].pages = pages;
     g_free_memory_kb -= pages;
-
-    idx = g_wEmsFreeListHead;
-    while (--pages)
-        idx = g_pEmsPageNextTbl[idx];
-
-    g_wEmsFreeListHead = g_pEmsPageNextTbl[idx];
-    g_pEmsPageNextTbl[idx] = -1;
-    return first;
+    return id;
 }
 
 void ems_free_pages(s16 page_chain_1based) {
-    s16 count;
-    s16 cur;
+    EmsAlloc *a;
 
-    if (g_ems_present == 0 || page_chain_1based == 0)
+    if (g_ems_present == 0 || page_chain_1based <= 0 || page_chain_1based > EMS_MAX_ALLOCS)
         return;
-
-    cur = page_chain_1based - 1;
-    count = 1;
-    while (g_pEmsPageNextTbl[cur] != -1) {
-        cur = g_pEmsPageNextTbl[cur];
-        count++;
-    }
-
-    g_pEmsPageNextTbl[cur] = g_wEmsFreeListHead;
-    g_wEmsFreeListHead = page_chain_1based - 1;
-    g_free_memory_kb += count;
+    a = &s_allocs[page_chain_1based];
+    if (a->block == NULL)
+        return;
+    bak_plain_free(a->block);
+    a->block = NULL;
+    g_free_memory_kb += a->pages;
 }
 
+/* The original maps the four pages from the one offset falls in and gives the place in the
+ * frame: natively the place in the block. */
 unsigned char far *ems_map_at_offset(s16 page_chain_1based, s32 offset) {
-    s16 page_idx;
-    u16 within;
-    s16 chain_node;
-    s16 phys_slot;
-    s16 *mapEntry;
-
-    page_idx = (s16)(offset >> 14);
-    within = (u16)offset & 0x3fff;
-
-    if (g_ems_present == 0 || page_chain_1based == 0)
-        return (unsigned char far *)MK_FP(0, 0);
-
-    chain_node = page_chain_1based - 1;
-    while (page_idx > 0 && chain_node != -1) {
-        chain_node = g_pEmsPageNextTbl[chain_node];
-        page_idx--;
-    }
-
-    phys_slot = 0;
-    mapEntry = g_anEmsPageMap;
-    while (phys_slot < 4 && chain_node != -1) {
-        *mapEntry++ = chain_node;
-        *mapEntry = phys_slot;
-        phys_slot++;
-        mapEntry++;
-        chain_node = g_pEmsPageNextTbl[chain_node];
-    }
-
-    bak_ems_map_multiple(g_ems_frame_segment, g_anEmsPageMap, phys_slot); /* AX=5000h */
-    return (unsigned char far *)MK_FP(g_ems_free_pages, within);
+    if (g_ems_present == 0 || page_chain_1based <= 0 || page_chain_1based > EMS_MAX_ALLOCS ||
+        s_allocs[page_chain_1based].block == NULL)
+        return NULL;
+    return s_allocs[page_chain_1based].block + offset;
 }
 
 unsigned char far *ems_map_resource_pages(s16 page_id) {
-    s16 cur;
-    s16 count;
-    s16 *mapEntry;
-
-    if (g_ems_present == 0 || page_id == 0)
-        return (unsigned char far *)MK_FP(0, 0);
-
-    cur = page_id - 1;
-    count = 0;
-    mapEntry = g_anEmsPageMap;
-    while (count < 4 && cur != -1) {
-        *mapEntry++ = cur;
-        *mapEntry = count;
-        count++;
-        mapEntry++;
-        cur = g_pEmsPageNextTbl[cur];
-    }
-
-    bak_ems_map_multiple(g_ems_frame_segment, g_anEmsPageMap, count); /* AX=5000h */
-    return (unsigned char far *)MK_FP(g_ems_free_pages, 0);
+    return ems_map_at_offset(page_id, 0);
 }

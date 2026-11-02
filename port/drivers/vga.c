@@ -20,7 +20,6 @@
 #include "bak_game_begin.h"
 #include "structs.h"
 #include "SRC/GEN/GFXCTX.H"
-#include "SRC/STREAM/RESLOAD/IMGLOAD.H"
 #include "bak_game_end.h"
 
 #define PLANAR_ROW 80    /* bytes per row in a plane */
@@ -358,17 +357,20 @@ u32 vga_image_install(ImageRecord **images, s16 *auxSize) {
 /*
  * Give each image its place in the decoded buffer (a normalized far pointer: segment,
  * offset 0-15) and expand the packed data, two pixels per byte, high nibble first, in
- * place from the end. The trailing arguments are for other adapters' drivers.
+ * place from the end. The buffer is a block of plain memory, from its start (IMGLOAD.C), and
+ * total, an argument for other adapters' drivers in the original, its size.
  */
 void vga_image_decode(ImageRecord **images, unsigned char *data, u32 packedSize, unsigned char *aux,
                       u32 total) {
     (void)aux;
-    (void)total;
-    unsigned char *p = data;
+    u32 size = (total + 15) & ~15u;
+    u32 at = 0;
     for (; *images != NULL; images++) {
-        u16 seg = FP_SEG(p), off = FP_OFF(p);
-        imgload_set_far(*images, (u16)(seg + (off >> 4)), (u16)(off & 15));
-        p += (u16)((u16)(*images)->nWidth * (u16)(*images)->nHeight);
+        u32 paragraph = at & ~15u;
+        (*images)->pImageBase = data + paragraph;
+        (*images)->nImageExtent = size > paragraph ? size - paragraph : 0;
+        (*images)->wImageOff = (u16)(at & 15);
+        at += (u16)((u16)(*images)->nWidth * (u16)(*images)->nHeight);
     }
     if (packedSize == 0)
         return; /* the original would loop 2^32 times */

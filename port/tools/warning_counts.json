@@ -7,14 +7,14 @@
     "cast-function-type-strict": 3,
     "comma": 5,
     "comment": 1,
-    "conditional-uninitialized": 76,
+    "conditional-uninitialized": 75,
     "deprecated-declarations": 87,
-    "deprecated-non-prototype": 58,
+    "deprecated-non-prototype": 56,
     "fortify-source": 15,
-    "implicit-int-conversion": 368,
+    "implicit-int-conversion": 367,
     "pointer-sign": 52,
     "sign-compare": 13,
-    "sometimes-uninitialized": 8,
+    "sometimes-uninitialized": 7,
     "switch": 10,
     "uninitialized": 2
   }

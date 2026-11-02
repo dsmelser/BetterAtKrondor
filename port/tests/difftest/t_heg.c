@@ -189,7 +189,7 @@ static void cmd_sprite_data(DtIn *in, DtOut *out) {
         s_sprites = bak_dos_alloc(SPRITE_DATA, 1);
     memcpy(s_sprites, dt_bytes(in, SPRITE_DATA), SPRITE_DATA);
     if (n != 0)
-        heg_image_decode(table, s_sprites + off, packed, NULL, 0);
+        heg_image_decode_at(table, s_sprites, SPRITE_DATA, off, packed);
     for (u16 i = 0; i < n; i++) {
         dt_put_u16(out, record_seg(&records[i], s_sprites));
         dt_put_u16(out, records[i].wImageOff);

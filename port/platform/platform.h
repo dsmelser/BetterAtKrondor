@@ -128,6 +128,10 @@ void clock_spend(uint64_t ns);
  * something is due (or by a poll's cost if that has passed). */
 void clock_idle(uint64_t wallNs, uint64_t dueNs);
 
+/* The plain blocks (dosmem.c's bak_plain_alloc), for FP_OFF of a pointer into one (segments.c). */
+void segments_note_plain(const void *base, uint32_t size);
+void segments_forget_plain(const void *base);
+
 /* A fast hash of a buffer for the replay logs (hash.c); chain calls through hash. */
 uint32_t platform_hash(uint32_t hash, const void *data, size_t bytes);
 

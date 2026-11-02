@@ -33,6 +33,10 @@ void heg_vsync_wait(s16 wait);                                                /*
 u32 heg_image_install(ImageRecord **images, s16 *auxSize);                    /* 13 */
 void heg_image_decode(ImageRecord **images, unsigned char *data, u32 packedSize, unsigned char *aux,
                       u32 total);                                              /* 14 */
+/* Slot 14's work on data at a far pointer: its segment's paragraph, the bytes from there to
+ * the block's end, and the offset (the differential test installs from an offset). */
+void heg_image_decode_at(ImageRecord **images, unsigned char *base, u32 extent, u16 off,
+                         u32 packedSize);
 void heg_blit_chunky(unsigned char *src, s16 x, s16 y, s16 width, s16 height); /* 17 */
 void heg_palette_set(unsigned char *palette);                                  /* 20 */
 u16 heg_getpixel(s16 x, s16 y);                                                /* 21 */

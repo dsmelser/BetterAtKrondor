@@ -57,10 +57,8 @@ ImageRecord **resblit_load_asset_table(char *path, s16 storage_mode) {
     ImageRecord **tbl = 0;
     ResFile *fp;
     unsigned char huge *pPayload;
-    unsigned char huge *cursor;
+    u32 offset;
     s16 published = 0;
-    s16 ems_handle;
-    u16 ems_off;
     u16 chunk;
     char *scratch;
     struct BmxHeader hdr;
@@ -83,41 +81,19 @@ ImageRecord **resblit_load_asset_table(char *path, s16 storage_mode) {
                         i++;
                     }
                     tbl[hdr.wImageCount] = 0;
-                    if (storage_mode == 2) {
-                        if ((s32)hdr.dwDecompressedSize < 0xffdcL &&
-                            (ems_handle = ems_alloc_pages(hdr.dwDecompressedSize)) != 0) {
-                            pPayload = ems_map_resource_pages(ems_handle);
-                        } else {
-                            pPayload = alloc_far(hdr.dwDecompressedSize, 0);
-                            storage_mode = 0;
-                        }
-
-                        if (!pPayload)
-                            goto cleanup;
-                    } else if (storage_mode != 0) {
-                        if ((ems_handle = ems_alloc_pages(hdr.dwDecompressedSize)) != 0)
-                            pPayload = ems_map_resource_pages(ems_handle);
-                        if (!pPayload)
-                            goto cleanup;
-                    } else {
-                        if ((pPayload = alloc_far(hdr.dwDecompressedSize, 0)) == 0)
-                            goto cleanup;
-                    }
-                    i = ems_off = 0;
-                    cursor = pPayload;
+                    /* Natively every table's pixels live in plain memory, whatever the storage
+                     * mode. The original puts a table of mode 1 in EMS, and one of mode 2 when it
+                     * is under 0xffdc bytes, where EMS is to be had, the images' offsets then
+                     * counting from the page chain's start; its blits map the chain (EMSIMG.C). */
+                    if ((pPayload = bak_plain_alloc(hdr.dwDecompressedSize)) == 0)
+                        goto cleanup;
+                    i = 0;
+                    offset = 0;
                     while (i < hdr.wImageCount) {
                         ImageRecord *rec = tbl[i];
                         chunk = rec->wImageOff;
-                        if (storage_mode != 0) {
-                            rec->pImageBase = NULL; /* mapped by the blits (EMSIMG.C) */
-                            rec->nImageExtent = 0;
-                            rec->wEmsChain = ems_handle;
-                            rec->wImageOff = ems_off;
-                            ems_off += chunk;
-                        } else {
-                            imgload_set_far(rec, FP_SEG(cursor), FP_OFF(cursor));
-                            cursor += chunk;
-                        }
+                        imgload_set_plain(rec, pPayload, hdr.dwDecompressedSize, offset);
+                        offset += chunk;
                         i++;
                     }
                     if (hdr.wCompression != 0) {
@@ -128,10 +104,11 @@ ImageRecord **resblit_load_asset_table(char *path, s16 storage_mode) {
                             scratch = calloc(1, i);
                         } while (scratch == 0 && i > 50);
                         if (hdr.wCompression == 2)
-                            decomp_rle((unsigned char far *)pPayload, hdr.wCompressedSize, (NearPtr)scratch, i,
-                                       fp);
+                            decomp_rle_into(pPayload, hdr.dwDecompressedSize, hdr.wCompressedSize,
+                                            (NearPtr)scratch, i, fp);
                         else
-                            decomp_lzss((unsigned char far *)pPayload, hdr.wCompressedSize, scratch, i, fp);
+                            decomp_lzss_into(pPayload, hdr.dwDecompressedSize, hdr.wCompressedSize,
+                                             scratch, i, fp);
                         free(scratch);
                         published = 1;
                     } else {
@@ -169,12 +146,7 @@ void resblit_list_remap_palette(ImageRecord **resource_list, unsigned char *pale
     for (i = 0; null_terminated_count(resource_list) > i; i++) {
         if (resource_list[i]->wUnk4 & 0x80) {
 
-            if (resource_list[i]->wEmsChain != 0) {
-                p = ems_map_resource_pages(resource_list[i]->wEmsChain);
-                p += resource_list[i]->wImageOff;
-            } else {
-                p = resource_list[i]->pImageBase + resource_list[i]->wImageOff;
-            }
+            p = resource_list[i]->pImageBase + resource_list[i]->wImageOff;
             while (*p) {
                 if (*p & 0x80) {
                     p++;

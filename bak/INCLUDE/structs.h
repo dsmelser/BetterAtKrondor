@@ -821,14 +821,13 @@ struct IffResReader {
 
 /* An image: its pixels' place and its size. The original's ten bytes start with a far pointer
  * to the pixels, segment first, or while the image's table sits in EMS that table's page chain
- * (under 300) and the offset in it. Natively the segment is the pointer to the paragraph it names
- * and the bytes from there to its block's end (imgload_set_far), so the image needs no segment,
- * and the chain has a field of its own. The last four words keep the original's order: the BMX
- * loader reads them from the file in one go. */
+ * (under 300) and the offset in it. Natively the pixels live in plain memory (IMGLOAD.C), and the
+ * segment is the pointer to the paragraph it would name and the bytes from there to the block's
+ * end (imgload_set_plain, imgload_set_far), so no image needs a segment or EMS. The last four
+ * words keep the original's order: the BMX loader reads them from the file in one go. */
 struct ImageRecord {
-    unsigned char *pImageBase; /* where wImageOff counts from; NULL while in EMS, unmapped */
+    unsigned char *pImageBase; /* where wImageOff counts from */
     u32 nImageExtent;          /* the bytes from pImageBase to the end of its block */
-    unsigned short wEmsChain;  /* the EMS page chain while the table sits in EMS; else 0 */
     unsigned short wImageOff;
     unsigned short wUnk4;
     short nWidth;

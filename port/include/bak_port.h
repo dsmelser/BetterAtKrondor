@@ -52,15 +52,11 @@ int16_t bak_dos_free(void *block);
 uint32_t bak_dos_largest_free_block(void);
 
 /*
- * LIM EMS 4.0 (INT 67h), emulated exactly: a 64 KB page frame registered at a
- * fixed segment, 16 KB logical pages held on the host, and mapping copies
- * pages in and out of the frame as the hardware's bank switching would appear.
+ * Plain memory for data no segment needs to reach (the images' pixels, what the original kept
+ * in EMS): zeroed, with a DOS block's slack after it, outside the segment table and its 650 KB.
  */
-uint16_t bak_ems_frame_segment(void);                      /* AH=41h, BX */
-uint16_t bak_ems_unallocated_pages(void);                  /* AH=42h, BX */
-uint16_t bak_ems_allocate(uint16_t pages);                 /* AH=43h, DX = handle */
-void bak_ems_release(uint16_t handle);                     /* AH=45h */
-void bak_ems_map_multiple(uint16_t handle, const int16_t *pairs, int count); /* AX=5000h */
+void *bak_plain_alloc(uint32_t size);
+void bak_plain_free(void *block);
 
 /*
  * The built-in video driver for a VMCODE.OVL chunk index (8 = "VGA:"), initialized as the

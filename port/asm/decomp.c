@@ -37,12 +37,32 @@ typedef struct {
     u16 cx;                  /* bytes left in it */
 } Decomp;
 
-static void start(Decomp *d, unsigned char *dst, s16 remaining, unsigned char *buf, s16 bufSize,
-                  ResFile *fp) {
+/* Where the output goes: a segment's paragraph, the bytes its block holds from there, and
+ * the offset in it. */
+typedef struct {
+    unsigned char *seg;
+    u32 extent;
+    u16 di;
+} Output;
+
+/* A far pointer's: its segment, as the original's ES. */
+static Output far_output(unsigned char *dst) {
     u16 seg = FP_SEG(dst);
-    d->seg = MK_FP(seg, 0);
-    d->extent = bak_seg_extent(seg);
-    d->di = FP_OFF(dst);
+    Output out = {MK_FP(seg, 0), bak_seg_extent(seg), FP_OFF(dst)};
+    return out;
+}
+
+/* A block of plain memory's, from its start (decomp_*_into): the block is the segment. */
+static Output block_output(unsigned char *block, u32 size) {
+    Output out = {block, (size + 15u) & ~15u, 0};
+    return out;
+}
+
+static void start(Decomp *d, Output out, s16 remaining, unsigned char *buf, s16 bufSize,
+                  ResFile *fp) {
+    d->seg = out.seg;
+    d->extent = out.extent;
+    d->di = out.di;
     d->remaining = (u16)remaining;
     d->buf = buf;
     d->bufSize = (u16)bufSize;
@@ -107,13 +127,13 @@ static void copy_back(Decomp *d, u16 from, u16 count) {
         put(d, *out_at(d, from));
 }
 
-void decomp_lzss(unsigned char *dst, s16 remaining, void *inbuf, s16 buf_size, ResFile *fp) {
+static void lzss(Output out, s16 remaining, void *inbuf, s16 buf_size, ResFile *fp) {
     Decomp d;
     u16 flags; /* the flag byte under an FFh sentinel: 8 bits are read when it runs out */
     u16 count, from;
     unsigned char b;
 
-    start(&d, dst, remaining, inbuf, buf_size, fp);
+    start(&d, out, remaining, inbuf, buf_size, fp);
     refill(&d);
 
 flag_fast: /* LAB_003f */
@@ -175,12 +195,12 @@ bits_slow: /* LAB_009e */
     goto bits_slow;
 }
 
-void decomp_rle(unsigned char *dst, s16 refill_count, NearPtr buf_ptr, s16 buf_size, ResFile *fp) {
+static void rle(Output out, s16 refill_count, NearPtr buf_ptr, s16 buf_size, ResFile *fp) {
     Decomp d;
     unsigned char token, fill;
     u16 count;
 
-    start(&d, dst, refill_count, (unsigned char *)buf_ptr, buf_size, fp);
+    start(&d, out, refill_count, (unsigned char *)buf_ptr, buf_size, fp);
     refill(&d);
     for (;;) {
         if (!have_byte(&d))
@@ -207,4 +227,22 @@ void decomp_rle(unsigned char *dst, s16 refill_count, NearPtr buf_ptr, s16 buf_s
             } while (--count != 0);
         }
     }
+}
+
+void decomp_lzss(unsigned char *dst, s16 remaining, void *inbuf, s16 buf_size, ResFile *fp) {
+    lzss(far_output(dst), remaining, inbuf, buf_size, fp);
+}
+
+void decomp_rle(unsigned char *dst, s16 refill_count, NearPtr buf_ptr, s16 buf_size, ResFile *fp) {
+    rle(far_output(dst), refill_count, buf_ptr, buf_size, fp);
+}
+
+void decomp_lzss_into(unsigned char *block, u32 size, s16 remaining, void *inbuf, s16 buf_size,
+                      ResFile *fp) {
+    lzss(block_output(block, size), remaining, inbuf, buf_size, fp);
+}
+
+void decomp_rle_into(unsigned char *block, u32 size, s16 refill_count, NearPtr buf_ptr,
+                     s16 buf_size, ResFile *fp) {
+    rle(block_output(block, size), refill_count, buf_ptr, buf_size, fp);
 }

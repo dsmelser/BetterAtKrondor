@@ -4,14 +4,7 @@
 #include "structs.h"
 
 extern s16 g_ems_present;
-extern unsigned short g_ems_total_pages;
-extern unsigned short g_ems_free_pages;
-extern unsigned short g_ems_frame_segment;
-extern char s_ems_driver_signature[8];
 extern unsigned short g_free_memory_kb;
-extern unsigned short g_wEmsFreeListHead;
-extern s16 *g_pEmsPageNextTbl;
-extern s16 g_anEmsPageMap[8];
 
 extern s16 ems_init(void);
 extern unsigned short ems_get_free_memory(void);

@@ -42,9 +42,7 @@
 #include "SRC/AUDIO/ENGINE/AUDSTPND.H"
 #include "SRC/AUDIO/ENGINE/AUDDRVST.H"
 #include "SRC/AUDIO/CHAN/AUDCHWRD.H"
-#include "SRC/SYS/EMS.H"
 #include "SRC/SYS/EMSIMG.H"
-#include "SRC/STREAM/RESLOAD/IMGLOAD.H"
 #include "SRC/SCRIPT/ADSCRIPT.H"
 #include "SRC/SCRIPT/TTMDLG.H"
 #include "SRC/UI/MENULBL.H"
@@ -236,8 +234,6 @@ static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned s
     case 0xa536:
     case 0xa5a7: {
 
-        unsigned short saved_page_id;
-        unsigned char far *ems_ptr;
         NearWord sprite; /* param_3 holds the sprite in the original: 16 bits */
 #define TTM_SPRITE sprite
 
@@ -245,16 +241,8 @@ static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned s
 
         if (g_pCurScriptObject->pAhPagedImage[param_4] &&
             (TTM_SPRITE = ((NearPtr *)g_pCurScriptObject->pAhPagedImage[param_4])[(unsigned short)param_3])) {
-
-            saved_page_id = ((ImageRecord *)TTM_SPRITE)->wEmsChain;
-
-            if (saved_page_id != 0) {
-                ems_ptr = ems_map_resource_pages(saved_page_id);
-
-                imgload_set_far((ImageRecord *)TTM_SPRITE, FP_SEG(ems_ptr),
-                                ((ImageRecord *)TTM_SPRITE)->wImageOff);
-            }
-
+            /* The original maps the sprite's table here when it sits in EMS (EMSIMG.C), and puts
+             * the chain back after: natively the table is in plain memory. */
             if ((g_nScriptCurOpcode & 0x0f) == 7) {
                 jmp_via_2f48((unsigned char *)TTM_SPRITE, param_1, param_2, param_7, param_5, param_6,
                              ((ImageRecord *)TTM_SPRITE)->nWidth >> 1,
@@ -273,12 +261,6 @@ static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned s
                 } else {
                     blit_sprite_indirect((NearPtr)TTM_SPRITE, param_1, param_2, g_wTtmBlitTint);
                 }
-            }
-
-            if (saved_page_id != 0) {
-                ((ImageRecord *)TTM_SPRITE)->pImageBase = NULL;
-                ((ImageRecord *)TTM_SPRITE)->nImageExtent = 0;
-                ((ImageRecord *)TTM_SPRITE)->wEmsChain = saved_page_id;
             }
         }
 #undef TTM_SPRITE
