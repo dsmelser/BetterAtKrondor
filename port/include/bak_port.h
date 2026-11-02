@@ -7,6 +7,7 @@
 #ifndef BAK_PORT_H
 #define BAK_PORT_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -112,6 +113,9 @@ int bak_smooth_frames(void);
 /* Where a dialog box's parchment pattern starts (DIALOG.C): the cosmetic stream's draw (drawn),
  * or BAK_PARCHMENT's value instead, which the goldens set to the original's own draw. */
 int16_t bak_parchment_base(int16_t drawn);
+/* Whether GOURAUD.ASM's quads keep a column's top-clip skip count for the columns after it,
+ * as the original does (BAK_GOURAUD_SKIP=original, for the goldens); the game resets it. */
+bool bak_gouraud_skip_as_original(void);
 /* The sound driver the game installs (a SoundDriverId of AUDRESIN.H): the audio.device setting's,
  * or for "game" the one RESOURCE.CFG named (configured). */
 int16_t bak_sound_driver(int16_t configured);

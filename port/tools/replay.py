@@ -113,9 +113,27 @@ SCENARIOS["spawns"] = world_then(
     + "".join(f"{92000 + 500 * i}:key:Left;" for i in range(32)), 110000)
 # The teleport the original skipped: to zone 1's tile 10,14, two rows from the party's start in
 # its tile column (10,16), at the heading kept from the zone's entry, 8000h. It is the combat
-# scenario's place, two cells north of the fight (the next row, 10,15, draws Gouraud-shaded
-# shapes: GOURAUD.ASM is not translated yet). The party arrives and waits.
+# scenario's place, two cells north of the fight (the next row, 10,15, is the road scenario's).
+# The party arrives and waits.
 SCENARIOS["teleport"] = world_then("90000:teleport:1,10,14,28,12,8000;", 93000)
+# The road south of the start (zone 1's tile 10,15), whose trees are GOURAUD.ASM's textured
+# quads (until 2026-11-02 the port stopped there, the module a stub): a teleport onto it, two
+# steps, a turn left, a step, two turns right, a step.
+SCENARIOS["road"] = world_then(
+    "90000:teleport:1,10,15,18,30,8000;92000:key:Up;93000:key:Up;94000:key:Left;95000:key:Up;"
+    "96000:key:Right;97000:key:Right;98000:key:Up;", 101000)
+# A labyrinth (zone 10, mode 2), whose walls are GOURAUD's quads too: a teleport into it, two
+# steps, a turn left, a step, a turn right, a step. Then the same with the party's steps at
+# once (a picture only, the same states), and with autosaves on (the zone's entry saves).
+SCENARIOS["labyrinth"] = world_then(
+    "90000:teleport:10,10,16,21,2,0;92000:key:Up;93000:key:Up;94000:key:Left;95000:key:Up;"
+    "96000:key:Right;97000:key:Up;", 100000)
+SCENARIOS["labyrinth-instant"] = SCENARIOS["labyrinth"]
+SCENARIO_SETS["labyrinth-instant"] = ["video.step_time=0"]
+SAME_STATES_AS["labyrinth-instant"] = "labyrinth"
+SCENARIOS["labyrinth-autosave"] = SCENARIOS["labyrinth"]
+SCENARIO_SETS["labyrinth-autosave"] = ["saves.autosave=true", "saves.autosave_minutes=1"]
+SAME_AS["labyrinth-autosave"] = "labyrinth"
 # The map's hidden riddle chest (MAP.C): on the map (M), the grave key held half a second with
 # the right Shift and an Alt shows the Moredhel lock vision, whose dialog waits for a sound to
 # end, then the chest's word lock (CIPHER.C): Space through its dialogs, the first dial turned

@@ -438,3 +438,14 @@ int16_t bak_parchment_base(int16_t drawn) {
     }
     return pinned >= 0 ? (int16_t)pinned : drawn;
 }
+
+/* GOURAUD.ASM's skip count (port/asm/gouraud.c): the original's way when BAK_GOURAUD_SKIP is
+ * "original" (the goldens, so the port's picture can be the original's), else the port's. */
+bool bak_gouraud_skip_as_original(void) {
+    static int original = -1; /* not looked up yet */
+    if (original == -1) {
+        const char *env = SDL_getenv("BAK_GOURAUD_SKIP");
+        original = env != NULL && SDL_strcmp(env, "original") == 0;
+    }
+    return original == 1;
+}

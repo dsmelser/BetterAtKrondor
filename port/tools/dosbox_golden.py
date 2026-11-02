@@ -194,11 +194,12 @@ class DosBox:
                 with urllib.request.urlopen(req, timeout=30) as r:
                     return r.read()
             except urllib.error.HTTPError as e:
-                # The API answers 500 "timeout" while the emulator does not take requests
-                # (starting up, or inside a DOS call); ask again.
-                if e.code != 500 or b"timeout" not in e.read() or attempt == 4:
+                # The API answers 500 while the emulator does not take requests ("timeout":
+                # starting up, or inside a DOS call; once, without a word, during a poll of
+                # the world); ask again.
+                if e.code != 500 or attempt == 4:
                     raise
-                time.sleep(0.2)
+                time.sleep(0.5)
         raise AssertionError("unreachable")
 
     def json(self, path: str, method: str = "GET", body: dict | None = None) -> dict:
@@ -632,6 +633,9 @@ class Scenario:
     # The saves both sides leave, by their path under the game's folder, compared byte for
     # byte after the pictures (the working save, TEMP.GAM, always is).
     saves: list[str] = field(default_factory=list)
+    # The port's environment for the run, besides the capture's own: a diagnostic setting
+    # that makes a picture the original's (BAK_GOURAUD_SKIP=original).
+    env: dict[str, str] = field(default_factory=dict)
 
 
 SCENARIOS = {
@@ -754,6 +758,37 @@ SCENARIOS["load"] = Scenario(
     late=[(40.0, Click(170, 57)), (45.0, Key(*KEYS["Return"])), (47.0, WaitForWorld(70.0))],
     prelude=_WORLD + "90000:key:Up;91000:key:Up;92000:key:Left;94000:key:F5;97000:quit",
     seed=["GAMES/SAVES.G01/SAVE00.GAM"])
+
+
+
+
+def in_zone(description: str, zone: int, tile_x: int, tile_y: int, cell_x: int, cell_y: int,
+            heading: int) -> Scenario:
+    """The world, then a teleport record into a zone (the port's scripted teleport fills the
+    same record), the picture when the party stands there: in DOSBox at 240 s and the capture
+    from 290 s (a zone loads in seconds); on the port at 90 s, the quit at 100 s. The port
+    draws GOURAUD.ASM's quads the original's way (the skip count a column clipped at the top
+    leaves for those after it, which the port otherwise resets: PORT_STATUS, "Bugs of the
+    original, fixed"), so the pictures can be the same."""
+    world = SCENARIOS["world"]
+    end = "90000:quit"
+    assert world.port_input.endswith(end), world.port_input
+    into = Teleport(zone, tile_x, tile_y, cell_x, cell_y, heading)
+    return Scenario(description=description, keys=world.keys, settle=290.0,
+                    port_input=world.port_input[: -len(end)] + f"90000:{into.port_step()};"
+                    "100000:quit",
+                    late=[(60.0, WaitForWorld(220.0)), (240.0, into)],
+                    env={"BAK_GOURAUD_SKIP": "original"})
+
+
+# GOURAUD.ASM's textured quads: the trees of the road south of the start (zone 1's tile
+# 10,15), and a labyrinth's walls (zone 10). The road is in the party's own tile column, and
+# the original skips a teleport there at the heading it keeps from the zone's entry (8000h:
+# "Bugs of the original, fixed"), so the party arrives facing 400h left of south.
+SCENARIOS["road"] = in_zone("The road south of the start: its trees are GOURAUD.ASM's quads", 1,
+                            10, 15, 18, 30, 0x8400)
+SCENARIOS["labyrinth"] = in_zone("A labyrinth (zone 10): its walls are GOURAUD.ASM's quads", 10,
+                                 10, 16, 21, 2, 0)
 
 
 # ---- the saves ----------------------------------------------------------------------------
@@ -1010,7 +1045,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         shutil.copyfile(src, user / rel)
     # The port runs on the host's clock, and silent: its sound would otherwise play.
     env = dict(os.environ, BAK_HEADLESS="1", SDL_VIDEO_DRIVER="dummy", SDL_AUDIO_DRIVER="dummy",
-               BAK_INPUT=s.port_input, BAK_DUMP_FRAME=str(bmp))
+               BAK_INPUT=s.port_input, BAK_DUMP_FRAME=str(bmp), **s.env)
     if parchment is not None:
         env["BAK_PARCHMENT"] = str(parchment)
     # The original draws its cursor into the picture; so does the port's game cursor. It has no
