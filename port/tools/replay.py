@@ -19,7 +19,8 @@ so the game folder's own file, if any, plays no part.
 Runs go to work/replay/<scenario>/, never committed: the logs and the last frame come from the
 game's art. The scenarios are the golden screenshots' (dosbox_golden.py), walks on keys, a
 gamepad and held buttons, a fight, the spawned objects of zone 4, a teleport within the zone,
-the map's riddle chest, saves and loads, and autosaves (off in the others). A golden scenario
+the map's riddle chest, saves and loads, autosaves (off in the others), chapter 9's last
+cutscene, and the zone sweeps: every tile of a zone viewed at 8 headings. A golden scenario
 with a prelude (a quicksave the port makes first) starts from what it leaves, as the golden does.
 """
 
@@ -223,6 +224,42 @@ SCENARIOS["music"] = SCENARIOS["world"]
 # The main menu's track (16, CD.DAT's 44.6 s of it) played out, and the silence after.
 SCENARIOS["music-menu"] = "6000:key:Escape;60000:quit"
 SCENARIO_PREFS = {"music": PREFS_CD_MUSIC, "music-menu": PREFS_CD_MUSIC}
+# Scenarios whose script is made from the game's data when they run.
+SCENARIO_SCRIPTS: dict[str, Callable[[Path], str]] = {}
+# The zone sweeps (sweep-01 to sweep-12): from the world, the party teleported to the middle
+# (cell 20,20) of every tile of the zone that has a WLD file (the tiles its objects stand on),
+# at 8 headings 2000h apart, a teleport every 200 ms of game time: every view the 3-D renderer
+# draws there is in the frame log, and a routine the port lacks stops the run. A teleport sets
+# off no encounter (steps do, and a dialog's action), so nothing waits for a key.
+SWEEP_HEADINGS = range(0, 0x10000, 0x2000)
+
+
+def sweep_tiles(data: Path, zone: int) -> list[tuple[int, int]]:
+    """The tiles of a zone that have a WLD file (T<zone><x><y>.WLD) in the game's archive."""
+    from bakbuild.commands.rmf import _load
+
+    _, _, entries, _ = _load(data / "KRONDOR.RMF")
+    prefix = f"T{zone:02d}"
+    return sorted((int(e.name[3:5]), int(e.name[5:7])) for e in entries
+                  if e.name.upper().startswith(prefix) and e.name.upper().endswith(".WLD")
+                  and len(e.name) == 11)
+
+
+def sweep_script(zone: int) -> Callable[[Path], str]:
+    def script(data: Path) -> str:
+        at, steps = 90000, []
+        for tx, ty in sweep_tiles(data, zone):
+            for heading in SWEEP_HEADINGS:
+                steps.append(f"{at}:teleport:{zone},{tx},{ty},20,20,{heading:x};")
+                at += 200
+        return world_then("".join(steps), at + 1000)
+
+    return script
+
+
+for _zone in range(1, 13):
+    SCENARIOS[f"sweep-{_zone:02d}"] = ""
+    SCENARIO_SCRIPTS[f"sweep-{_zone:02d}"] = sweep_script(_zone)
 
 
 # The golden scenarios of the saves. savegame: the world, the Save Game dialog, the save "test"
@@ -274,15 +311,21 @@ def run(scenario: str, data: Path, exe: Path, out: Path, sets: list[str]) -> Non
     for name in LOGS:
         (out / f"{name}.log").unlink(missing_ok=True)
     (out / "last.bmp").unlink(missing_ok=True)
+    script = SCENARIO_SCRIPTS[scenario](data) if scenario in SCENARIO_SCRIPTS \
+        else SCENARIOS[scenario]
+    if len(script) > 16000:  # more than the environment holds well: from a file
+        (out / "input.txt").write_text(script.replace(";", "\n"), encoding="utf-8", newline="\n")
+        script = f"@{out / 'input.txt'}"
     env = dict(os.environ, BAK_CLOCK="virtual", BAK_HEADLESS="1", SDL_VIDEO_DRIVER="dummy",
-               BAK_INPUT=SCENARIOS[scenario], BAK_FRAME_LOG=str(out / "frames.log"),
+               BAK_INPUT=script, BAK_FRAME_LOG=str(out / "frames.log"),
                BAK_STATE_LOG=str(out / "state.log"), BAK_AUDIO_LOG=str(out / "audio.log"),
                BAK_DUMP_AUDIO=str(out / "audio.wav"), BAK_DUMP_FRAME=str(out / "last.bmp"))
     start = time.monotonic()
     pairs = DEFAULT_SETS + SCENARIO_SETS.get(scenario, []) + sets  # a later one wins
     settings = [arg for pair in pairs for arg in ("--set", pair)]
     r = subprocess.run([str(exe), "--data", str(data), "--user", str(user), *settings], env=env,
-                       capture_output=True, text=True, timeout=900, check=False)
+                       capture_output=True, text=True, check=False,
+                       timeout=3600 if scenario in SCENARIO_SCRIPTS else 900)
     seconds = time.monotonic() - start
     (out / "stderr.txt").write_text(r.stderr, encoding="utf-8", newline="\n")
     if r.returncode != 0:

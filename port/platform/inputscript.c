@@ -22,6 +22,8 @@
  *
  * For example BAK_INPUT="20000:key:Escape;30000:click:160,100". The steps run in time
  * order, each once its time has come; a malformed one stops the run with a message.
+ * BAK_INPUT="@<file>" reads them from a file, where line ends separate steps too: a script
+ * longer than the environment can hold (32 KB on Windows), such as a zone sweep's.
  *
  * A click or hold moves the pointer and presses in one step. A menu page reads where the
  * pointer is before it reads the buttons (MENUPAGE.C's menupage_input_poll), so a press that
@@ -95,8 +97,8 @@ static void add(Step s, const char *text) {
 static void parse(const char *text) {
     char *copy = SDL_strdup(text);
     char *save = NULL;
-    for (char *step = SDL_strtok_r(copy, ";", &save); step != NULL;
-         step = SDL_strtok_r(NULL, ";", &save)) {
+    for (char *step = SDL_strtok_r(copy, ";\r\n", &save); step != NULL;
+         step = SDL_strtok_r(NULL, ";\r\n", &save)) {
         char *rest;
         unsigned long ms = SDL_strtoul(step, &rest, 10);
         if (rest == step || *rest != ':')
@@ -193,8 +195,17 @@ bool input_script_poll(void) {
         s_loaded = true;
         s_startNs = clock_now_ns();
         const char *text = SDL_getenv("BAK_INPUT");
-        if (text != NULL)
+        if (text != NULL && text[0] == '@') {
+            char *file = SDL_LoadFile(text + 1, NULL);
+            if (file == NULL) {
+                fprintf(stderr, "BAK_INPUT: cannot read %s: %s\n", text + 1, SDL_GetError());
+                exit(2);
+            }
+            parse(file);
+            SDL_free(file);
+        } else if (text != NULL) {
             parse(text);
+        }
     }
     uint64_t now = clock_now_ns();
     while (s_next < s_count && s_steps[s_next].atNs <= now) {
