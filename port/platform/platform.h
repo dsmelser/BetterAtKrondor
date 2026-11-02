@@ -213,9 +213,11 @@ void mouse_button(uint16_t bit, bool down);
 /* Run the BAK_INPUT steps that are due (inputscript.c); false once one asks to quit. */
 bool input_script_poll(void);
 /* Ask the game to move the party (teleport.c): its pending teleport, carried out by the world
- * loop's next pass. A cell is 1/40 of a tile; a heading's full turn is 10000h. */
+ * loop's next pass. A cell is 1/40 of a tile; a heading's full turn is 10000h. A town scene
+ * (its kind and index, or 0) is entered first; zone 255 enters the scene and moves nobody. */
 void game_request_teleport(uint8_t zone, uint8_t tileX, uint8_t tileY, uint8_t cellX,
-                           uint8_t cellY, uint16_t heading);
+                           uint8_t cellY, uint16_t heading, uint16_t sceneKind,
+                           uint16_t sceneIndex);
 
 /* machine.c: the I/O ports of the timer, interrupt controller and keyboard controller
  * (false: not one of these), and a byte arriving from the keyboard (IRQ 1). */

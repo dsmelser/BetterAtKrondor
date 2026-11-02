@@ -1,9 +1,9 @@
 """Golden screenshots: the original game in DOSBox Staging against the port.
 
 The black-box check from the port plan. The original KRONDOR.EXE from the user's copy runs in
-DOSBox Staging, the port runs on the same data, both get the same keys, and the pictures they
-show are compared pixel by pixel. Captures go to work/golden/<scenario>/ (never committed: they
-are the game's art).
+DOSBox Staging, the port runs on the same data, both get the same keys, teleports and clicks (the
+original through its memory, the port through BAK_INPUT), and the pictures they show are compared
+pixel by pixel. Captures go to work/golden/<scenario>/ (never committed: they are the game's art).
 
     uv run python -I port/tools/dosbox_golden.py run main-menu --data "E:/GOG/Betrayal at Krondor"
     uv run python -I port/tools/dosbox_golden.py trace --data "E:/GOG/Betrayal at Krondor" --seconds 30
@@ -115,6 +115,7 @@ class DosBox:
         self.log = None
         self.started = 0.0
         self.block = 0  # linear address of the capture block
+        self.publics: dict[str, tuple[int, int]] | None = None  # the game's map (GameMap)
 
     def start(self, data: Path, work: Path, keys: list[tuple[float, str]], pace: float) -> None:
         overlay = work / "overlay"
@@ -214,9 +215,9 @@ class DosBox:
 
     def press(self, scan: int, ascii: int) -> None:
         """A key in the BIOS keyboard buffer (0040:001E-003D), where the game's keyboard interrupt
-        queues scancode:ASCII and kbhit_read takes it (KEYBOARD.ASM). AUTOTYPE stops typing about
-        three minutes after DOSBox starts, so keys after the world come this way. The key goes in
-        first and the tail moves after it, only if the game did not move it meanwhile."""
+        queues scancode:ASCII and kbhit_read takes it (KEYBOARD.ASM): the keys after AUTOTYPE's
+        line, at their moment. The key goes in first and the tail moves after it, only if the
+        game did not move it meanwhile."""
         for _ in range(20):
             head, tail = struct.unpack("<HH", self.read(0x41A, 4))
             after = tail + 2 if tail + 2 < 0x3E else 0x1E
@@ -236,6 +237,45 @@ class DosBox:
     def current_psp(self) -> int:
         sda = self.json("/dos/internals")["dosSwappableArea"]
         return struct.unpack("<H", self.read(sda + 0x10, 2))[0]
+
+    def symbol(self, name: str) -> int:
+        """The linear address of one of the game's publics (the reference build's map, whose
+        segments count from the image's start: the running game's PSP and 100h), while the game
+        is the program running."""
+        if self.publics is None:
+            raise RuntimeError("no map for the game's publics")
+        seg, off = self.publics[name.upper()]
+        return (self.current_psp() + 0x10 + seg) * 16 + off
+
+    def until_the_picture_changes(self, poke, what: str, tries: int = 3, within: float = 8) -> None:
+        """Poke the game (a step written into its memory) until the picture changes within a few
+        seconds: every step of the scenarios opens or pages something. A poke the game did not
+        act on (seen once in the Blue Wheel Inn, cause unknown) is made again."""
+        before = self.capture().rgb6()
+        for _ in range(tries):
+            poke()
+            deadline = time.monotonic() + within
+            while time.monotonic() < deadline:
+                time.sleep(1)
+                if self.capture().rgb6() != before:
+                    return
+            print(f"{what} changed nothing in {within:g} s at {self.elapsed():.0f} s: again")
+        raise RuntimeError(f"{what} changed nothing, {tries} times")
+
+    def wait_for_world(self, timeout: float = 480) -> float:
+        """Seconds from start-up at which the world's menu page was loaded (g_pReqMainPage, a
+        near pointer, set right before the zone loads and the world loop runs, cleared after
+        it), polled every two seconds from 60 s on, when the game is the program running. The
+        world comes near 175 s after a new game's intro, book and cutscene."""
+        wait = 60 - self.elapsed()
+        if wait > 0:
+            time.sleep(wait)
+        at = self.symbol("_G_PREQMAINPAGE")
+        while self.elapsed() < timeout:
+            if self.read(at, 2) != b"\0\0":
+                return self.elapsed()
+            time.sleep(2)
+        raise RuntimeError(f"the world did not come within {timeout:g} s")
 
     # -- capture --
 
@@ -290,17 +330,21 @@ class DosBox:
 
 
 def autotype_command(keys: list[tuple[float, str]], pace: float) -> str:
-    """DOSBox's AUTOTYPE types at one pace after a first wait; a comma adds one pace of
-    pause. Key times are rounded to the pace."""
+    """DOSBox's AUTOTYPE types after a first wait, a key taking a pace and a comma pausing two
+    (measured on the BIOS keyboard buffer with a pace of 0.5 s: a key every half second, a
+    comma a second; until 2026-11-02 the tool counted a comma as one pace, so every key but
+    the first came late, the world scenario's 24 Spaces 7.5 s apart from 132 s to 306 s, and
+    the last sixteen fell into the world and its screens). Each key gets the commas that bring
+    it nearest its time."""
     first = keys[0][0]
     words = [keys[0][1]]
-    t = first
+    t = first + pace
     for at, key in keys[1:]:
-        gap = round((at - t) / pace)
-        if gap < 1:
+        if at < t + pace:
             raise ValueError(f"keys closer than the pace ({pace} s): {key} at {at}")
-        words += [","] * (gap - 1) + [key]
-        t += gap * pace
+        commas = round((at - t - pace) / (2 * pace))
+        words += [","] * commas + [key]
+        t += commas * 2 * pace + pace
     return f"autotype -w {first:g} -p {pace:g} " + " ".join(words)
 
 
@@ -437,8 +481,8 @@ class GameMap:
         rel = MAPS.get(digest[:12])
         if rel is None:
             raise RuntimeError(f"unknown KRONDOR.EXE (sha256 {digest[:12]})")
-        self.symbols = sorted((seg * 16 + off, name)
-                              for name, (seg, off) in parse_map(ref / rel).items())
+        self.publics = parse_map(ref / rel)
+        self.symbols = sorted((seg * 16 + off, name) for name, (seg, off) in self.publics.items())
         cblp, cp, _crlc, cparhdr = struct.unpack_from("<4H", exe, 2)
         self.size = cp * 512 - ((512 - cblp) if cblp else 0) - cparhdr * 16
 
@@ -456,6 +500,81 @@ class GameMap:
         return f"{best[1]}+{lin - best[0]:X}"
 
 
+# ---- what the original is told once it runs -----------------------------------------------
+#
+# After AUTOTYPE stops, the original is driven through its memory: keys into the BIOS keyboard
+# buffer, and the game's own records where the port's script writes them too (teleport.c,
+# mouse.c), found by the reference build's map.
+
+
+@dataclass
+class Key:
+    scan: int
+    ascii: int
+
+    def run(self, box: DosBox) -> None:
+        box.press(self.scan, self.ascii)
+
+
+@dataclass
+class Teleport:
+    """The game's pending teleport (GameState.abTeleportRecord, 23h into g_gameState), as the
+    port's scripted teleport fills it: the world loop carries it out at its next pass, entering
+    the town scene named (its kind and index) first; zone 255 enters the scene and moves nobody,
+    as TELEPORT.DAT's own records for the scenes do."""
+    zone: int
+    tile_x: int = 0
+    tile_y: int = 0
+    cell_x: int = 0
+    cell_y: int = 0
+    heading: int = 0
+    scene_kind: int = 0
+    scene_index: int = 0
+
+    def run(self, box: DosBox) -> None:
+        at = box.symbol("_G_GAMESTATE") + 0x23
+        rec = struct.pack("<5BHHH", self.zone, self.tile_x, self.tile_y, self.cell_x, self.cell_y,
+                          self.heading, self.scene_kind, self.scene_index)
+
+        def poke() -> None:
+            box.write(at + 1, rec[1:])
+            box.write(at, rec[:1])  # the zone last: the world loop acts once it is set
+
+        box.until_the_picture_changes(poke, f"the teleport {rec.hex()}")
+
+    def port_step(self) -> str:
+        scene = f",{self.scene_kind},{self.scene_index}" if self.scene_kind else ""
+        return (f"teleport:{self.zone},{self.tile_x},{self.tile_y},{self.cell_x},{self.cell_y},"
+                f"{self.heading:x}{scene}")
+
+
+@dataclass
+class Click:
+    """A click of the left button at pixel (x, y), through the state the game's mouse callback
+    latches (MOUSE.ASM: the position in mickeys, four a pixel, and the buttons), which the
+    game's queries read: DOSBox's API moves no mouse, and headless nothing else does. The
+    game sees the pointer there, then the button down for a while, then up: a click."""
+    x: int
+    y: int
+
+    def run(self, box: DosBox) -> None:
+        at = box.symbol("_G_MOUSE_X_MICKEYS")
+        buttons = box.symbol("_G_MOUSE_BUTTONS")
+        pos = struct.pack("<HH", self.x * 4, self.y * 4)
+
+        def poke() -> None:
+            box.write(at, pos)
+            time.sleep(0.5)
+            box.write(buttons, b"\x01")
+            time.sleep(0.5)
+            box.write(buttons, b"\x00")
+
+        box.until_the_picture_changes(poke, f"the click at ({self.x}, {self.y})")
+
+    def port_step(self) -> str:
+        return f"click:{self.x},{self.y}"
+
+
 # ---- scenarios ----------------------------------------------------------------------------
 
 
@@ -468,12 +587,18 @@ class Scenario:
     keys: list[tuple[float, str]]   # (seconds, AUTOTYPE key name)
     settle: float                   # seconds from start-up before the first capture
     port_input: str                 # BAK_INPUT for the port; its last frame is compared
-    # Keys put straight into the BIOS keyboard buffer (DosBox.press): (seconds, scancode, ASCII).
-    late: list[tuple[float, int, int]] = field(default_factory=list)
+    # What the original is told after AUTOTYPE (above): (seconds, Key, Teleport or Click). It
+    # counts on the world being there; when the world comes late (a slow host), the steps and
+    # the capture move with it (cmd_run).
+    late: list[tuple[float, Key | Teleport | Click]] = field(default_factory=list)
     # Rectangles (x0, y0, x1, y1, inclusive) whose differences do not count, and why: a text
     # field's caret, which blinks on the game's timer, so each side shows its own phase.
     ignore: list[tuple[int, int, int, int]] = field(default_factory=list)
     ignore_why: str = ""
+    # The picture holds a dialog box, whose parchment pattern starts where a random draw says
+    # (DIALOG.C): the original's draw is read from its memory after the capture, and the port
+    # draws from the same place (BAK_PARCHMENT).
+    parchment: bool = False
 
 
 SCENARIOS = {
@@ -514,7 +639,28 @@ def from_the_world(description: str, *keys: str) -> Scenario:
     return Scenario(description=description, keys=world.keys, settle=260.0 + 10 * len(keys),
                     port_input=world.port_input[: -len(end)] + port
                     + f"{90 + 3 * len(keys) + 7}000:quit",
-                    late=[(240.0 + 10 * i, *KEYS[k]) for i, k in enumerate(keys)])
+                    late=[(240.0 + 10 * i, Key(*KEYS[k])) for i, k in enumerate(keys)])
+
+
+def in_lamut(description: str, scene: int, *clicks: tuple[int, int], parchment: bool = False
+             ) -> Scenario:
+    """The world, then a teleport into one of LaMut's scenes (town 1: GDS1A.DAT is the town,
+    B the Blue Wheel Inn, C the Fletcher's Post), the party staying where it is, then clicks
+    in it: in DOSBox the teleport at 240 s and the clicks from 255 s, 10 s apart; on the port
+    the teleport at 90 s and the clicks from 95 s, 4 s apart (a dialog opens with a wipe that
+    takes 3 s, and ignores a click for a moment after a page)."""
+    world = SCENARIOS["world"]
+    end = "90000:quit"
+    assert world.port_input.endswith(end), world.port_input
+    into = Teleport(255, scene_kind=1, scene_index=scene)
+    steps = [(90, into)] + [(95 + 4 * i, Click(x, y)) for i, (x, y) in enumerate(clicks)]
+    port = "".join(f"{at}000:{step.port_step()};" for at, step in steps)
+    return Scenario(description=description, keys=world.keys, settle=260.0 + 10 * len(clicks),
+                    port_input=world.port_input[: -len(end)] + port
+                    + f"{95 + 4 * len(clicks) + 5}000:quit",
+                    late=[(240.0, into)] + [(255.0 + 10 * i, Click(x, y))
+                                            for i, (x, y) in enumerate(clicks)],
+                    parchment=parchment)
 
 
 # The 2-D screens over the world (M6's parity step): the map (M), the first party member's
@@ -527,6 +673,19 @@ SCENARIOS["options"] = from_the_world("The world, then O: the Options menu", "O"
 SCENARIOS["save"] = from_the_world("The world, then O and S: the Save Game dialog", "O", "S")
 SCENARIOS["save"].ignore = [(147, 129, 147, 139)]
 SCENARIOS["save"].ignore_why = "the Games field's caret, which blinks"
+# The town scenes and what opens from them: LaMut, its Fletcher's Post with the purchasing
+# counter clicked (the merchant's screen, straight from the counter: its actor has no dialog).
+SCENARIOS["town"] = in_lamut("The world, then LaMut's town scene (GDS1A.DAT)", 1)
+SCENARIOS["shop"] = in_lamut("LaMut's Fletcher's Post (GDS1C.DAT), its counter clicked: the "
+                             "merchant's screen", 3, (47, 33))
+# The Blue Wheel Inn (GDS1B.DAT): its patrons are drawn stretched (VGA slot 37).
+SCENARIOS["inn"] = in_lamut("LaMut's Blue Wheel Inn (GDS1B.DAT): its patrons drawn stretched", 2)
+# A talk with a portrait: the Blue Wheel Inn's dwarf (its actor 6) clicked, and his tale paged by
+# clicks on the parchment to his third page: Dubal An Loch drawn over the scene (BLITAA's
+# anti-aliased edges, PALBLEND's colours), his name, his words.
+SCENARIOS["talk"] = in_lamut("The Blue Wheel Inn (GDS1B.DAT), its dwarf clicked and paged: Dubal "
+                             "An Loch's portrait over the scene, his name and his words", 2,
+                             (118, 73), (160, 180), (160, 180), (160, 180), parchment=True)
 
 
 # ---- commands -----------------------------------------------------------------------------
@@ -581,17 +740,30 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     # The original.
     box = DosBox(Path(args.dosbox), args.api_port)
+    if s.late:
+        box.publics = GameMap(data).publics
     try:
         box.start(data, out, s.keys, args.pace)
-        for at, scan, ascii in s.late:
-            wait = at - box.elapsed()
+        shift = 0.0
+        if s.late:
+            # The late steps count on the world at about 175 s and leave it time; when it comes
+            # later than that (a slow host), they and the capture wait as much longer.
+            ready = box.wait_for_world()
+            shift = max(0.0, ready + 20 - s.late[0][0])
+            print(f"the world at {ready:.0f} s"
+                  + (f": the steps wait {shift:.0f} s longer" if shift else ""))
+        for at, step in s.late:
+            wait = at + shift - box.elapsed()
             if wait > 0:
                 time.sleep(wait)
-            box.press(scan, ascii)
-        wait = s.settle - box.elapsed()
+            step.run(box)
+        wait = s.settle + shift - box.elapsed()
         if wait > 0:
             time.sleep(wait)
         cap = capture_stable(box)
+        parchment = None
+        if s.parchment:  # where the last dialog box started its parchment (DIALOG.C)
+            (parchment,) = struct.unpack("<H", box.read(box.symbol("_G_VGABLIT_SI_BASE"), 2))
     finally:
         box.stop()
     (out / "dosbox.vram").write_bytes(cap.chunky())
@@ -599,6 +771,13 @@ def cmd_run(args: argparse.Namespace) -> int:
     dos = cap.rgb6()
     write_png(out / "dosbox.png", dos[0], dos[1], [to8(c) for c in dos[2]])
     print(f"original: {dos[0]}x{dos[1]} from display memory {cap.start_address():04X}h")
+    if parchment is not None:
+        if 0x3D40 <= parchment <= 0x3DA3:
+            print(f"the original's parchment starts at {parchment:#06x}")
+        else:
+            print(f"the original's parchment base reads {parchment:#06x}: not a dialog box's "
+                  f"draw, so the port's is not pinned")
+            parchment = None
     if args.skip_port:
         return 0
 
@@ -608,8 +787,11 @@ def cmd_run(args: argparse.Namespace) -> int:
         bmp.unlink()
     user = out / "user"
     user.mkdir(exist_ok=True)
-    env = dict(os.environ, BAK_HEADLESS="1", SDL_VIDEO_DRIVER="dummy",
+    # The port runs on the host's clock, and silent: its sound would otherwise play.
+    env = dict(os.environ, BAK_HEADLESS="1", SDL_VIDEO_DRIVER="dummy", SDL_AUDIO_DRIVER="dummy",
                BAK_INPUT=s.port_input, BAK_DUMP_FRAME=str(bmp))
+    if parchment is not None:
+        env["BAK_PARCHMENT"] = str(parchment)
     # The original draws its cursor into the picture; so does the port's game cursor. It has no
     # autosaves, whose folder the save dialogs would list.
     r = subprocess.run([args.exe, "--data", str(data), "--user", str(user),

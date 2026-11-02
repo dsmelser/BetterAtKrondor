@@ -43,8 +43,10 @@ virtual clock rendered as the clock moves), `BAK_AUDIO_LOG=<file>` (what the sou
 stops, then the WAV's hash),
 `BAK_INPUT="6000:key:Escape;9000:click:160,100"` (scripted keys and clicks, ms from start-up:
 `port/platform/inputscript.c`), `BAK_CLOCK=virtual` (a clock that moves only as the game runs: scripted runs
-repeat exactly and take seconds), `BAK_FRAME_LOG=<file>` (a hash of each picture shown) and
-`BAK_STATE_LOG=<file>` (hashes of the game state on each world-loop pass). Crashes print a symbolized stack
+repeat exactly and take seconds), `BAK_FRAME_LOG=<file>` (a hash of each picture shown),
+`BAK_STATE_LOG=<file>` (hashes of the game state on each world-loop pass) and `BAK_PARCHMENT=<n>` (where the
+dialogs' parchment pattern starts, 3D40h-3DA3h, instead of the cosmetic stream's draw: the goldens pin it to
+the original's). Crashes print a symbolized stack
 on Windows. Unprompted, the intro and credits loop like the original's attract mode; Escape skips them.
 
 ## Rules

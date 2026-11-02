@@ -10,8 +10,10 @@
  *   wheel:<n>      turn the mouse wheel n notches (away from you when positive)
  *   pad:<button>   press a gamepad button (SDL's name: a, b, dpup, dpleft, start, ...) and
  *                  release it 100 ms later; pad:<button>,<ms> holds it for ms
- *   teleport:<zone>,<tile x>,<tile y>,<cell x>,<cell y>,<heading in hex>
- *                  move the party there, as the game's own teleports do (teleport.c)
+ *   teleport:<zone>,<tile x>,<tile y>,<cell x>,<cell y>,<heading in hex>[,<scene kind>,<scene index>]
+ *                  move the party there, as the game's own teleports do (teleport.c); with a
+ *                  scene, enter that town scene first (GDS<kind><index as a letter>.DAT), and
+ *                  with zone 255 enter the scene only, the party staying where it is
  *   quit           what closing the window does
  *
  * For example BAK_INPUT="20000:key:Escape;30000:click:160,100". The steps run in time
@@ -49,6 +51,7 @@ typedef struct {
     float x, y;
     unsigned place[5]; /* teleport: zone, tile x and y, cell x and y */
     unsigned heading;
+    unsigned scene[2]; /* teleport: the town scene's kind and index, or 0 */
     int notches;               /* wheel */
     SDL_GamepadButton button; /* pad */
 } Step;
@@ -145,11 +148,17 @@ static void parse(const char *text) {
             s.kind = STEP_LEFT_DOWN;
             s.x = x;
             s.y = y;
-        } else if (SDL_sscanf(rest, "teleport:%u,%u,%u,%u,%u,%x", &p[0], &p[1], &p[2], &p[3],
-                              &p[4], &s.heading) == 6) {
-            if (p[0] == 0 || p[0] > 0xfe || p[1] > 0xff || p[2] > 0xff || p[3] >= 40 || p[4] >= 40 ||
-                s.heading > 0xffff)
+        } else if (SDL_strncmp(rest, "teleport:", 9) == 0) {
+            int n = SDL_sscanf(rest, "teleport:%u,%u,%u,%u,%u,%x,%u,%u", &p[0], &p[1], &p[2],
+                               &p[3], &p[4], &s.heading, &s.scene[0], &s.scene[1]);
+            if (n != 6 && n != 8)
+                bad("cannot read the step", step);
+            if (p[0] == 0 || p[0] > 0xff || (p[0] == 0xff && n == 6) || p[1] > 0xff ||
+                p[2] > 0xff || p[3] >= 40 || p[4] >= 40 || s.heading > 0xffff)
                 bad("a place out of range in the step", step);
+            if (n == 8 && (s.scene[0] == 0 || s.scene[0] > 0xff || s.scene[1] == 0 ||
+                           s.scene[1] > 26))
+                bad("a scene out of range in the step", step);
             s.kind = STEP_TELEPORT;
         } else if (SDL_strcmp(rest, "quit") == 0) {
             s.kind = STEP_QUIT;
@@ -200,7 +209,8 @@ bool input_script_poll(void) {
             break;
         case STEP_TELEPORT:
             game_request_teleport((uint8_t)s.place[0], (uint8_t)s.place[1], (uint8_t)s.place[2],
-                                  (uint8_t)s.place[3], (uint8_t)s.place[4], (uint16_t)s.heading);
+                                  (uint8_t)s.place[3], (uint8_t)s.place[4], (uint16_t)s.heading,
+                                  (uint16_t)s.scene[0], (uint16_t)s.scene[1]);
             break;
         case STEP_WHEEL:
             e.type = SDL_EVENT_MOUSE_WHEEL;

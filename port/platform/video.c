@@ -426,3 +426,15 @@ int bak_smooth_frames(void) {
     settings_get_int(SETTING_VIDEO_STEP_TIME, &ms);
     return (int)(((uint64_t)ms * 1000000u + frameNs / 2) / frameNs);
 }
+
+/* The dialogs' parchment (DIALOG.C): the cosmetic stream's draw of where its pattern starts, or
+ * BAK_PARCHMENT's value (the goldens: the original's draw, read from its memory after the
+ * capture, so both draw the same parchment under the same text). */
+int16_t bak_parchment_base(int16_t drawn) {
+    static int pinned = -1; /* not looked up yet; -2: not set */
+    if (pinned == -1) {
+        const char *env = SDL_getenv("BAK_PARCHMENT");
+        pinned = env != NULL ? (int)SDL_strtol(env, NULL, 0) : -2;
+    }
+    return pinned >= 0 ? (int16_t)pinned : drawn;
+}

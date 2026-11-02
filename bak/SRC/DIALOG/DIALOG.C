@@ -332,8 +332,11 @@ void far dialog_frame_draw(DDXRecord far *record, s16 far *rect) {
         g_graphics_context.bGfx_fill_enabled = 1;
         g_graphics_context.bGfx_fill_color = g_graphics_context.bGfx_outline_color = 0;
 
-        /* Where the parchment's pattern starts: a picture's choice, from the cosmetic stream. */
-        g_vgablit_si_base = (record->wFlags & 0x8000) ? 0x3d40 : (s16)RNDR_FX(0x3d40, 0x3da3);
+        /* Where the parchment's pattern starts: a picture's choice, from the cosmetic stream (or
+           pinned, for the goldens: BAK_PARCHMENT). */
+        g_vgablit_si_base = (record->wFlags & 0x8000)
+                                ? 0x3d40
+                                : bak_parchment_base((s16)RNDR_FX(0x3d40, 0x3da3));
         g_vgablit_si_mask = 0xff7f;
         g_vgablit_si_stride = 0x43;
         g_renderer_vtable.pfn_fill_spans_dithered_modey =
