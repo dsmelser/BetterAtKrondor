@@ -42,10 +42,13 @@ static void set_hi16(s32 *v, u16 hi) {
 }
 
 /* edge[0] is the accumulator, edge[1] the step; their high words hold the start and the
- * end. The step becomes (end - start) / steps. The accumulator's fraction is set from a
- * test of the sign meant for the quotient, but JNS reads the flags IDIV leaves, which
- * are AND ECX,0FFFFh's: never negative. So it is -quotient's low word, or 8000h when
- * -quotient has no bits from 15 up. */
+ * end. The step becomes (end - start) / steps. The accumulator's fraction depends on the
+ * quotient's sign: a negative quotient's own low word, otherwise -quotient's low word, or
+ * 8000h when -quotient has no bits from 15 up (a quotient of 0). The original tests the
+ * sign with JNS right after IDIV, whose flags x86 leaves undefined: DOSBox Staging sets
+ * them from the quotient, as the code means (and as the Blue Wheel Inn's mirrored patrons
+ * show), while Unicorn leaves them as AND ECX,0FFFFh left them, never negative; the
+ * differential harness models DOSBox's (harness/machine.py). */
 void polyrast_edge_init_step(s32 *edge, u16 steps) {
     u32 acc = (u32)edge[0] & 0xffff0000u;
     u32 end = (u32)edge[1] & 0xffff0000u;
@@ -55,8 +58,12 @@ void polyrast_edge_init_step(s32 *edge, u16 steps) {
         return;
     }
     s32 quotient = (s32)(end - acc) / (s32)steps;
-    u32 neg = (u32)-quotient;
     edge[1] = quotient;
+    if (quotient < 0) {
+        edge[0] = (s32)(acc | ((u32)quotient & 0xffffu));
+        return;
+    }
+    u32 neg = (u32)-quotient;
     edge[0] = (s32)(acc | ((neg & 0xffff8000u) != 0 ? (neg & 0xffffu) : 0x8000u));
 }
 

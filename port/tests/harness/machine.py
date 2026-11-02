@@ -20,12 +20,13 @@ import struct
 from dataclasses import dataclass
 from typing import Callable
 
-from unicorn import (UC_ARCH_X86, UC_HOOK_INSN, UC_HOOK_INTR, UC_HOOK_MEM_INVALID, UC_MODE_16,
-                     Uc, UcError)
+from unicorn import (UC_ARCH_X86, UC_HOOK_CODE, UC_HOOK_INSN, UC_HOOK_INTR, UC_HOOK_MEM_INVALID,
+                     UC_MODE_16, Uc, UcError)
 from unicorn.x86_const import (UC_X86_INS_IN, UC_X86_INS_OUT, UC_X86_REG_AX, UC_X86_REG_BP,
                                UC_X86_REG_BX, UC_X86_REG_CS, UC_X86_REG_CX, UC_X86_REG_DI,
-                               UC_X86_REG_DS, UC_X86_REG_DX, UC_X86_REG_ES, UC_X86_REG_FLAGS,
-                               UC_X86_REG_IP, UC_X86_REG_SI, UC_X86_REG_SP, UC_X86_REG_SS)
+                               UC_X86_REG_DS, UC_X86_REG_DX, UC_X86_REG_EAX, UC_X86_REG_EFLAGS,
+                               UC_X86_REG_ES, UC_X86_REG_FLAGS, UC_X86_REG_IP, UC_X86_REG_SI,
+                               UC_X86_REG_SP, UC_X86_REG_SS)
 
 from .mzexe import MzImage
 
@@ -46,8 +47,14 @@ _REGS = {
 }
 
 CARRY = 0x0001
+PARITY = 0x0004
+AUX = 0x0010
 ZERO = 0x0040
 SIGN = 0x0080
+OVERFLOW = 0x0800
+
+# Instruction prefixes, before an F6h/F7h group whose /6 is DIV and /7 IDIV.
+_PREFIXES = frozenset((0x26, 0x2E, 0x36, 0x3E, 0x64, 0x65, 0x66, 0x67, 0xF0, 0xF2, 0xF3))
 
 
 class MachineError(Exception):
@@ -103,6 +110,44 @@ class Machine:
         self.uc.hook_add(UC_HOOK_INSN, self._on_out, None, 1, 0, UC_X86_INS_OUT)
         self.uc.hook_add(UC_HOOK_INTR, self._on_interrupt)
         self.uc.hook_add(UC_HOOK_MEM_INVALID, self._on_invalid)
+        self._division = 0  # the operand width of a DIV or IDIV just executed
+        self._division_ranges: set[tuple[int, int]] = set()
+
+    def model_division_flags(self, target: str | tuple[int, int], length: int) -> None:
+        """Within a routine (its start and length in bytes), set the flags after each DIV and
+        IDIV as DOSBox Staging does (set_cpu_test_flags_for_division: as TEST would from the
+        quotient). x86 leaves them undefined there, and Unicorn leaves them as they were; the
+        original's edge steppers (POLYRAST.ASM, GOURAUD.ASM) read the quotient's sign with
+        JNS right after IDIV, and the goldens' DOSBox gives them what the code means. A hook
+        on the routine's instructions alone, so the rest runs at full speed."""
+        seg, off = self.resolve(target)
+        start = self.linear(seg, off)
+        if (start, length) in self._division_ranges:
+            return
+        self._division_ranges.add((start, length))
+        self.uc.hook_add(UC_HOOK_CODE, self._on_code, None, start, start + length - 1)
+
+    def _on_code(self, uc, address: int, size: int, _user) -> None:
+        if self._division:
+            bits = self._division
+            self._division = 0
+            q = uc.reg_read(UC_X86_REG_EAX) & ((1 << bits) - 1)
+            flags = uc.reg_read(UC_X86_REG_EFLAGS) & ~(CARRY | PARITY | AUX | ZERO | SIGN | OVERFLOW)
+            if q == 0:
+                flags |= ZERO
+            if q >> (bits - 1):
+                flags |= SIGN
+            if bin(q & 0xFF).count("1") % 2 == 0:
+                flags |= PARITY
+            uc.reg_write(UC_X86_REG_EFLAGS, flags)
+        code = uc.mem_read(address, size)
+        i = 0
+        wide = False
+        while i < len(code) and code[i] in _PREFIXES:
+            wide |= code[i] == 0x66
+            i += 1
+        if i + 1 < len(code) and code[i] in (0xF6, 0xF7) and (code[i + 1] >> 3) & 7 in (6, 7):
+            self._division = 8 if code[i] == 0xF6 else 32 if wide else 16
 
     # --- loading and symbols -------------------------------------------------------
 

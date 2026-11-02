@@ -43,9 +43,13 @@ def rle(data: bytes, rng: random.Random) -> bytes:
     return bytes(out) + b"\x00"
 
 
+STEPPER = ("_polyrast_edge_init_step", 90)  # the edge stepper, 90 bytes: JNS after IDIV
+
+
 class Blitter:
     def __init__(self, image, native, rng: random.Random):
         self.m = Machine(image, vga=True)
+        self.m.model_division_flags(*STEPPER)
         self.vga = PlanarVga(self.m)
         self.n = native
         self.rng = rng
@@ -176,7 +180,11 @@ def test_scaled_blit(krondor_image, fresh_native, seed):
 
 
 def test_edge_stepper(krondor, native):
+    """The stepper's fraction follows the quotient's sign, read with JNS right after IDIV: the
+    flags DOSBox Staging sets there (the harness models them), as the code means; Unicorn's
+    own would never be negative, and the port once followed that."""
     m = krondor
+    m.model_division_flags(*STEPPER)
     rng = random.Random(5)
     for _ in range(3000):
         start, end = rng.randrange(0x10000), rng.randrange(0x10000)
