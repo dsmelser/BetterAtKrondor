@@ -536,7 +536,7 @@ ImageRecord **far combat_actor_bnames_load_cached(s16 creatureType, s16 col) {
         strcat(fname, local_ext);
         assetTable = resblit_load_asset_table(fname, 1);
         if (palette != (unsigned char *)0) {
-            resblit_list_remap_palette((ResourceRemapDesc **)assetTable, palette);
+            resblit_list_remap_palette(assetTable, palette);
             galloc_zfree(palette);
         }
     }

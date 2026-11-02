@@ -4,6 +4,7 @@
 #include "structs.h"
 #include "SRC/IO/RESOURCE.H"
 
+extern void imgload_set_far(ImageRecord *rec, u16 seg, u16 off);
 extern s16 iff_chunk_loader_2f1c(ResFile *file, unsigned short *count, NearPtr *out_handle);
 extern NearPtr bak_load_image_record_chunked(FileRef *fname);
 extern void free_container_pair(s16 *container);

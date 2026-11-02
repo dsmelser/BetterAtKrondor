@@ -44,6 +44,7 @@
 #include "SRC/AUDIO/CHAN/AUDCHWRD.H"
 #include "SRC/SYS/EMS.H"
 #include "SRC/SYS/EMSIMG.H"
+#include "SRC/STREAM/RESLOAD/IMGLOAD.H"
 #include "SRC/SCRIPT/ADSCRIPT.H"
 #include "SRC/SCRIPT/TTMDLG.H"
 #include "SRC/UI/MENULBL.H"
@@ -245,12 +246,13 @@ static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned s
         if (g_pCurScriptObject->pAhPagedImage[param_4] &&
             (TTM_SPRITE = ((NearPtr *)g_pCurScriptObject->pAhPagedImage[param_4])[(unsigned short)param_3])) {
 
-            saved_page_id = ((ImageRecord *)TTM_SPRITE)->wImageData;
+            saved_page_id = ((ImageRecord *)TTM_SPRITE)->wEmsChain;
 
-            if (saved_page_id < 300) {
+            if (saved_page_id != 0) {
                 ems_ptr = ems_map_resource_pages(saved_page_id);
 
-                ((ImageRecord *)TTM_SPRITE)->wImageData = FP_SEG(ems_ptr);
+                imgload_set_far((ImageRecord *)TTM_SPRITE, FP_SEG(ems_ptr),
+                                ((ImageRecord *)TTM_SPRITE)->wImageOff);
             }
 
             if ((g_nScriptCurOpcode & 0x0f) == 7) {
@@ -273,7 +275,11 @@ static s16 far ttmscript_opcode_dispatch_main(unsigned short param_1, unsigned s
                 }
             }
 
-            ((ImageRecord *)TTM_SPRITE)->wImageData = saved_page_id;
+            if (saved_page_id != 0) {
+                ((ImageRecord *)TTM_SPRITE)->pImageBase = NULL;
+                ((ImageRecord *)TTM_SPRITE)->nImageExtent = 0;
+                ((ImageRecord *)TTM_SPRITE)->wEmsChain = saved_page_id;
+            }
         }
 #undef TTM_SPRITE
         break;

@@ -363,7 +363,7 @@ void encamp_proj_trail_emit_facing(s16 a, s16 b, s16 c, u16 d, u16 e, u16 f) {
                 bmpIdx = 1;
             }
         }
-        emsimg_map_then_call_180c((u16 *)g_pEncampBmpAssetTable[bmpIdx], *px, *py, 0);
+        emsimg_map_then_call_180c(g_pEncampBmpAssetTable[bmpIdx], *px, *py, 0);
         i++;
         px++;
         py++;

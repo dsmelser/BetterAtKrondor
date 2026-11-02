@@ -26,6 +26,7 @@
 #include "bak_game_begin.h"
 #include "structs.h"
 #include "SRC/GEN/GFXCTX.H"
+#include "SRC/STREAM/RESLOAD/IMGLOAD.H"
 #include "bak_game_end.h"
 
 #define PLANAR_ROW 80        /* bytes per row in a plane */
@@ -482,8 +483,8 @@ void heg_blit_sprite_master(const ImageRecord *sprite, s16 x, s16 y, u16 flags) 
                           "through the words after its dispatch table)");
     if (s.rows == 0)
         BAK_UNIMPLEMENTED("heg_blit_sprite_master with no rows (the original draws 65536)");
-    s.src = MK_FP(sprite->wImageData, 0);
-    s.extent = bak_seg_extent(sprite->wImageData);
+    s.src = sprite->pImageBase;
+    s.extent = sprite->nImageExtent;
     sprite_cores(&s);
     sprite_epilogue();
 }
@@ -731,8 +732,7 @@ void heg_image_decode(ImageRecord **images, unsigned char *data, u32 packedSize,
         ImageRecord *r = *images;
         u16 n = (u16)((u16)((u16)((u16)r->nWidth >> 1) * (u16)r->nHeight) >> 2);
         u16 mask = (u16)((u16)(n << 2) + off);
-        r->wImageData = seg;
-        r->wImageOff = off;
+        imgload_set_far(r, seg, off);
         r->wUnk4 = mask;
         if (n == 0)
             BAK_UNIMPLEMENTED("heg_install_image_set: an image under 8 pixels (the original "

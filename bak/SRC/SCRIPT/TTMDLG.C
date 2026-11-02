@@ -69,7 +69,7 @@ s16 far ttmscript_show_dialog_action(s16 arg, u16 mode) {
             xs[0] = xs[3] = xs[1];
             xs[1] = xs[2] = tmp;
         }
-        emsimg_gouraud_blit_paged((u16 *)*(NearWord *)img, xs, ys);
+        emsimg_gouraud_blit_paged((ImageRecord *)*(NearWord *)img, xs, ys);
         return 0;
     }
 

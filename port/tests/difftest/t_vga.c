@@ -9,6 +9,7 @@
 #include "bak_game_begin.h"
 #include "structs.h"
 #include "SRC/GEN/GFXCTX.H"
+#include "SRC/STREAM/RESLOAD/IMGLOAD.H"
 #include "bak_game_end.h"
 
 #define PALETTE_CACHE 0x600
@@ -141,7 +142,7 @@ static void cmd_image_decode(DtIn *in, DtOut *out) {
     memcpy(buf, dt_bytes(in, packed), packed);
     vga_image_decode(table, buf, packed, NULL, 0);
     for (u16 i = 0; i < n; i++) {
-        unsigned char *p = MK_FP(records[i].wImageData, records[i].wImageOff);
+        unsigned char *p = records[i].pImageBase + records[i].wImageOff;
         dt_put_u32(out, (u32)(p - buf));
         dt_put_u16(out, records[i].wImageOff);
     }
@@ -228,7 +229,7 @@ static void cmd_sprite(DtIn *in, DtOut *out) {
         dt_fail("the pixels run past the segment");
     unsigned char *block = bak_dos_alloc(0x10000, 1);
     memcpy(block + rec.wImageOff, dt_bytes(in, n), n);
-    rec.wImageData = FP_SEG(block);
+    imgload_set_far(&rec, FP_SEG(block), rec.wImageOff);
     if (slot == 3)
         vga_blit_sprite(&rec, x, y);
     else if (slot == 33)

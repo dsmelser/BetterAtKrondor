@@ -41,8 +41,8 @@ static uint8_t image_byte(const uint8_t *seg, uint32_t extent, uint32_t at) {
  * a pixel is colour 0, transparent, in all four.
  */
 bool cursor_decode(const struct ImageRecord *image, bool colors256, int *w, int *h, uint16_t *px) {
-    const uint8_t *seg = MK_FP(image->wImageData, 0);
-    uint32_t extent = bak_seg_extent(image->wImageData);
+    const uint8_t *seg = image->pImageBase;
+    uint32_t extent = image->nImageExtent;
     int width = colors256 ? image->nWidth & ~3 : image->nWidth, height = image->nHeight;
     if (width <= 0 || height <= 0 || width > CURSOR_MAX || height > CURSOR_MAX)
         return false;

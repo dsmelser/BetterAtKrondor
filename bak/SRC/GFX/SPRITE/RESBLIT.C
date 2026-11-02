@@ -71,7 +71,7 @@ ImageRecord **resblit_load_asset_table(char *path, s16 storage_mode) {
 
         if (hdr.wImageCount != 0 && hdr.wMagic == 0x1066) {
             if ((tbl = my_calloc((hdr.wImageCount + 1) * (s16)sizeof(void *), 1)) != 0) {
-                if ((tbl[0] = my_calloc(10, hdr.wImageCount)) != 0) {
+                if ((tbl[0] = my_calloc((s16)sizeof(ImageRecord), hdr.wImageCount)) != 0) {
                     i = 0;
                     while (i < hdr.wImageCount) {
                         i++;
@@ -109,12 +109,13 @@ ImageRecord **resblit_load_asset_table(char *path, s16 storage_mode) {
                         ImageRecord *rec = tbl[i];
                         chunk = rec->wImageOff;
                         if (storage_mode != 0) {
-                            rec->wImageData = ems_handle;
+                            rec->pImageBase = NULL; /* mapped by the blits (EMSIMG.C) */
+                            rec->nImageExtent = 0;
+                            rec->wEmsChain = ems_handle;
                             rec->wImageOff = ems_off;
                             ems_off += chunk;
                         } else {
-                            rec->wImageData = FP_SEG(cursor);
-                            rec->wImageOff = FP_OFF(cursor);
+                            imgload_set_far(rec, FP_SEG(cursor), FP_OFF(cursor));
                             cursor += chunk;
                         }
                         i++;
@@ -161,18 +162,18 @@ ImageRecord **resblit_load_asset_table(char *path, s16 storage_mode) {
     return tbl;
 }
 
-void resblit_list_remap_palette(ResourceRemapDesc **resource_list, unsigned char *palette_lut) {
+void resblit_list_remap_palette(ImageRecord **resource_list, unsigned char *palette_lut) {
     register s16 i;
     unsigned char far *p;
 
-    for (i = 0; null_terminated_count((ImageRecord **)resource_list) > i; i++) {
-        if (resource_list[i]->wFlags & 0x80) {
+    for (i = 0; null_terminated_count(resource_list) > i; i++) {
+        if (resource_list[i]->wUnk4 & 0x80) {
 
-            if (resource_list[i]->wIdOrSeg < 300) {
-                p = ems_map_resource_pages(resource_list[i]->wIdOrSeg);
-                p += resource_list[i]->wOffset;
+            if (resource_list[i]->wEmsChain != 0) {
+                p = ems_map_resource_pages(resource_list[i]->wEmsChain);
+                p += resource_list[i]->wImageOff;
             } else {
-                p = MK_FP(resource_list[i]->wIdOrSeg, resource_list[i]->wOffset);
+                p = resource_list[i]->pImageBase + resource_list[i]->wImageOff;
             }
             while (*p) {
                 if (*p & 0x80) {

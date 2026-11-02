@@ -15,10 +15,20 @@
 
 void unpack_2bpp_to_byte_per_pixel(unsigned char huge *src, unsigned char huge *dst, u16 count);
 
+/* An image's pixels at the far pointer seg:off, as the original's record holds them: the paragraph
+ * seg names, as a pointer, and the bytes from there to its block's end. */
+void imgload_set_far(ImageRecord *rec, u16 seg, u16 off) {
+    rec->pImageBase = (unsigned char *)MK_FP(seg, 0);
+    rec->nImageExtent = bak_seg_extent(seg);
+    rec->wEmsChain = 0;
+    rec->wImageOff = off;
+}
+
 /*
  * The image table at native width. The original holds it as 16-bit near pointers: count + 1
  * words (the last 0), each the address of a 10-byte record, the first one also the records
- * block that free_container_pair frees. Natively the entries are pointers.
+ * block that free_container_pair frees. Natively the entries are pointers, and the records
+ * native size.
  */
 s16 iff_chunk_loader_2f1c(ResFile *file, unsigned short *count, NearPtr *out_handle) {
     unsigned short *width;
@@ -37,7 +47,7 @@ s16 iff_chunk_loader_2f1c(ResFile *file, unsigned short *count, NearPtr *out_han
         goto L_fail;
     if (!(*out_handle = (NearPtr)my_calloc((*count + 1) * (s16)sizeof(void *), 1)))
         goto L_cleanup;
-    if (!(*(NearPtr *)*out_handle = (NearPtr)my_calloc(10, *count)))
+    if (!(*(NearPtr *)*out_handle = (NearPtr)my_calloc((s16)sizeof(ImageRecord), *count)))
         goto L_cleanup;
     if ((s32)(cached_file_chunk_size(file) + (-2L)) < (s32)(s16)(*count << 2))
         n = 1;
@@ -199,11 +209,10 @@ void free_container_pair(s16 *container) {
     my_free(container);
 }
 
+/* The pixels' block is the first image's: the original frees its far pointer. */
 void far free_image_record(register ImageRecord **record) {
-    s16 *inner;
     if (record) {
-        inner = (s16 *)*record;
-        _freemem(MK_FP((u16)inner[0], (u16)inner[1]));
+        _freemem((*record)->pImageBase + (*record)->wImageOff);
         free_container_pair((s16 *)record);
     }
 }

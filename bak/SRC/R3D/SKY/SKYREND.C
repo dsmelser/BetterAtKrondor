@@ -193,12 +193,12 @@ static void skyrender_sky_ground_bands(void) {
 
         uScroll = g_world_camera->base.orientation.yaw >> 6 & 0xff;
         uQuad = -g_world_camera->base.orientation.yaw - 1 >> 0xe & 3;
-        emsimg_putsprite_ems_swap((u16 *)g_pSkyPanoAssetTable[uQuad], uScroll, g_nClipLineY0);
+        emsimg_putsprite_ems_swap(g_pSkyPanoAssetTable[uQuad], uScroll, g_nClipLineY0);
         screen_cur_refr_during_long_op();
-        emsimg_putsprite_ems_swap((u16 *)g_pSkyPanoAssetTable[uQuad + 1 & 3], uScroll + 0x100,
+        emsimg_putsprite_ems_swap(g_pSkyPanoAssetTable[uQuad + 1 & 3], uScroll + 0x100,
                                   g_nClipLineY0);
         screen_cur_refr_during_long_op();
-        emsimg_putsprite_ems_swap((u16 *)g_pSkyPanoAssetTable[uQuad - 1 & 3], uScroll + 0xff00,
+        emsimg_putsprite_ems_swap(g_pSkyPanoAssetTable[uQuad - 1 & 3], uScroll + 0xff00,
                                   g_nClipLineY0);
         screen_cur_refr_during_long_op();
     } else {

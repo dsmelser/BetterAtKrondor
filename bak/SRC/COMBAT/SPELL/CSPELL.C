@@ -1799,10 +1799,10 @@ static void cspell_symbol_resources_free(void) {
 static void far cspell_draw_spr_path_5th_off(s16 sprite_idx, s16 start, s16 end, s16 mark_5th) {
     for (; start < end; start++) {
         if (mark_5th && (start + 1) % 5 == 0) {
-            emsimg_map_then_call_180c((u16 *)g_pCastfaceSpriteTable[sprite_idx + 2],
+            emsimg_map_then_call_180c(g_pCastfaceSpriteTable[sprite_idx + 2],
                                       g_pSpellSymbolX[start] - 1, g_pSpellSymbolY[start] - 1, 0);
         } else {
-            emsimg_map_then_call_180c((u16 *)g_pCastfaceSpriteTable[sprite_idx],
+            emsimg_map_then_call_180c(g_pCastfaceSpriteTable[sprite_idx],
                                       g_pSpellSymbolX[start] - 1, g_pSpellSymbolY[start] - 1, 0);
         }
     }
@@ -2228,13 +2228,13 @@ s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_cas
 
     menupage_draw_entries(page->pEntries, page->wEntry_count, page->rect.x, page->rect.y);
     if (save_flag != 0) {
-        emsimg_map_then_call_180c(&g_pCastfaceSpriteTable[6]->wImageData,
+        emsimg_map_then_call_180c(g_pCastfaceSpriteTable[6],
                                   CASTFACE_SPRITE(casterSlot), CASTFACE_FRAME(casterSlot), 0);
     }
     screen_frame_present();
     menupage_draw_entries(page->pEntries, page->wEntry_count, page->rect.x, page->rect.y);
     if (save_flag != 0) {
-        emsimg_map_then_call_180c(&g_pCastfaceSpriteTable[6]->wImageData,
+        emsimg_map_then_call_180c(g_pCastfaceSpriteTable[6],
                                   CASTFACE_SPRITE(casterSlot), CASTFACE_FRAME(casterSlot), 0);
         save_flag = 0;
     }
@@ -2375,7 +2375,7 @@ s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_cas
             menupage_draw_entries(page->pEntries, page->wEntry_count, page->rect.x, page->rect.y);
             if (save_flag != 0) {
                 cga_rect_paste_from_buffer(pDest, 0xf, 0x8e, 0xa8, 0x2d);
-                emsimg_map_then_call_180c(&g_pCastfaceSpriteTable[6]->wImageData,
+                emsimg_map_then_call_180c(g_pCastfaceSpriteTable[6],
                                           CASTFACE_SPRITE(casterSlot), CASTFACE_FRAME(casterSlot),
                                           0);
             }
@@ -2383,7 +2383,7 @@ s16 cspell_cast_menu_loop(Combatant *caster, s16 *out_result, s16 *preferred_cas
             menupage_draw_entries(page->pEntries, page->wEntry_count, page->rect.x, page->rect.y);
             if (save_flag != 0) {
                 cga_rect_paste_from_buffer(pDest, 0xf, 0x8e, 0xa8, 0x2d);
-                emsimg_map_then_call_180c(&g_pCastfaceSpriteTable[6]->wImageData,
+                emsimg_map_then_call_180c(g_pCastfaceSpriteTable[6],
                                           CASTFACE_SPRITE(casterSlot), CASTFACE_FRAME(casterSlot),
                                           0);
                 save_flag = 0;

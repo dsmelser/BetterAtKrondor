@@ -255,15 +255,15 @@ void polyrast_spr_scaled_blit_planar(void *sprite, s16 x, s16 y, u16 flags, s16 
     polyrast_edge_init_step(&ey->nAcc, (u16)(h - 1));
 
     Target t = {g_graphics_context.wGfxBlitDstPage, 0};
-    u16 srcSeg = s->wImageData;
+    const u8 *seg = s->pImageBase;
+    u32 extent = s->nImageExtent;
     u16 data = s->wImageOff;
     if (s->wUnk4 & 0x80) {
-        unpack_rle(MK_FP(srcSeg, 0), data);
-        srcSeg = FP_SEG(g_pMainScratchBuf);
+        unpack_rle(seg, data);
+        seg = MK_FP(FP_SEG(g_pMainScratchBuf), 0);
+        extent = bak_seg_extent(FP_SEG(g_pMainScratchBuf));
         data = FP_OFF(g_pMainScratchBuf);
     }
-    const u8 *seg = MK_FP(srcSeg, 0);
-    u32 extent = bak_seg_extent(srcSeg);
 
     if (g_graphics_context.bClip_enabled & 0x0f) {
         const ClipRect *c = &g_graphics_context.clip;
@@ -334,9 +334,9 @@ static void edges_advance(PolyEdge *e, s16 n, u16 by) {
         e[i].nAcc = (s32)((u32)e[i].nAcc + (u32)e[i].nStep * by);
 }
 
-void polyrast_gouraud_blit_clipped(u16 *page_ptr, s16 *xs, s16 *ys) {
+void polyrast_gouraud_blit_clipped(ImageRecord *texture, s16 *xs, s16 *ys) {
     if (xs[0] != xs[3] || xs[1] != xs[2] || ys[0] > ys[3] || ys[1] > ys[2]) {
-        gfx_gouraud_blit_quad(page_ptr, xs, ys);
+        gfx_gouraud_blit_quad(texture, xs, ys);
         return;
     }
     int mirrored = 0;
@@ -367,8 +367,8 @@ void polyrast_gouraud_blit_clipped(u16 *page_ptr, s16 *xs, s16 *ys) {
     set_hi16(&e[1].nAcc, (u16)ys[3]);
     set_hi16(&e[1].nStep, (u16)ys[2]);
     polyrast_edge_init_step(&e[1].nAcc, count);
-    u16 height = page_ptr[4];
-    u16 first = 0, last = (u16)(page_ptr[3] - 1);
+    u16 height = (u16)texture->nHeight;
+    u16 first = 0, last = (u16)(texture->nWidth - 1);
     if (mirrored) {
         first = last;
         last = 0;
@@ -377,9 +377,9 @@ void polyrast_gouraud_blit_clipped(u16 *page_ptr, s16 *xs, s16 *ys) {
     set_hi16(&e[2].nStep, last);
     polyrast_edge_init_step(&e[2].nAcc, count);
 
-    const u8 *src = MK_FP(page_ptr[0], 0);
-    u32 extent = bak_seg_extent(page_ptr[0]);
-    u16 base = page_ptr[1];
+    const u8 *src = texture->pImageBase;
+    u32 extent = texture->nImageExtent;
+    u16 base = texture->wImageOff;
 
     if (clipping) {
         if ((s16)x > c->xmax || (s16)(x + count) < c->xmin)

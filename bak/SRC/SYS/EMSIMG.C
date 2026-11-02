@@ -10,70 +10,42 @@
 #include "SRC/GFX/SPRITE/SPRTHNKS.H"
 #include "SRC/SYS/EMS.H"
 
-ImageRecord **emsimg_migrate_to_ems(ImageRecord **image_record_list) {
-    u32 sizeBytes;
-    s16 i;
-    s16 page_id;
-    unsigned char far *firstbuf;
-    unsigned char far *dst;
-    u32 linear_base;
-    u32 linear_cur;
+/* While an image's table sits in EMS (RESBLIT.C's storage modes 1 and 2) its pixels are out of
+ * reach until a blit maps the table's page chain: the page frame then stands in the record for
+ * the call. The original swaps the frame's segment in for the chain's number (its record's
+ * first word) and back. */
+static u16 emsimg_map(ImageRecord *rec) {
+    u16 chain;
+    unsigned char far *mapped;
 
-    sizeBytes = (*(u32(far *)(unsigned short *,
-                                        unsigned short *))g_renderer_vtable.pfn_image_install)(
-        (unsigned short *)image_record_list, (unsigned short *)&i);
+    chain = rec->wEmsChain;
+    if (chain != 0) {
+        mapped = ems_map_resource_pages(chain);
+        imgload_set_far(rec, FP_SEG(mapped), rec->wImageOff);
+    }
+    return chain;
+}
 
-    if ((page_id = ems_alloc_pages(sizeBytes)) != 0) {
-
-        dst = ems_map_resource_pages(page_id);
-
-        firstbuf =
-            (unsigned char far *)MK_FP(image_record_list[0]->wImageData, image_record_list[0]->wImageOff);
-
-        fmemcpy_far((u32)dst, (u32)firstbuf, (u16)sizeBytes);
-
-        linear_base =
-            ((u32)image_record_list[0]->wImageData << 4) | image_record_list[0]->wImageOff;
-
-        i = null_terminated_count(image_record_list) - 1;
-        while (i >= 0) {
-
-            linear_cur =
-                ((u32)image_record_list[i]->wImageData << 4) | image_record_list[i]->wImageOff;
-
-            image_record_list[i]->wImageData = page_id;
-            image_record_list[i]->wImageOff = linear_cur - linear_base;
-            i--;
-        }
-
-        _freemem(firstbuf);
-        return image_record_list;
-
-    } else {
-        return image_record_list;
+static void emsimg_unmap(ImageRecord *rec, u16 chain) {
+    if (chain != 0) {
+        rec->pImageBase = NULL;
+        rec->nImageExtent = 0;
+        rec->wEmsChain = chain;
     }
 }
 
-s16 *far emsimg_load_to_ems(char *fname) {
-    s16 *image_record_list;
-
-    image_record_list = (s16 *)bak_load_image_record_chunked(fname);
-    if (image_record_list != (s16 *)0x0) {
-        emsimg_migrate_to_ems((ImageRecord **)image_record_list);
-    }
-    return image_record_list;
-}
-
+/* A table from RESBLIT.C, freed: the original gives a table in EMS a fresh 16-byte block in
+ * place of its chain, for free_image_record to free. */
 void far emsimg_free_paged(void *pImgRecord) {
     void far *freshBlock;
     ImageRecord **list;
 
     list = (ImageRecord **)pImgRecord;
 
-    if ((*list)->wImageData < 300) {
-        ems_free_pages((*list)->wImageData);
+    if ((*list)->wEmsChain != 0) {
+        ems_free_pages((*list)->wEmsChain);
         freshBlock = alloc_far(0x10L, 0L);
-        (*list)->wImageData = FP_SEG(freshBlock);
+        imgload_set_far(*list, FP_SEG(freshBlock), (*list)->wImageOff);
     }
     free_image_record(list);
 }
@@ -113,58 +85,37 @@ void emsimg_polygon_quad_canonicalize(s16 *xs, s16 *ys) {
     }
 }
 
-void emsimg_gouraud_blit_paged(u16 *page_ptr, s16 *xs, s16 *ys) {
-    u16 page_id;
-    unsigned char far *mapped;
+void emsimg_gouraud_blit_paged(ImageRecord *texture, s16 *xs, s16 *ys) {
+    u16 chain;
 
-    page_id = *page_ptr;
-    if (page_id < 300) {
-        mapped = ems_map_resource_pages(page_id);
-        *page_ptr = FP_SEG(mapped);
-    }
+    chain = emsimg_map(texture);
     emsimg_polygon_quad_canonicalize(xs, ys);
-    polyrast_gouraud_blit_clipped(page_ptr, xs, ys);
-    *page_ptr = page_id;
+    polyrast_gouraud_blit_clipped(texture, xs, ys);
+    emsimg_unmap(texture, chain);
 }
 
 void emsimg_sprite_blit_scaled_paged(ImageRecord *sprite, s16 dst_x, s16 dst_y, u16 frame,
                                      s16 width, s16 height) {
-    u16 page_id;
-    unsigned char far *mapped;
+    u16 chain;
 
-    page_id = sprite->wImageData;
-    if (page_id < 300) {
-        mapped = ems_map_resource_pages(page_id);
-        sprite->wImageData = FP_SEG(mapped);
-    }
-
+    chain = emsimg_map(sprite);
     (*(void (*)(void *, s16, s16, u16, s16, s16))polyrast_spr_scaled_blit_planar)(
         sprite, dst_x, dst_y, frame, width, height);
-    sprite->wImageData = page_id;
+    emsimg_unmap(sprite, chain);
 }
 
-void emsimg_putsprite_ems_swap(u16 *img_ptr, s16 x, s16 y) {
-    u16 page_id;
-    unsigned char far *mapped;
+void emsimg_putsprite_ems_swap(ImageRecord *sprite, s16 x, s16 y) {
+    u16 chain;
 
-    page_id = *img_ptr;
-    if (page_id < 300) {
-        mapped = ems_map_resource_pages(page_id);
-        *img_ptr = FP_SEG(mapped);
-    }
-    gfx_putsprite_fp((ImageRecord *)img_ptr, x, y);
-    *img_ptr = page_id;
+    chain = emsimg_map(sprite);
+    gfx_putsprite_fp(sprite, x, y);
+    emsimg_unmap(sprite, chain);
 }
 
-void emsimg_map_then_call_180c(u16 *p_id_or_ptr, s16 x, s16 y, u16 flip_flags) {
-    u16 page_id;
-    unsigned char far *mapped;
+void emsimg_map_then_call_180c(ImageRecord *sprite, s16 x, s16 y, u16 flip_flags) {
+    u16 chain;
 
-    page_id = *p_id_or_ptr;
-    if (page_id < 300) {
-        mapped = ems_map_resource_pages(page_id);
-        *p_id_or_ptr = FP_SEG(mapped);
-    }
-    blit_sprite_indirect((NearPtr)p_id_or_ptr, x, y, flip_flags);
-    *p_id_or_ptr = page_id;
+    chain = emsimg_map(sprite);
+    blit_sprite_indirect((NearPtr)sprite, x, y, flip_flags);
+    emsimg_unmap(sprite, chain);
 }

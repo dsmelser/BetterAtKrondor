@@ -984,7 +984,7 @@ s16 far dialog_play_record(u32 record_key, s16 modal_flag) {
                             (g_pCurScriptObject->pAhPagedImage[5] != 0)) {
                             NearWord *p = (NearWord *)g_pCurScriptObject->pAhPagedImage[5];
                             if (p != (NearWord *)0) {
-                                emsimg_map_then_call_180c((u16 *)*p, 0xf, 0xb, 0);
+                                emsimg_map_then_call_180c((ImageRecord *)*p, 0xf, 0xb, 0);
                             }
                             askabout_actor_spr_blit_pal_swap(
                                 record->wSpeaker_id & 0xff, 0, record->wSpeaker_id >> 8,

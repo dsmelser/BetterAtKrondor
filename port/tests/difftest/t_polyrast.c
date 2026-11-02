@@ -12,6 +12,7 @@
 #include "SRC/GAME/GMAIN.H"
 #include "SRC/GAME/MAINDATA.H"
 #include "SRC/GFX/RASTER/POLYRAST.H"
+#include "SRC/STREAM/RESLOAD/IMGLOAD.H"
 #include "bak_game_end.h"
 
 /* polyrast.block u32 size -> u16 seg, u16 off, u32 address of a zeroed DOS block */
@@ -43,10 +44,19 @@ static void cmd_read(DtIn *in, DtOut *out) {
     dt_put_bytes(out, p, dt_u32(in));
 }
 
+/* An ImageRecord as the original's ten bytes give it: segment, offset, flags, width, height. */
+static void read_record(DtIn *in, ImageRecord *rec) {
+    u16 seg = dt_u16(in);
+    imgload_set_far(rec, seg, dt_u16(in));
+    rec->wUnk4 = dt_u16(in);
+    rec->nWidth = (s16)dt_u16(in);
+    rec->nHeight = (s16)dt_u16(in);
+}
+
 /* polyrast.blit ImageRecord (10 bytes), s16 x, y, u16 flags, s16 w, h, colour -> u8 map mask */
 static void cmd_blit(DtIn *in, DtOut *out) {
     ImageRecord rec;
-    memcpy(&rec, dt_bytes(in, sizeof rec), sizeof rec);
+    read_record(in, &rec);
     s16 x = (s16)dt_u16(in), y = (s16)dt_u16(in);
     u16 flags = dt_u16(in);
     s16 w = (s16)dt_u16(in), h = (s16)dt_u16(in), colour = (s16)dt_u16(in);
@@ -56,15 +66,14 @@ static void cmd_blit(DtIn *in, DtOut *out) {
 
 /* polyrast.quad u16 record[5], s16 xs[4], ys[4] -> u8 map mask, s16 xs[4], ys[4] */
 static void cmd_quad(DtIn *in, DtOut *out) {
-    u16 rec[5];
+    ImageRecord rec;
     s16 xs[4], ys[4];
-    for (int i = 0; i < 5; i++)
-        rec[i] = dt_u16(in);
+    read_record(in, &rec);
     for (int i = 0; i < 4; i++)
         xs[i] = (s16)dt_u16(in);
     for (int i = 0; i < 4; i++)
         ys[i] = (s16)dt_u16(in);
-    polyrast_gouraud_blit_clipped(rec, xs, ys);
+    polyrast_gouraud_blit_clipped(&rec, xs, ys);
     dt_put_u8(out, bak_vga_sequencer(2));
     for (int i = 0; i < 4; i++)
         dt_put_u16(out, (u16)xs[i]);

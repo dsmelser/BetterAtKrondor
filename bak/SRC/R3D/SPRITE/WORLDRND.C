@@ -251,23 +251,23 @@ void worldrender_sprite_billboard(unsigned char far *entry) {
 }
 
 void worldrender_textured_quad_lod(s16 texture_index, s16 *xs, s16 *ys) {
-    u16 *pHandle;
+    ImageRecord *pHandle;
     u32 lDist;
     s16 spriteBank;
 
     spriteBank = g_shapeTables[g_abR3dState.nCurModelIdx].spriteBank;
 
     if (spriteBank == -1) {
-        pHandle = (u16 *)worldrender_paged_array_get(texture_index);
+        pHandle = worldrender_paged_array_get(texture_index);
     } else {
         if (texture_index >= 0 && g_spriteBanks[spriteBank].nCount > texture_index) {
-            pHandle = (u16 *)g_spriteBanks[spriteBank].imageRecord[texture_index];
+            pHandle = g_spriteBanks[spriteBank].imageRecord[texture_index];
         } else {
-            pHandle = 0;
+            pHandle = NULL;
         }
     }
 
-    if (pHandle == 0)
+    if (pHandle == NULL)
         return;
 
     if (xs[0] < g_graphics_context.clip.xmin && xs[1] < g_graphics_context.clip.xmin &&

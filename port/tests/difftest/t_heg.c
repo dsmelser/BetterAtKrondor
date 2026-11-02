@@ -9,6 +9,7 @@
 #include "bak_game_begin.h"
 #include "structs.h"
 #include "SRC/GEN/GFXCTX.H"
+#include "SRC/STREAM/RESLOAD/IMGLOAD.H"
 #include "bak_game_end.h"
 
 #define MIRROR 0x60 /* 16 colours, two halves */
@@ -127,6 +128,11 @@ static ImageRecord **read_images(DtIn *in, ImageRecord *records, ImageRecord **t
     return table;
 }
 
+/* A record's segment, relative to the block's at base (the record holds its paragraph). */
+static u16 record_seg(const ImageRecord *r, const unsigned char *base) {
+    return (u16)((r->pImageBase - base) >> 4);
+}
+
 /* heg.image_install n (w h)* -> u32 total, s16 aux size */
 static void cmd_image_install(DtIn *in, DtOut *out) {
     ImageRecord records[MAX_IMAGES];
@@ -151,9 +157,8 @@ static void cmd_image_decode(DtIn *in, DtOut *out) {
     u32 size = dt_u32(in);
     unsigned char *b = buffer(in, 0, size, 1);
     heg_image_decode(table, b, packed, NULL, size);
-    u16 seg = FP_SEG(b);
     for (u16 i = 0; i < n; i++) {
-        dt_put_u16(out, (u16)(records[i].wImageData - seg));
+        dt_put_u16(out, record_seg(&records[i], b));
         dt_put_u16(out, records[i].wImageOff);
         dt_put_u16(out, records[i].wUnk4);
         dt_put_u16(out, (u16)records[i].nWidth);
@@ -185,9 +190,8 @@ static void cmd_sprite_data(DtIn *in, DtOut *out) {
     memcpy(s_sprites, dt_bytes(in, SPRITE_DATA), SPRITE_DATA);
     if (n != 0)
         heg_image_decode(table, s_sprites + off, packed, NULL, 0);
-    u16 seg = FP_SEG(s_sprites);
     for (u16 i = 0; i < n; i++) {
-        dt_put_u16(out, (u16)(records[i].wImageData - seg));
+        dt_put_u16(out, record_seg(&records[i], s_sprites));
         dt_put_u16(out, records[i].wImageOff);
         dt_put_u16(out, records[i].wUnk4);
         dt_put_u16(out, (u16)records[i].nWidth);
@@ -205,8 +209,8 @@ static void cmd_sprite(DtIn *in, DtOut *out) {
     u16 slot = dt_u16(in), flags = dt_u16(in);
     s16 x = arg(in), y = arg(in);
     ImageRecord rec;
-    rec.wImageData = (u16)(FP_SEG(s_sprites) + dt_u16(in));
-    rec.wImageOff = dt_u16(in);
+    u16 seg = (u16)(FP_SEG(s_sprites) + dt_u16(in));
+    imgload_set_far(&rec, seg, dt_u16(in));
     rec.wUnk4 = dt_u16(in);
     rec.nWidth = arg(in);
     rec.nHeight = arg(in);

@@ -20,8 +20,9 @@ void unit_cursor_reads_the_vga_drivers_images(void) {
     memset(block, 0xEE, sizeof block);
     static const uint8_t rows[] = {0, 5, 0, 7, 1, 2, 3, 0};
     memcpy(block + 8, rows, sizeof rows);
-    uint16_t seg = bak_seg_register(block, sizeof block);
-    ImageRecord image = {seg, 9, 0, 6, 2}; /* 6 wide: the last 2 of a row are never drawn */
+    /* 6 wide: the last 2 of a row are never drawn */
+    ImageRecord image = {.pImageBase = block, .nImageExtent = sizeof block, .wImageOff = 9,
+                         .nWidth = 6, .nHeight = 2};
     int w = 0, h = 0;
     uint16_t px[CURSOR_MAX * CURSOR_MAX];
     UNIT_CHECK(cursor_decode(&image, true, &w, &h, px));
@@ -40,7 +41,6 @@ void unit_cursor_reads_the_vga_drivers_images(void) {
     UNIT_CHECK(!cursor_decode(&image, true, &w, &h, px));
     image.nWidth = CURSOR_MAX + 3; /* 64 drawn */
     UNIT_CHECK(cursor_decode(&image, true, &w, &h, px) && w == CURSOR_MAX);
-    bak_seg_unregister(seg);
 }
 
 /* The 16-colour driver's: four bit planes, width / 8 bytes a row, colours through the
@@ -53,8 +53,9 @@ void unit_cursor_reads_the_16_colour_drivers_images(void) {
     block[1 * 4 + 0] |= 0x80;
     block[1 * 4 + 3] |= 0x01;
     block[2 * 4 + 3] |= 0x01;
-    uint16_t seg = bak_seg_register(block, sizeof block);
-    ImageRecord image = {seg, 0, 16, 16, 2}; /* the mask after the planes */
+    /* the mask after the planes */
+    ImageRecord image = {.pImageBase = block, .nImageExtent = sizeof block, .wUnk4 = 16,
+                         .nWidth = 16, .nHeight = 2};
     int w = 0, h = 0;
     uint16_t px[CURSOR_MAX * CURSOR_MAX];
     UNIT_CHECK(cursor_decode(&image, false, &w, &h, px));
@@ -71,14 +72,13 @@ void unit_cursor_reads_the_16_colour_drivers_images(void) {
     g_vga.attr[3] = kept;
     image.nWidth = CURSOR_MAX + 8;
     UNIT_CHECK(!cursor_decode(&image, false, &w, &h, px));
-    bak_seg_unregister(seg);
 }
 
 /* With video.cursor = game the game draws its cursor; else the system shows it. */
 void unit_cursor_goes_to_the_system_unless_set_otherwise(void) {
     static uint8_t block[8] = {0, 1, 2, 3};
-    uint16_t seg = bak_seg_register(block, sizeof block);
-    ImageRecord image = {seg, 0, 0, 4, 1};
+    ImageRecord image = {.pImageBase = block, .nImageExtent = sizeof block, .nWidth = 4,
+                         .nHeight = 1};
     settings_load_text("", 0);
     UNIT_CHECK(bak_cursor_system(&image, 0, 0));
     UNIT_CHECK(bak_cursor_system(NULL, 0, 0));
@@ -86,5 +86,4 @@ void unit_cursor_goes_to_the_system_unless_set_otherwise(void) {
     UNIT_CHECK(settings_override("video.cursor=game", why, sizeof why));
     UNIT_CHECK(!bak_cursor_system(&image, 0, 0));
     settings_load_text("", 0);
-    bak_seg_unregister(seg);
 }

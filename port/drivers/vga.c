@@ -20,6 +20,7 @@
 #include "bak_game_begin.h"
 #include "structs.h"
 #include "SRC/GEN/GFXCTX.H"
+#include "SRC/STREAM/RESLOAD/IMGLOAD.H"
 #include "bak_game_end.h"
 
 #define PLANAR_ROW 80    /* bytes per row in a plane */
@@ -366,8 +367,7 @@ void vga_image_decode(ImageRecord **images, unsigned char *data, u32 packedSize,
     unsigned char *p = data;
     for (; *images != NULL; images++) {
         u16 seg = FP_SEG(p), off = FP_OFF(p);
-        (*images)->wImageData = (u16)(seg + (off >> 4));
-        (*images)->wImageOff = (u16)(off & 15);
+        imgload_set_far(*images, (u16)(seg + (off >> 4)), (u16)(off & 15));
         p += (u16)((u16)(*images)->nWidth * (u16)(*images)->nHeight);
     }
     if (packedSize == 0)
@@ -708,8 +708,8 @@ void vga_blit_sprite_master(const ImageRecord *sprite, s16 x, s16 y, u16 flags) 
     u16 quad = (u16)((si + sprite->wImageOff) & 0xfffc);
 
     u16 seg = g_graphics_context.wGfxBlitDstPage;
-    const unsigned char *src = MK_FP(sprite->wImageData, 0);
-    u32 extent = bak_seg_extent(sprite->wImageData);
+    const unsigned char *src = sprite->pImageBase;
+    u32 extent = sprite->nImageExtent;
     bak_port_out8(0x3C4, 2);
     for (unsigned k = 0; k < 4; k++) {
         if (k > 0 && !hflip && phase == 0)
@@ -809,8 +809,8 @@ void vga_blit_sprite_simple(const ImageRecord *sprite, s16 x, s16 y) {
     u16 quad = (u16)((si + sprite->wImageOff) & 0xfffc);
 
     u16 seg = g_graphics_context.wGfxBlitDstPage;
-    const unsigned char *src = MK_FP(sprite->wImageData, 0);
-    u32 extent = bak_seg_extent(sprite->wImageData);
+    const unsigned char *src = sprite->pImageBase;
+    u32 extent = sprite->nImageExtent;
     bak_port_out8(0x3C4, 2);
     for (unsigned k = 0; k < 4; k++) {
         if (k > 0 && phase == 0)

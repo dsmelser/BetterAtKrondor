@@ -176,7 +176,6 @@ typedef struct ProximityZone ProximityZone;
 typedef struct ProximityZoneSettings ProximityZoneSettings;
 typedef struct R3dRendererState R3dRendererState;
 typedef struct RendererVtable RendererVtable;
-typedef struct ResourceRemapDesc ResourceRemapDesc;
 typedef struct ScriptAnimNode ScriptAnimNode;
 typedef struct ScriptBlock ScriptBlock;
 typedef struct ScriptObject ScriptObject;
@@ -820,8 +819,16 @@ struct IffResReader {
     unsigned short wChunk_size_hi_flags;
 };
 
+/* An image: its pixels' place and its size. The original's ten bytes start with a far pointer
+ * to the pixels, segment first, or while the image's table sits in EMS that table's page chain
+ * (under 300) and the offset in it. Natively the segment is the pointer to the paragraph it names
+ * and the bytes from there to its block's end (imgload_set_far), so the image needs no segment,
+ * and the chain has a field of its own. The last four words keep the original's order: the BMX
+ * loader reads them from the file in one go. */
 struct ImageRecord {
-    unsigned short wImageData;
+    unsigned char *pImageBase; /* where wImageOff counts from; NULL while in EMS, unmapped */
+    u32 nImageExtent;          /* the bytes from pImageBase to the end of its block */
+    unsigned short wEmsChain;  /* the EMS page chain while the table sits in EMS; else 0 */
     unsigned short wImageOff;
     unsigned short wUnk4;
     short nWidth;
@@ -1168,12 +1175,6 @@ struct RendererVtable {
     UnimplementedSlotFn far *slot_47_unimplemented;
     UnimplementedSlotFn far *slot_48_unimplemented;
     UnimplementedSlotFn far *slot_49_null;
-};
-
-struct ResourceRemapDesc {
-    unsigned short wIdOrSeg;
-    unsigned short wOffset;
-    unsigned short wFlags;
 };
 
 struct ScriptAnimNode {
