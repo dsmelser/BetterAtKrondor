@@ -732,6 +732,7 @@ static void submit_to_rasterizer(void) {
         return;
     g_graphics_context.nPolygonClipVertexCount = (s16)n;
     copy_corners(n);
+    bak_scene_polygon(n, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
     g_r3dDrawPolygon((u16)g_graphics_context.nPolygonClipVertexCount,
                      g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
 }
@@ -753,6 +754,7 @@ static void submit_textured_quad(const unsigned char *face) {
     texture = g_graphics_context.bGfxRenderStateFlag ? rd16(face + F_DAY_OUTLINE)
                                                      : rd16(face + F_NIGHT_OUTLINE);
     copy_corners(n);
+    bak_scene_polygon(n, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
     g_r3dDrawTexturedQuad(texture, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
 }
 
@@ -819,6 +821,50 @@ void r3d_mat3_xform_vec3_long(s16 *vec, Mat3x3 *matrix, s32 *out) {
  * g_polygon_vertices holds each corner as its vertex's byte offset in the word arrays.
  */
 enum { CLIP_UNTOUCHED, CLIP_PENDING, CLIP_PROJECTED, CLIP_BEHIND };
+
+/* The face just walked, for the port's scene capture (bak_port.h): its corners in camera space
+ * as the producer holds them (16 bits, or 32 with the high words), before any clip, with its
+ * colours or texture and the projection's parameters. */
+static void capture_face(const unsigned char *face, int wide, int nearClipped) {
+    const R3dRendererState *st = &g_abR3dState;
+    BakSceneFace f;
+    u16 n = (u16)g_r3d.nMeshPolyVertexCount;
+    if (!bak_scene_capturing() || n == 0 || n > BAK_SCENE_CORNERS)
+        return;
+    f.corners = (uint8_t)n;
+    f.frontMask = 0;
+    for (u16 i = 0; i < n; i++) {
+        unsigned v = g_r3d.polygonVertices[i] / 2;
+        if (g_r3d.abPolygonClipState[2 * v] == CLIP_PROJECTED)
+            f.frontMask |= 1u << i;
+        if (wide) {
+            f.cam[i][0] = (s32)((u32)(u16)g_r3d.aVertexCamXHi[v] << 16 | (u16)g_r3d.aVertexCamX[v]);
+            f.cam[i][1] = (s32)((u32)(u16)g_r3d.aVertexCamYHi[v] << 16 | (u16)g_r3d.aVertexCamY[v]);
+            f.cam[i][2] = (s32)((u32)(u16)g_r3d.aVertexCamZHi[v] << 16 | (u16)g_r3d.aVertexCamZ[v]);
+        } else {
+            f.cam[i][0] = g_r3d.aVertexCamX[v];
+            f.cam[i][1] = g_r3d.aVertexCamY[v];
+            f.cam[i][2] = g_r3d.aVertexCamZ[v];
+        }
+    }
+    f.textured = (face[F_FLAGS] & FACE_TEXTURED) != 0;
+    f.nearClipped = (uint8_t)nearClipped;
+    f.viewportClipped = st->bActorViewportClip != 0;
+    f.filled = g_graphics_context.bGfx_fill_enabled;
+    f.fill = g_graphics_context.bGfx_fill_color;
+    f.outline = g_graphics_context.bGfx_outline_color;
+    f.texture = g_graphics_context.bGfxRenderStateFlag ? rd16(face + F_DAY_OUTLINE)
+                                                       : rd16(face + F_NIGHT_OUTLINE);
+    f.clip[0] = g_graphics_context.clip.xmin;
+    f.clip[1] = g_graphics_context.clip.ymin;
+    f.clip[2] = g_graphics_context.clip.xmax;
+    f.clip[3] = g_graphics_context.clip.ymax;
+    f.centerX = st->nViewportCenterX;
+    f.centerY = st->nViewportCenterY;
+    f.screenShift = st->bScreenShift;
+    f.lod = st->bCurMeshLod;
+    bak_scene_face(&f);
+}
 
 /* The segment the original walks the mesh in (ES): the shape record's paragraph, which
  * actorrender_mesh_parts built the part header's far pointer from. */
@@ -1005,6 +1051,7 @@ void r3d_mesh_part_polygons(unsigned char *part_header) {
             }
             append_corner((u16)(2 * v));
         }
+        capture_face(face, 0, g_r3d.bNearClipNeeded);
         if (g_r3d.bNearClipNeeded) {
             if (g_game_mode == 2 && (face[F_FLAGS] & FACE_TEXTURED) && floor_tile(face, pool))
                 r3d_poly_emit_screen_or_world();
@@ -1098,6 +1145,7 @@ void r3d_mesh_polygons(unsigned char *part_header) {
             }
             append_corner((u16)(2 * v));
         }
+        capture_face(face, 1, g_r3d.bMeshPolyHasZClipVertex);
         if (g_r3d.bMeshPolyHasZClipVertex) {
             if (st->bCurMeshLod == 1)
                 r3d_polygon_clip_against_zplane();
@@ -1169,6 +1217,7 @@ void r3d_mesh_part_polygons_lod3(unsigned short *part_header) {
             project16(v);
             append_corner((u16)(2 * v));
         }
+        capture_face(face, 0, 0);
         if (g_r3d.nMeshPolyVertexCount == 0)
             continue;
         copy_projected(0);

@@ -280,6 +280,8 @@ void actorrender_entity(WorldObject far *entry) {
     s16 nDesc;
     s16 nParts;
     s16 parts[48];
+    s32 originX, originDepth, originUp;
+    s16 unitShift;
 
     recordId = entry->shapeId;
     pRec = (Shape far *)0;
@@ -308,12 +310,20 @@ void actorrender_entity(WorldObject far *entry) {
         return;
     }
     r3d_compose_actor_camera_matrix();
+    /* The port's scene capture (bak_port.h): the object's origin in camera space (x right,
+       depth, up) and its half extent, in world units before the level of detail rescales
+       them, and the units its faces' corners come in. */
+    originX = g_abR3dState.nActorCamX;
+    originDepth = g_abR3dState.nActorCamZ;
+    originUp = g_abR3dState.nActorCamY;
+    unitShift = 0;
 
     if (g_abR3dState.wMeshScaleShift != 0 || 0x3fac < g_abR3dState.nMeshBoundHalfExtent ||
         32000 < (s32)(g_abR3dState.nActorBoundExtent + g_abR3dState.nMeshBoundHalfExtent)) {
         r3d_actor_compute_lod_z();
         if (g_abR3dState.nActorLodZ >> g_abR3dState.bMeshRenormCount >
             (s32)g_abR3dState.nActorFarClipThreshold) {
+            unitShift = g_abR3dState.bMeshRenormCount;
             g_abR3dState.wMeshScaleShift = g_abR3dState.wMeshScaleResidual;
             g_abR3dState.nActorClampedCamZ = (s32)g_abR3dState.nMeshNormOriginX;
             g_abR3dState.nActorCamX = (s32)g_abR3dState.nMeshOriginX;
@@ -334,6 +344,7 @@ void actorrender_entity(WorldObject far *entry) {
     } else {
         g_abR3dState.bCurMeshLod = 0;
     }
+    bak_scene_object(originX, originDepth, originUp, g_abR3dState.nMeshBoundHalfExtent, unitShift);
 
     nDesc = pRec->lodCount;
     pDesc = (struct LodDescriptor far *)MK_FP(FP_SEG_NORM(pRec), (u16)pRec->lodArray);

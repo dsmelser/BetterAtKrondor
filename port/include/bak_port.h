@@ -133,6 +133,36 @@ _Bool bak_autosave_due(uint32_t gameTime);
 void bak_autosave_done(_Bool written, uint32_t gameTime);
 /* How many autosaves are kept, the newest first. */
 int bak_autosave_slots(void);
+
+/*
+ * The 3-D scene as the software pass draws it (port/platform/scene.c), for the GPU's view (M7):
+ * each object as actorrender_entity places it, each face as R3D's producers have it before the
+ * near clip (its corners in camera space: x right, y depth, z up, in the units of the object's
+ * level of detail, 2^unitShift world units), and the polygon its sink then receives. Nothing is
+ * kept unless asked (BAK_SCENE_CHECK checks every face against its polygon and reports at exit).
+ */
+#define BAK_SCENE_CORNERS 20
+typedef struct BakSceneFace {
+    int32_t cam[BAK_SCENE_CORNERS][3]; /* the corners, as the producer holds them */
+    uint8_t corners;                   /* how many */
+    uint8_t textured;                  /* a textured quad's face: texture is its image's word */
+    uint8_t nearClipped;               /* a corner lies before the view plane */
+    uint8_t viewportClipped;           /* the object reaches past the viewport: clipped to it */
+    uint32_t frontMask;                /* the corners projected (bit i: corner i) */
+    int16_t clip[4];                   /* the clip rectangle: left, top, right, bottom */
+    uint8_t filled, fill, outline;     /* the colours resolve_shade_color left */
+    int16_t texture;
+    int16_t centerX, centerY;          /* the viewport's centre */
+    uint8_t screenShift;               /* the focal length's log2 (the zone's zoom) */
+    uint8_t lod;                       /* the producer's level of detail */
+} BakSceneFace;
+_Bool bak_scene_capturing(void);
+/* An object: its origin in camera space and its bounding half extent, both in world units, and
+   the unit shift of its faces' corners. */
+void bak_scene_object(int32_t x, int32_t y, int32_t z, int32_t halfExtent, int unitShift);
+void bak_scene_face(const BakSceneFace *face);
+/* The polygon the last face's sink received, in screen pixels (after clipping). */
+void bak_scene_polygon(unsigned n, const int16_t *xs, const int16_t *ys);
 /* The machine stands still between these: polls do nothing, so no time passes and no interrupt
  * runs (an autosave writes meanwhile). */
 void bak_poll_hold(void);
