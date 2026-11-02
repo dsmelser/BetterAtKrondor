@@ -117,7 +117,6 @@ TRAP(19, fill_textured_span_modey_b)
 TRAP(23, blit_rect_buffer)
 TRAP(30, blit_sprite_flip_h)
 TRAP(31, blit_sprite_flip_v)
-TRAP(36, blit_sprite_planar_rotated)
 TRAP(38, blit_sprite_chunky_flip)
 TRAP(40, fill_textured_span_modey)
 
@@ -168,7 +167,7 @@ static void fill_slots(void) {
     t->pfn_blit_sprite_simple = SLOT(vga_blit_sprite_simple);
     t->pfn_palette_lerp_dac = SLOT(vga_palette_lerp_dac);
     t->pfn_dac_write_palette = SLOT(vga_dac_write_palette);
-    t->pfn_blit_sprite_planar_rotated = SLOT(trap_blit_sprite_planar_rotated);
+    t->pfn_blit_sprite_planar_rotated = SLOT(vga_blit_rotated);
     t->pfn_blit_stretched = SLOT(vga_blit_stretched);
     t->pfn_blit_sprite_chunky_flip = SLOT(trap_blit_sprite_chunky_flip);
     t->pfn_fill_world_textured_span_modey = SLOT(vga_fill_world_textured_span_modey);
@@ -921,6 +920,56 @@ void vga_blit_sprite_simple(const ImageRecord *sprite, s16 x, s16 y) {
             si = (u16)(si + step);
             d = (u16)(d + 0x50 - n);
         } while (--r != 0);
+    }
+}
+
+/* ---- slot 36: a row of a rotated sprite --------------------------------------------- */
+
+/*
+ * Slot 36, one row of a sprite rotated and scaled (ROTBLIT.ASM's spans): count pixels from x on
+ * the row at byte offset di, pixel i from the sprite's segment at its offset plus the row base
+ * plus the i-th word of the table (16-bit sums), a zero left out. A negative x is cut off the
+ * left, with the table's first words, and nothing is done when that leaves none. The four
+ * planes are drawn one after another, as in slot 37: plane p's pixels are every fourth from its
+ * own, (count + 3 - p) / 4 of them, and the map mask moves along with the plane, carrying into
+ * the next byte when it leaves the four. The countdown is tested only between the planes, so a
+ * count of 0 still sets the map mask for three (ROTBLIT never passes one). Under -2 it would run
+ * from 65535 down, through the table's neighbours: natively nothing is drawn.
+ */
+void vga_blit_rotated(u16 seg, u16 di, const ImageRecord *sprite, u16 rowBase, const s16 *columns,
+                      s16 count, s16 x) {
+    if (x < 0) {
+        count = (s16)(count + x);
+        if (count <= 0)
+            return;
+        columns -= x;
+        x = 0;
+    }
+    if (count < -2)
+        return;
+    unsigned char mask = (unsigned char)(1u << (x & 3));
+    bak_port_out8(0x3C4, 2);
+    bak_port_out8(0x3C5, mask);
+    di = (u16)(di + ((u16)x >> 2));
+    u16 base = (u16)(sprite->wImageOff + rowBase);
+    u16 countdown = (u16)(count + 3);
+    for (unsigned plane = 0;;) {
+        const s16 *col = columns + plane;
+        u16 at = di;
+        for (u16 n = (u16)(countdown >> 2); n != 0; n--, at++, col += 4) {
+            unsigned char px = sprite_byte(sprite->pImageBase, sprite->nImageExtent,
+                                           (u16)(base + (u16)*col));
+            if (px != 0)
+                bak_vga_write(seg, at, px);
+        }
+        if (++plane == 4 || --countdown == 0)
+            break;
+        mask = (unsigned char)(mask << 1);
+        if ((mask & 0x0f) == 0) {
+            mask = 1;
+            di++;
+        }
+        bak_port_out8(0x3C5, mask);
     }
 }
 

@@ -52,6 +52,13 @@ typedef void BlitStretchedFn(u16 seg, u16 di, const unsigned char *src, const s1
                              u16 count, u16 x);
 void vga_blit_stretched(u16 seg, u16 di, const unsigned char *src, const s16 *columns, u16 count,
                         u16 x);
+/* 36: ES:DI CX DX and on the stack the sprite's record, a row base and the table (ROTBLIT.ASM's
+ * spans): count pixels from x (a negative x cut off) on the row at byte offset di, pixel i from
+ * the sprite's pixels at the row base plus the i-th word of the table; a zero is left out. */
+typedef void BlitRotatedFn(u16 seg, u16 di, const ImageRecord *sprite, u16 rowBase,
+                           const s16 *columns, s16 count, s16 x);
+void vga_blit_rotated(u16 seg, u16 di, const ImageRecord *sprite, u16 rowBase, const s16 *columns,
+                      s16 count, s16 x);
 /* 3, 29, 33: a sprite from its record (a near pointer in the original), 29 with flip flags,
  * 33 opaque. */
 typedef void SpriteMasterFn(const ImageRecord *sprite, s16 x, s16 y, u16 flags);

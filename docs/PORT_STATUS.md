@@ -460,9 +460,9 @@ words, so the latches come from the access its memory hook sees.
 
 | Slots | Status |
 |---|---|
-| init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 33 opaque sprite, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload, 39 spans translated through a table (the camp clock's hand; since 2026-11-01), 37 a row of a sprite stretched or shrunk (the town scenes' and the cutscenes' zooms; since 2026-11-02) | ✅ verified |
+| init, 1 glyph, 2 line, 3/29 sprite (29 flipped), 33 opaque sprite, 4 page copy, 5/6/7 save/size/paste rectangle, 8 flip + retrace, 10/11 solid and dithered runs, 13/14/15 image install/decode/nibbles, 20 palette, 21/22 pixels, 27 span fill, 34/35 DAC blend/upload, 39 spans translated through a table (the camp clock's hand; since 2026-11-01), 37 a row of a sprite stretched or shrunk (the town scenes' and the cutscenes' zooms; since 2026-11-02), 36 a row of a sprite rotated (ROTBLIT.ASM's spans; since 2026-11-02) | ✅ verified |
 | 24 rect-buffer offset, 32 clear sprite cache | ported; verified with their consumers (23, 33) |
-| 17-19, 23, 30, 31, 36, 38, 40 | ⬜ trap with the routine's name |
+| 17-19, 23, 30, 31, 38, 40 | ⬜ trap with the routine's name |
 | 9, 12, 16, 25, 26, 28, 41-48 | empty in the original: no-ops |
 
 Slots the game calls with register arguments have native signatures in `port/drivers/vga.h` (`DrawLineFn`,

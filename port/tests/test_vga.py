@@ -481,6 +481,64 @@ def test_blit_stretched(pair):
         assert pair.native.call("heg.regs") == pair.chunk.vga.regs(), f"VGA registers {what}"
 
 
+def test_blit_rotated(pair):
+    """Slot 36 (ROTBLIT.ASM's spans: a sprite rotated and scaled): count pixels from x on the
+    row at byte offset di, pixel i from the sprite's segment at its offset plus the row base plus
+    the i-th table word (16-bit sums, so some wrap), a zero left out; a negative x is cut off
+    with the table's first words. The record and the table are read through SS (a segment of
+    its own here, the stack at its top), the pixels through the record's segment, otherwise zero
+    as on the native side. Writes go through the graphics controller, set at random in some
+    cases, and the registers end as the original leaves them."""
+    rng = random.Random(19)
+    pair.fill_vram(rng)
+    stack_seg = pair.m.alloc(0x10000)
+    src_seg = pair.m.alloc(0x10000)
+    record_at, table_at = 0x100, 0x200
+    # Every count up to 13 at every x mod 4; a whole row; spans cut off at the left, by less
+    # than, all of and more than their count; counts of 0, -1 and -2 (the map mask set for three
+    # planes, two, one); past the right edge and the last rows of the first page and the last.
+    cases = [(0xA000, 40 + k, 50, count, False) for count in range(14) for k in range(4)]
+    cases += [(0xA000, 0, 0, 320, False), (0xA000, -3, 10, 20, False), (0xA000, -20, 11, 20, False),
+              (0xA000, -25, 12, 20, False), (0xA000, 7, 13, 0, False), (0xA000, 6, 14, -1, False),
+              (0xA000, 5, 15, -2, False), (0xA000, 326, 199, 12, False), (0xAC00, 300, 199, 20, False)]
+    for _ in range(200):
+        page = rng.choice(PAGES)
+        lo_x, hi_x, lo_y, hi_y = _extent(page)
+        x = rng.randrange(lo_x, hi_x) if rng.random() < 0.85 else rng.randrange(-60, 0)
+        count = (rng.randrange(1, max(2, hi_x - max(x, 0) + 1)) if rng.random() < 0.5
+                 else rng.randrange(1, 40))
+        cases.append((page, x, rng.randrange(lo_y, hi_y), count, rng.random() < 0.3))
+    for i, (page, x, y, count, odd_gc) in enumerate(cases):
+        di = rng.randrange(0x10000) if rng.random() < 0.1 else 80 * y
+        size = rng.randrange(1, 0x1000)
+        offset = rng.randrange(0, 0x10000 - size + 1)
+        pixels = bytes(b if b > 76 else 0 for b in rng.randbytes(size))
+        row_base = rng.randrange(size)
+        columns = [rng.randrange(size - row_base) if rng.random() < 0.95 else rng.randrange(0x10000)
+                   for _ in range(max(count, 0))]
+        segment = bytearray(0x10000)
+        segment[offset:offset + size] = pixels
+        pair.m.write((src_seg, 0), bytes(segment))
+        pair.m.write((stack_seg, record_at), struct.pack("<HHHhh", src_seg, offset, 0, 0, 0))
+        pair.m.write((stack_seg, table_at), _u16s(*columns, *(rng.randrange(0x10000) for _ in range(8))))
+        regs = bytearray(pair.chunk.vga.regs())
+        if odd_gc:  # gc[0] set/reset, [1] its enable, [3] rotation and function, [5] modes, [8] mask
+            for reg in (0, 1, 3, 8):
+                regs[40 + reg] = rng.randrange(256)
+            regs[40 + 5] = rng.randrange(4) | (rng.randrange(2) << 3)
+        else:
+            regs[40 + 3], regs[40 + 5], regs[40 + 8] = 0, 0, 0xFF
+        pair.chunk.vga.load_regs(bytes(regs))
+        pair.native.call("heg.regs", bytes(regs))
+        pair.chunk.call(36, record_at, row_base, table_at, ss=stack_seg, es=page, di=di,
+                        cx=count & 0xFFFF, dx=x & 0xFFFF)
+        pair.native.call("vga.blit_rotated", _u16s(page, di, count, x, offset, row_base, len(columns),
+                                                   *columns) + pixels)
+        what = f"after rotated row {i}: {count} pixels from ({x}, {y}) di {di:#x} on {page:04X}"
+        pair.assert_same(what)
+        assert pair.native.call("heg.regs") == pair.chunk.vga.regs(), f"VGA registers {what}"
+
+
 def test_sprites(pair):
     """Slots 29 (with flips), 3 and 33 (opaque). The record is at DS:0 of a segment of its own,
     the pixels at its offset in a 64 KB segment that is otherwise zero, as on the native side."""

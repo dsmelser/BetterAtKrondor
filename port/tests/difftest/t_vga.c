@@ -270,6 +270,31 @@ static void cmd_sprite(DtIn *in, DtOut *out) {
     bak_dos_free(block);
 }
 
+/* vga.blit_rotated seg di count x offset rowbase n <n column words> <pixels>: slot 36. The
+ * record's segment is a zeroed 64 KB block with the pixels at the record's offset. */
+static void cmd_blit_rotated(DtIn *in, DtOut *out) {
+    (void)out;
+    static s16 columns[0x400];
+    u16 seg = dt_u16(in), di = dt_u16(in);
+    s16 count = arg(in), x = arg(in);
+    ImageRecord rec;
+    memset(&rec, 0, sizeof rec);
+    rec.wImageOff = dt_u16(in);
+    u16 rowBase = dt_u16(in), n = dt_u16(in);
+    if (n > sizeof columns / sizeof columns[0])
+        dt_fail("too many columns");
+    for (u16 i = 0; i < n; i++)
+        columns[i] = (s16)dt_u16(in);
+    size_t size = dt_remaining(in);
+    if (rec.wImageOff + size > 0x10000)
+        dt_fail("the pixels run past the segment");
+    unsigned char *block = bak_dos_alloc(0x10000, 1);
+    memcpy(block + rec.wImageOff, dt_bytes(in, size), size);
+    imgload_set_far(&rec, FP_SEG(block), rec.wImageOff);
+    vga_blit_rotated(seg, di, &rec, rowBase, columns, count, x);
+    bak_dos_free(block);
+}
+
 const DtEntry dt_vga_entries[] = {
     DT_COMMAND("vga.init", cmd_init),
     DT_COMMAND("vga.palette_cache", cmd_palette_cache),
@@ -294,6 +319,7 @@ const DtEntry dt_vga_entries[] = {
     DT_COMMAND("vga.fill_world_textured", cmd_fill_world_textured),
     DT_COMMAND("vga.sprite", cmd_sprite),
     DT_COMMAND("vga.blit_stretched", cmd_blit_stretched),
+    DT_COMMAND("vga.blit_rotated", cmd_blit_rotated),
     DT_GLOBAL(g_gfxContextBlock),
     DT_GLOBAL(g_bakVram),
     DT_END,
