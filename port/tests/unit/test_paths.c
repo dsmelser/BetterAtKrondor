@@ -57,3 +57,30 @@ void unit_paths_chdir_finds_folders_as_dos_does(void) {
     platform_set_dirs(".", ".");
     unit_remove_tree(root);
 }
+
+/* DOS keeps a search in its DTA, and the game leaves some unfinished (mainmenu_save_any_exists
+ * stops at the first save): those must not use up the searches the port holds, or every save
+ * list comes up empty after a few visits to the menus. */
+void unit_paths_unfinished_searches_are_dropped(void) {
+    const char *root = unit_temp_dir("paths-find");
+    char file[1100];
+    for (int i = 0; i < 2; i++) {
+        SDL_snprintf(file, sizeof file, "%s/SAVE%02d.GAM", root, i);
+        UNIT_CHECK(SDL_SaveFile(file, "x", 1));
+    }
+    platform_set_dirs(root, root);
+    struct ffblk outer, inner;
+    for (int i = 0; i < 20; i++)
+        UNIT_CHECK(bakrtl_findfirst("SAVE??.GAM", &inner, 0) == 0); /* each left after one */
+    /* Searches under way still step to their ends, a nested one too. */
+    UNIT_CHECK(bakrtl_findfirst("SAVE??.GAM", &outer, 0) == 0);
+    UNIT_CHECK(SDL_strcmp(outer.ff_name, "SAVE00.GAM") == 0);
+    UNIT_CHECK(bakrtl_findfirst("*.GAM", &inner, 0) == 0);
+    UNIT_CHECK(bakrtl_findnext(&inner) == 0);
+    UNIT_CHECK(bakrtl_findnext(&inner) == -1);
+    UNIT_CHECK(bakrtl_findnext(&outer) == 0);
+    UNIT_CHECK(SDL_strcmp(outer.ff_name, "SAVE01.GAM") == 0);
+    UNIT_CHECK(bakrtl_findnext(&outer) == -1);
+    platform_set_dirs(".", ".");
+    unit_remove_tree(root);
+}

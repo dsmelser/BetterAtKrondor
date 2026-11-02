@@ -237,6 +237,7 @@ int bakrtl_chsize(int fd, int32_t size) {
 
 typedef struct FindState {
     int used;
+    unsigned long lastStep; /* s_findSteps when findfirst or findnext last took it */
     char dir[PATH_MAX_LEN];
     char pattern[16];
     int attrib;
@@ -246,6 +247,7 @@ typedef struct FindState {
 } FindState;
 
 static FindState s_finds[8];
+static unsigned long s_findSteps;
 
 /* DOS 8.3 wildcard match: '?' matches one character, '*' the rest of the name or extension. */
 static int dos_match_part(const char *pat, const char *s) {
@@ -332,19 +334,23 @@ int bakrtl_findfirst(const char *pattern, struct ffblk *ff, int attrib) {
     const char *pat = slash ? slash + 1 : rel;
     snprintf(dirRel, sizeof dirRel, "%.*s", (int)(slash ? slash - rel : 0), rel);
 
-    int slot = -1;
+    /* DOS keeps a search in its DTA, so one left unfinished costs nothing, and the game leaves
+     * some (mainmenu_save_any_exists stops at the first save it finds). Here a slot holds a
+     * search until it ends: when none is free, the one stepped longest ago is dropped. */
+    int slot = 0;
     for (int i = 0; i < (int)(sizeof s_finds / sizeof s_finds[0]); i++) {
         if (!s_finds[i].used) {
             slot = i;
             break;
         }
-    }
-    if (slot < 0) {
-        errno = EMFILE;
-        return -1;
+        if (s_finds[i].lastStep < s_finds[slot].lastStep)
+            slot = i;
     }
     FindState *f = &s_finds[slot];
+    if (f->used)
+        free_find(f);
     f->used = 1;
+    f->lastStep = ++s_findSteps;
     f->attrib = attrib;
     snprintf(f->pattern, sizeof f->pattern, "%s", pat);
     resolve_read(dirRel[0] ? dirRel : ".", f->dir, sizeof f->dir);
@@ -389,6 +395,7 @@ int bakrtl_findnext(struct ffblk *ff) {
     if (slot < 0 || slot >= (int)(sizeof s_finds / sizeof s_finds[0]) || !s_finds[slot].used)
         return -1;
     FindState *f = &s_finds[slot];
+    f->lastStep = ++s_findSteps;
     if (fill_ffblk(f, ff) != 0) {
         free_find(f);
         ff->ff_reserved[0] = 0;
