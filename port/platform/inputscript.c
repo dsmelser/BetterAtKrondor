@@ -14,6 +14,10 @@
  *                  move the party there, as the game's own teleports do (teleport.c); with a
  *                  scene, enter that town scene first (GDS<kind><index as a letter>.DAT), and
  *                  with zone 255 enter the scene only, the party staying where it is
+ *   event:<id in hex>,<value>
+ *                  write one of the game's events, as a dialog's action does (gameevent.c):
+ *                  a flag, or a game state field such as the chapter (7537h) or the world
+ *                  loop's exit request (7541h)
  *   quit           what closing the window does
  *
  * For example BAK_INPUT="20000:key:Escape;30000:click:160,100". The steps run in time
@@ -46,6 +50,7 @@ typedef enum {
     STEP_WHEEL,
     STEP_PAD_DOWN,
     STEP_PAD_UP,
+    STEP_EVENT,
     STEP_QUIT
 } Kind;
 
@@ -60,6 +65,7 @@ typedef struct {
     unsigned scene[2]; /* teleport: the town scene's kind and index, or 0 */
     int notches;               /* wheel */
     SDL_GamepadButton button; /* pad */
+    unsigned event[2];        /* event: its id and value */
 } Step;
 
 static Step s_steps[MAX_STEPS];
@@ -166,6 +172,12 @@ static void parse(const char *text) {
                            s.scene[1] > 26))
                 bad("a scene out of range in the step", step);
             s.kind = STEP_TELEPORT;
+        } else if (SDL_strncmp(rest, "event:", 6) == 0) {
+            if (SDL_sscanf(rest, "event:%x,%u", &s.event[0], &s.event[1]) != 2)
+                bad("cannot read the step", step);
+            if (s.event[0] > 0xffff || s.event[1] > 0xffff)
+                bad("an event out of range in the step", step);
+            s.kind = STEP_EVENT;
         } else if (SDL_strcmp(rest, "quit") == 0) {
             s.kind = STEP_QUIT;
         } else {
@@ -217,6 +229,9 @@ bool input_script_poll(void) {
             game_request_teleport((uint8_t)s.place[0], (uint8_t)s.place[1], (uint8_t)s.place[2],
                                   (uint8_t)s.place[3], (uint8_t)s.place[4], (uint16_t)s.heading,
                                   (uint16_t)s.scene[0], (uint16_t)s.scene[1]);
+            break;
+        case STEP_EVENT:
+            game_write_event((uint16_t)s.event[0], (uint16_t)s.event[1]);
             break;
         case STEP_WHEEL:
             e.type = SDL_EVENT_MOUSE_WHEEL;

@@ -521,9 +521,17 @@ class GameMap:
 class Key:
     scan: int
     ascii: int
+    # Pressed again until the picture changes (DosBox.until_the_picture_changes): for keys
+    # whose moment the original sets, a step's or a dialog's, where a fixed time could come
+    # early.
+    changes: bool = False
 
     def run(self, box: DosBox) -> None:
-        box.press(self.scan, self.ascii)
+        if self.changes:
+            box.until_the_picture_changes(lambda: box.press(self.scan, self.ascii),
+                                          f"the key {self.scan:02X}h")
+        else:
+            box.press(self.scan, self.ascii)
 
 
 @dataclass
@@ -603,6 +611,74 @@ class Move:
 
 
 @dataclass
+class Drag:
+    """The left button pressed at the first point and held while the pointer moves through
+    the others, then released at the last: a drag (an item from a shop's wares onto a
+    portrait), through the state Click writes. The pointer stands at the first point half a
+    second before the press, the press lasts `hold` seconds, the moves share it evenly, and the
+    release comes after the last."""
+    points: list[tuple[int, int]]
+    hold: float = 1.5
+
+    def run(self, box: DosBox) -> None:
+        at = box.symbol("_G_MOUSE_X_MICKEYS")
+        buttons = box.symbol("_G_MOUSE_BUTTONS")
+        moves = len(self.points) - 1
+
+        def poke() -> None:
+            x, y = self.points[0]
+            box.write(at, struct.pack("<HH", x * 4, y * 4))
+            time.sleep(0.5)
+            box.write(buttons, b"\x01")
+            for x, y in self.points[1:]:
+                time.sleep(self.hold / (moves + 1))
+                box.write(at, struct.pack("<HH", x * 4, y * 4))
+            time.sleep(self.hold / (moves + 1))
+            box.write(buttons, b"\x00")
+
+        box.until_the_picture_changes(poke, f"the drag {self.points}")
+
+    def port_steps(self, at_ms: int) -> str:
+        """The port's steps for the drag, the press at at_ms: a move there first, as the
+        original's pointer stands there (inputscript.c), and the moves during the hold."""
+        (x, y), rest = self.points[0], self.points[1:]
+        hold = round(self.hold * 1000)
+        steps = [f"{at_ms - 300}:move:{x},{y}", f"{at_ms}:hold:{x},{y},{hold}"]
+        steps += [f"{at_ms + hold * (i + 1) // (len(rest) + 1)}:move:{px},{py}"
+                  for i, (px, py) in enumerate(rest)]
+        return "".join(s + ";" for s in steps)
+
+
+# The game state's fields behind the events the scenarios write (GSTATE.C's
+# gstate_event_write): their offset in g_gameState and their size.
+EVENT_FIELDS = {0x7537: (0x00, "<H"),  # the chapter
+                0x7541: (0x0F, "<B")}  # the world loop's exit request
+
+
+@dataclass
+class Event:
+    """One of the game's events written into its state, as the port's event step writes it
+    (gameevent.c): the chapter (7537h), the world loop's exit request (7541h). With `changes`
+    the write is made again until the picture changes (the world loop acts on the request)."""
+    id: int
+    value: int
+    changes: bool = False
+
+    def run(self, box: DosBox) -> None:
+        off, fmt = EVENT_FIELDS[self.id]
+        at = box.symbol("_G_GAMESTATE") + off
+        data = struct.pack(fmt, self.value)
+        if self.changes:
+            box.until_the_picture_changes(lambda: box.write(at, data),
+                                          f"the event {self.id:X}h = {self.value}")
+        else:
+            box.write(at, data)
+
+    def port_step(self) -> str:
+        return f"event:{self.id:x},{self.value}"
+
+
+@dataclass
 class WaitForWorld:
     """Waits for the world (DosBox.wait_for_world), expected by `expected` seconds from
     start-up, and when it comes later (a slow host) says how much: the steps after this one
@@ -632,7 +708,7 @@ class Scenario:
     # What the original is told after AUTOTYPE (above): (seconds, Key, Teleport, Click or
     # WaitForWorld). The steps over the world come after a WaitForWorld; when the world comes
     # later than it expects (a slow host), the steps after it and the capture move with it.
-    late: list[tuple[float, Key | Teleport | Click | Move | WaitForWorld]] = field(
+    late: list[tuple[float, Key | Teleport | Click | Move | Drag | Event | WaitForWorld]] = field(
         default_factory=list)
     # Rectangles (x0, y0, x1, y1, inclusive) whose differences do not count, and why: a text
     # field's caret, which blinks on the game's timer, so each side shows its own phase. They
@@ -683,7 +759,8 @@ SCENARIOS = {
 KEYS = {"M": (0x32, ord("m")), "1": (0x02, ord("1")), "E": (0x12, ord("e")), "O": (0x18, ord("o")),
         "S": (0x1F, ord("s")), "R": (0x13, ord("r")), "T": (0x14, ord("t")), "N": (0x31, ord("n")),
         "Tab": (0x0F, 9), "Return": (0x1C, 13), "F": (0x21, ord("f")), "C": (0x2E, ord("c")),
-        "5": (0x06, ord("5"))}
+        "5": (0x06, ord("5")), "2": (0x03, ord("2")), "Y": (0x15, ord("y")),
+        "Space": (0x39, ord(" ")), "Up": (0x48, 0), "Right": (0x4D, 0)}
 
 
 def from_the_world(description: str, *keys: str) -> Scenario:
@@ -840,6 +917,63 @@ SCENARIOS["rest"] = in_lamut("The Blue Wheel Inn's stairs clicked: the nightmast
 # not good enough (TOWNSCN.C's townscene_resolv_enc_outcome: no random draw).
 SCENARIOS["bard"] = in_lamut("The Blue Wheel Inn's lute clicked: the party plays and is thrown "
                              "out", 2, (280, 102), parchment=True)
+# lockpick: the locked house a tile east of the start (zone 1's tile 11,16), the party
+# teleported beside it facing south, the house clicked in the view (the question whether to
+# try its lock), and Y: the lock and the party's key ring (PICKLOCK.C).
+_LOCK = Teleport(1, 11, 16, 18, 25, 0x8000)
+SCENARIOS["lockpick"] = Scenario(
+    description="The locked house east of the start clicked, and Y: the lockpick screen",
+    keys=SCENARIOS["world"].keys, settle=285.0,
+    port_input=_WORLD + f"90000:{_LOCK.port_step()};93000:move:160,61;93500:click:160,61;"
+    "97000:key:Y;103000:quit",
+    late=[(60.0, WaitForWorld(220.0)), (240.0, _LOCK), (255.0, Click(160, 61)),
+          (265.0, Key(*KEYS["Y"], changes=True))])
+# price: the Fletcher's Post's counter clicked, and its Quarrels (the wares' second row,
+# middle) dragged onto Locklear's portrait: the shopkeeper's price, with Accept, Haggle and
+# Decline. (The haggle after it draws from the game's random generator, whose sequence the
+# cosmetic stream changed: its outcome is no golden.)
+_FLETCHER = Teleport(255, scene_kind=1, scene_index=3)
+_QUARRELS = Drag([(160, 75), (100, 120), (40, 164)])
+SCENARIOS["price"] = Scenario(
+    description="The Fletcher's Post, its Quarrels dragged onto Locklear: the shopkeeper's price",
+    keys=SCENARIOS["world"].keys, settle=290.0,
+    port_input=_WORLD + f"90000:{_FLETCHER.port_step()};95000:click:47,33;"
+    + _QUARRELS.port_steps(100000) + "106000:quit",
+    late=[(60.0, WaitForWorld(220.0)), (240.0, _FLETCHER), (255.0, Click(47, 33)),
+          (265.0, _QUARRELS)],
+    parchment=True)
+# fight-cast: chapter 1's first fight (the replays' combat scenario's way in: the party
+# teleported two cells north of it facing 8400h, a turn south, seven steps in, the assassin's
+# dialog paged), where Owyn, the fastest, acts first: C, the second symbol page (2), and the
+# pointer over Despair Thy Eyes: its cost, damage and line of sight. (The fight's own view is
+# no golden: its people fidget at moments of the cosmetic stream.) In DOSBox each key waits
+# for the picture to change; the page key comes well after the last step's dialog opens.
+_FIGHT = Teleport(1, 10, 14, 28, 12, 0x8400)
+SCENARIOS["fight-cast"] = Scenario(
+    description="Chapter 1's first fight, Owyn's turn: C, 2 and the pointer over Despair Thy "
+                "Eyes, the spell's description",
+    keys=SCENARIOS["world"].keys, settle=350.0,
+    port_input=_WORLD + f"90000:{_FIGHT.port_step()};91000:key:Right;"
+    + "".join(f"{92000 + 400 * i}:key:Up;{92200 + 400 * i}:key:Space;" for i in range(8))
+    + "96000:key:C;98000:key:2;100000:move:47,52;104000:quit",
+    late=[(60.0, WaitForWorld(220.0)), (240.0, _FIGHT),
+          (250.0, Key(*KEYS["Right"], changes=True))]
+    + [(255.0 + 4 * i, Key(*KEYS["Up"], changes=True)) for i in range(7)]
+    + [(295.0, Key(*KEYS["Space"], changes=True)), (310.0, Key(*KEYS["C"], changes=True)),
+       (320.0, Key(*KEYS["2"], changes=True)), (330.0, Move(47, 52))],
+    parchment=True)
+# finale: chapter 9's last cutscene, which the world loop plays when the story's last dialog
+# asks it to go on that way (GMAIN.C's mode 7: C93.ADS): from the world, the chapter set to 9
+# and the loop's exit request to 2, as that dialog writes them. Its first page, Pug to Makala
+# (a speech page waits for a key).
+_FINALE = [Event(0x7537, 9), Event(0x7541, 2, changes=True)]
+SCENARIOS["finale"] = Scenario(
+    description="Chapter 9's last cutscene (C93.ADS), its first page: Pug to Makala",
+    keys=SCENARIOS["world"].keys, settle=300.0,
+    port_input=_WORLD + "".join(f"{at}:{e.port_step()};" for at, e in zip((90000, 90500), _FINALE))
+    + "97000:quit",
+    late=[(60.0, WaitForWorld(220.0)), (240.0, _FINALE[0]), (241.0, _FINALE[1])],
+    parchment=True)
 
 
 # ---- the saves ----------------------------------------------------------------------------
@@ -887,6 +1021,20 @@ def pointer_fields() -> dict[int, str]:
     return fields
 
 
+# The low byte of each encounter object state's word (the 1400 12-byte records from 4F47h, the
+# word at 0Ah), which RGNENC.C's rgnenc_load_encounter_actors fills with random bits (RND(3),
+# and 4 on a second draw) when an encounter's actor is first placed, and which nothing reads:
+# every reader masks the word with FF08h and takes its high byte. The original's draws come
+# where its generator happens to be, which its timing moves (its cosmetic draws share the
+# generator; the port's have a stream of their own), so compared saves set these bytes apart.
+ENC_OBJ_STATES = 0x4F47
+
+
+def random_fields() -> dict[int, str]:
+    """TEMP.GAM's random bytes that nothing reads, by offset: the field's name."""
+    return {ENC_OBJ_STATES + i * 12 + 10: "encounter actor's random bits" for i in range(1400)}
+
+
 def region(off: int) -> str:
     """Where in TEMP.GAM an offset falls."""
     base, name = GAM_REGIONS[0]
@@ -932,13 +1080,16 @@ def find_file(root: Path, rel: str) -> Path | None:
 
 def compare_saves(dos: bytes, port: bytes, what: str) -> int:
     """The bytes that differ between two saves (TEMP.GAM, or a save file: its header, then
-    TEMP.GAM) outside the records' pointers, each run of them placed in its region; the
-    pointers that differ are counted apart, by field."""
+    TEMP.GAM) outside the records' pointers and the unread random bytes, each run of them
+    placed in its region; the pointers and random bytes that differ are counted apart, by
+    field."""
     if len(dos) != len(port):
         print(f"  {what}: {len(dos)} bytes from the original, {len(port)} from the port")
         return max(len(dos), len(port))
     head = SAVE_HEADER if len(dos) == TEMP_GAM_SIZE + SAVE_HEADER else 0
     pointers = pointer_fields() if len(dos) == TEMP_GAM_SIZE + head else {}
+    randoms = random_fields() if pointers else {}
+    pointers.update(randoms)
     runs = []
     i = 0
     while i < len(dos):
@@ -959,12 +1110,19 @@ def compare_saves(dos: bytes, port: bytes, what: str) -> int:
         else:
             for name in names:
                 fields[name] = fields.get(name, 0) + 1  # type: ignore[index]
-    if fields:
+    random_names = set(randoms.values())
+    kept = {name: n for name, n in fields.items() if name not in random_names}
+    drawn = {name: n for name, n in fields.items() if name in random_names}
+    if kept:
         print(f"  {what}: the pointers differ as the port writes them 0, "
-              + ", ".join(f"{n} {name}" for name, n in sorted(fields.items())))
+              + ", ".join(f"{n} {name}" for name, n in sorted(kept.items())))
+    if drawn:
+        print(f"  {what}: random bytes nothing reads differ, "
+              + ", ".join(f"{n} {name}" for name, n in sorted(drawn.items())))
     if not bad:
+        but = [w for w, d in (("the pointers", kept), ("unread random bytes", drawn)) if d]
         print(f"  {what}: identical ({len(dos)} bytes)"
-              + (" but for the pointers" if fields else ""))
+              + (f" but for {' and '.join(but)}" if but else ""))
         return 0
     total = sum(j - i for i, j in bad)
     print(f"  {what}: {total} bytes differ, in {len(bad)} runs")

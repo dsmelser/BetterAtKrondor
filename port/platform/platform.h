@@ -218,6 +218,9 @@ bool input_script_poll(void);
 void game_request_teleport(uint8_t zone, uint8_t tileX, uint8_t tileY, uint8_t cellX,
                            uint8_t cellY, uint16_t heading, uint16_t sceneKind,
                            uint16_t sceneIndex);
+/* Write one of the game's events, as a dialog's action does (gameevent.c): a flag, or a game
+ * state field such as the chapter (7537h) or the world loop's exit request (7541h). */
+void game_write_event(uint16_t id, uint16_t value);
 
 /* machine.c: the I/O ports of the timer, interrupt controller and keyboard controller
  * (false: not one of these), and a byte arriving from the keyboard (IRQ 1). */
