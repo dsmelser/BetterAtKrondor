@@ -360,10 +360,12 @@ short far world3d_main_loop(void) {
                     mainmenu_save_quick();
                 }
                 goto after_move;
-            case 0x43: /* F9: the port's quickload, of the Bookmark (none: nothing) */
+            case 0x43: /* F9: the port's quickload, of the Bookmark (none: a refused step's bump) */
                 if (refusal_mode == 0 && mainmenu_save_quick_load_ready() != 0) {
                     exit_mode = 3;
                     keep_running = 0;
+                } else {
+                    audio_play(0x31);
                 }
                 goto post_dispatch;
             case 0x18:

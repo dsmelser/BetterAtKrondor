@@ -145,9 +145,10 @@ SCENARIOS["riddle"] = world_then(
     "108000:click:268,176;111000:key:Space;114000:key:Space;", 117000)
 # Saving, quicksave and quickload. The Save Game dialog first (O, S: the folder "one" and the save
 # "test" typed into its two fields, Save): GAMES\one.G02\SAVE01.GAM, the folder chosen. F9 then
-# finds no Bookmark there and does nothing. Two steps, F5 (the Bookmark, SAVE00.GAM, without its
-# question), two steps, F9, and Space through the load's map and caption: the party is back where
-# F5 saved it, not where the dialog did, with the TEMP.GAM written at F5.
+# finds no Bookmark there and loads nothing (the bump of a refused step). Two steps, F5 (the
+# Bookmark, SAVE00.GAM, without its question), two steps, F9, and Space through the load's map
+# and caption: the party is back where F5 saved it, not where the dialog did, with the TEMP.GAM
+# written at F5.
 SCENARIOS["quicksave"] = world_then(
     "91000:key:O;94000:key:S;97000:key:T;97300:key:E;97600:key:S;97900:key:T;98500:key:Tab;"
     "99000:key:O;99300:key:N;99600:key:E;100500:click:242,158;104000:key:F9;106000:key:Up;"
