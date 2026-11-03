@@ -56,7 +56,8 @@ static void latch_store(u16 seg, u16 off) {
     unsigned char *p = vram(seg, off);
     if (p != NULL) {
         memcpy(p, g_bakVgaLatch, 4);
-        memcpy(bak_vram_tags(p), g_bakVgaLatchTag, 4);
+        for (unsigned plane = 0; plane < 4; plane++)
+            bak_vram_tags(p)[plane] = bak_vram_latch_tag(plane);
     }
 }
 
@@ -67,7 +68,7 @@ void vga_write_latches(u16 seg, u16 off, unsigned mapMask) {
     for (unsigned plane = 0; plane < 4; plane++) {
         if (mapMask & (1u << plane)) {
             p[plane] = g_bakVgaLatch[plane];
-            bak_vram_tags(p)[plane] = g_bakVgaLatchTag[plane];
+            bak_vram_tags(p)[plane] = bak_vram_latch_tag(plane);
         }
     }
 }

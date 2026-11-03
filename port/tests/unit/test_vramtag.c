@@ -1,6 +1,7 @@
 /* The tags beside display memory (bak_video.h): a write stores the tag of the moment, a copy
- * through the latches carries its source's tags, and a rectangle saved into a buffer and pasted
- * back gets its tags again while the buffer still holds what was saved. */
+ * through the latches carries its source's tags (but during a draw the draw's), and a rectangle
+ * saved into a buffer and pasted back gets its tags again while the buffer still holds what was
+ * saved. */
 #include <string.h>
 
 #include "unit.h"
@@ -43,6 +44,13 @@ void unit_vram_tags_follow_the_pixels(void) {
     vga_write_latches(PAGE_B, off, 0x0f);
     UNIT_CHECK(pixel_at(PAGE_B, 10, 5) == 42 && tag_at(PAGE_B, 10, 5) == 7);
     UNIT_CHECK(tag_at(PAGE_B, 11, 5) == 0);
+    /* during a draw (the ground's strip texture copied onto the page) the draw's tag instead */
+    g_bakVramTagNow = 9;
+    vga_read_latches(PAGE_A, off);
+    vga_write_latches(PAGE_B, (uint16_t)(off + 80), 0x0f);
+    g_bakVramTagNow = 0;
+    UNIT_CHECK(pixel_at(PAGE_B, 10, 6) == 42 && tag_at(PAGE_B, 10, 6) == 9);
+    UNIT_CHECK(tag_at(PAGE_B, 11, 6) == 9);
 
     /* saved, drawn over, pasted back */
     unsigned char buf[8];

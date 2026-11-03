@@ -289,7 +289,7 @@ void bak_vga_write(uint16_t seg, uint16_t off, uint8_t value) {
         for (unsigned plane = 0; plane < 4; plane++)
             if (mapMask & (1u << plane)) {
                 p[plane] = g_bakVgaLatch[plane];
-                bak_vram_tags(p)[plane] = g_bakVgaLatchTag[plane];
+                bak_vram_tags(p)[plane] = bak_vram_latch_tag(plane);
             }
         return;
     }

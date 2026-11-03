@@ -29,8 +29,10 @@ uint8_t *bak_video_page(uint16_t pageSeg);
  * Beside each pixel of display memory, a tag: the 3-D frame that drew it (its tag, 1-255, from
  * scene.c), or 0 for any other drawing. Every write stores the tag of the moment, which is
  * nonzero only while a world pass of the 3-D renderer draws its view; a copy through the
- * latches carries its source's tags, and a copy of a page's rows its tags. The window shows the
- * GPU's view of a frame where the picture's pixels carry its tag (M7).
+ * latches carries its source's tags, but while a view is drawn the tag of the moment (the
+ * ground's strip texture is copied onto the page through the latches); a copy of a page's
+ * rows carries its tags. The window shows the GPU's view of a frame where the picture's
+ * pixels carry its tag (M7).
  */
 extern uint8_t g_bakVramTag[BAK_VRAM_SIZE];
 extern uint8_t g_bakVramTagNow;
@@ -40,6 +42,12 @@ extern uint8_t g_bakVgaLatchTag[4];
 static inline void bak_vram_put(uint8_t *p, uint8_t value) {
     *p = value;
     g_bakVramTag[p - g_bakVram] = g_bakVramTagNow;
+}
+
+/* The tag a write of a latch stores: the tag of the moment if there is one (a view's draw under
+ * way: the ground's strip texture copied onto the page), else its source's. */
+static inline uint8_t bak_vram_latch_tag(unsigned plane) {
+    return g_bakVramTagNow != 0 ? g_bakVramTagNow : g_bakVgaLatchTag[plane];
 }
 
 /* The tags beside display memory from p on. */
