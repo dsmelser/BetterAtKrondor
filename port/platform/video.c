@@ -20,6 +20,7 @@
 
 #include "bak_port.h"
 #include "bak_video.h"
+#include "glscene.h"
 #include "platform.h"
 #include "vgaregs.h"
 
@@ -230,6 +231,8 @@ bool video_open(void) {
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
         s_window = create_window(true);
         s_gl = s_window != NULL && glpresent_open(s_window);
+        if (s_gl)
+            glscene_open(); /* the 3-D view's, which says why when it cannot */
         if (!s_gl && s_window != NULL) {
             fprintf(stderr, "the window goes to SDL's renderer\n");
             SDL_DestroyWindow(s_window);
@@ -297,8 +300,10 @@ void video_close(void) {
         save_window();
     if (SDL_getenv("BAK_TRACE") != NULL)
         fprintf(stderr, "trace: %u pictures, %u of them presented\n", s_pictures, s_presents);
-    if (s_gl)
+    if (s_gl) {
+        glscene_close();
         glpresent_close();
+    }
     if (s_texture != NULL)
         SDL_DestroyTexture(s_texture);
     if (s_renderer != NULL)

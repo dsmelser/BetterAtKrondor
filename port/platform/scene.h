@@ -155,4 +155,7 @@ void scene_set_finished_hook(void (*hook)(const SceneFrame *frame));
 /* The remap tables the blits read (POLYRAST's g_polyrastTables: 15 of 256 entries). */
 const uint8_t *scene_remap_tables(void);
 
+/* The sky's shade ramp, from its bottom row up (vgafill.c, detail level 0's sky). */
+extern const unsigned char g_skyShadeRamp[34];
+
 #endif

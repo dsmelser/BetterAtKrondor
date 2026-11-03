@@ -8,6 +8,7 @@
  *
  * A row count of 0 runs the original's LOOPs 65536 times, as it does here.
  */
+#include "../platform/scene.h"
 #include "bak_video.h"
 
 #include "bak_game_begin.h"
@@ -19,9 +20,9 @@
 #define ROW_BYTES 0x50
 #define MID_WORDS 0x24
 
-/* The strip's ramp of palette indices, from the bottom row up. A taller strip would read
- * the code after it in the original. */
-static const unsigned char s_shadeTable[34] = {
+/* The strip's ramp of palette indices, from the bottom row up (the GPU's view reads it too:
+ * scene.h). A taller strip would read the code after it in the original. */
+const unsigned char g_skyShadeRamp[34] = {
     0xd0, 0xd0, 0xd0, 0xd1, 0xd2, 0xd2, 0xd3, 0xd3, 0xd4, 0xd5, 0xd5, 0xd6,
     0xd6, 0xd6, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7,
     0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7,
@@ -36,10 +37,10 @@ static void map_mask(unsigned char mask) {
 static unsigned char row_byte(int shaded, unsigned char color, u16 k) {
     if (!shaded)
         return color;
-    if (k >= sizeof s_shadeTable)
+    if (k >= sizeof g_skyShadeRamp)
         BAK_UNIMPLEMENTED("vgaplanar_clear_column_strip taller than its ramp (34 rows): the "
                           "original reads its own code for the colours");
-    return s_shadeTable[k];
+    return g_skyShadeRamp[k];
 }
 
 /* An edge byte in each row, bottom up: STOSB, then 51h back. */

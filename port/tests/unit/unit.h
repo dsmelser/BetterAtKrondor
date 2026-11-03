@@ -69,7 +69,8 @@
     X(scene_faces_come_in_world_units)                                                             \
     X(scene_textured_quads_keep_their_images_corners)                                              \
     X(scene_frames_finish_by_pass_and_page)                                                        \
-    X(scene_billboards_circles_and_the_sky)
+    X(scene_billboards_circles_and_the_sky)                                                        \
+    X(glscene_draws_a_frame)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)
