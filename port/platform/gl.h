@@ -1,7 +1,7 @@
 /*
- * gl.h - the OpenGL functions the port draws with (glpresent.c, glscene.c), loaded through SDL
- * once a 3.3 core context is current, and its shaders' build. The shaders keep to the subset
- * GLSL 3.30 and GLSL ES 3.00 share, so that only the version line changes for the web.
+ * gl.h - the OpenGL functions the port draws with (glpresent.c, glscene.c, glview.c), loaded
+ * through SDL once a 3.3 core context is current, and its shaders' build. The shaders keep to the
+ * subset GLSL 3.30 and GLSL ES 3.00 share, so that only the version line changes for the web.
  */
 #ifndef BAK_GL_H
 #define BAK_GL_H
@@ -70,7 +70,14 @@
     X(void, DeleteFramebuffers, (GLsizei, const GLuint *))                                         \
     X(void, BindFramebuffer, (GLenum, GLuint))                                                     \
     X(void, FramebufferTexture2D, (GLenum, GLenum, GLenum, GLuint, GLint))                         \
-    X(GLenum, CheckFramebufferStatus, (GLenum))
+    X(GLenum, CheckFramebufferStatus, (GLenum))                                                    \
+    X(void, GenRenderbuffers, (GLsizei, GLuint *))                                                 \
+    X(void, DeleteRenderbuffers, (GLsizei, const GLuint *))                                        \
+    X(void, BindRenderbuffer, (GLenum, GLuint))                                                    \
+    X(void, RenderbufferStorageMultisample, (GLenum, GLsizei, GLenum, GLsizei, GLsizei))           \
+    X(void, FramebufferRenderbuffer, (GLenum, GLenum, GLenum, GLuint))                             \
+    X(void, BlitFramebuffer,                                                                       \
+      (GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLbitfield, GLenum))
 
 #define BAK_GL_DECLARE(ret, name, args) ret(GLAPIENTRY *name) args;
 typedef struct BakGl {

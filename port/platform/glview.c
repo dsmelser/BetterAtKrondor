@@ -11,6 +11,12 @@
  * tagged pixel undrawn at the window's resolution (the edge of a sprite drawn over nothing), the
  * picture shows through. The drawing is kept until the frames, the size they are drawn at or the
  * palette change.
+ *
+ * The frames are drawn with video.antialias samples a pixel (multisampling, at most what the
+ * driver offers), then resolved into the texture the window takes: each pixel the average of its
+ * samples, so polygons', outlines' and lines' edges are smooth. Where only some of a pixel's
+ * samples were drawn, the average holds the undrawn ones' transparent black, which the composite
+ * divides out.
  */
 #include <stdio.h>
 #include <string.h>
@@ -34,7 +40,9 @@ static const char s_vertexShader[] =
     "}\n";
 
 /* The GPU's drawing has its first row at the bottom, as GL draws; the mask its first at the
- * top, as the picture's. */
+ * top, as the picture's. A pixel of the drawing whose samples were not all drawn holds the sum of
+ * the drawn ones' colours over the count of all: divided by its alpha (the share drawn), their
+ * average. */
 static const char s_fragmentShader[] =
     "precision highp float;\n"
     "uniform sampler2D u_view;\n"
@@ -45,12 +53,14 @@ static const char s_fragmentShader[] =
     "    vec4 view = texture(u_view, vec2(v_uv.x, 1.0 - v_uv.y));\n"
     "    if (texture(u_mask, v_uv).r < 0.5 || view.a < 0.5)\n"
     "        discard;\n"
-    "    o_color = vec4(view.rgb, 1.0);\n"
+    "    o_color = vec4(view.rgb / view.a, 1.0);\n"
     "}\n";
 
 static struct {
     bool open;
     GLuint program, vao, mask, color, depth, fbo;
+    GLuint msFbo, msColor, msDepth; /* the multisampled target, resolved into fbo */
+    int samples;                    /* its samples a pixel; 0 for none */
     GLint uRect;
     int fboW, fboH;
     uint32_t serials[SCENE_SHOWN_MAX]; /* the frames drawn, oldest first; 0 after the last */
@@ -77,8 +87,22 @@ bool glview_open(void) {
     g_gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     g_gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     g_gl.ActiveTexture(GL_TEXTURE0);
+    int samples = 0;
+    GLint most = 0;
+    settings_get_int(SETTING_VIDEO_ANTIALIAS, &samples);
+    g_gl.GetIntegerv(GL_MAX_SAMPLES, &most);
+    s.samples = SDL_min(samples, most) >= 2 ? SDL_min(samples, most) : 0;
     s.open = true;
     return true;
+}
+
+static void drop_multisampled(void) {
+    if (s.msFbo != 0) {
+        g_gl.DeleteFramebuffers(1, &s.msFbo);
+        GLuint r[2] = {s.msColor, s.msDepth};
+        g_gl.DeleteRenderbuffers(2, r);
+    }
+    s.msFbo = s.msColor = s.msDepth = 0;
 }
 
 static void drop_target(void) {
@@ -87,17 +111,44 @@ static void drop_target(void) {
         GLuint t[2] = {s.color, s.depth};
         g_gl.DeleteTextures(2, t);
     }
+    drop_multisampled();
     s.fbo = s.color = s.depth = 0;
     s.fboW = s.fboH = 0;
     memset(s.serials, 0, sizeof s.serials);
+}
+
+/* The multisampled target of w x h; without one (the driver refuses it), none from now on. The
+ * framebuffer bound before (target) is bound again. */
+static void make_multisampled(int w, int h, GLuint target) {
+    g_gl.GenRenderbuffers(1, &s.msColor);
+    g_gl.BindRenderbuffer(GL_RENDERBUFFER, s.msColor);
+    g_gl.RenderbufferStorageMultisample(GL_RENDERBUFFER, s.samples, GL_RGBA8, w, h);
+    g_gl.GenRenderbuffers(1, &s.msDepth);
+    g_gl.BindRenderbuffer(GL_RENDERBUFFER, s.msDepth);
+    g_gl.RenderbufferStorageMultisample(GL_RENDERBUFFER, s.samples, GL_DEPTH_COMPONENT24, w, h);
+    g_gl.BindRenderbuffer(GL_RENDERBUFFER, 0);
+    g_gl.GenFramebuffers(1, &s.msFbo);
+    g_gl.BindFramebuffer(GL_FRAMEBUFFER, s.msFbo);
+    g_gl.FramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, s.msColor);
+    g_gl.FramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, s.msDepth);
+    bool complete = g_gl.CheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    g_gl.BindFramebuffer(GL_FRAMEBUFFER, target);
+    if (!complete) {
+        fprintf(stderr, "the 3-D view is drawn without antialiasing: %d samples refused\n",
+                s.samples);
+        drop_multisampled();
+        s.samples = 0;
+    }
 }
 
 void glview_close(void) {
     if (!s.open)
         return;
     if (SDL_getenv("BAK_TRACE") != NULL)
-        fprintf(stderr, "trace: the 3-D view on the GPU: %u pictures shown with it, %u drawings\n",
-                s.shown, s.drawn);
+        fprintf(stderr,
+                "trace: the 3-D view on the GPU: %u pictures shown with it, %u drawings, %d "
+                "samples a pixel\n",
+                s.shown, s.drawn, s.samples);
     if (g_gl.DeleteProgram != NULL) {
         drop_target();
         g_gl.DeleteProgram(s.program);
@@ -118,6 +169,8 @@ static bool draw_frames(const SceneFrame *const *frames, int w, int h, const uin
     if (s.fbo != 0 && s.fboW == w && s.fboH == h && s.paletteHash == palette &&
         memcmp(s.serials, serials, sizeof serials) == 0)
         return true;
+    GLint target = 0; /* the window's, or a test's: bound again at the end */
+    g_gl.GetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &target);
     if (s.fbo == 0 || s.fboW != w || s.fboH != h) {
         drop_target();
         g_gl.ActiveTexture(GL_TEXTURE0);
@@ -137,19 +190,26 @@ static bool draw_frames(const SceneFrame *const *frames, int w, int h, const uin
         g_gl.FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, s.color, 0);
         g_gl.FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, s.depth, 0);
         bool complete = g_gl.CheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
-        g_gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+        g_gl.BindFramebuffer(GL_FRAMEBUFFER, (GLuint)target);
         if (!complete) {
             drop_target();
             return false;
         }
         s.fboW = w;
         s.fboH = h;
+        if (s.samples != 0)
+            make_multisampled(w, h, (GLuint)target);
     }
     GlSceneInputs in = {dac, pelMask, scene_remap_tables(), bak_video_page(0xAC00)};
-    g_gl.BindFramebuffer(GL_FRAMEBUFFER, s.fbo);
+    g_gl.BindFramebuffer(GL_FRAMEBUFFER, s.msFbo != 0 ? s.msFbo : s.fbo);
     for (unsigned i = 0; i < SCENE_SHOWN_MAX && frames[i] != NULL; i++)
         glscene_draw(frames[i], &in, 0, 0, w, h, i > 0 ? GLSCENE_OVER : 0u);
-    g_gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+    if (s.msFbo != 0) { /* each pixel the average of its samples */
+        g_gl.BindFramebuffer(GL_READ_FRAMEBUFFER, s.msFbo);
+        g_gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, s.fbo);
+        g_gl.BlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
+    g_gl.BindFramebuffer(GL_FRAMEBUFFER, (GLuint)target);
     memcpy(s.serials, serials, sizeof serials);
     s.paletteHash = palette;
     s.drawn++;

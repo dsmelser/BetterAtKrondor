@@ -69,6 +69,10 @@ static const SettingDef s_defs[SETTING_COUNT] = {
                               "the 3-D view: gpu (drawn again through OpenGL at the window's "
                               "resolution), or software (the game's own 320x200 drawing)",
                               .choices = s_views},
+    [SETTING_VIDEO_ANTIALIAS] = {"video", "antialias", SETTING_INT, "4",
+                                 "samples each pixel of the GPU's 3-D view takes, which smooths "
+                                 "its edges (0 or 1: none; at most what the driver offers)",
+                                 .min = 0, .max = 16},
     [SETTING_WINDOW_WIDTH] = {"window", "width", SETTING_INT, "960", "the window's width",
                               .min = 320, .max = 16384},
     [SETTING_WINDOW_HEIGHT] = {"window", "height", SETTING_INT, "720", "the window's height",

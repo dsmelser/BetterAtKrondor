@@ -40,6 +40,7 @@ typedef enum SettingId {
     SETTING_VIDEO_CURSOR,     /* [video] cursor: CURSOR_* */
     SETTING_VIDEO_STEP_TIME,  /* [video] step_time: ms a step or turn of the party takes */
     SETTING_VIDEO_VIEW3D,     /* [video] view3d: VIEW3D_* */
+    SETTING_VIDEO_ANTIALIAS,  /* [video] antialias: samples a pixel of the GPU's view takes */
     SETTING_WINDOW_WIDTH,     /* [window] width, height, x, y (optional), maximized */
     SETTING_WINDOW_HEIGHT,
     SETTING_WINDOW_X,
