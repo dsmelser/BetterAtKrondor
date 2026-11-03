@@ -117,7 +117,8 @@ void sky_draw_ground_band(void) {
         bak_scene_ground(g_graphics_context.clip.xmin, g_nHorizonRowY,
                          (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1,
                          (g_graphics_context.clip.ymax - g_nHorizonRowY) + 1, g_vgablit_si_base,
-                         g_vgablit_si_stride, g_vgablit_row_sub, g_vgablit_row_count);
+                         g_vgablit_si_stride, g_vgablit_row_sub, g_vgablit_row_count,
+                         rec->bBaseRow, rec->bEndRow);
         draw_rect_filled(g_graphics_context.clip.xmin, g_nHorizonRowY,
                          (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1,
                          (g_graphics_context.clip.ymax - g_nHorizonRowY) + 1);
@@ -126,7 +127,7 @@ void sky_draw_ground_band(void) {
         bak_scene_ground(g_graphics_context.clip.xmin, g_nHorizonRowY,
                          (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1, 0xc,
                          g_vgablit_si_base, g_vgablit_si_stride, g_vgablit_row_sub,
-                         g_vgablit_row_count);
+                         g_vgablit_row_count, rec->bBaseRow, rec->bEndRow);
         draw_rect_filled(g_graphics_context.clip.xmin, g_nHorizonRowY,
                          (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1, 0xc);
         bak_scene_drawn();
@@ -168,7 +169,7 @@ void sky_polygon_draw_dispatch(u16 vcount, s16 *xs, s16 *ys) {
     g_renderer_vtable.pfn_fill_spans_dithered_modey = (Slot27Fn far *)vgablit_planar_runs;
     g_renderer_vtable.pfn_draw_line = (Slot02Fn far *)vgablit_span_emit_textured;
     bak_scene_strip(g_vgablit_si_base, g_vgablit_si_stride, g_vgablit_row_sub,
-                    g_vgablit_row_count);
+                    g_vgablit_row_count, rec->bBaseRow, rec->bEndRow);
     draw_polygon(vcount, xs, ys);
     g_renderer_vtable.pfn_fill_spans_dithered_modey = save_fill;
     g_renderer_vtable.pfn_draw_line = save_line;

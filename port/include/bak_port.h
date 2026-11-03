@@ -154,6 +154,9 @@ typedef struct BakSceneCamera {
     int16_t clip[4];        /* the viewport: left, top, right, bottom */
     int16_t centerX, centerY;
     uint8_t screenShift;    /* the focal length's log2 (the zone's zoom) */
+    /* The view matrix (Q14): a point dx, dy, dz from the camera in the world is view[i] * dx +
+       view[3 + i] * dy + view[6 + i] * dz across, ahead and up for i = 0, 1, 2. */
+    int16_t view[9];
 } BakSceneCamera;
 typedef struct BakSceneFace {
     int32_t cam[BAK_SCENE_CORNERS][3]; /* the corners, as the producer holds them */
@@ -200,8 +203,10 @@ void bak_scene_polygon(unsigned n, const int16_t *xs, const int16_t *ys, _Bool t
 void bak_scene_texture(const struct ImageRecord *image, int16_t remap, const int16_t *xs,
                        const int16_t *ys);
 /* The last face filled from the ground's strip texture (VGA page AC00h) rather than its colour:
-   the texture rows as vgablit's spans walk them (vgablit.c). */
-void bak_scene_strip(uint16_t siBase, int16_t stride, uint16_t rowSub, uint16_t rowCount);
+   the texture rows as vgablit's spans walk them (vgablit.c), and the band of the texture's rows
+   its strip record names (bandRows of them from row bandRow). */
+void bak_scene_strip(uint16_t siBase, int16_t stride, uint16_t rowSub, uint16_t rowCount,
+                     uint8_t bandRow, uint8_t bandRows);
 /* A billboard: its anchor in camera space (2^unitShift world units) and where it projects, and
    the sprite's rectangle on screen as drawn, its flip bits (1 vertical, 2 horizontal) and remap
    table. */
@@ -233,8 +238,8 @@ void bak_scene_sky_band(int16_t y, int16_t rows, uint8_t colour);
 void bak_scene_sky_shaded(int16_t lastRowOffset, int16_t rows);
 void bak_scene_sky_sprite(const struct ImageRecord *image, int16_t x, int16_t y);
 void bak_scene_sky_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t colour, uint8_t dither);
-void bak_scene_ground(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t siBase,
-                      int16_t stride, uint16_t rowSub, uint16_t rowCount);
+void bak_scene_ground(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t siBase, int16_t stride,
+                      uint16_t rowSub, uint16_t rowCount, uint8_t bandRow, uint8_t bandRows);
 /* A table of images is about to be freed (free_image_record): its records are forgotten. */
 void bak_scene_images_freed(struct ImageRecord *const *table);
 /* The machine stands still between these: polls do nothing, so no time passes and no interrupt

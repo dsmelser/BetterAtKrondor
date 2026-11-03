@@ -33,11 +33,14 @@ typedef struct SceneTexture {
  * texture's bytes from siBase + (y - rowSub) * stride when rowCount is 0, else from siBase,
  * stepping by stride and back to siBase every rowCount rows; byte b holds pixels 4 * (b % 80)
  * + 0..3 of row b / 80 of the 320-wide picture at AC00h, and screen pixel x reads the byte x / 4
- * along, its plane x % 4. */
+ * along, its plane x % 4. The walk is through the strip record's band of the picture, bandRows
+ * rows from row bandRow: down it from row rowSub of the screen (siBase less a jitter of up to 63
+ * bytes is the band's first row), or over its first rowCount rows again and again. */
 typedef struct SceneStrip {
     uint16_t siBase;
     int16_t stride;
     uint16_t rowSub, rowCount;
+    uint8_t bandRow, bandRows;
 } SceneStrip;
 
 typedef enum SceneItemType {
@@ -131,6 +134,7 @@ typedef struct SceneFrame {
     int16_t clip[4]; /* the viewport: left, top, right, bottom */
     int16_t centerX, centerY;
     uint8_t screenShift; /* the focal length is 2^screenShift pixels */
+    int16_t view[9];     /* the view matrix, Q14 (BakSceneCamera's) */
     /* the sky */
     bool hasHorizon;
     int16_t horizon[4]; /* x0, y0, x1, y1 */

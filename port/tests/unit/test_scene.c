@@ -20,7 +20,9 @@
 #define PAGE_C 0xA800
 
 static void start(uint16_t page) {
+    static const int16_t turned[9] = {0, -16384, 0, 16384, 0, 0, 0, 0, 16384}; /* a quarter */
     BakSceneCamera c = {{1000, 2000, 300}, {0, 0, 0x4000}, {13, 11, 306, 111}, 160, 61, 9};
+    memcpy(c.view, turned, sizeof c.view);
     scene_reset();
     scene_enable(true);
     g_graphics_context.wGfxBlitDstPage = page;
@@ -88,6 +90,7 @@ void unit_scene_faces_come_in_world_units(void) {
         return;
     UNIT_CHECK(f->page == PAGE_A && f->centerX == 160 && f->screenShift == 9);
     UNIT_CHECK(f->camPos[0] == 1000 && f->camAngles[2] == 0x4000);
+    UNIT_CHECK(f->view[1] == -16384 && f->view[3] == 16384 && f->view[8] == 16384);
     UNIT_CHECK(f->itemCount == 3 && f->vertexCount == 12 && f->objectCount == 1);
     UNIT_CHECK(f->objects[0].origin.y == 5000 && f->objects[0].extent == 400);
     UNIT_CHECK(f->objects[0].priority == 7 && f->objects[0].shape == &shape);
@@ -184,7 +187,7 @@ void unit_scene_frames_finish_by_pass_and_page(void) {
     bak_scene_begin(&c);
     a = scene_latest(PAGE_A);
     UNIT_CHECK(a != NULL && a->serial > first && a->sky[0].colour == 0xd8);
-    UNIT_CHECK(a != NULL && a->centerX == 160 && a->screenShift == 9);
+    UNIT_CHECK(a != NULL && a->centerX == 160 && a->screenShift == 9 && a->view[3] == 16384);
     bak_scene_begin(&c); /* drew nothing */
     UNIT_CHECK(scene_latest(PAGE_B) == NULL);
     g_graphics_context.wGfxBlitDstPage = PAGE_B;
@@ -192,6 +195,7 @@ void unit_scene_frames_finish_by_pass_and_page(void) {
     bak_scene_begin(&c);
     const SceneFrame *b = scene_latest(PAGE_B);
     UNIT_CHECK(b != NULL && b->screenShift == 8 && b->sky[0].kind == SCENE_SKY_RECT);
+    UNIT_CHECK(b != NULL && b->view[3] == 0);
     UNIT_CHECK(scene_latest(PAGE_A) == a && a->sky[0].colour == 0xd8);
     stop();
 }
@@ -208,7 +212,7 @@ void unit_scene_billboards_circles_and_the_sky(void) {
     start(PAGE_A);
     bak_scene_horizon(13, 60, 306, 62, 0, 0x4000);
     bak_scene_sky_sprite(&sky, 64, 31);
-    bak_scene_ground(13, 62, 294, 12, 0x1234, 0x4f, 62, 0);
+    bak_scene_ground(13, 62, 294, 12, 0x1234, 0x4f, 62, 0, 10, 55);
     bak_scene_billboard(&sprite, anchor, 3, 177, 27, 150, 30, 20, 24, 2, 0);
     bak_scene_circle(centre, 1, 160, 61, 5, 0x6f);
     scene_finish();
@@ -226,6 +230,7 @@ void unit_scene_billboards_circles_and_the_sky(void) {
     UNIT_CHECK(t != NULL && t->width == 4 && memcmp(t->indices, skyRows, 8) == 0);
     UNIT_CHECK(op[1].kind == SCENE_SKY_GROUND && op[1].h == 12 && op[1].strip.siBase == 0x1234);
     UNIT_CHECK(op[1].strip.stride == 0x4f && op[1].strip.rowSub == 62);
+    UNIT_CHECK(op[1].strip.bandRow == 10 && op[1].strip.bandRows == 55);
     const SceneItem *it = f->items;
     UNIT_CHECK(it[0].type == SCENE_BILLBOARD && it[0].flip == 2 && it[0].remap == -1);
     UNIT_CHECK(it[0].rect[0] == 150 && it[0].rect[3] == 24);

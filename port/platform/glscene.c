@@ -7,12 +7,15 @@
  * write depth, as everything drawn after them lies over them; the others do, and each face of
  * an object is pulled a step of depth nearer than the one drawn before it, so that the decals
  * the software paints over a face stay on top. Texture coordinates are interpolated with
- * perspective. A pixel's palette index comes from its face's colour, its image (through its
- * remap table, 0 transparent but on the sky), or the ground's strip texture, read as vgablit.c's
- * spans read it at the pixel's place in the 1x view (but for a strip whose rows repeat, which
- * vgablit.c starts at each polygon's first row: here they start at the strip's own, so that its
- * faces meet without a seam where their edges, drawn finer than 1x, cut through its texels);
- * its colour is the DAC's for that index. Lines (combat's effects) are bands one 1x pixel wide
+ * perspective. A pixel's palette index comes from its face's colour or its image (through its
+ * remap table, 0 transparent but on the sky); its colour is the DAC's for that index. The
+ * ground's strips are drawn in colour from the strip texture laid on the ground in the world, so
+ * that its grain moves with the world as the party walks and turns, over the shading the
+ * software reads down the screen (ground() in the shader); as indices, for the check below, the
+ * texture is read as vgablit.c's spans read it at the pixel's place in the 1x view (but for a
+ * strip whose rows repeat, which vgablit.c starts at each polygon's first row: here they start
+ * at the strip's own, so that its faces meet without a seam where their edges, drawn finer than
+ * 1x, cut through its texels). Lines (combat's effects) are bands one 1x pixel wide
  * on screen, painted over what comes before them without depth. Whatever the software cut to a
  * clip rectangle narrower than the view (a sprite sinking into the ground) is cut to it here. A
  * dithered rectangle (the maps' backgrounds) is the even blend of its two colours, which is what
@@ -52,11 +55,21 @@ enum {
     MODE_DITHER
 };
 enum { DEPTH_NONE, DEPTH_WRITE, DEPTH_TEST };
-enum { UNIT_IMAGE, UNIT_REMAP, UNIT_GROUND, UNIT_PALETTE };
+enum {
+    UNIT_IMAGE,
+    UNIT_REMAP,
+    UNIT_GROUND,
+    UNIT_PALETTE,
+    UNIT_DETAIL,
+    UNIT_MEANS
+};
 
 #define GROUND_W 320
-#define GROUND_H 205 /* the scratch page's 65536 pixels, the last row padded */
-#define RAMP_ROW 15  /* the remap texture's row after the 15 tables: the sky's shade ramp */
+#define GROUND_H 205    /* the scratch page's 65536 pixels, the last row padded */
+#define GROUND_TEXEL 8  /* world units a texel of the strip texture covers as the ground's grain */
+#define GROUND_PATCH 64 /* and as its patches */
+#define GROUND_BIAS 128 /* the ground's detail is signed: kept halved, plus this */
+#define RAMP_ROW 15     /* the remap texture's row after the 15 tables: the sky's shade ramp */
 
 static const char s_vertexShader[] =
     "layout(location = 0) in vec3 a_pos;\n"
@@ -66,9 +79,13 @@ static const char s_vertexShader[] =
     "uniform vec2 u_depth; /* clip z = depth * u_depth.x + u_depth.y */\n"
     "uniform vec4 u_view;  /* the 1x view: left, top, width, height */\n"
     "uniform int u_screen; /* a_pos is a place in the 1x picture */\n"
+    "uniform mat3 u_toWorld; /* camera space to the world's axes */\n"
+    "uniform vec3 u_eye;     /* the camera in the world, less whole periods of the ground */\n"
     "out vec2 v_uv;\n"
+    "out vec3 v_world; /* a face's point in the world, as u_eye places the camera */\n"
     "void main() {\n"
     "    v_uv = a_uv;\n"
+    "    v_world = u_eye + u_toWorld * a_pos;\n"
     "    if (u_screen != 0)\n"
     "        gl_Position = vec4(2.0 * (a_pos.x - u_view.x) / u_view.z - 1.0,\n"
     "                           1.0 - 2.0 * (a_pos.y - u_view.y) / u_view.w, 0.0, 1.0);\n"
@@ -104,6 +121,52 @@ static const char s_fragmentShader[] =
     "int wrap(int a, int n) { /* a mod n for n > 0: GLSL leaves % of a negative undefined */\n"
     "    return a >= 0 ? a % n : n - 1 - (-a - 1) % n;\n"
     "}\n"
+    "#ifndef INDICES\n"
+    "uniform highp sampler2D u_detail; /* the strip texture's colours less their rows' means */\n"
+    "uniform highp sampler2D u_means;  /* its rows' mean colours, a column of 256 */\n"
+    "uniform mat3 u_toWorld;\n"
+    "uniform vec3 u_eye;\n"
+    "uniform vec4 u_cam;   /* the view's centre in the 1x picture, the focal length, the eye's "
+    "height */\n"
+    "uniform ivec2 u_band; /* the strip's band of the texture: its first row, its rows */\n"
+    "uniform int u_screen;\n"
+    "in vec3 v_world;\n"
+    "/* The detail at a place in the strip texture (in texels), its derivatives given. */\n"
+    "vec3 detail(vec2 at, vec2 dx, vec2 dy) {\n"
+    "    vec2 size = GROUND_SIZE;\n"
+    "    vec3 kept = textureGrad(u_detail, at / size, dx / size, dy / size).rgb;\n"
+    "    return 2.0 * kept - GROUND_BIAS / 127.5;\n"
+    "}\n"
+    "/* The ground where a strip lies: the strip's band of the texture laid on the ground in the\n"
+    " * world twice, as a grain of texels GROUND_TEXEL units square and as patches of texels\n"
+    " * GROUND_PATCH units square, over each row's mean colour replaced by the one the software's\n"
+    " * walk down the screen reads there (the band's shading); the detail fades into the mean as\n"
+    " * its texels shrink. The ground's band (u_screen) lies where the pixel's ray meets the\n"
+    " * world's level 0. */\n"
+    "vec3 ground() {\n"
+    "    vec2 at = place();\n"
+    "    vec3 w = v_world;\n"
+    "    bool beyond = false;\n"
+    "    if (u_screen != 0) {\n"
+    "        vec3 ray = vec3((at.x - u_cam.x) / u_cam.z, 1.0, (u_cam.y - at.y) / u_cam.z);\n"
+    "        ray = u_toWorld * ray;\n"
+    "        beyond = ray.z > -1e-6 || u_cam.w <= 0.0;\n"
+    "        w = u_eye + ray * (u_cam.w / max(-ray.z, 1e-6));\n"
+    "    }\n"
+    "    vec2 t = w.xy / GROUND_TEXEL, tx = dFdx(t), ty = dFdy(t);\n"
+    "    vec2 p = w.xy / GROUND_PATCH, px = dFdx(p), py = dFdy(p);\n"
+    "    float first = float(u_band.x), rows = float(max(u_band.y, 1));\n"
+    "    float row = first + mod(t.y, rows);\n"
+    "    float g = first + (at.y - float(u_strip.z)) * float(u_strip.y) / 80.0;\n"
+    "    g = u_strip.w != 0 ? row : clamp(g, first + 0.5, first + rows - 0.5);\n"
+    "    vec3 colour = texture(u_means, vec2(0.5, g / 256.0)).rgb;\n"
+    "    /* the patches from a third of the way across, not to line up with the grain */\n"
+    "    if (!beyond)\n"
+    "        colour += detail(vec2(t.x, row), tx, ty) +\n"
+    "                  0.8 * detail(vec2(p.x + 117.0, first + mod(p.y, rows)), px, py);\n"
+    "    return colour;\n"
+    "}\n"
+    "#endif\n"
     "void main() {\n"
     "    int index = u_colour;\n"
     "    if (u_mode == 1 || u_mode == 2) {\n"
@@ -114,11 +177,16 @@ static const char s_fragmentShader[] =
     "        if (u_remapRow >= 0)\n"
     "            index = int(texelFetch(u_remap, ivec2(index, u_remapRow), 0).r);\n"
     "    } else if (u_mode == 3) {\n"
+    "#ifdef INDICES\n"
     "        ivec2 p = ivec2(floor(place()));\n"
     "        int si = u_strip.w == 0 ? u_strip.x + (p.y - u_strip.z) * u_strip.y\n"
     "                                : u_strip.x + wrap(p.y - u_strip.z, u_strip.w) * u_strip.y;\n"
     "        int at = 4 * ((si + (p.x >> 2)) & 0xffff) + (p.x & 3);\n"
     "        index = at < 65536 ? int(texelFetch(u_ground, ivec2(at % 320, at / 320), 0).r) : 0;\n"
+    "#else\n"
+    "        o_color = vec4(ground(), 1.0);\n"
+    "        return;\n"
+    "#endif\n"
     "    } else if (u_mode == 4) {\n"
     "        int k = u_colour - int(floor(place().y)); /* rows up from the band's last */\n"
     "        index = int(texelFetch(u_remap, ivec2(clamp(k, 0, 255), 15), 0).r);\n"
@@ -165,6 +233,7 @@ typedef struct Draw {
 
 typedef struct Uniforms {
     GLint proj, depth, view, screen, mode, colour, remapRow, imageSize, strip, frag, disc, dither;
+    GLint toWorld, eye, cam, band;
 } Uniforms;
 
 static struct {
@@ -173,8 +242,11 @@ static struct {
     Uniforms u[2];
     GLuint vao, vbo;
     GLuint remap, ground, palette;
+    GLuint detail, means; /* the strip texture in colour (ground_colours) */
     uint32_t groundHash;
     bool groundKnown;
+    uint32_t coloursPalette, coloursGround; /* what the colours were made from */
+    bool coloursKnown;
     GLuint *textures; /* by texture id */
     uint32_t textureCap;
     Vertex *vertices;
@@ -540,22 +612,38 @@ static bool program(int which, const char *fragment) {
     u->frag = g_gl.GetUniformLocation(p, "u_frag");
     u->disc = g_gl.GetUniformLocation(p, "u_disc");
     u->dither = g_gl.GetUniformLocation(p, "u_dither");
+    u->toWorld = g_gl.GetUniformLocation(p, "u_toWorld");
+    u->eye = g_gl.GetUniformLocation(p, "u_eye");
+    u->cam = g_gl.GetUniformLocation(p, "u_cam");
+    u->band = g_gl.GetUniformLocation(p, "u_band");
     g_gl.UseProgram(p);
     g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_image"), UNIT_IMAGE);
     g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_remap"), UNIT_REMAP);
     g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_ground"), UNIT_GROUND);
     g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_palette"), UNIT_PALETTE);
+    g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_detail"), UNIT_DETAIL);
+    g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_means"), UNIT_MEANS);
     return true;
 }
 
 static void check_init(void);
 
+/* The fragment shader with the ground's sizes defined, and INDICES if asked. */
+static void fragment_source(char *to, size_t size, bool indices) {
+    snprintf(to, size,
+             "%s#define GROUND_SIZE vec2(%d.0, %d.0)\n#define GROUND_TEXEL %d.0\n"
+             "#define GROUND_PATCH %d.0\n#define GROUND_BIAS %d.0\n%s",
+             indices ? "#define INDICES 1\n" : "", GROUND_W, GROUND_H, GROUND_TEXEL, GROUND_PATCH,
+             GROUND_BIAS, s_fragmentShader);
+}
+
 bool glscene_open(void) {
     if (s.open)
         return true;
-    static char indices[sizeof s_fragmentShader + 32];
-    snprintf(indices, sizeof indices, "#define INDICES 1\n%s", s_fragmentShader);
-    if (!program(0, s_fragmentShader) || !program(1, indices)) {
+    static char colours[sizeof s_fragmentShader + 256], indices[sizeof s_fragmentShader + 256];
+    fragment_source(colours, sizeof colours, false);
+    fragment_source(indices, sizeof indices, true);
+    if (!program(0, colours) || !program(1, indices)) {
         glscene_close();
         return false;
     }
@@ -577,9 +665,24 @@ bool glscene_open(void) {
     g_gl.TexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, GROUND_W, GROUND_H, 0, GL_RED_INTEGER,
                     GL_UNSIGNED_BYTE, none);
     g_gl.PixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    s.means = new_texture(GL_TEXTURE0 + UNIT_MEANS);
+    g_gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    g_gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    s.detail = new_texture(GL_TEXTURE0 + UNIT_DETAIL);
+    g_gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    g_gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    g_gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    /* the ground is seen nearly edge-on: its texels shrink far more down the screen than across */
+    if (SDL_GL_ExtensionSupported("GL_EXT_texture_filter_anisotropic") ||
+        SDL_GL_ExtensionSupported("GL_ARB_texture_filter_anisotropic")) {
+        GLfloat most = 1.0f;
+        g_gl.GetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &most);
+        g_gl.TexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, SDL_min(most, 16.0f));
+    }
     g_gl.ActiveTexture(GL_TEXTURE0);
     s.open = true;
     s.groundKnown = false;
+    s.coloursKnown = false;
     check_init();
     return true;
 }
@@ -590,8 +693,8 @@ void glscene_close(void) {
         g_gl.DeleteProgram(s.program[1]);
         g_gl.DeleteVertexArrays(1, &s.vao);
         g_gl.DeleteBuffers(1, &s.vbo);
-        GLuint t[3] = {s.remap, s.ground, s.palette};
-        g_gl.DeleteTextures(3, t);
+        GLuint t[5] = {s.remap, s.ground, s.palette, s.detail, s.means};
+        g_gl.DeleteTextures(5, t);
         for (uint32_t i = 0; i < s.textureCap; i++)
             if (s.textures[i] != 0)
                 g_gl.DeleteTextures(1, &s.textures[i]);
@@ -641,9 +744,46 @@ static void scissor(const Draw *d, const SceneFrame *f, int x, int y, int w, int
     g_gl.Scissor(left, bottom, SDL_max(right - left, 0), SDL_max(top - bottom, 0));
 }
 
+static uint8_t s_strips[GROUND_W * GROUND_H]; /* the strip texture last uploaded, padded */
+
+/* The strip texture in the palette's colours, for the ground laid in the world (ground() in the
+ * shader): each row's mean colour (a column of 256), and each texel less its row's mean, halved
+ * (a bright speck on a dark row keeps its contrast) and plus GROUND_BIAS, mipmapped: the grain
+ * averages away into the means as it recedes. */
+static void ground_colours(const uint8_t *rgba) {
+    static uint8_t means[256 * 4];
+    static uint8_t detail[GROUND_W * GROUND_H * 4];
+    memset(means, 0, sizeof means);
+    for (int r = 0; r < GROUND_H; r++) {
+        const uint8_t *row = s_strips + r * GROUND_W;
+        unsigned sum[3] = {0, 0, 0};
+        for (int x = 0; x < GROUND_W; x++)
+            for (int k = 0; k < 3; k++)
+                sum[k] += rgba[row[x] * 4 + k];
+        uint8_t *m = &means[r * 4];
+        for (int k = 0; k < 3; k++)
+            m[k] = (uint8_t)((sum[k] + GROUND_W / 2) / GROUND_W);
+        m[3] = 0xff;
+        for (int x = 0; x < GROUND_W; x++) {
+            uint8_t *d = &detail[((size_t)r * GROUND_W + (size_t)x) * 4];
+            for (int k = 0; k < 3; k++)
+                d[k] = (uint8_t)((rgba[row[x] * 4 + k] - m[k] + 2 * GROUND_BIAS) >> 1);
+            d[3] = 0xff;
+        }
+    }
+    g_gl.ActiveTexture(GL_TEXTURE0 + UNIT_MEANS);
+    g_gl.BindTexture(GL_TEXTURE_2D, s.means);
+    g_gl.TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, means);
+    g_gl.ActiveTexture(GL_TEXTURE0 + UNIT_DETAIL);
+    g_gl.BindTexture(GL_TEXTURE_2D, s.detail);
+    g_gl.TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, GROUND_W, GROUND_H, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                    detail);
+    g_gl.GenerateMipmap(GL_TEXTURE_2D);
+}
+
 /* The palette, the remap tables and the ground's strip texture (the frame's own copy, or the
- * page's). */
-static void upload(const GlSceneInputs *in, const uint8_t *strips) {
+ * page's), and the strip texture in colour if the frame draws strips in colour. */
+static void upload(const GlSceneInputs *in, const uint8_t *strips, bool colours) {
     static uint8_t rgba[256 * 4];
     static uint8_t remap[256 * 16];
     for (int i = 0; i < 256; i++) {
@@ -669,12 +809,20 @@ static void upload(const GlSceneInputs *in, const uint8_t *strips) {
     if (strips != NULL) {
         uint32_t hash = platform_hash(0, strips, 65536);
         if (!s.groundKnown || hash != s.groundHash) {
-            static uint8_t ground[GROUND_W * GROUND_H];
-            memcpy(ground, strips, 65536);
+            memcpy(s_strips, strips, 65536);
             g_gl.TexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, GROUND_W, GROUND_H, 0, GL_RED_INTEGER,
-                            GL_UNSIGNED_BYTE, ground);
+                            GL_UNSIGNED_BYTE, s_strips);
             s.groundHash = hash;
             s.groundKnown = true;
+        }
+    }
+    if (colours && s.groundKnown) {
+        uint32_t palette = platform_hash(0, rgba, sizeof rgba);
+        if (!s.coloursKnown || palette != s.coloursPalette || s.groundHash != s.coloursGround) {
+            ground_colours(rgba);
+            s.coloursPalette = palette;
+            s.coloursGround = s.groundHash;
+            s.coloursKnown = true;
         }
     }
 }
@@ -685,8 +833,11 @@ void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, in
     if (!s.open || w <= 0 || h <= 0)
         return;
     build(f);
+    bool strips = false;
+    for (uint32_t i = 0; i < s.drawCount && !strips; i++)
+        strips = s.draws[i].mode == MODE_STRIP;
     g_gl.PixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    upload(in, f->hasGround ? f->ground : in->ground);
+    upload(in, f->hasGround ? f->ground : in->ground, strips && !indices);
 
     float viewW = (float)(f->clip[2] - f->clip[0] + 1), viewH = (float)(f->clip[3] - f->clip[1] + 1);
     if (viewW <= 0 || viewH <= 0)
@@ -708,6 +859,12 @@ void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, in
     g_gl.Uniform2f(u->depth, (farZ + nearZ) / (farZ - nearZ), -2.0f * farZ * nearZ / (farZ - nearZ));
     g_gl.Uniform4f(u->view, f->clip[0], f->clip[1], viewW, viewH);
     g_gl.Uniform4f(u->frag, (float)x, (float)(y + h), viewW / (float)w, viewH / (float)h);
+    float toWorld[9]; /* column by column: the view matrix turned back */
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            toWorld[3 * i + j] = (float)f->view[3 * j + i] / 16384.0f;
+    g_gl.UniformMatrix3fv(u->toWorld, 1, GL_FALSE, toWorld);
+    g_gl.Uniform4f(u->cam, f->centerX, f->centerY, focal, (float)f->camPos[2]);
 
     g_gl.BindVertexArray(s.vao);
     g_gl.BindBuffer(GL_ARRAY_BUFFER, s.vbo);
@@ -741,6 +898,11 @@ void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, in
         } else if (d->mode == MODE_STRIP) {
             g_gl.Uniform4i(u->strip, d->strip.siBase, d->strip.stride, d->strip.rowSub,
                            d->strip.rowCount);
+            int rows = SDL_max(d->strip.rowCount != 0 ? d->strip.rowCount : d->strip.bandRows, 1);
+            g_gl.Uniform2i(u->band, d->strip.bandRow, rows);
+            /* the camera less whole periods of the ground's texture: small, and the same to it */
+            g_gl.Uniform3f(u->eye, (float)(f->camPos[0] % (GROUND_W * GROUND_PATCH)),
+                           (float)(f->camPos[1] % (rows * GROUND_PATCH)), (float)f->camPos[2]);
         } else if (d->mode == MODE_DISC) {
             g_gl.Uniform3f(u->disc, d->disc[0], d->disc[1], d->disc[2]);
         } else if (d->mode == MODE_DITHER) {

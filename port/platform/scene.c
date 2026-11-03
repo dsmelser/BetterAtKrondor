@@ -323,6 +323,7 @@ static void copy_camera(SceneFrame *to, const SceneFrame *from) {
     to->centerX = from->centerX;
     to->centerY = from->centerY;
     to->screenShift = from->screenShift;
+    memcpy(to->view, from->view, sizeof to->view);
 }
 
 /* Empty, keeping the arrays' room. */
@@ -514,6 +515,7 @@ void bak_scene_begin(const BakSceneCamera *camera) {
     s_build.centerX = camera->centerX;
     s_build.centerY = camera->centerY;
     s_build.screenShift = camera->screenShift;
+    memcpy(s_build.view, camera->view, sizeof s_build.view);
 }
 
 /* Something is drawn into the destination page. */
@@ -852,14 +854,15 @@ void bak_scene_texture(const struct ImageRecord *image, int16_t remap, const int
     }
 }
 
-void bak_scene_strip(uint16_t siBase, int16_t stride, uint16_t rowSub, uint16_t rowCount) {
+void bak_scene_strip(uint16_t siBase, int16_t stride, uint16_t rowSub, uint16_t rowCount,
+                     uint8_t bandRow, uint8_t bandRows) {
     if (!bak_scene_capturing() || s_pending.item < 0 || !s_pending.atSink)
         return;
     SceneItem *it = &s_build.items[s_pending.item];
     if (it->fate != SCENE_DRAWN || it->textured)
         return;
     it->striped = 1;
-    it->strip = (SceneStrip){siBase, stride, rowSub, rowCount};
+    it->strip = (SceneStrip){siBase, stride, rowSub, rowCount, bandRow, bandRows};
     note_ground();
     s_counts.strips++;
 }
@@ -1055,7 +1058,7 @@ void bak_scene_sky_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t colo
 }
 
 void bak_scene_ground(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t siBase, int16_t stride,
-                      uint16_t rowSub, uint16_t rowCount) {
+                      uint16_t rowSub, uint16_t rowCount, uint8_t bandRow, uint8_t bandRows) {
     SceneSkyOp *op = sky_op(SCENE_SKY_GROUND);
     if (op == NULL)
         return;
@@ -1064,7 +1067,7 @@ void bak_scene_ground(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t siBas
                        .y = y,
                        .w = w,
                        .h = h,
-                       .strip = {siBase, stride, rowSub, rowCount}};
+                       .strip = {siBase, stride, rowSub, rowCount, bandRow, bandRows}};
     note_ground();
 }
 

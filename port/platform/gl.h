@@ -23,11 +23,14 @@
     X(void, DepthMask, (GLboolean))                                                                \
     X(void, PolygonOffset, (GLfloat, GLfloat))                                                     \
     X(void, GetIntegerv, (GLenum, GLint *))                                                        \
+    X(void, GetFloatv, (GLenum, GLfloat *))                                                        \
     X(const GLubyte *, GetString, (GLenum))                                                        \
     X(void, GenTextures, (GLsizei, GLuint *))                                                      \
     X(void, DeleteTextures, (GLsizei, const GLuint *))                                             \
     X(void, BindTexture, (GLenum, GLuint))                                                         \
     X(void, TexParameteri, (GLenum, GLenum, GLint))                                                \
+    X(void, TexParameterf, (GLenum, GLenum, GLfloat))                                              \
+    X(void, GenerateMipmap, (GLenum))                                                              \
     X(void, TexImage2D,                                                                            \
       (GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const void *))               \
     X(void, TexSubImage2D,                                                                         \
@@ -57,6 +60,7 @@
     X(void, Uniform2i, (GLint, GLint, GLint))                                                      \
     X(void, Uniform3f, (GLint, GLfloat, GLfloat, GLfloat))                                         \
     X(void, Uniform4i, (GLint, GLint, GLint, GLint, GLint))                                        \
+    X(void, UniformMatrix3fv, (GLint, GLsizei, GLboolean, const GLfloat *))                        \
     X(void, GenVertexArrays, (GLsizei, GLuint *))                                                  \
     X(void, DeleteVertexArrays, (GLsizei, const GLuint *))                                         \
     X(void, BindVertexArray, (GLuint))                                                             \

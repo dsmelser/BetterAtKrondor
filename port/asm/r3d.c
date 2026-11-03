@@ -409,6 +409,7 @@ void r3d_camera_setup_view(ViewContext *widget) {
         c.centerX = st->nViewportCenterX;
         c.centerY = st->nViewportCenterY;
         c.screenShift = st->bScreenShift;
+        memcpy(c.view, st->mat3x3ViewRot.pM, sizeof c.view);
         bak_scene_begin(&c);
     }
 }

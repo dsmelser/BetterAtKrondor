@@ -8,6 +8,7 @@
 
 #include "unit.h"
 
+#include "bak_video.h"
 #include "../../platform/glscene.h"
 #include "../../platform/platform.h"
 
@@ -294,6 +295,106 @@ void unit_glscene_draws_lines_and_clipped_sprites(void) {
     UNIT_CHECK(s_frame != NULL && s_frame->itemCount == 4);
     if (s_frame != NULL)
         in_a_context("glscene effects", draws_lines_and_clipped_sprites);
+    scene_reset();
+    scene_enable(false);
+}
+
+/*
+ * The ground laid in the world, seen from 64 units straight above, where a world unit is a 1x
+ * pixel: the strip's band of the texture, rows 10-29, is colour 1 but for one texel of colour
+ * 10 at column 5 of row 13, which lies on the ground about x 44, y 28 (and every 2560 units
+ * east, 160 north). Under the camera at x 7724, y 828 it is drawn at the view's centre, on a face
+ * and on the ground's band alike; with the camera 16 units further east, 16 pixels further left;
+ * with the camera turned a quarter to the left (its right the world's north), the place 16 units
+ * east of it lies below the centre, not to its right. Then the shading: rows of colours of their
+ * own (1, 3 ... 39) walked half a row a screen row from the view's top, the means between rows,
+ * the last one below the band's end; repeating, the rows lie on the ground instead.
+ */
+static const int16_t s_down[9] = {16384, 0, 0, 0, 0, 16384, 0, -16384, 0};
+static const int16_t s_downTurned[9] = {0, 0, -16384, 16384, 0, 0, 0, -16384, 0};
+
+static uint8_t *ground_row(int row) {
+    return bak_video_page(0xAC00) + (size_t)row * 320;
+}
+
+static const SceneFrame *make_ground(int32_t x, int32_t y, const int16_t view[9], bool band,
+                                     int16_t stride, uint16_t rowCount) {
+    static const char shape = 0;
+    BakSceneCamera c = {{x, y, 64}, {0}, {0, 0, VIEW_W - 1, VIEW_H - 1}, VIEW_W / 2, VIEW_H / 2, 6};
+    memcpy(c.view, view, sizeof c.view);
+    scene_reset();
+    scene_enable(true);
+    g_graphics_context.wGfxBlitDstPage = 0xA800;
+    bak_scene_begin(&c);
+    if (band) {
+        bak_scene_ground(0, 0, VIEW_W, VIEW_H, 800, stride, 0, rowCount, 10, 20);
+    } else {
+        bak_scene_object(0, 64, 0, 100, 0, 0, &shape);
+        square(-40, 40, -30, 30, 64, 7);
+        bak_scene_strip(800, stride, 0, rowCount, 10, 20);
+    }
+    scene_finish();
+    return scene_latest(0xA800);
+}
+
+/* The colour at 1x pixel x, y of a picture drawn at 3x, within slack of r, g, b. */
+static bool colour_at(const uint8_t *rgba, int x, int y, int r, int g, int b, int slack) {
+    const uint8_t *p = rgba + ((size_t)(y * 3 + 1) * VIEW_W * 3 + (size_t)(x * 3 + 1)) * 4;
+    return SDL_abs(p[0] - r) <= slack && SDL_abs(p[1] - g) <= slack && SDL_abs(p[2] - b) <= slack;
+}
+
+static bool drawn(const SceneFrame *f, const GlSceneInputs *in) {
+    return f != NULL && glscene_render_offscreen(f, in, VIEW_W * 3, VIEW_H * 3, false, s_rgba);
+}
+
+/* The texel of colour 10 (8-bit blue 121) about 1x pixel x, y, half a texel off its centre, and
+ * colour 1 (blue 12) a texel and a half from it. */
+static bool marker_at(const SceneFrame *f, const GlSceneInputs *in, int x, int y) {
+    return drawn(f, in) && colour_at(s_rgba, x, y, 36, 72, 108, 10) &&
+           colour_at(s_rgba, x - 12, y, 4, 8, 12, 2) && colour_at(s_rgba, x, y - 12, 4, 8, 12, 2);
+}
+
+static void lays_the_ground_in_the_world(const GlSceneInputs *in) {
+    memset(bak_video_page(0xAC00), 0, 0x10000);
+    for (int r = 10; r < 30; r++)
+        memset(ground_row(r), 1, 320);
+    ground_row(13)[5] = 10;
+    for (int band = 0; band < 2; band++) {
+        const SceneFrame *f = make_ground(7724, 828, s_down, band, 0, 0);
+        UNIT_CHECK(f != NULL && (band || (f->itemCount == 1 && f->items[0].strip.bandRows == 20)));
+        UNIT_CHECK(marker_at(f, in, 32, 24));
+        UNIT_CHECK(marker_at(make_ground(7740, 828, s_down, band, 0, 0), in, 16, 24));
+        UNIT_CHECK(marker_at(make_ground(7708, 828, s_down, band, 0, 0), in, 48, 24));
+        UNIT_CHECK(marker_at(make_ground(7708, 828, s_downTurned, band, 0, 0), in, 32, 40));
+    }
+    /* The patches: the texel at column 119 of row 11 lies on the ground again 64 units square at
+     * 0.8 of its contrast, about x 160 (and every 20480 units east), y 96 (every 1280 north), and
+     * not 2560 units east of there, nor 160 north. */
+    ground_row(13)[5] = 1;
+    ground_row(11)[119] = 10;
+    UNIT_CHECK(drawn(make_ground(20640, 2656, s_down, false, 0, 0), in));
+    UNIT_CHECK(colour_at(s_rgba, 32, 24, 33, 66, 98, 2));
+    UNIT_CHECK(drawn(make_ground(23200, 2656, s_down, false, 0, 0), in));
+    UNIT_CHECK(colour_at(s_rgba, 32, 24, 4, 8, 12, 1));
+    UNIT_CHECK(drawn(make_ground(20640, 2816, s_down, false, 0, 0), in));
+    UNIT_CHECK(colour_at(s_rgba, 32, 24, 4, 8, 12, 1));
+
+    for (int r = 0; r < 20; r++)
+        memset(ground_row(10 + r), 1 + 2 * r, 320);
+    UNIT_CHECK(drawn(make_ground(7724, 828, s_down, false, 40, 0), in));
+    UNIT_CHECK(colour_at(s_rgba, 20, 0, 4, 8, 12, 1)); /* the band's first row, alone at the top */
+    /* row 10: 15.25 down the band, a quarter of row 14's colour 9 and the rest of 15's 11 */
+    UNIT_CHECK(colour_at(s_rgba, 20, 10, 42, 85, 128, 2));
+    UNIT_CHECK(colour_at(s_rgba, 20, 47, 158, 56, 215, 1)); /* row 29's colour 39, and no further */
+    UNIT_CHECK(drawn(make_ground(7724, 828, s_down, false, 80, 19), in));
+    /* y 827.5, 18.44 down the band: mostly row 18's colour 17; 8 units north, row 19's 19 */
+    UNIT_CHECK(colour_at(s_rgba, 32, 24, 68, 137, 205, 2));
+    UNIT_CHECK(colour_at(s_rgba, 32, 16, 76, 153, 229, 2));
+    memset(bak_video_page(0xAC00), 0, 0x10000);
+}
+
+void unit_glscene_lays_the_ground_in_the_world(void) {
+    in_a_context("glscene ground", lays_the_ground_in_the_world);
     scene_reset();
     scene_enable(false);
 }
