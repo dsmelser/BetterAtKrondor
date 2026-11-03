@@ -289,6 +289,59 @@ void unit_scene_views_tag_only_their_draws(void) {
     stop();
 }
 
+/* Combat's effects: a line on screen in its colour, and the last billboard's image drawn again
+ * elsewhere at its anchor (a shadow), both draws of the view; without a billboard in the frame a
+ * sprite is none. Each item keeps the clip rectangle it was drawn within, a face its own. */
+void unit_scene_lines_and_sprites_drawn_again(void) {
+    static unsigned char packed[] = {0x82, 5, 0};
+    ImageRecord sprite = {packed, sizeof packed, 0, 0x80, 2, 1};
+    static const int16_t anchor[3] = {10, 300, -20};
+    static const int16_t xs[4] = {140, 180, 180, 140}, ys[4] = {41, 41, 81, 81};
+    start(PAGE_A);
+    bak_scene_view();
+    g_graphics_context.bClip_enabled = 0;
+    bak_scene_sprite(&sprite, 148, 29, 23, 26, 0, CURSOR_REMAP_TAB_OFF + 0x100);
+    UNIT_CHECK(g_bakVramTagNow == 0);
+    g_graphics_context.bClip_enabled = 1;
+    g_graphics_context.clip = (ClipRect){13, 306, 11, 70};
+    bak_scene_billboard(&sprite, anchor, 3, 177, 27, 150, 30, 20, 24, 2, 0);
+    bak_scene_drawn();
+    bak_scene_sprite(&sprite, 148, 29, 23, 26, 2, CURSOR_REMAP_TAB_OFF + 0x100);
+    uint8_t tag = g_bakVramTagNow;
+    UNIT_CHECK(tag != 0);
+    bak_scene_drawn();
+    g_graphics_context.bClip_enabled = 0;
+    bak_scene_line(20, 30, 60, 35, 0xaf);
+    UNIT_CHECK(g_bakVramTagNow == tag);
+    bak_scene_drawn();
+    BakSceneFace a = face(s_square, 0x80, 0xf, 0);
+    bak_scene_face(&a);
+    bak_scene_polygon(4, xs, ys, 0, 1, 7, 8);
+    bak_scene_drawn();
+    scene_finish();
+
+    const SceneFrame *f = scene_latest(PAGE_A);
+    UNIT_CHECK(f != NULL && f->itemCount == 4 && f->vertexCount == 5);
+    if (f == NULL || f->itemCount != 4)
+        return;
+    const SceneItem *it = f->items;
+    UNIT_CHECK(it[0].clip[0] == 13 && it[0].clip[1] == 11 && it[0].clip[3] == 70);
+    UNIT_CHECK(it[1].type == SCENE_BILLBOARD && it[1].fate == SCENE_DRAWN);
+    UNIT_CHECK(it[1].firstVertex == it[0].firstVertex && it[1].texture == it[0].texture);
+    UNIT_CHECK(it[1].remap == 11 && it[1].flip == 2);
+    UNIT_CHECK(it[1].rect[0] == 148 && it[1].rect[1] == 29 && it[1].rect[2] == 23);
+    UNIT_CHECK(it[1].rect[3] == 26 && it[1].clip[2] == 306);
+    UNIT_CHECK(it[2].type == SCENE_LINE && it[2].fate == SCENE_DRAWN && it[2].fill == 0xaf);
+    UNIT_CHECK(it[2].rect[0] == 20 && it[2].rect[1] == 30 && it[2].rect[2] == 60);
+    UNIT_CHECK(it[2].rect[3] == 35);
+    UNIT_CHECK(it[2].clip[0] == INT16_MIN && it[2].clip[3] == INT16_MAX);
+    UNIT_CHECK(it[3].type == SCENE_FACE && it[3].clip[0] == 13 && it[3].clip[3] == 111);
+
+    bak_scene_sprite(&sprite, 148, 29, 23, 26, 0, 0); /* a new frame: no billboard in it */
+    UNIT_CHECK(g_bakVramTagNow == 0);
+    stop();
+}
+
 /* A view and what it draws over, as its page is drawn into. */
 static const SceneFrame *view(uint16_t page, const int16_t clip[4], bool background) {
     BakSceneCamera c = {{0}, {0}, {clip[0], clip[1], clip[2], clip[3]}, 160, 61, 9};

@@ -4,7 +4,8 @@
  * scene.c collects it from the hooks in bak_port.h: one frame per pass of the renderer (from
  * one r3d_camera_setup_view to the next), in the order the software draws it. The sky and the
  * ground's bands come first, as screen-space operations; then the items: faces (their corners
- * in camera space), billboards and circles, each with what the software did with it. A frame
+ * in camera space), billboards, circles and lines on screen, each with what the software did
+ * with it and the clip rectangle it was drawn within. A frame
  * is finished when the next one begins or when the page it was drawn into is flipped to the
  * front (scene_page_flipped); the last finished frame of each VGA page is kept. The images the
  * frames name are copied into textures of their own as they first appear, so a reader never
@@ -42,7 +43,8 @@ typedef struct SceneStrip {
 typedef enum SceneItemType {
     SCENE_FACE,
     SCENE_BILLBOARD,
-    SCENE_CIRCLE
+    SCENE_CIRCLE,
+    SCENE_LINE
 } SceneItemType;
 
 /* What the software did with an item. */
@@ -61,7 +63,7 @@ typedef struct SceneItem {
     uint8_t flags;    /* a face record's flags */
     uint8_t whole;    /* a face that reached its sink unclipped */
     uint8_t filled;   /* a flat face: filled, or its outline only */
-    uint8_t fill;     /* a flat face's or a circle's colour */
+    uint8_t fill;     /* a flat face's, a circle's or a line's colour */
     uint8_t outline;  /* a flat face's outline colour */
     uint8_t textured; /* a face drawn with an image (texture) */
     uint8_t striped;  /* a flat face filled from the ground's strip */
@@ -77,8 +79,11 @@ typedef struct SceneItem {
     uint32_t texture;     /* a textured face's or a billboard's image, 0 for none */
     SceneStrip strip;     /* a striped face's */
     /* A face's polygon as its sink took it: left, top, right, bottom; a billboard's sprite on
-     * screen: x, y, w, h; a circle's centre and radius: x, y, r. */
+     * screen: x, y, w, h; a circle's centre and radius: x, y, r; a line's ends: x0, y0, x1, y1. */
     int16_t rect[4];
+    /* The clip rectangle it was drawn within: left, top, right, bottom (a sprite cut at the
+     * ground it sinks into is narrower than the view); none, the whole of int16_t's range. */
+    int16_t clip[4];
     const void *id;       /* a face's record */
 } SceneItem;
 

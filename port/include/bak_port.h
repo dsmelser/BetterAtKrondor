@@ -178,9 +178,10 @@ void bak_scene_begin(const BakSceneCamera *camera);
    describes carry it, for the GPU's view in the window. */
 void bak_scene_view(void);
 /* The draw the last hook described is done: what is drawn next is no frame's until the next
-   hook, so the pass's other drawing (the cursor, combat's lines and effects) stays the
-   picture's own. Every hook that describes a draw (a face's polygon, a billboard, a circle,
-   the sky's operations, the ground's band) is followed by its draw, then by this. */
+   hook, so the pass's other drawing (the cursor, combat's sparks and numbers) stays the
+   picture's own. Every hook that describes a draw (a face's polygon, a billboard, a circle, a
+   line, a sprite, the sky's operations, the ground's band) is followed by its draw, then by
+   this. */
 void bak_scene_drawn(void);
 /* The world's passes end here (WORLDHIT.C, WORLDFRM.C): their frame is finished before any 2-D
    overlay is drawn over it. The other passes end at the next one or at their page's flip. */
@@ -211,6 +212,14 @@ void bak_scene_billboard(const struct ImageRecord *image, const int16_t anchor[3
    radius on screen and its colour. */
 void bak_scene_circle(const int16_t centre[3], int unitShift, int16_t x, int16_t y,
                       int16_t radius, uint8_t colour);
+/* A line on screen among a view's draws (combat's effects: WORLDFX.C), from x0, y0 to x1, y1
+   in its colour. */
+void bak_scene_line(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t colour);
+/* An image drawn again as the last billboard was, at that billboard's depth, into another
+   rectangle on screen with its own remap table (a shadow under a sprite: WORLDFX.C). Without a
+   billboard in the frame it is no frame's draw. */
+void bak_scene_sprite(const struct ImageRecord *image, int16_t x, int16_t y, int16_t w, int16_t h,
+                      uint16_t flip, int16_t remap);
 /* The sky and the ground behind the objects, in screen pixels: the horizon line (clipped to
    the view, or reject's outcode bits when it misses it) and the camera's heading; a band of
    rows in one colour across pixels 13-306 (vgafill.c); the band's rows shaded from its ramp,

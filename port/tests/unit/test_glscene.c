@@ -13,6 +13,7 @@
 
 #include "bak_game_begin.h"
 #include "structs.h"
+#include "gfx169d.h"
 #include "SRC/GEN/GFXCTX.H"
 #include "bak_game_end.h"
 
@@ -227,6 +228,72 @@ void unit_glscene_draws_a_frame_over_another(void) {
     UNIT_CHECK(s_back != NULL && s_over != NULL && s_back != s_over);
     if (s_back != NULL && s_over != NULL)
         in_a_context("glscene over", draws_a_frame_over_another);
+    scene_reset();
+    scene_enable(false);
+}
+
+/*
+ * Combat's effects: over a sky of 1 and a face of 4 (x 0-31, y 5-43), a line of 9 across row
+ * 20, then a billboard of 10 (x 40-51, y 10-21) the software cut at row 15, which leaves the
+ * line showing below the cut, then the billboard's image drawn again at x 2-7, y 30-35 through
+ * remap row 11 (10 becomes 12), at the billboard's depth: over the farther face.
+ */
+static const SceneFrame *make_effects(void) {
+    static unsigned char sprite[1] = {10};
+    static ImageRecord bill = {sprite, sizeof sprite, 0, 0, 1, 1};
+    static const char shape = 0;
+    static const int16_t anchor[3] = {28, 300, -8};
+    BakSceneCamera c = {{0}, {0}, {0, 0, VIEW_W - 1, VIEW_H - 1}, VIEW_W / 2, VIEW_H / 2, 6};
+    scene_reset();
+    scene_enable(true);
+    g_graphics_context.wGfxBlitDstPage = 0xA800;
+    g_graphics_context.bClip_enabled = 0;
+    bak_scene_begin(&c);
+    bak_scene_sky_rect(0, 0, VIEW_W, VIEW_H, 1, 0);
+    bak_scene_object(0, 1000, 0, 600, 0, 0, &shape);
+    square(-500, 0, -300, 300, 1000, 4);
+    bak_scene_line(4, 20, 60, 20, 9);
+    g_graphics_context.bClip_enabled = 1;
+    g_graphics_context.clip = (ClipRect){0, VIEW_W - 1, 0, 15};
+    bak_scene_billboard(&bill, anchor, 0, 38, 25, 40, 10, 12, 12, 0, 0);
+    g_graphics_context.bClip_enabled = 0;
+    bak_scene_sprite(&bill, 2, 30, 6, 6, 0, CURSOR_REMAP_TAB_OFF + 0x100);
+    scene_finish();
+    return scene_latest(0xA800);
+}
+
+static void draws_lines_and_clipped_sprites(const GlSceneInputs *in) {
+    uint8_t *rgba = s_rgba;
+    s_remap[11 * 256 + 10] = 12;
+    UNIT_CHECK(glscene_render_offscreen(s_frame, in, VIEW_W, VIEW_H, true, rgba));
+    UNIT_CHECK(index_at(rgba, VIEW_W, 10, 19) == 4); /* the face */
+    UNIT_CHECK(index_at(rgba, VIEW_W, 10, 20) == 9); /* the line over it */
+    UNIT_CHECK(index_at(rgba, VIEW_W, 4, 20) == 9 && index_at(rgba, VIEW_W, 3, 20) == 4);
+    UNIT_CHECK(index_at(rgba, VIEW_W, 60, 20) == 9 && index_at(rgba, VIEW_W, 61, 20) == 1);
+    UNIT_CHECK(index_at(rgba, VIEW_W, 58, 20) == 9);  /* and over the sky */
+    UNIT_CHECK(index_at(rgba, VIEW_W, 45, 14) == 10); /* the billboard above its cut */
+    UNIT_CHECK(index_at(rgba, VIEW_W, 45, 17) == 1);  /* the sky below it */
+    UNIT_CHECK(index_at(rgba, VIEW_W, 45, 20) == 9);  /* the line below it */
+    UNIT_CHECK(index_at(rgba, VIEW_W, 4, 32) == 12);  /* the image again, remapped */
+    UNIT_CHECK(index_at(rgba, VIEW_W, 9, 32) == 4);
+    /* at 3x the line is the three rows of 1x row 20 */
+    UNIT_CHECK(glscene_render_offscreen(s_frame, in, VIEW_W * 3, VIEW_H * 3, true, rgba));
+    int rows = 0;
+    for (int y = 55; y < 68; y++)
+        rows += index_at(rgba, VIEW_W * 3, 31, y) == 9;
+    UNIT_CHECK(rows == 3 && index_at(rgba, VIEW_W * 3, 31, 60) == 9);
+    UNIT_CHECK(index_at(rgba, VIEW_W * 3, 31, 62) == 9);
+    /* and the billboard's cut falls between 1x rows 15 and 16 */
+    UNIT_CHECK(index_at(rgba, VIEW_W * 3, 136, 47) == 10);
+    UNIT_CHECK(index_at(rgba, VIEW_W * 3, 136, 48) == 1);
+    s_remap[11 * 256 + 10] = 0;
+}
+
+void unit_glscene_draws_lines_and_clipped_sprites(void) {
+    s_frame = make_effects();
+    UNIT_CHECK(s_frame != NULL && s_frame->itemCount == 4);
+    if (s_frame != NULL)
+        in_a_context("glscene effects", draws_lines_and_clipped_sprites);
     scene_reset();
     scene_enable(false);
 }

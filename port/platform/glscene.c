@@ -12,7 +12,9 @@
  * spans read it at the pixel's place in the 1x view (but for a strip whose rows repeat, which
  * vgablit.c starts at each polygon's first row: here they start at the strip's own, so that its
  * faces meet without a seam where their edges, drawn finer than 1x, cut through its texels);
- * its colour is the DAC's for that index. A
+ * its colour is the DAC's for that index. Lines (combat's effects) are bands one 1x pixel wide
+ * on screen, painted over what comes before them without depth. Whatever the software cut to a
+ * clip rectangle narrower than the view (a sprite sinking into the ground) is cut to it here. A
  * dithered rectangle (the maps' backgrounds) is the even blend of its two colours, which is what
  * its checkerboard of 1x pixels stands for; drawn as indices it is the checkerboard. What the
  * frame does not draw stays transparent, so that a frame drawn over another (GLSCENE_OVER:
@@ -157,6 +159,8 @@ typedef struct Draw {
     SceneStrip strip;
     float disc[3];
     int dither, ditherX;
+    bool clipped;    /* cut to clip, which is narrower than the view */
+    int16_t clip[4]; /* left, top, right, bottom in the 1x picture */
 } Draw;
 
 typedef struct Uniforms {
@@ -287,6 +291,50 @@ static SceneVertex between(SceneVertex a, SceneVertex b, float t) {
     return (SceneVertex){a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t};
 }
 
+/* An item drawn within a clip rectangle narrower than the view is cut to it. */
+static void clip_to_item(Draw *d, const SceneFrame *f, const SceneItem *it) {
+    if (d == NULL || (it->clip[0] <= f->clip[0] && it->clip[1] <= f->clip[1] &&
+                      it->clip[2] >= f->clip[2] && it->clip[3] >= f->clip[3]))
+        return;
+    d->clipped = true;
+    memcpy(d->clip, it->clip, sizeof d->clip);
+}
+
+/* A band one 1x pixel wide from the middle of pixel (ax, ay) to that of (bx, by) and half a
+ * pixel past each, in the 1x picture: the pixels draw_line sets, at any size. */
+static void band(Draw *d, float ax, float ay, float bx, float by) {
+    ax += 0.5f;
+    ay += 0.5f;
+    bx += 0.5f;
+    by += 0.5f;
+    float dx = bx - ax, dy = by - ay, len = sqrtf(dx * dx + dy * dy);
+    if (len < 1e-4f) {
+        dx = 1;
+        dy = 0;
+        len = 1;
+    }
+    dx *= 0.5f / len; /* half a pixel along the line; (-dy, dx) across it */
+    dy *= 0.5f / len;
+    float p[4][2] = {{ax - dx - dy, ay - dy + dx},
+                     {ax - dx + dy, ay - dy - dx},
+                     {bx + dx + dy, by + dy - dx},
+                     {bx + dx - dy, by + dy + dx}};
+    static const int order[6] = {0, 1, 2, 0, 2, 3};
+    for (int k = 0; k < 6; k++)
+        vertex(d, p[order[k]][0], p[order[k]][1], 0, 0, 0);
+}
+
+/* A line on screen, painted over what is drawn before it and under what is drawn after. */
+static void line(const SceneFrame *f, const SceneItem *it) {
+    Draw *d = new_draw(GL_TRIANGLES, MODE_COLOUR);
+    if (d == NULL)
+        return;
+    d->screen = 1;
+    d->colour = it->fill;
+    clip_to_item(d, f, it);
+    band(d, it->rect[0], it->rect[1], it->rect[2], it->rect[3]);
+}
+
 /*
  * draw_polygon's outline: each edge a band one 1x pixel wide across it on screen and half a
  * pixel past its ends (so the corners meet), each end at its own depth, cut at the view plane:
@@ -343,6 +391,7 @@ static void face(const SceneFrame *f, const SceneItem *it, uint8_t depth, float 
         d->texture = it->texture;
         d->remap = it->remap;
         d->strip = it->strip;
+        clip_to_item(d, f, it);
         for (unsigned i = 1; i + 1 < it->corners; i++) {
             unsigned c[3] = {0, i, i + 1};
             for (unsigned k = 0; k < 3; k++) {
@@ -362,6 +411,7 @@ static void face(const SceneFrame *f, const SceneItem *it, uint8_t depth, float 
         d->depth = depth == DEPTH_NONE ? DEPTH_NONE : DEPTH_TEST;
         d->offset = offset - 1.0f;
         d->colour = it->outline;
+        clip_to_item(d, f, it);
         outline(f, it, d);
     }
 }
@@ -378,6 +428,7 @@ static void billboard(const SceneFrame *f, const SceneItem *it) {
     d->depth = DEPTH_WRITE;
     d->texture = it->texture;
     d->remap = it->remap;
+    clip_to_item(d, f, it);
     float x0, z0, x1, z1;
     unproject(f, it->rect[0], it->rect[1], depth, &x0, &z0);
     unproject(f, (float)(it->rect[0] + it->rect[2]), (float)(it->rect[1] + it->rect[3]), depth, &x1,
@@ -408,6 +459,7 @@ static void circle(const SceneFrame *f, const SceneItem *it) {
         return;
     d->depth = DEPTH_WRITE;
     d->colour = it->fill;
+    clip_to_item(d, f, it);
     d->disc[0] = it->rect[0];
     d->disc[1] = it->rect[1];
     d->disc[2] = it->rect[2];
@@ -448,6 +500,9 @@ static void build(const SceneFrame *f) {
             break;
         case SCENE_CIRCLE:
             circle(f, it);
+            break;
+        case SCENE_LINE:
+            line(f, it);
             break;
         }
     }
@@ -564,6 +619,26 @@ static GLuint texture_for(uint32_t id) {
                         GL_UNSIGNED_BYTE, t->indices);
     }
     return s.textures[id];
+}
+
+/* The scissor box of a draw drawn into x, y, w, h (the frame's view there): the view, or the
+ * draw's clip rectangle within it. */
+static void scissor(const Draw *d, const SceneFrame *f, int x, int y, int w, int h) {
+    if (!d->clipped) {
+        g_gl.Scissor(x, y, w, h);
+        return;
+    }
+    float sx = (float)w / (float)(f->clip[2] - f->clip[0] + 1);
+    float sy = (float)h / (float)(f->clip[3] - f->clip[1] + 1);
+    int left = x + (int)SDL_roundf((float)(d->clip[0] - f->clip[0]) * sx);
+    int right = x + (int)SDL_roundf((float)(d->clip[2] + 1 - f->clip[0]) * sx);
+    int top = y + h - (int)SDL_roundf((float)(d->clip[1] - f->clip[1]) * sy); /* GL's y is up */
+    int bottom = y + h - (int)SDL_roundf((float)(d->clip[3] + 1 - f->clip[1]) * sy);
+    left = SDL_max(left, x);
+    right = SDL_min(right, x + w);
+    bottom = SDL_max(bottom, y);
+    top = SDL_min(top, y + h);
+    g_gl.Scissor(left, bottom, SDL_max(right - left, 0), SDL_max(top - bottom, 0));
 }
 
 /* The palette, the remap tables and the ground's strip texture (the frame's own copy, or the
@@ -683,6 +758,7 @@ void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, in
         } else {
             g_gl.Disable(GL_POLYGON_OFFSET_FILL);
         }
+        scissor(d, f, x, y, w, h);
         g_gl.DrawArrays(d->primitive, (GLint)d->first, (GLsizei)d->count);
     }
 

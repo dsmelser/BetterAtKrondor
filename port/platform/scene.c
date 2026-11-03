@@ -3,13 +3,14 @@
  * (M7; the scene list in scene.h, the hooks in bak_port.h). R3D's producers hand over each face
  * before the near clip (port/asm/r3d.c), actorrender_entity each object (ACTRENDR.C), the sinks
  * the polygon each face became and what drew it (WORLDRND.C, SKY.C), the billboard and circle
- * renderers theirs (WORLDRND.C), and the sky renderer its bands and panorama (SKYREND.C, SKY.C).
- * Nothing is kept unless asked: scene_enable, or BAK_SCENE_CHECK.
+ * renderers theirs (WORLDRND.C), combat's effects their lines and shadows (WORLDFX.C), and the
+ * sky renderer its bands and panorama (SKYREND.C, SKY.C). Each item keeps the clip rectangle it
+ * was drawn within. Nothing is kept unless asked: scene_enable, or BAK_SCENE_CHECK.
  *
  * A frame the window shows (bak_scene_view) has a tag, and so has each pixel its draws write
  * (bak_video.h): from the hook that describes a draw to bak_scene_drawn after it, and only when
- * the hook took the draw in, so that whatever the pass draws besides (the cursor, combat's lines,
- * a shadow, a spell's sparks) stays the picture's own. No two frames kept have the same tag:
+ * the hook took the draw in, so that whatever the pass draws besides (the cursor, a spell's
+ * sparks, combat's numbers) stays the picture's own. No two frames kept have the same tag:
  * combat's background is drawn once and copied under hundreds of frames of its actors.
  *
  * With BAK_SCENE_CHECK set, what it is handed is checked. A face that reached its sink whole (no
@@ -50,7 +51,8 @@ static void (*s_finishedHook)(const SceneFrame *);
 static SceneFrame s_build;       /* the frame being drawn */
 static SceneFrame s_done[PAGES]; /* the last finished frame of each page */
 static uint32_t s_serial;
-static uint8_t s_lastTag; /* the tag the last world's view got */
+static uint8_t s_lastTag;            /* the tag the last world's view got */
+static int32_t s_lastBillboard = -1; /* the frame's last billboard item, -1 for none */
 
 static struct {
     int32_t index; /* in the frame's objects, -1 for none */
@@ -67,7 +69,7 @@ static struct {
 static struct {
     unsigned long long frames, faces, whole, partly, mismatched, unchecked, strayCorners;
     unsigned long long textured, vertical, reordered, unsteady, disagree, billboards, circles,
-        offTarget, strayAnchors, strips, skyOps, skyDropped, mixedPages;
+        lines, sprites, offTarget, strayAnchors, strips, skyOps, skyDropped, mixedPages;
 } s_counts;
 static double s_worst[4]; /* the largest deviation within the tolerance, by level of detail */
 static double s_worstAnchor;
@@ -373,6 +375,7 @@ void scene_finish(void) {
     g_bakVramTagNow = 0; /* what is drawn after it is no frame's */
     settle_pending();
     s_object.index = -1;
+    s_lastBillboard = -1;
     if (s_build.itemCount == 0 && s_build.skyCount == 0)
         return;
     unsigned slot = 0;
@@ -497,6 +500,7 @@ void scene_reset(void) {
     s_serial = 0;
     s_object.index = -1;
     s_pending.item = -1;
+    s_lastBillboard = -1;
 }
 
 void bak_scene_begin(const BakSceneCamera *camera) {
@@ -536,6 +540,15 @@ static SceneItem *new_item(uint8_t type) {
     it->remap = -1;
     it->object = s_object.index >= 0 ? (uint16_t)s_object.index : SCENE_NO_OBJECT;
     it->firstVertex = s_build.vertexCount;
+    if (g_graphics_context.bClip_enabled) {
+        it->clip[0] = g_graphics_context.clip.xmin;
+        it->clip[1] = g_graphics_context.clip.ymin;
+        it->clip[2] = g_graphics_context.clip.xmax;
+        it->clip[3] = g_graphics_context.clip.ymax;
+    } else {
+        it->clip[0] = it->clip[1] = INT16_MIN;
+        it->clip[2] = it->clip[3] = INT16_MAX;
+    }
     return it;
 }
 
@@ -600,6 +613,7 @@ void bak_scene_face(const BakSceneFace *face) {
     it->outline = face->outline;
     it->fate = SCENE_CLIPPED;
     it->id = face->id;
+    memcpy(it->clip, face->clip, sizeof it->clip);
     for (unsigned i = 0; i < 4; i++)
         it->imageCorner[i] = (uint8_t)i;
     s_pending.item = (int32_t)(it - s_build.items);
@@ -898,9 +912,50 @@ void bak_scene_billboard(const struct ImageRecord *image, const int16_t anchor[3
     it->rect[2] = w;
     it->rect[3] = h;
     add_vertex(anchor[0] * scale, anchor[1] * scale, anchor[2] * scale);
+    s_lastBillboard = (int32_t)(it - s_build.items);
     s_counts.billboards++;
     if (s_check == 1)
         check_point(anchor, unitShift, anchorX, anchorY);
+}
+
+void bak_scene_sprite(const struct ImageRecord *image, int16_t x, int16_t y, int16_t w, int16_t h,
+                      uint16_t flip, int16_t remap) {
+    if (!bak_scene_capturing() || s_lastBillboard < 0)
+        return;
+    settle_pending();
+    uint32_t anchor = s_build.items[s_lastBillboard].firstVertex;
+    SceneItem *it = new_item(SCENE_BILLBOARD);
+    if (it == NULL)
+        return;
+    tag_draw();
+    it->fate = SCENE_DRAWN;
+    it->firstVertex = anchor; /* the billboard's, shared */
+    it->texture =
+        texture_id(image, image != NULL && (image->wUnk4 & 0x80) ? COLUMNS_UNPACKED : COLUMNS);
+    it->flip = (uint8_t)(flip & 3);
+    it->remap = remap_row(remap);
+    it->rect[0] = x;
+    it->rect[1] = y;
+    it->rect[2] = w;
+    it->rect[3] = h;
+    s_counts.sprites++;
+}
+
+void bak_scene_line(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t colour) {
+    if (!bak_scene_capturing())
+        return;
+    settle_pending();
+    SceneItem *it = new_item(SCENE_LINE);
+    if (it == NULL)
+        return;
+    tag_draw();
+    it->fate = SCENE_DRAWN;
+    it->fill = colour;
+    it->rect[0] = x0;
+    it->rect[1] = y0;
+    it->rect[2] = x1;
+    it->rect[3] = y1;
+    s_counts.lines++;
 }
 
 void bak_scene_circle(const int16_t centre[3], int unitShift, int16_t x, int16_t y, int16_t radius,
@@ -1030,10 +1085,10 @@ static void report(void) {
             "corners reordered; %llu faces drawn whole in more than one order; %llu drawn whole "
             "in another order than their corners give; %llu faces from the ground's strip; %llu "
             "billboards and %llu circles, %llu off their place (the largest deviation %.2f), "
-            "%llu far from their object; %llu sky operations (%llu past the room); %u "
-            "textures\n",
+            "%llu far from their object; %llu lines and %llu sprites drawn again; %llu sky "
+            "operations (%llu past the room); %u textures\n",
             s_counts.textured, s_counts.vertical, s_counts.reordered, s_counts.unsteady,
             s_counts.disagree, s_counts.strips, s_counts.billboards, s_counts.circles,
-            s_counts.offTarget, s_worstAnchor, s_counts.strayAnchors, s_counts.skyOps,
-            s_counts.skyDropped, (unsigned)s_textureCount);
+            s_counts.offTarget, s_worstAnchor, s_counts.strayAnchors, s_counts.lines,
+            s_counts.sprites, s_counts.skyOps, s_counts.skyDropped, (unsigned)s_textureCount);
 }

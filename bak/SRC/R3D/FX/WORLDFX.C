@@ -33,6 +33,23 @@ VfxRec *g_pVfxParticlePool = {0};
 #define VFX_PARTICLE_COUNT 25
 #define VFX_SPARKLE_COUNT 6
 
+/* An effect's line in the context's outline colour, handed to the port's scene capture first
+   (bak_port.h), so that the GPU's view draws it in its place among the view's draws. */
+static void fx_line(s16 x1, s16 y1, s16 x2, s16 y2) {
+    bak_scene_line(x1, y1, x2, y2, g_graphics_context.bGfx_outline_color);
+    draw_line(x1, y1, x2, y2);
+    bak_scene_drawn();
+}
+
+/* The last billboard's sprite drawn again into a rectangle through the remap table set (a
+   shadow, then the sprite over it), handed to the port's scene capture first. */
+static void fx_sprite_blit(s16 x, s16 y, s16 w, s16 h) {
+    bak_scene_sprite(g_pBillboardSpriteImg, x, y, w, h, (u16)g_nActorSpriteFlip,
+                     g_polyRasterState.nRemapTableOff);
+    emsimg_sprite_blit_scaled_paged(g_pBillboardSpriteImg, x, y, g_nActorSpriteFlip, w, h);
+    bak_scene_drawn();
+}
+
 void worldfx_sparkle_burst(Combatant *actor, s16 color) {
     s16 scr[3];
     s16 base_x;
@@ -400,15 +417,15 @@ void worldfx_render_flame_at_actor(Combatant *actor) {
     x_off1 = 10 - RND_FX(20);
     x_off2 = 3 - RND_FX(6);
 
-    draw_line(scr_x + x_off2, scr_y + RND_FX(3), scr_x + x_off1, scr_y - c1);
+    fx_line(scr_x + x_off2, scr_y + RND_FX(3), scr_x + x_off1, scr_y - c1);
     scr_y -= c1;
 
     while (scr_y > -c1) {
         x_off2 = 10 - RND_FX(20);
-        draw_line(scr_x + x_off1, scr_y, scr_x + x_off2, scr_y - c1);
+        fx_line(scr_x + x_off1, scr_y, scr_x + x_off2, scr_y - c1);
 
         x_off1 = 10 - RND_FX(20);
-        draw_line(scr_x + x_off2, scr_y - c1, scr_x + x_off1, scr_y - c2);
+        fx_line(scr_x + x_off2, scr_y - c1, scr_x + x_off1, scr_y - c2);
 
         scr_y -= c2;
     }
@@ -452,16 +469,16 @@ void worldfx_draw_actor_box_wireframe(Combatant *actor, s16 color_idx) {
     worldfx_actor_box_scr_verts(v, actor);
     g_graphics_context.bGfx_outline_color = (char)(color_idx % 7) + 0xd0;
     if (actor->inner->gridX > 4) {
-        draw_line(v[6].nX, v[6].nY, v[1].nX, v[1].nY);
-        draw_line(v[2].nX, v[2].nY, v[7].nX, v[7].nY);
+        fx_line(v[6].nX, v[6].nY, v[1].nX, v[1].nY);
+        fx_line(v[2].nX, v[2].nY, v[7].nX, v[7].nY);
     } else {
-        draw_line(v[0].nX, v[0].nY, v[5].nX, v[5].nY);
-        draw_line(v[3].nX, v[3].nY, v[4].nX, v[4].nY);
+        fx_line(v[0].nX, v[0].nY, v[5].nX, v[5].nY);
+        fx_line(v[3].nX, v[3].nY, v[4].nX, v[4].nY);
     }
-    draw_line(v[0].nX, v[0].nY, v[1].nX, v[1].nY);
-    draw_line(v[0].nX, v[0].nY, v[3].nX, v[3].nY);
-    draw_line(v[2].nX, v[2].nY, v[3].nX, v[3].nY);
-    draw_line(v[2].nX, v[2].nY, v[1].nX, v[1].nY);
+    fx_line(v[0].nX, v[0].nY, v[1].nX, v[1].nY);
+    fx_line(v[0].nX, v[0].nY, v[3].nX, v[3].nY);
+    fx_line(v[2].nX, v[2].nY, v[3].nX, v[3].nY);
+    fx_line(v[2].nX, v[2].nY, v[1].nX, v[1].nY);
 }
 
 void worldfx_draw_actor_box_wireframe_front(Combatant *entity, s16 color_mod) {
@@ -470,16 +487,16 @@ void worldfx_draw_actor_box_wireframe_front(Combatant *entity, s16 color_mod) {
     worldfx_actor_box_scr_verts(v, entity);
     g_graphics_context.bGfx_outline_color = (char)(color_mod % 7) + 0xd1;
     if (entity->inner->gridX <= 4) {
-        draw_line(v[6].nX, v[6].nY, v[1].nX, v[1].nY);
-        draw_line(v[2].nX, v[2].nY, v[7].nX, v[7].nY);
+        fx_line(v[6].nX, v[6].nY, v[1].nX, v[1].nY);
+        fx_line(v[2].nX, v[2].nY, v[7].nX, v[7].nY);
     } else {
-        draw_line(v[0].nX, v[0].nY, v[5].nX, v[5].nY);
-        draw_line(v[3].nX, v[3].nY, v[4].nX, v[4].nY);
+        fx_line(v[0].nX, v[0].nY, v[5].nX, v[5].nY);
+        fx_line(v[3].nX, v[3].nY, v[4].nX, v[4].nY);
     }
-    draw_line(v[4].nX, v[4].nY, v[5].nX, v[5].nY);
-    draw_line(v[4].nX, v[4].nY, v[7].nX, v[7].nY);
-    draw_line(v[6].nX, v[6].nY, v[7].nX, v[7].nY);
-    draw_line(v[6].nX, v[6].nY, v[5].nX, v[5].nY);
+    fx_line(v[4].nX, v[4].nY, v[5].nX, v[5].nY);
+    fx_line(v[4].nX, v[4].nY, v[7].nX, v[7].nY);
+    fx_line(v[6].nX, v[6].nY, v[7].nX, v[7].nY);
+    fx_line(v[6].nX, v[6].nY, v[5].nX, v[5].nY);
 }
 
 void worldfx_state_arm_minus2(void) {
@@ -526,14 +543,13 @@ void far worldfx_rndr_spr_shadow(short shadow_palette_idx) {
     h = g_nBillboardH + 2;
 
     g_polyRasterState.nRemapTableOff = shadow_palette_idx * 0x100 + CURSOR_REMAP_TAB_OFF;
-    emsimg_sprite_blit_scaled_paged(g_pBillboardSpriteImg, x, y, g_nActorSpriteFlip, w, h);
+    fx_sprite_blit(x, y, w, h);
     if (g_nActorKnockbackColorIdx != 0) {
         g_polyRasterState.nRemapTableOff = g_nActorKnockbackColorIdx * 0x100 + CURSOR_REMAP_TAB_OFF;
     } else {
         g_polyRasterState.nRemapTableOff = FOG_REMAP_TAB_OFF;
     }
-    emsimg_sprite_blit_scaled_paged(g_pBillboardSpriteImg, g_nBillboardScrX, g_nBillboardScrY,
-                                    g_nActorSpriteFlip, g_nBillboardW, g_nBillboardH);
+    fx_sprite_blit(g_nBillboardScrX, g_nBillboardScrY, g_nBillboardW, g_nBillboardH);
 }
 
 void far worldfx_draw_path_segment(s16 gridX, s16 gridY) {
@@ -587,10 +603,10 @@ void far worldfx_draw_path_segment(s16 gridX, s16 gridY) {
     p2x = scr[1];
     g_graphics_context.bGfx_outline_color = 0xaf;
     if (shape != 1) {
-        draw_line(p0y, p0x, p1y, p1x);
+        fx_line(p0y, p0x, p1y, p1x);
     }
     if (shape != 2) {
-        draw_line(p1y, p1x, p2y, p2x);
+        fx_line(p1y, p1x, p2y, p2x);
     }
     return;
 }
@@ -612,7 +628,7 @@ void worldfx_draw_world_line(s16 x1, s16 y1, s16 x2, s16 y2) {
     sx2 = out[0];
     sy2 = out[1];
     g_graphics_context.bGfx_outline_color = 0xaf;
-    draw_line(sx1, sy1, sx2, sy2);
+    fx_line(sx1, sy1, sx2, sy2);
 }
 
 void worldfx_draw_world_line_color(s16 x1, s16 y1, s16 x2, s16 y2, s16 color) {
@@ -632,5 +648,5 @@ void worldfx_draw_world_line_color(s16 x1, s16 y1, s16 x2, s16 y2, s16 color) {
     sx2 = out[0];
     sy2 = out[1];
     g_graphics_context.bGfx_outline_color = color;
-    draw_line(sx1, sy1, sx2, sy2);
+    fx_line(sx1, sy1, sx2, sy2);
 }
