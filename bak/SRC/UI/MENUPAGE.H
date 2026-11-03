@@ -10,6 +10,7 @@ extern MenuEntry *g_pMenuPressAnchor;
 extern MenuEntry *g_pMenuClickedEntry;
 extern unsigned short g_wMenuDragSubMode;
 extern unsigned short g_wMenuDragState;
+extern s16 g_menupageCtrlArrowsToPage;
 
 extern MenuPage *menupage_load(char *filename);
 extern void menupage_free(MenuPage *page);

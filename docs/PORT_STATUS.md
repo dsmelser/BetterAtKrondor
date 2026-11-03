@@ -347,6 +347,15 @@ The game's rules stay the original's (CLAUDE.md); these change how it runs.
 Where the original's code plainly does what its authors did not mean, the port does what was meant.
 The quirks below (what the port has taught us) stay unless they are listed here.
 
+- **The save dialogs' folder lists did not move by keys.** Restore Game and Save Game scroll their
+  folder list on Up or Down with Ctrl held (`mainmenu_save_load_game_dialog`,
+  `mainmenu_save_save_game_dialog`: `key_is_down(1Dh)`), their games list without. But
+  `menupage_run` hands a page that takes the arrows as keys (REQ_LOAD.DAT's and REQ_SAVE.DAT's
+  first word, 2, as the world's, the maps' and the towns' pages) only those pressed while Ctrl is
+  up, and with Ctrl down moves the pointer between the page's buttons, so the folders could be
+  chosen with the mouse only. While the two dialogs read their keys, Ctrl+Up and Ctrl+Down reach
+  them (`g_menupageCtrlArrowsToPage`); elsewhere Ctrl's arrows still move between a page's buttons
+  (2026-11-03, `autosave-keys` replay).
 - **The AI's spell search starts one past the last spell.** `cspell_ai_pick_castable_spell` counts down
   from `g_nSpellCount`, so it first looks at a 46th SPELLS.DAT record: whatever the heap holds after the
   table. Bytes that matched the school and kind sought would spend a random draw there and could cast a
@@ -589,11 +598,6 @@ The `music` and `music-menu` replays play the GOG copy's.
   `g_nFrameTickCountdown` to 30000, about two minutes of the game's ticks. Every loop that waits
   for the countdown to reach 0 sets its own count first, and the inventory's drag clears it at its
   start (INVENTOR.C), so nothing stalls after a save.
-- **Restore Game's folder list does not move by keys.** The dialog scrolls it on Up or Down with Ctrl
-  held (`mainmenu_save_load_game_dialog`, `key_is_down(1Dh)`), the games list without; but
-  `menupage_run` gives a page that asks for the arrows as keys (REQ_LOAD.DAT's first word, 2) only
-  those pressed while Ctrl is up, and with it down moves the pointer between the page's buttons. The
-  folders are chosen with the mouse (the `autosave` replay clicks).
 - **The EMS globals were misnamed.** In `SYS/EMSDET.C`, `g_ems_free_pages` receives the page-frame segment
   (INT 67h AH=41h), `g_ems_total_pages` the free page count (AH=42h) and `g_ems_frame_segment` the handle
   (AH=43h). The module is gone natively (EMS is plain memory), and `g_free_memory_kb` counts 16 KB pages.
@@ -951,7 +955,8 @@ run left in its user folder (`SCENARIO_CHECKS`).
 | `quicksave`: the world; the Save Game dialog (O, S, a folder and a save name typed, Save); F9, which finds no Bookmark; two steps, F5, two steps, F9, and Space through the load's map and caption | ✅ identical logs, the ASan build's too: the dialog writes `GAMES\one.G02\SAVE01.GAM` and F5 `SAVE00.GAM`, saving leaves the random state alone, and F9 puts the party back at F5's place, not the dialog's: TEMP.GAM's hash and the game state after the load are those right after F5 |
 | `quicksave-first`: the world, F5 as the first save of a fresh user folder, two steps, F9 | ✅ identical logs, the ASan build's too: F5 makes `GAMES\SAVES.G01` for its Bookmark, and F9 brings the party back |
 | `world-autosave`, `combat-autosave`, `spawns-autosave`: those scripts with autosaves on, one a minute while the game's time moves (`saves.autosave_minutes=1`), checked against their baselines | ✅ identical logs, the ASan build's too: autosaves leave the game where it was. The world saves the chapter's start on its first pass; the fight saves it too and, a minute on, the party past the fight (the corpse's tile, after the victory); the teleport saves on arriving in zone 4, among the spawned stones. Each `AUTOSAVE.G20` holds two, the newest first |
-| `autosave`: the world (its chapter's start saved), two steps, a teleport into zone 4 (saved on arriving), F5 there; then Restore Game, the AUTOSAVE folder and its second save clicked, Return, Space through the load, a step | ✅ identical logs, the ASan build's too. The zone 4 autosave is byte for byte the Bookmark F5 saved at the same place, but for its title ("Autosave: day 3, 08:02"; checked after the run), and the load puts the party back at the chapter's start (669600,1064800). The dialog lists the folder after SAVES. The folder is clicked: its keys cannot reach the folder list (below) |
+| `autosave`: the world (its chapter's start saved), two steps, a teleport into zone 4 (saved on arriving), F5 there; then Restore Game, the AUTOSAVE folder and its second save clicked, Return, Space through the load, a step | ✅ identical logs, the ASan build's too. The zone 4 autosave is byte for byte the Bookmark F5 saved at the same place, but for its title ("Autosave: day 3, 08:02"; checked after the run), and the load puts the party back at the chapter's start (669600,1064800). The dialog lists the folder after SAVES. The folder is clicked |
+| `autosave-keys`: `autosave` with the AUTOSAVE folder chosen by Ctrl+Down instead of the click (2026-11-03) | ✅ the same states as `autosave`; on the build before the save dialogs took Ctrl's arrows ("Bugs of the original, fixed") the load took the Bookmark of the first folder and the states parted at line 10 |
 | `lockpick`: the world, then a teleport beside the locked house a tile east of the start (zone 1's tile 11,16), the house clicked, Y to the question whether to try its lock | ✅ identical logs, the ASan build's too (2026-11-02, the screen's first native run): the lock and the party's key ring (PICKLOCK.C) |
 | `cast-world`, `cast-combat`: spells cast by hand. In the world C, the fifth symbol page and Scent of Sarig, Space past its message; in chapter 1's first fight (the `combat` scenario's way in), Owyn's turn (he is the fastest): C, the second page, Despair Thy Eyes, the moredhel's square | ✅ identical logs, the ASan build's too (2026-11-02, the first casts by hand). The world's cast screen highlighted its caster at places read past two other globals until ASan found it (see what the port has taught us); the fix changed its pictures, not its states. In the fight the cast ends Owyn's turn and Locklear's comes |
 | `camp-rest`: the world, E, a click on the camp dial's 14:00: the party rests six hours from 08:00 and the camp ends by itself, then a step | ✅ identical logs, the ASan build's too: the clock's hand moves an hour at a time (slot 39 for each picture), and the game state after the camp has the six hours |

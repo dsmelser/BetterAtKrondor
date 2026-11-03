@@ -196,6 +196,14 @@ def autosave_is_the_bookmark(user: Path) -> bool:
 
 
 SCENARIO_CHECKS["autosave"] = autosave_is_the_bookmark
+# The same load with the AUTOSAVE folder chosen by keys, as Restore Game means it: Ctrl+Down
+# moves from the first folder to the next, where the original's page took Ctrl's arrows for its
+# buttons (2026-11-03). Its states are autosave's.
+SCENARIOS["autosave-keys"] = SCENARIOS["autosave"].replace(
+    "104000:click:60,71;", "103500:key:Left Ctrl,1000;104000:key:Down;")
+SCENARIO_SETS["autosave-keys"] = SCENARIO_SETS["autosave"]
+SAME_STATES_AS["autosave-keys"] = "autosave"
+SCENARIO_CHECKS["autosave-keys"] = autosave_is_the_bookmark
 # The camp (E): a click on the dial's 14:00 (ENCAMP.DAT's hour spots), and the party rests the six
 # hours from 08:00, the clock's hand drawn by VGA slot 39 as it moves; a rest to a chosen hour
 # ends the camp by itself. Then a step.

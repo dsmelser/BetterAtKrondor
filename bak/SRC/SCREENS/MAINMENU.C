@@ -453,7 +453,9 @@ s16 mainmenu_save_load_game_dialog(void) {
         }
 
         page_active = 0;
+        g_menupageCtrlArrowsToPage = 1; /* Ctrl+Up and Down for the folders (below) */
         action_key = menupage_run(page, (unsigned short *)&file_dirty);
+        g_menupageCtrlArrowsToPage = 0;
         if (action_key) {
             page_active = (menupage_state_0e7c() == 2) ? 1 : 0;
         } else {
@@ -757,7 +759,9 @@ s16 mainmenu_save_save_game_dialog(void) {
     skip_labels_reset:
 
         page_active = 0;
+        g_menupageCtrlArrowsToPage = 1; /* Ctrl+Up and Down for the folders (below) */
         dispatch_key = menupage_run(page, (unsigned short *)&lbl_dirty);
+        g_menupageCtrlArrowsToPage = 0;
         if (dlgwidget_text_input_dialog_pump(dialog) != 0) {
             dispatch_key = 0xc1;
         } else if (dispatch_key != 0) {

@@ -26,6 +26,10 @@ unsigned short g_wMenuDragState;
 short g_nJoyXVel = 0;
 short g_nJoyYVel = 0;
 
+/* Set while the save dialogs read their keys: their pages get Up and Down with Ctrl held too,
+   which scroll their folder lists, where other pages move between their buttons with them. */
+s16 g_menupageCtrlArrowsToPage = 0;
+
 /*
  * The files hold the original's records: a page of 1Ch bytes, then the entry count and
  * entries of 21h bytes, then a string blob. Their string pointers are 16-bit offsets into
@@ -442,7 +446,9 @@ s16 menupage_run(MenuPage *page, unsigned short *out_consumed) {
             menupage_cursor_joystick_step();
         }
     } else {
-        if ((page->wWants_screen_save == 2) && (key_is_down(0x1d) == 0)) {
+        if ((page->wWants_screen_save == 2) &&
+            (key_is_down(0x1d) == 0 ||
+             (g_menupageCtrlArrowsToPage != 0 && (key == 0x48 || key == 0x50)))) {
             return key;
         }
         menupage_navigate(page, (u16)(key == 0x4d) - (u16)(key == 0x4b),
