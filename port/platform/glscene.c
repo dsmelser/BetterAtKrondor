@@ -11,8 +11,9 @@
  * remap table, 0 transparent but on the sky); its colour is the DAC's for that index. Images are
  * filtered after that (video.textures): the four texels about a pixel are each looked up, then
  * blended, the blend narrowed to a window pixel where a texel covers more (sharp: crisp texels
- * with smooth edges), or not (smooth), or the nearest texel alone is taken; a transparent texel
- * takes no part, so that a sprite's edge stays where its texels end. The
+ * with smooth edges), or not (smooth), and where a pixel spans several texels (a far wall) such
+ * blends across it are averaged; or the nearest texel alone is taken. A transparent texel takes
+ * no part, so that a sprite's edge stays where its texels end. The
  * ground's strips are drawn in colour from the strip texture laid on the ground in the world, so
  * that its grain moves with the world as the party walks and turns, over the shading the
  * software reads down the screen (ground() in the shader); as indices, for the check below, the
@@ -184,15 +185,29 @@ static const char s_fragmentShader[] =
     "        index = int(texelFetch(u_remap, ivec2(index, u_remapRow), 0).r);\n"
     "    return vec4(texelFetch(u_palette, ivec2(index, 0), 0).rgb * a, a);\n"
     "}\n"
-    "/* The image filtered after the palette lookup: the four texels about the place blended, the\n"
-    " * blend narrowed to a window pixel where a texel covers more (sharp). */\n"
-    "vec4 image() {\n"
-    "    vec2 p = v_uv - 0.5, f = fract(p);\n"
+    "/* The four texels about a place in the image blended, the blend narrowed to a window pixel\n"
+    " * where a texel covers more (sharp; width: texels a window pixel spans). */\n"
+    "vec4 blend(vec2 at, vec2 width) {\n"
+    "    vec2 p = at - 0.5, f = fract(p);\n"
     "    ivec2 k = ivec2(floor(p));\n"
     "    if (u_filter == 0)\n"
-    "        f = clamp((f - 0.5) / clamp(fwidth(v_uv), 1e-4, 1.0) + 0.5, 0.0, 1.0);\n"
+    "        f = clamp((f - 0.5) / clamp(width, 1e-4, 1.0) + 0.5, 0.0, 1.0);\n"
     "    return mix(mix(texel(k), texel(k + ivec2(1, 0)), f.x),\n"
     "               mix(texel(k + ivec2(0, 1)), texel(k + ivec2(1, 1)), f.x), f.y);\n"
+    "}\n"
+    "/* The image filtered after the palette lookup: a blend at the place; where the pixel spans\n"
+    " * more than a texel, blends about a texel apart across the pixel's footprint, at most 4 by\n"
+    " * 4, averaged, so that a far wall's texels do not shimmer. */\n"
+    "vec4 image() {\n"
+    "    vec2 dx = dFdx(v_uv), dy = dFdy(v_uv), width = fwidth(v_uv);\n"
+    "    ivec2 n = ivec2(clamp(ceil(vec2(length(dx), length(dy))), 1.0, 4.0));\n"
+    "    vec4 sum = vec4(0.0);\n"
+    "    for (int j = 0; j < n.y; j++)\n"
+    "        for (int i = 0; i < n.x; i++) {\n"
+    "            vec2 at = (vec2(i, j) + 0.5) / vec2(n) - 0.5;\n"
+    "            sum += blend(v_uv + dx * at.x + dy * at.y, width);\n"
+    "        }\n"
+    "    return sum / float(n.x * n.y);\n"
     "}\n"
     "#endif\n"
     "void main() {\n"

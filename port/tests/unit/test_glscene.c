@@ -452,9 +452,54 @@ static void filters_remapped_images(const GlSceneInputs *in) {
     s_remap[11 * 256 + 10] = 0;
 }
 
+/*
+ * A far image: 16x16 texels, every fourth column colour 7 and the others 8, on a face 4x4 1x
+ * pixels: each pixel spans four columns, a quarter of 7 and the rest 8, the image's first one
+ * too, where a pixel's nearest texel is 8 (its middle falls in a column of 8, between two). With
+ * the others transparent, a pixel is a quarter covered and left out.
+ */
+static const SceneFrame *make_far_image(unsigned char others) {
+    static unsigned char texels[16 * 16]; /* columns */
+    static ImageRecord image = {texels, sizeof texels, 0, 0, 16, 16};
+    static const char shape = 0;
+    static const int16_t xs[4] = {52, 56, 56, 52}, ys[4] = {20, 20, 24, 24};
+    for (int c = 0; c < 16; c++)
+        memset(texels + c * 16, c % 4 == 0 ? 7 : others, 16);
+    BakSceneCamera c = {{0}, {0}, {0, 0, VIEW_W - 1, VIEW_H - 1}, VIEW_W / 2, VIEW_H / 2, 6};
+    scene_reset();
+    scene_enable(true);
+    g_graphics_context.wGfxBlitDstPage = 0xA800;
+    bak_scene_begin(&c);
+    bak_scene_sky_rect(0, 0, VIEW_W, VIEW_H, 1, 0);
+    bak_scene_object(0, 320, 0, 100, 0, 0, &shape);
+    square(100, 120, 0, 20, 320, 0);
+    bak_scene_texture(&image, 0, xs, ys);
+    scene_finish();
+    return scene_latest(0xA800);
+}
+
+static void averages_far_images(const GlSceneInputs *in) {
+    const SceneFrame *f = make_far_image(8);
+    UNIT_CHECK(f != NULL && glscene_render_offscreen(f, in, VIEW_W, VIEW_H, false, s_rgba));
+    UNIT_CHECK(colour_is(s_rgba, VIEW_W, 53, 21, 31, 63, 94));
+    UNIT_CHECK(colour_is(s_rgba, VIEW_W, 52, 21, 31, 63, 94));
+    UNIT_CHECK(textures("nearest") &&
+               glscene_render_offscreen(f, in, VIEW_W, VIEW_H, false, s_rgba));
+    UNIT_CHECK(colour_is(s_rgba, VIEW_W, 53, 21, 32, 65, 97));
+    UNIT_CHECK(textures("sharp"));
+}
+
+static void leaves_out_far_sprites(const GlSceneInputs *in) {
+    const SceneFrame *f = make_far_image(0);
+    UNIT_CHECK(f != NULL && glscene_render_offscreen(f, in, VIEW_W, VIEW_H, false, s_rgba));
+    UNIT_CHECK(colour_is(s_rgba, VIEW_W, 53, 21, 4, 8, 12)); /* the sky's colour 1 */
+}
+
 void unit_glscene_filters_the_images(void) {
     in_a_context("glscene filters", filters_the_images);
     in_a_context("glscene filters remapped", filters_remapped_images);
+    in_a_context("glscene filters far", averages_far_images);
+    in_a_context("glscene filters far sprites", leaves_out_far_sprites);
     scene_reset();
     scene_enable(false);
 }
