@@ -135,13 +135,26 @@ void bak_autosave_done(_Bool written, uint32_t gameTime);
 int bak_autosave_slots(void);
 
 /*
- * The 3-D scene as the software pass draws it (port/platform/scene.c), for the GPU's view (M7):
- * each object as actorrender_entity places it, each face as R3D's producers have it before the
+ * The 3-D scene as the software pass draws it (port/platform/scene.c; the scene list in
+ * scene.h), for the GPU's view (M7). A pass begins where r3d_camera_setup_view sets the camera
+ * up; actorrender_entity places each object; R3D's producers hand over each face before the
  * near clip (its corners in camera space: x right, y depth, z up, in the units of the object's
- * level of detail, 2^unitShift world units), and the polygon its sink then receives. Nothing is
- * kept unless asked (BAK_SCENE_CHECK checks every face against its polygon and reports at exit).
+ * level of detail, 2^unitShift world units), then the polygon its sink receives, then what
+ * drew it: an image and a remap (fog) table for a textured quad, the ground's strip for a flat
+ * face keyed to it. Billboards, circles, and the sky's and the ground's bands come from their
+ * own renderers. Remap tables come as the blits' offsets (g_polyRasterState.nRemapTableOff, 0
+ * for none), screen positions in pixels. Nothing is kept unless asked (scene_enable, or
+ * BAK_SCENE_CHECK, which checks what it is handed and reports at exit).
  */
+struct ImageRecord;
 #define BAK_SCENE_CORNERS 20
+typedef struct BakSceneCamera {
+    int32_t pos[3];         /* the camera's world position */
+    int16_t angles[3];      /* its angles as the view matrix takes them */
+    int16_t clip[4];        /* the viewport: left, top, right, bottom */
+    int16_t centerX, centerY;
+    uint8_t screenShift;    /* the focal length's log2 (the zone's zoom) */
+} BakSceneCamera;
 typedef struct BakSceneFace {
     int32_t cam[BAK_SCENE_CORNERS][3]; /* the corners, as the producer holds them */
     uint8_t corners;                   /* how many */
@@ -155,14 +168,55 @@ typedef struct BakSceneFace {
     int16_t centerX, centerY;          /* the viewport's centre */
     uint8_t screenShift;               /* the focal length's log2 (the zone's zoom) */
     uint8_t lod;                       /* the producer's level of detail */
+    uint8_t flags;                     /* the face record's flags */
+    const void *id;                    /* the face record, for telling faces apart */
 } BakSceneFace;
 _Bool bak_scene_capturing(void);
-/* An object: its origin in camera space and its bounding half extent, both in world units, and
-   the unit shift of its faces' corners. */
-void bak_scene_object(int32_t x, int32_t y, int32_t z, int32_t halfExtent, int unitShift);
+void bak_scene_begin(const BakSceneCamera *camera);
+/* The world's passes end here (WORLDHIT.C, WORLDFRM.C): their frame is finished before any 2-D
+   overlay is drawn over it. The other passes end at the next one or at their page's flip. */
+void bak_scene_end(void);
+/* An object: its origin in camera space and its bounding half extent, both in world units, the
+   unit shift of its faces' corners, its shape's draw priority (vislist_sort's), and the shape. */
+void bak_scene_object(int32_t x, int32_t y, int32_t z, int32_t halfExtent, int unitShift,
+                      uint8_t priority, const void *shape);
 void bak_scene_face(const BakSceneFace *face);
-/* The polygon the last face's sink received, in screen pixels (after clipping). */
-void bak_scene_polygon(unsigned n, const int16_t *xs, const int16_t *ys);
+/* The polygon the last face's sink received, in screen pixels (after clipping): the textured
+   quads' sink, or the flat one with its colours. */
+void bak_scene_polygon(unsigned n, const int16_t *xs, const int16_t *ys, _Bool textured,
+                       uint8_t filled, uint8_t fill, uint8_t outline);
+/* The last face's image and remap table as the textured quad's sink is about to draw them onto
+   the polygon xs, ys (before it puts the corners in its order). */
+void bak_scene_texture(const struct ImageRecord *image, int16_t remap, const int16_t *xs,
+                       const int16_t *ys);
+/* The last face filled from the ground's strip texture (VGA page AC00h) rather than its colour:
+   the texture rows as vgablit's spans walk them (vgablit.c). */
+void bak_scene_strip(uint16_t siBase, int16_t stride, uint16_t rowSub, uint16_t rowCount);
+/* A billboard: its anchor in camera space (2^unitShift world units) and where it projects, and
+   the sprite's rectangle on screen as drawn, its flip bits (1 vertical, 2 horizontal) and remap
+   table. */
+void bak_scene_billboard(const struct ImageRecord *image, const int16_t anchor[3], int unitShift,
+                         int16_t anchorX, int16_t anchorY, int16_t x, int16_t y, int16_t w,
+                         int16_t h, uint16_t flip, int16_t remap);
+/* A circle: its centre in camera space (2^unitShift world units), where it projects, its
+   radius on screen and its colour. */
+void bak_scene_circle(const int16_t centre[3], int unitShift, int16_t x, int16_t y,
+                      int16_t radius, uint8_t colour);
+/* The sky and the ground behind the objects, in screen pixels: the horizon line (clipped to
+   the view, or reject's outcode bits when it misses it) and the camera's heading; a band of
+   rows in one colour across pixels 13-306 (vgafill.c); the band's rows shaded from its ramp,
+   the last row's offset given (detail 0's sky); the panorama's images; a rectangle in one
+   colour; a rectangle filled from the ground's strip texture. */
+void bak_scene_horizon(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t reject,
+                       uint16_t heading);
+void bak_scene_sky_band(int16_t y, int16_t rows, uint8_t colour);
+void bak_scene_sky_shaded(int16_t lastRowOffset, int16_t rows);
+void bak_scene_sky_sprite(const struct ImageRecord *image, int16_t x, int16_t y);
+void bak_scene_sky_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t colour);
+void bak_scene_ground(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t siBase,
+                      int16_t stride, uint16_t rowSub, uint16_t rowCount);
+/* A table of images is about to be freed (free_image_record): its records are forgotten. */
+void bak_scene_images_freed(struct ImageRecord *const *table);
 /* The machine stands still between these: polls do nothing, so no time passes and no interrupt
  * runs (an autosave writes meanwhile). */
 void bak_poll_hold(void);

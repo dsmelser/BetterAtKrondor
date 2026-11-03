@@ -312,7 +312,7 @@ void actorrender_entity(WorldObject far *entry) {
     r3d_compose_actor_camera_matrix();
     /* The port's scene capture (bak_port.h): the object's origin in camera space (x right,
        depth, up) and its half extent, in world units before the level of detail rescales
-       them, and the units its faces' corners come in. */
+       them, the units its faces' corners come in, and its draw priority. */
     originX = g_abR3dState.nActorCamX;
     originDepth = g_abR3dState.nActorCamZ;
     originUp = g_abR3dState.nActorCamY;
@@ -344,7 +344,8 @@ void actorrender_entity(WorldObject far *entry) {
     } else {
         g_abR3dState.bCurMeshLod = 0;
     }
-    bak_scene_object(originX, originDepth, originUp, g_abR3dState.nMeshBoundHalfExtent, unitShift);
+    bak_scene_object(originX, originDepth, originUp, g_abR3dState.nMeshBoundHalfExtent, unitShift,
+                     pRec->priority, pRec);
 
     nDesc = pRec->lodCount;
     pDesc = (struct LodDescriptor far *)MK_FP(FP_SEG_NORM(pRec), (u16)pRec->lodArray);

@@ -14,6 +14,7 @@
  */
 #include <string.h>
 
+#include "../platform/scene.h"
 #include "bak_video.h"
 #include "vga.h"
 
@@ -333,6 +334,7 @@ void vga_vsync_wait(s16 wait) {
     u16 back = g_graphics_context.wVgaPage2Base;
     g_graphics_context.wVgaPage2Base = g_graphics_context.wVgaFrontPageBase;
     g_graphics_context.wVgaFrontPageBase = back;
+    scene_page_flipped(back);
     u16 start = (u16)(back << 4);
     bak_port_out16(0x3D4, (u16)(0x0C | (start & 0xFF00)));
     bak_port_out16(0x3D4, (u16)(0x0D | (start & 0x00FF) << 8));

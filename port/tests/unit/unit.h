@@ -65,7 +65,11 @@
     X(memory_images_sit_in_plain_blocks)                                                           \
     X(memory_ems_is_plain_blocks)                                                                  \
     X(glpresent_letterboxes_the_picture)                                                           \
-    X(glpresent_draws_the_picture)
+    X(glpresent_draws_the_picture)                                                                 \
+    X(scene_faces_come_in_world_units)                                                             \
+    X(scene_textured_quads_keep_their_images_corners)                                              \
+    X(scene_frames_finish_by_pass_and_page)                                                        \
+    X(scene_billboards_circles_and_the_sky)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

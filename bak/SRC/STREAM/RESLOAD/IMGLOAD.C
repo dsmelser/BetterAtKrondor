@@ -223,6 +223,7 @@ void free_container_pair(s16 *container) {
 /* The pixels' block (plain memory) is the first image's: the original frees its far pointer,
  * a DOS block. */
 void far free_image_record(register ImageRecord **record) {
+    bak_scene_images_freed(record);
     if (record) {
         if (*record != NULL)
             bak_plain_free((*record)->pImageBase + (*record)->wImageOff);

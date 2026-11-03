@@ -396,6 +396,21 @@ void r3d_camera_setup_view(ViewContext *widget) {
         r3d_matrix_to_euler(&st->mat3x3ViewRot, angles);
     }
     r3d_matrix3x3_transpose(&st->mat3x3ViewRot);
+    if (bak_scene_capturing()) { /* a pass of the renderer begins (bak_port.h) */
+        BakSceneCamera c;
+        for (int i = 0; i < 3; i++) {
+            c.pos[i] = st->camCurWorldPos[i];
+            c.angles[i] = angles[i];
+        }
+        c.clip[0] = g_graphics_context.clip.xmin;
+        c.clip[1] = g_graphics_context.clip.ymin;
+        c.clip[2] = g_graphics_context.clip.xmax;
+        c.clip[3] = g_graphics_context.clip.ymax;
+        c.centerX = st->nViewportCenterX;
+        c.centerY = st->nViewportCenterY;
+        c.screenShift = st->bScreenShift;
+        bak_scene_begin(&c);
+    }
 }
 
 /* ---- lighting ---------------------------------------------------------------------- */
@@ -732,7 +747,9 @@ static void submit_to_rasterizer(void) {
         return;
     g_graphics_context.nPolygonClipVertexCount = (s16)n;
     copy_corners(n);
-    bak_scene_polygon(n, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
+    bak_scene_polygon(n, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY, 0,
+                      g_graphics_context.bGfx_fill_enabled, g_graphics_context.bGfx_fill_color,
+                      g_graphics_context.bGfx_outline_color);
     g_r3dDrawPolygon((u16)g_graphics_context.nPolygonClipVertexCount,
                      g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
 }
@@ -754,7 +771,7 @@ static void submit_textured_quad(const unsigned char *face) {
     texture = g_graphics_context.bGfxRenderStateFlag ? rd16(face + F_DAY_OUTLINE)
                                                      : rd16(face + F_NIGHT_OUTLINE);
     copy_corners(n);
-    bak_scene_polygon(n, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
+    bak_scene_polygon(n, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY, 1, 0, 0, 0);
     g_r3dDrawTexturedQuad(texture, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
 }
 
@@ -863,6 +880,8 @@ static void capture_face(const unsigned char *face, int wide, int nearClipped) {
     f.centerY = st->nViewportCenterY;
     f.screenShift = st->bScreenShift;
     f.lod = st->bCurMeshLod;
+    f.flags = face[F_FLAGS];
+    f.id = face;
     bak_scene_face(&f);
 }
 

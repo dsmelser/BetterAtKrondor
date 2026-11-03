@@ -111,6 +111,10 @@ static void skyrender_horizon_fill_clip_rect(unsigned char reject_mask) {
         g_graphics_context.bGfx_fill_color = g_bCurSkyColorR;
     }
 
+    bak_scene_sky_rect(g_graphics_context.clip.xmin, g_graphics_context.clip.ymin,
+                       (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1,
+                       (g_graphics_context.clip.ymax - g_graphics_context.clip.ymin) + 1,
+                       g_graphics_context.bGfx_fill_color);
     draw_rect_filled(g_graphics_context.clip.xmin, g_graphics_context.clip.ymin,
                      (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1,
                      (g_graphics_context.clip.ymax - g_graphics_context.clip.ymin) + 1);
@@ -169,6 +173,9 @@ static void skyrender_sky_ground_bands(void) {
             g_graphics_context.bGfx_outline_color = g_graphics_context.bGfx_fill_color =
                 g_bCurSkyColorR;
         }
+        bak_scene_sky_band(g_graphics_context.clip.ymin,
+                           g_nClipLineY0 - g_graphics_context.clip.ymin,
+                           g_graphics_context.bGfx_outline_color);
         vgaplanar_fill_band(g_graphics_context.clip.ymin,
                             g_nClipLineY0 - g_graphics_context.clip.ymin,
                             (char)g_graphics_context.bGfx_outline_color);
@@ -178,6 +185,8 @@ static void skyrender_sky_ground_bands(void) {
     g_nHorizonRowY = g_nClipLineY1;
     if (g_nClipLineY1 < g_graphics_context.clip.ymax) {
         if ((g_wZoneFlags & 2) != 0) {
+            bak_scene_sky_band(g_nClipLineY1, (g_graphics_context.clip.ymax - g_nClipLineY1) + 1,
+                               g_bZoneGroundColor);
             vgaplanar_fill_band(g_nClipLineY1, (g_graphics_context.clip.ymax - g_nClipLineY1) + 1,
                                 (u16)g_bZoneGroundColor);
         } else {
@@ -188,20 +197,26 @@ static void skyrender_sky_ground_bands(void) {
     g_graphics_context.bClip_enabled = 1;
 
     if ((g_wZoneFlags & 1) != 0) {
+        bak_scene_sky_band(g_nClipLineY0, g_nClipLineY1 - g_nClipLineY0, g_bZoneSkyColor);
         vgaplanar_fill_band(g_nClipLineY0, g_nClipLineY1 - g_nClipLineY0, (u16)g_bZoneSkyColor);
     } else if (g_engine_prefs->detail_level != 0) {
 
         uScroll = g_world_camera->base.orientation.yaw >> 6 & 0xff;
         uQuad = -g_world_camera->base.orientation.yaw - 1 >> 0xe & 3;
+        bak_scene_sky_sprite(g_pSkyPanoAssetTable[uQuad], uScroll, g_nClipLineY0);
         emsimg_putsprite_ems_swap(g_pSkyPanoAssetTable[uQuad], uScroll, g_nClipLineY0);
         screen_cur_refr_during_long_op();
+        bak_scene_sky_sprite(g_pSkyPanoAssetTable[uQuad + 1 & 3], uScroll + 0x100, g_nClipLineY0);
         emsimg_putsprite_ems_swap(g_pSkyPanoAssetTable[uQuad + 1 & 3], uScroll + 0x100,
                                   g_nClipLineY0);
         screen_cur_refr_during_long_op();
+        bak_scene_sky_sprite(g_pSkyPanoAssetTable[uQuad - 1 & 3], uScroll + 0xff00,
+                             g_nClipLineY0);
         emsimg_putsprite_ems_swap(g_pSkyPanoAssetTable[uQuad - 1 & 3], uScroll + 0xff00,
                                   g_nClipLineY0);
         screen_cur_refr_during_long_op();
     } else {
+        bak_scene_sky_shaded(g_nClipLineY1 * 0x50 - 0x50, g_nClipLineY1 - g_nClipLineY0);
         vgaplanar_clear_column_strip(g_nClipLineY1 * 0x50 - 0x50, g_nClipLineY1 - g_nClipLineY0);
     }
 
@@ -270,6 +285,10 @@ void far skyrender_sky_and_ground(unsigned short sky_r, unsigned short sky_g, un
     skyrender_compute_horizon_line();
     screen_cur_refr_during_long_op();
     rejectMask = skyrender_clip_line_cohen_suth();
+    /* The port's scene capture (bak_port.h): the horizon as clipped, and the heading the
+       panorama scrolls by. */
+    bak_scene_horizon(g_nClipLineX0, g_nClipLineY0, g_nClipLineX1, g_nClipLineY1, rejectMask,
+                      g_world_camera->base.orientation.yaw);
     g_nHorizonRowY = g_nClipLineY1;
     if (g_nClipLineY1 != g_nSkyHorizonRowCached) {
         g_nSkyHorizonRowCached = g_nClipLineY1;

@@ -177,6 +177,7 @@ void far world_render_frame(s16 animate) {
             screen_cur_refr_during_long_op();
         }
     }
+    bak_scene_end(); /* the port's scene capture (bak_port.h) */
 }
 
 void world_render_sky_texture_load(void) {
@@ -231,6 +232,7 @@ void world_render_frame_full(void) {
             screen_cur_refr_during_long_op();
         }
     }
+    bak_scene_end();
 
     g_nPolygonTextureMode = 1;
 #ifndef V102CD
@@ -386,6 +388,7 @@ void far world_render_frame_with_hittest(void) {
             }
         }
     }
+    bak_scene_end();
 }
 
 void world_rndr_apply_window_vport(void) {

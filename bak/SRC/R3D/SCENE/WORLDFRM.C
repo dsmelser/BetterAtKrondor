@@ -255,6 +255,7 @@ void far worldframe_render_chapter_full(void) {
         }
     }
     worldrender_swap_record_table(0, 2);
+    bak_scene_end(); /* the port's scene capture (bak_port.h) */
     g_nPolygonTextureMode = 1;
 #ifndef V102CD
     if (g_pMapIconsTable != 0) {
@@ -302,6 +303,7 @@ void far worldframe_render_chapter(s16 animate) {
         i++;
         slotPtr++;
     }
+    bak_scene_end();
     return;
 }
 

@@ -131,6 +131,23 @@ s16 *worldrender_mesh_vertex_to_world(unsigned char idx, s16 *out_vec3) {
     return out_vec3;
 }
 
+/* The billboard's blit, handed to the port's scene capture first (bak_port.h): its anchor in
+   camera space, in 2^bMeshRenormCount world units (worldrender_mesh_vertex_to_world's), and
+   where the anchor projects. */
+static void billboard_blit(s16 *vec3, s16 nScrX, s16 nScrY) {
+    bak_scene_billboard(g_pBillboardSpriteImg, vec3, g_abR3dState.bMeshRenormCount, nScrX, nScrY,
+                        g_nBillboardScrX, g_nBillboardScrY, g_nBillboardW, g_nBillboardH,
+                        (u16)g_nActorSpriteFlip, g_polyRasterState.nRemapTableOff);
+    emsimg_sprite_blit_scaled_paged(g_pBillboardSpriteImg, g_nBillboardScrX, g_nBillboardScrY,
+                                    g_nActorSpriteFlip, g_nBillboardW, g_nBillboardH);
+}
+
+/* The textured quad's blit, handed to the port's scene capture first. */
+static void quad_blit(ImageRecord *pHandle, s16 *xs, s16 *ys) {
+    bak_scene_texture(pHandle, g_polyRasterState.nRemapTableOff, xs, ys);
+    emsimg_gouraud_blit_paged(pHandle, xs, ys);
+}
+
 /* entry points at a SpriteBillboard (structs.h) — the tag-2 poly-list payload.
  * Fields are read by raw offset here: the +2 word is deliberately punned to pull
  * both yAdjust (low byte) and xOffset (high byte), so the accessors stay raw. */
@@ -209,14 +226,10 @@ void worldrender_sprite_billboard(unsigned char far *entry) {
             g_nActorKnockbackColorIdx = g_nActorKnockbackColorIdx % 5;
             g_polyRasterState.nRemapTableOff =
                 g_nActorKnockbackColorIdx * 0x100 + CURSOR_REMAP_TAB_OFF;
-            emsimg_sprite_blit_scaled_paged(g_pBillboardSpriteImg, g_nBillboardScrX,
-                                            g_nBillboardScrY, g_nActorSpriteFlip, g_nBillboardW,
-                                            g_nBillboardH);
+            billboard_blit(vec3, nScrX, nScrY);
         } else if (lDist < g_lSpriteFogOnsetDist) {
             g_polyRasterState.nRemapTableOff = 0;
-            emsimg_sprite_blit_scaled_paged(g_pBillboardSpriteImg, g_nBillboardScrX,
-                                            g_nBillboardScrY, g_nActorSpriteFlip, g_nBillboardW,
-                                            g_nBillboardH);
+            billboard_blit(vec3, nScrX, nScrY);
         } else if (g_game_mode == 2) {
             if (lDist < g_lFarCullDist) {
                 if (lDist != 0) {
@@ -230,9 +243,7 @@ void worldrender_sprite_billboard(unsigned char far *entry) {
                     } else {
                         g_polyRasterState.nRemapTableOff = 0;
                     }
-                    emsimg_sprite_blit_scaled_paged(g_pBillboardSpriteImg, g_nBillboardScrX,
-                                                    g_nBillboardScrY, g_nActorSpriteFlip,
-                                                    g_nBillboardW, g_nBillboardH);
+                    billboard_blit(vec3, nScrX, nScrY);
                 }
             }
         } else {
@@ -242,9 +253,7 @@ void worldrender_sprite_billboard(unsigned char far *entry) {
                 lDist = (u32)(s16)(g_nFogRemapTableCount - 1);
             }
             g_polyRasterState.nRemapTableOff = (s16)lDist * 0x100 + FOG_REMAP_TAB_OFF;
-            emsimg_sprite_blit_scaled_paged(g_pBillboardSpriteImg, g_nBillboardScrX,
-                                            g_nBillboardScrY, g_nActorSpriteFlip, g_nBillboardW,
-                                            g_nBillboardH);
+            billboard_blit(vec3, nScrX, nScrY);
         }
         g_graphics_context.bClip_enabled = 0;
     }
@@ -309,7 +318,7 @@ void worldrender_textured_quad_lod(s16 texture_index, s16 *xs, s16 *ys) {
                 } else {
                     g_polyRasterState.nRemapTableOff = 0;
                 }
-                emsimg_gouraud_blit_paged(pHandle, xs, ys);
+                quad_blit(pHandle, xs, ys);
             }
         }
     } else {
@@ -318,14 +327,14 @@ void worldrender_textured_quad_lod(s16 texture_index, s16 *xs, s16 *ys) {
                                                                g_abR3dState.nActorRelY);
         if (lDist < g_dwLodNearThreshold) {
             g_polyRasterState.nRemapTableOff = 0;
-            emsimg_gouraud_blit_paged(pHandle, xs, ys);
+            quad_blit(pHandle, xs, ys);
         } else if (lDist < g_lFarCullDist) {
             lDist = (lDist - g_dwLodNearThreshold) / (short)g_nLodBucketWidth;
             if ((short)g_nFogRemapTableCount <= lDist) {
                 lDist = (u32)((short)g_nFogRemapTableCount - 1);
             }
             g_polyRasterState.nRemapTableOff = ((s16)lDist << 8) + FOG_REMAP_TAB_OFF;
-            emsimg_gouraud_blit_paged(pHandle, xs, ys);
+            quad_blit(pHandle, xs, ys);
         }
     }
     g_graphics_context.bClip_enabled = 0;
@@ -366,6 +375,8 @@ void worldrender_world_point_as_circ(CircObj far *obj) {
             g_graphics_context.bGfx_outline_color = g_graphics_context.bGfx_fill_color =
                 (g_pColorRemapTable != 0) ? g_pColorRemapTable[g_graphics_context.bGfx_fill_color]
                                           : g_graphics_context.bGfx_fill_color;
+            bak_scene_circle(out_vec3, g_abR3dState.bMeshRenormCount, nScreenX, nScreenY, radius,
+                             g_graphics_context.bGfx_fill_color);
             draw_circle(radius, nScreenX, nScreenY);
             g_graphics_context.bClip_enabled = 0;
         }
