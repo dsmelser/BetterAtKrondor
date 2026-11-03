@@ -147,7 +147,7 @@ void gfx_gouraud_span_dispatch(s16 v0, s16 v1, ImageRecord *texture, s16 *column
 static void put(u16 page, unsigned plane, u16 di, u8 value) {
     u8 *p = bak_vram_window(page, di, plane);
     if (p != NULL)
-        *p = value;
+        bak_vram_put(p, value);
 }
 
 /* XLAT in POLYRAST's code segment, where the fog and shadow tables live (g_polyrastTables

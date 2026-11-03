@@ -66,6 +66,9 @@ VgaRegs g_vga = {
     .pelMask = 0xFF,
 };
 uint8_t g_bakVgaLatch[4];
+uint8_t g_bakVramTag[BAK_VRAM_SIZE];
+uint8_t g_bakVramTagNow;
+uint8_t g_bakVgaLatchTag[4];
 bool g_platformFreeRunning;
 
 static uint8_t s_crtcIndex;
@@ -261,6 +264,7 @@ uint8_t bak_vga_read(uint16_t seg, uint16_t off) {
     if (p == NULL)
         return 0xFF;
     memcpy(g_bakVgaLatch, p, 4);
+    memcpy(g_bakVgaLatchTag, bak_vram_tags(p), 4);
     if (!(g_vga.gc[5] & 0x08))
         return g_bakVgaLatch[g_vga.gc[4] & 3];
     /* Read mode 1: a bit is set where the pixel's colour matches the colour compare
@@ -283,8 +287,10 @@ void bak_vga_write(uint16_t seg, uint16_t off, uint8_t value) {
     unsigned mapMask = g_vga.seq[2] & 0x0F;
     if (mode == 1) {
         for (unsigned plane = 0; plane < 4; plane++)
-            if (mapMask & (1u << plane))
+            if (mapMask & (1u << plane)) {
                 p[plane] = g_bakVgaLatch[plane];
+                bak_vram_tags(p)[plane] = g_bakVgaLatchTag[plane];
+            }
         return;
     }
     unsigned rotate = g_vga.gc[3] & 7;
@@ -311,7 +317,7 @@ void bak_vga_write(uint16_t seg, uint16_t off, uint8_t value) {
             v |= g_bakVgaLatch[plane];
         else if (op == 3)
             v ^= g_bakVgaLatch[plane];
-        p[plane] = (uint8_t)((v & bitMask) | (g_bakVgaLatch[plane] & ~bitMask));
+        bak_vram_put(&p[plane], (uint8_t)((v & bitMask) | (g_bakVgaLatch[plane] & ~bitMask)));
     }
 }
 
@@ -348,6 +354,7 @@ void bak_int10_set_mode(uint8_t mode) {
     /* The BIOS clears display memory; the DAC keeps its colours (a known divergence: the
      * BIOS loads its default palette). */
     memset(g_bakVram, 0, sizeof g_bakVram);
+    memset(g_bakVramTag, 0, sizeof g_bakVramTag);
 }
 
 /* The BIOS's attribute-controller calls end by writing index 20h (display on), which

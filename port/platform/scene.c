@@ -23,6 +23,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "bak_video.h"
 #include "platform.h"
 #include "scene.h"
 
@@ -43,6 +44,7 @@ static void (*s_finishedHook)(const SceneFrame *);
 static SceneFrame s_build;       /* the frame being drawn */
 static SceneFrame s_done[PAGES]; /* the last finished frame of each page */
 static uint32_t s_serial;
+static uint8_t s_lastTag; /* the tag the last world's view got */
 
 static struct {
     int32_t index; /* in the frame's objects, -1 for none */
@@ -349,6 +351,7 @@ static void settle_pending(void) {
 }
 
 void scene_finish(void) {
+    g_bakVramTagNow = 0; /* what is drawn after it is no frame's */
     settle_pending();
     s_object.index = -1;
     if (s_build.itemCount == 0 && s_build.skyCount == 0)
@@ -381,9 +384,24 @@ const uint8_t *scene_remap_tables(void) {
     return g_polyrastTables;
 }
 
+void bak_scene_view(void) {
+    if (!bak_scene_capturing())
+        return;
+    s_lastTag = (uint8_t)(s_lastTag % 255 + 1);
+    s_build.tag = s_lastTag;
+    g_bakVramTagNow = s_lastTag;
+}
+
 void bak_scene_end(void) {
     if (bak_scene_capturing())
         scene_finish();
+}
+
+const SceneFrame *scene_frame_tagged(uint8_t tag) {
+    for (unsigned i = 0; i < PAGES; i++)
+        if (s_done[i].serial != 0 && s_done[i].tag == tag && tag != 0)
+            return &s_done[i];
+    return NULL;
 }
 
 void scene_page_flipped(uint16_t page) {

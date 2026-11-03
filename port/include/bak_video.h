@@ -26,6 +26,28 @@ extern uint8_t g_bakVram[BAK_VRAM_SIZE];
 uint8_t *bak_video_page(uint16_t pageSeg);
 
 /*
+ * Beside each pixel of display memory, a tag: the 3-D frame that drew it (its tag, 1-255, from
+ * scene.c), or 0 for any other drawing. Every write stores the tag of the moment, which is
+ * nonzero only while a world pass of the 3-D renderer draws its view; a copy through the
+ * latches carries its source's tags, and a copy of a page's rows its tags. The window shows the
+ * GPU's view of a frame where the picture's pixels carry its tag (M7).
+ */
+extern uint8_t g_bakVramTag[BAK_VRAM_SIZE];
+extern uint8_t g_bakVramTagNow;
+extern uint8_t g_bakVgaLatchTag[4];
+
+/* A pixel of display memory written, with the tag of the moment. */
+static inline void bak_vram_put(uint8_t *p, uint8_t value) {
+    *p = value;
+    g_bakVramTag[p - g_bakVram] = g_bakVramTagNow;
+}
+
+/* The tags beside display memory from p on. */
+static inline uint8_t *bak_vram_tags(uint8_t *p) {
+    return &g_bakVramTag[p - g_bakVram];
+}
+
+/*
  * Wait for vertical retrace on the virtual 70 Hz VGA clock and show the frame the
  * hardware would now display. next = 0 returns at once when retrace is already under
  * way (a "wait until retrace" loop); next = 1 waits for the next one (a "wait until

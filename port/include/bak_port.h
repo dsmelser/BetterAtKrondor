@@ -173,6 +173,9 @@ typedef struct BakSceneFace {
 } BakSceneFace;
 _Bool bak_scene_capturing(void);
 void bak_scene_begin(const BakSceneCamera *camera);
+/* The world's view is drawn from here to bak_scene_end (WORLDHIT.C, WORLDFRM.C): its pixels
+   carry the frame's tag in display memory (bak_video.h), for the GPU's view in the window. */
+void bak_scene_view(void);
 /* The world's passes end here (WORLDHIT.C, WORLDFRM.C): their frame is finished before any 2-D
    overlay is drawn over it. The other passes end at the next one or at their page's flip. */
 void bak_scene_end(void);

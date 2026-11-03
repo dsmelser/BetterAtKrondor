@@ -38,6 +38,7 @@ static const char *const s_scalings[] = {"pixelart", "nearest", "linear", NULL};
 static const char *const s_renderers[] = {"gl", "sdl", NULL};
 static const char *const s_aspects[] = {"4:3", "square", NULL};
 static const char *const s_cursors[] = {"system", "game", NULL};
+static const char *const s_views[] = {"gpu", "software", NULL};
 static const char *const s_devices[] = {"sb", "adlib", "mt32", "none", "game", NULL};
 
 static const SettingDef s_defs[SETTING_COUNT] = {
@@ -64,6 +65,10 @@ static const SettingDef s_defs[SETTING_COUNT] = {
                                  "ms a step or turn of the party takes, drawn smoothly (0: at "
                                  "once, as the original)",
                                  .min = 0, .max = 1000},
+    [SETTING_VIDEO_VIEW3D] = {"video", "view3d", SETTING_CHOICE, "gpu",
+                              "the 3-D view: gpu (drawn again through OpenGL at the window's "
+                              "resolution), or software (the game's own 320x200 drawing)",
+                              .choices = s_views},
     [SETTING_WINDOW_WIDTH] = {"window", "width", SETTING_INT, "960", "the window's width",
                               .min = 320, .max = 16384},
     [SETTING_WINDOW_HEIGHT] = {"window", "height", SETTING_INT, "720", "the window's height",

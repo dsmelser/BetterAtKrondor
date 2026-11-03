@@ -153,6 +153,7 @@ void far world_render_frame(s16 animate) {
     r3d_camera_setup_view(g_world_widget);
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
         g_graphics_context.wVgaPage2Base;
+    bak_scene_view(); /* its pixels are the world's view (bak_port.h) */
     skyrender_sky_and_ground(g_wSkyColorR, g_wSkyColorG, g_wSkyColorB, g_camViewAngles.yaw,
                              g_camViewAngles.pitch);
     proxscan_full(g_world_widget);
@@ -276,6 +277,7 @@ void far world_render_frame_with_hittest(void) {
     r3d_camera_setup_view(g_world_widget);
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
         g_graphics_context.wVgaPage2Base;
+    bak_scene_view();
     skyrender_sky_and_ground(g_wSkyColorR, g_wSkyColorG, g_wSkyColorB, g_camViewAngles.yaw,
                              g_camViewAngles.pitch);
     proxscan_full(g_world_widget);

@@ -70,7 +70,8 @@
     X(scene_textured_quads_keep_their_images_corners)                                              \
     X(scene_frames_finish_by_pass_and_page)                                                        \
     X(scene_billboards_circles_and_the_sky)                                                        \
-    X(glscene_draws_a_frame)
+    X(glscene_draws_a_frame)                                                                       \
+    X(vram_tags_follow_the_pixels)
 
 #define UNIT_DECLARE(name) void unit_##name(void);
 UNIT_TESTS(UNIT_DECLARE)

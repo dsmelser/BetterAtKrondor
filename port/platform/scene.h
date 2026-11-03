@@ -114,6 +114,8 @@ typedef struct SceneFrame {
     uint16_t page;   /* the VGA page drawn into (its segment); 0 until something is drawn */
     bool mixedPages; /* something was drawn into another page as well */
     bool background; /* drawn into page 1, which is never shown (picking's readback, combat's) */
+    uint8_t tag;     /* the tag its pixels carry in display memory (bak_video.h): 1-255 for the
+                        world's view (bak_scene_view), else 0 */
     /* the camera */
     int32_t camPos[3];
     int16_t camAngles[3];
@@ -146,6 +148,8 @@ void scene_page_flipped(uint16_t page);
 /* The last finished frame drawn into the page, or NULL. It stays as it is until the next frame
  * of that page finishes. */
 const SceneFrame *scene_latest(uint16_t page);
+/* The last finished frame whose pixels carry the tag, or NULL. */
+const SceneFrame *scene_frame_tagged(uint8_t tag);
 /* A texture by its id, or NULL. Textures stay. */
 const SceneTexture *scene_texture(uint32_t id);
 /* Forget every frame and texture. */

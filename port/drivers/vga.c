@@ -12,8 +12,10 @@
  * Routines are ported as the boot path reaches them; until then their slots stop
  * the game with the routine's name. Slots the original leaves empty are no-ops.
  */
+#include <stdlib.h>
 #include <string.h>
 
+#include "../platform/platform.h"
 #include "../platform/scene.h"
 #include "bak_video.h"
 #include "vga.h"
@@ -44,23 +46,30 @@ static unsigned char *vram(u16 seg, u16 off) {
 
 static void latch_load(u16 seg, u16 off) {
     unsigned char *p = vram(seg, off);
-    if (p != NULL)
+    if (p != NULL) {
         memcpy(g_bakVgaLatch, p, 4);
+        memcpy(g_bakVgaLatchTag, bak_vram_tags(p), 4);
+    }
 }
 
 static void latch_store(u16 seg, u16 off) {
     unsigned char *p = vram(seg, off);
-    if (p != NULL)
+    if (p != NULL) {
         memcpy(p, g_bakVgaLatch, 4);
+        memcpy(bak_vram_tags(p), g_bakVgaLatchTag, 4);
+    }
 }
 
 void vga_write_latches(u16 seg, u16 off, unsigned mapMask) {
     unsigned char *p = vram(seg, off);
     if (p == NULL)
         return;
-    for (unsigned plane = 0; plane < 4; plane++)
-        if (mapMask & (1u << plane))
+    for (unsigned plane = 0; plane < 4; plane++) {
+        if (mapMask & (1u << plane)) {
             p[plane] = g_bakVgaLatch[plane];
+            bak_vram_tags(p)[plane] = g_bakVgaLatchTag[plane];
+        }
+    }
 }
 
 void vga_read_latches(u16 seg, u16 off) {
@@ -94,6 +103,7 @@ static void set_mode_y(void) {
     bak_port_out8(0x3CF, 0x05);
     bak_port_out16(0x3C4, 0x0F02);
     memset(g_bakVram, 0, sizeof g_bakVram);
+    memset(g_bakVramTag, 0, sizeof g_bakVramTag);
     bak_port_out8(0x3D4, 0x14);
     bak_port_out8(0x3D5, 0x00);
     bak_port_out8(0x3D4, 0x17);
@@ -216,7 +226,7 @@ static void glyph_pass(u16 seg, u16 di, unsigned shift, u16 rows, const unsigned
                 unsigned k = shift + b;
                 unsigned char *p = vram(seg, (u16)(di + (k >> 2)));
                 if (p != NULL)
-                    p[k & 3] = color;
+                    bak_vram_put(&p[k & 3], color);
             }
         }
         di = (u16)(di + PLANAR_ROW);
@@ -265,12 +275,76 @@ static u16 pass_count(s16 width, unsigned k) {
     return (u16)((u16)((u16)width + 3 - k) >> 2);
 }
 
+/*
+ * The tags of the rectangles saved into buffers (bak_video.h), so that a buffer pasted back
+ * while it still holds what was saved gives its pixels their tags again: the cursor's background
+ * and the dialogs' keep the 3-D view's tags under them. The last few saved with a tag are kept,
+ * the oldest dropped; a paste whose buffer holds something else takes the tag of the moment.
+ */
+#define SAVED_TAGS 8
+static struct {
+    const unsigned char *buf;
+    size_t bytes;
+    uint32_t hash; /* of the buffer's pixels when saved */
+    uint8_t *tags;
+    unsigned stamp;
+} s_savedTags[SAVED_TAGS];
+static unsigned s_savedStamp;
+
+static int saved_tags_at(const unsigned char *buf) {
+    for (int i = 0; i < SAVED_TAGS; i++)
+        if (s_savedTags[i].buf == buf && s_savedTags[i].tags != NULL)
+            return i;
+    return -1;
+}
+
+/* After a save: the rectangle's tags, kept if any is a frame's. */
+static void keep_tags(const unsigned char *buf, size_t bytes, uint8_t *tags) {
+    int i = saved_tags_at(buf);
+    bool any = false;
+    for (size_t k = 0; k < bytes && !any; k++)
+        any = tags[k] != 0;
+    if (!any) {
+        if (i >= 0) {
+            free(s_savedTags[i].tags);
+            s_savedTags[i].tags = NULL;
+            s_savedTags[i].buf = NULL;
+        }
+        free(tags);
+        return;
+    }
+    if (i < 0) {
+        i = 0;
+        for (int k = 1; k < SAVED_TAGS; k++)
+            if (s_savedTags[k].stamp < s_savedTags[i].stamp)
+                i = k;
+    }
+    free(s_savedTags[i].tags);
+    s_savedTags[i].buf = buf;
+    s_savedTags[i].bytes = bytes;
+    s_savedTags[i].hash = platform_hash(0, buf, bytes);
+    s_savedTags[i].tags = tags;
+    s_savedTags[i].stamp = ++s_savedStamp;
+}
+
+/* Before a paste: the tags kept for the buffer, if it still holds what was saved. */
+static const uint8_t *kept_tags(const unsigned char *buf, size_t bytes) {
+    int i = saved_tags_at(buf);
+    if (i < 0 || s_savedTags[i].bytes != bytes ||
+        s_savedTags[i].hash != platform_hash(0, buf, bytes))
+        return NULL;
+    return s_savedTags[i].tags;
+}
+
 /* Copy a rectangle of the source page into a buffer, row-major, width bytes per row. */
 void vga_save_rect(unsigned char *dst, s16 x, s16 y, s16 width, s16 height) {
     u16 seg = g_graphics_context.wGfxBlitSrcPage;
     u16 rowOff = (u16)(row_offset(y) + ((u16)x >> 2));
     unsigned plane0 = (u16)x & 3;
     u16 rows = (u16)height;
+    unsigned char *const start = dst;
+    size_t bytes = (size_t)(u16)width * (rows != 0 ? rows : 0x10000u);
+    uint8_t *tags = bytes <= 0x10000u ? calloc(bytes, 1) : NULL;
     do {
         u16 byte = rowOff;
         unsigned plane = plane0;
@@ -283,6 +357,8 @@ void vga_save_rect(unsigned char *dst, s16 x, s16 y, s16 width, s16 height) {
             for (; n != 0; n--, o++, d += 4) {
                 unsigned char *p = vram(seg, o);
                 *d = p != NULL ? p[plane] : 0xFF;
+                if (p != NULL && tags != NULL)
+                    tags[d - start] = bak_vram_tags(p)[plane];
             }
             if (++plane == 4) {
                 plane = 0;
@@ -292,6 +368,8 @@ void vga_save_rect(unsigned char *dst, s16 x, s16 y, s16 width, s16 height) {
         dst += (u16)width;
         rowOff = (u16)(rowOff + PLANAR_ROW);
     } while (--rows != 0);
+    if (tags != NULL)
+        keep_tags(start, bytes, tags);
 }
 
 s32 vga_blit_size(s16 width, s16 height) {
@@ -304,6 +382,8 @@ void vga_paste_rect(unsigned char *src, s16 x, s16 y, s16 width, s16 height) {
     u16 rowOff = (u16)(row_offset(y) + ((u16)x >> 2));
     unsigned plane0 = (u16)x & 3;
     u16 rows = (u16)height;
+    const unsigned char *const start = src;
+    const uint8_t *tags = kept_tags(src, (size_t)(u16)width * (rows != 0 ? rows : 0x10000u));
     do {
         u16 byte = rowOff;
         unsigned plane = plane0;
@@ -315,8 +395,10 @@ void vga_paste_rect(unsigned char *src, s16 x, s16 y, s16 width, s16 height) {
             const unsigned char *s = src + k;
             for (; n != 0; n--, o++, s += 4) {
                 unsigned char *p = vram(seg, o);
-                if (p != NULL)
-                    p[plane] = *s;
+                if (p == NULL)
+                    continue;
+                p[plane] = *s;
+                bak_vram_tags(p)[plane] = tags != NULL ? tags[s - start] : g_bakVramTagNow;
             }
             if (++plane == 4) {
                 plane = 0;
@@ -419,7 +501,7 @@ void vga_putpixel(s16 x, s16 y, s16 color) {
     u16 off = (u16)(row_offset(y) + ((u16)x >> 2));
     unsigned char *p = vram(g_graphics_context.wGfxBlitDstPage, off);
     if (p != NULL)
-        p[(u16)x & 3] = (unsigned char)color;
+        bak_vram_put(&p[(u16)x & 3], (unsigned char)color);
 }
 
 void vga_set_buffer_offset(s16 x, s16 y) {
@@ -439,7 +521,7 @@ static void store_planes(u16 seg, u16 off, unsigned mask, unsigned char even, un
         return;
     for (unsigned plane = 0; plane < 4; plane++)
         if (mask & (1u << plane))
-            p[plane] = plane & 1 ? odd : even;
+            bak_vram_put(&p[plane], plane & 1 ? odd : even);
 }
 
 /* count pixels from x on the row at byte offset di: the first byte under its left mask,
@@ -824,7 +906,7 @@ void vga_blit_sprite_master(const ImageRecord *sprite, s16 x, s16 y, u16 flags) 
                 if (al != 0) {
                     unsigned char *q = vram(seg, d);
                     if (q != NULL)
-                        q[p] = al;
+                        bak_vram_put(&q[p], al);
                 }
                 d++;
             }
@@ -915,7 +997,7 @@ void vga_blit_sprite_simple(const ImageRecord *sprite, s16 x, s16 y) {
                 unsigned char al = sprite_byte(src, extent, si);
                 unsigned char *q = vram(seg, d);
                 if (q != NULL)
-                    q[p] = al;
+                    bak_vram_put(&q[p], al);
                 si = (u16)(si + 4);
                 d++;
             }

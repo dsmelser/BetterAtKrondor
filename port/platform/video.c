@@ -20,8 +20,11 @@
 
 #include "bak_port.h"
 #include "bak_video.h"
+#include "gl.h"
 #include "glscene.h"
+#include "glview.h"
 #include "platform.h"
+#include "scene.h"
 #include "vgaregs.h"
 
 #define MAX_WIDTH 640
@@ -38,12 +41,15 @@ static SDL_Texture *s_texture;
 static int s_width = BAK_VGA_WIDTH, s_height = BAK_VGA_HEIGHT; /* the picture's pixels */
 static int s_shownHeight; /* the height the picture is shown at, in its pixels' widths */
 static uint32_t s_picture[MAX_WIDTH * MAX_HEIGHT];
+static uint8_t s_tags[MAX_WIDTH * MAX_HEIGHT]; /* the picture's pixels' tags (bak_video.h) */
+static bool s_view3d; /* the GPU draws the 3-D view over the picture (glview.c) */
 static bool s_offscreen; /* SDL's dummy video driver: nobody sees the window */
 static SDL_Rect s_windowed; /* the window's place and size when last neither full nor maximized */
 static bool s_placed;       /* s_windowed's place is known */
 static bool s_keyEaten[SDL_SCANCODE_COUNT]; /* pressed for the window: its release is too */
 static uint32_t s_last[MAX_WIDTH * MAX_HEIGHT]; /* the last picture scanned out that differed */
 static int s_lastW, s_lastH;                    /* its size; 0 before the first */
+static uint8_t s_lastTags[MAX_WIDTH * MAX_HEIGHT]; /* its tags */
 static bool s_stale = true;    /* the window lacks the last picture (or was uncovered, resized) */
 static uint64_t s_presentedNs; /* on the host's clock, when the window last got a picture */
 static uint64_t s_refreshNs;   /* the display's refresh period; 0 when it does not say */
@@ -231,8 +237,13 @@ bool video_open(void) {
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
         s_window = create_window(true);
         s_gl = s_window != NULL && glpresent_open(s_window);
-        if (s_gl)
-            glscene_open(); /* the 3-D view's, which says why when it cannot */
+        if (s_gl) {
+            /* the 3-D view's, which say why when they cannot */
+            bool scene = glscene_open();
+            s_view3d = scene && settings_get_choice(SETTING_VIDEO_VIEW3D) == VIEW3D_GPU &&
+                       glview_open();
+            scene_enable(s_view3d);
+        }
         if (!s_gl && s_window != NULL) {
             fprintf(stderr, "the window goes to SDL's renderer\n");
             SDL_DestroyWindow(s_window);
@@ -301,9 +312,11 @@ void video_close(void) {
     if (SDL_getenv("BAK_TRACE") != NULL)
         fprintf(stderr, "trace: %u pictures, %u of them presented\n", s_pictures, s_presents);
     if (s_gl) {
+        glview_close();
         glscene_close();
         glpresent_close();
     }
+    s_view3d = false;
     if (s_texture != NULL)
         SDL_DestroyTexture(s_texture);
     if (s_renderer != NULL)
@@ -410,13 +423,17 @@ static void scan_out(const uint32_t *pal) {
     uint32_t pitch = g_vga.crtc[0x13] * 2u;
     for (int y = 0; y < h; y++) {
         uint32_t *row = &s_picture[y * w];
+        uint8_t *tags = &s_tags[y * w];
         uint32_t o = start + (uint32_t)y * pitch;
         if (colors256) {
-            for (int x = 0; x < w; x++)
-                row[x] = pal[g_bakVram[(o * 4u + (uint32_t)x) & (BAK_VRAM_SIZE - 1)] &
-                             g_vga.pelMask];
+            for (int x = 0; x < w; x++) {
+                uint32_t at = (o * 4u + (uint32_t)x) & (BAK_VRAM_SIZE - 1);
+                row[x] = pal[g_bakVram[at] & g_vga.pelMask];
+                tags[x] = g_bakVramTag[at];
+            }
             continue;
         }
+        memset(tags, 0, (size_t)w);
         for (int x = 0; x < w; x += 8) {
             const uint8_t *p = &g_bakVram[((o + (uint32_t)(x >> 3)) * 4u) & (BAK_VRAM_SIZE - 1)];
             for (int b = 0; b < 8; b++) {
@@ -429,6 +446,26 @@ static void scan_out(const uint32_t *pal) {
     }
 }
 
+/* BAK_DUMP_WINDOW=<file.bmp>: the window as drawn, each time it is (OpenGL only). */
+static void dump_window(int w, int h) {
+    static const char *path;
+    static bool checked;
+    if (!checked) {
+        checked = true;
+        path = SDL_getenv("BAK_DUMP_WINDOW");
+    }
+    if (path == NULL)
+        return;
+    SDL_Surface *s = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_ABGR8888);
+    if (s == NULL)
+        return;
+    g_gl.PixelStorei(GL_PACK_ALIGNMENT, 4);
+    g_gl.ReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, s->pixels);
+    SDL_FlipSurface(s, SDL_FLIP_VERTICAL); /* GL's rows count from the bottom */
+    SDL_SaveBMP(s, path);
+    SDL_DestroySurface(s);
+}
+
 void video_flush(void) {
     if (!s_stale || s_offscreen || (!s_gl && s_texture == NULL) || s_lastW == 0)
         return;
@@ -439,7 +476,19 @@ void video_flush(void) {
     s_stale = false;
     s_presents++;
     if (s_gl) {
-        glpresent_draw(s_last, s_lastW, s_lastH, s_shownHeight, s_scaling, s_integer);
+        int outW = 0, outH = 0;
+        SDL_GetWindowSizeInPixels(s_window, &outW, &outH);
+        if (outW <= 0 || outH <= 0)
+            return; /* minimized */
+        glpresent_render(s_last, s_lastW, s_lastH, s_shownHeight, outW, outH, s_scaling,
+                         s_integer);
+        if (s_view3d) {
+            SDL_FRect r;
+            glpresent_layout(outW, outH, s_lastW, s_shownHeight, s_integer, &r);
+            glview_draw(s_lastTags, s_lastW, s_lastH, &r, outW, outH, g_vga.dac, g_vga.pelMask);
+        }
+        dump_window(outW, outH);
+        SDL_GL_SwapWindow(s_window);
         return;
     }
     SDL_UpdateTexture(s_texture, NULL, s_last, s_lastW * 4);
@@ -491,13 +540,18 @@ void video_present(void) {
     }
     scan_out(pal);
     size_t bytes = (size_t)s_width * (size_t)s_height * sizeof s_picture[0];
+    size_t tagBytes = (size_t)s_width * (size_t)s_height;
     if (s_width != s_lastW || s_height != s_lastH || memcmp(s_last, s_picture, bytes) != 0) {
         memcpy(s_last, s_picture, bytes);
+        memcpy(s_lastTags, s_tags, tagBytes);
         s_lastW = s_width;
         s_lastH = s_height;
         s_stale = true;
         s_pictures++;
         record_frame();
+    } else if (s_view3d && memcmp(s_lastTags, s_tags, tagBytes) != 0) {
+        memcpy(s_lastTags, s_tags, tagBytes); /* the same pixels from another frame */
+        s_stale = true;
     }
     video_flush();
 }

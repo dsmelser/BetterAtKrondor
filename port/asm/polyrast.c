@@ -96,7 +96,7 @@ typedef struct Target {
 static void put(const Target *t, u16 di, u8 value) {
     u8 *p = bak_vram_window(t->seg, di, t->plane);
     if (p != NULL)
-        *p = value;
+        bak_vram_put(p, value);
 }
 
 /* The four column loops. Each starts a row above the column, counts h + 1 down (DEC CX

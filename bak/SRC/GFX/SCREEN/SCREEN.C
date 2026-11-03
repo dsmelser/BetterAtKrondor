@@ -256,12 +256,16 @@ void screen_cur_refr_during_long_op(void) {
     short savedClipXmax;
     short savedClipYmax;
     short savedClipEnabled;
+    unsigned char savedTag;
 
     screen_cursor_get_position(&g_cursor_prev_x[1].nX, &g_cursor_prev_x[1].nY);
 
     if (g_cursor_prev_x[0].nX == g_cursor_prev_x[1].nX &&
         g_cursor_prev_x[0].nY == g_cursor_prev_x[1].nY)
         return;
+    /* The cursor is no part of the 3-D view the pass may be drawing (bak_video.h's tags). */
+    savedTag = g_bakVramTagNow;
+    g_bakVramTagNow = 0;
 
     savedClipEnabled = (signed char)g_graphics_context.bClip_enabled;
     savedClipXmin = g_graphics_context.clip.xmin;
@@ -305,6 +309,7 @@ void screen_cur_refr_during_long_op(void) {
     g_graphics_context.clip.ymin = savedClipYmin;
     g_graphics_context.clip.xmax = savedClipXmax;
     g_graphics_context.clip.ymax = savedClipYmax;
+    g_bakVramTagNow = savedTag;
 }
 
 void far screen_frame_present(void) {
@@ -339,6 +344,11 @@ void far screen_frame_sync_buffers_rect(s16 row_start, s16 row_count) {
     /* VGA latch copy (write mode 1, all planes): whole rows from the front page to page 2. */
     memcpy(bak_video_page(g_graphics_context.wVgaPage2Base) + row_start * BAK_VGA_WIDTH,
            bak_video_page(g_graphics_context.wVgaFrontPageBase) + row_start * BAK_VGA_WIDTH,
+           (size_t)row_count * BAK_VGA_WIDTH);
+    memcpy(bak_vram_tags(bak_video_page(g_graphics_context.wVgaPage2Base)) +
+               row_start * BAK_VGA_WIDTH,
+           bak_vram_tags(bak_video_page(g_graphics_context.wVgaFrontPageBase)) +
+               row_start * BAK_VGA_WIDTH,
            (size_t)row_count * BAK_VGA_WIDTH);
 
     if (g_cursor_prev_x[1].nX != -999) {
