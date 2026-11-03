@@ -303,10 +303,11 @@ void unit_glscene_draws_lines_and_clipped_sprites(void) {
  * The ground laid in the world, seen from 64 units straight above, where a world unit is a 1x
  * pixel: the strip's band of the texture, rows 10-29, is colour 1 but for one texel of colour
  * 10 at column 5 of row 13, which lies on the ground about x 44, y 28 (and every 2560 units
- * east, 160 north). Under the camera at x 7724, y 828 it is drawn at the view's centre, on a face
- * and on the ground's band alike; with the camera 16 units further east, 16 pixels further left;
- * with the camera turned a quarter to the left (its right the world's north), the place 16 units
- * east of it lies below the centre, not to its right. Then the shading: rows of colours of their
+ * east, 10240 north), and a band's length further north 117 columns further west (x 1668, y
+ * 188). Under the camera at x 7724, y 10268 it is drawn at the view's centre, on a face and on
+ * the ground's band alike; with the camera 16 units further east, 16 pixels further left; with
+ * the camera turned a quarter to the left (its right the world's north), the place 16 units east
+ * of it lies below the centre, not to its right. Then the shading: rows of colours of their
  * own (1, 3 ... 39) walked half a row a screen row from the view's top, the means between rows,
  * the last one below the band's end; repeating, the rows lie on the ground instead.
  */
@@ -360,23 +361,25 @@ static void lays_the_ground_in_the_world(const GlSceneInputs *in) {
         memset(ground_row(r), 1, 320);
     ground_row(13)[5] = 10;
     for (int band = 0; band < 2; band++) {
-        const SceneFrame *f = make_ground(7724, 828, s_down, band, 0, 0);
+        const SceneFrame *f = make_ground(7724, 10268, s_down, band, 0, 0);
         UNIT_CHECK(f != NULL && (band || (f->itemCount == 1 && f->items[0].strip.bandRows == 20)));
         UNIT_CHECK(marker_at(f, in, 32, 24));
-        UNIT_CHECK(marker_at(make_ground(7740, 828, s_down, band, 0, 0), in, 16, 24));
-        UNIT_CHECK(marker_at(make_ground(7708, 828, s_down, band, 0, 0), in, 48, 24));
-        UNIT_CHECK(marker_at(make_ground(7708, 828, s_downTurned, band, 0, 0), in, 32, 40));
+        UNIT_CHECK(marker_at(make_ground(7740, 10268, s_down, band, 0, 0), in, 16, 24));
+        UNIT_CHECK(marker_at(make_ground(7708, 10268, s_down, band, 0, 0), in, 48, 24));
+        UNIT_CHECK(marker_at(make_ground(7708, 10268, s_downTurned, band, 0, 0), in, 32, 40));
     }
+    UNIT_CHECK(marker_at(make_ground(22148, 10428, s_down, false, 0, 0), in, 32, 24));
     /* The patches: the texel at column 119 of row 11 lies on the ground again 64 units square at
-     * 0.8 of its contrast, about x 160 (and every 20480 units east), y 96 (every 1280 north), and
-     * not 2560 units east of there, nor 160 north. */
+     * 0.8 of its contrast, about x 160 (and every 20480 units east), y 10336 (and every 10240
+     * north); not 2560 units east of there, nor a band's length of patches north, which shifts
+     * them across too. */
     ground_row(13)[5] = 1;
     ground_row(11)[119] = 10;
-    UNIT_CHECK(drawn(make_ground(20640, 2656, s_down, false, 0, 0), in));
+    UNIT_CHECK(drawn(make_ground(20640, 10336, s_down, false, 0, 0), in));
     UNIT_CHECK(colour_at(s_rgba, 32, 24, 33, 66, 98, 2));
-    UNIT_CHECK(drawn(make_ground(23200, 2656, s_down, false, 0, 0), in));
+    UNIT_CHECK(drawn(make_ground(23200, 10336, s_down, false, 0, 0), in));
     UNIT_CHECK(colour_at(s_rgba, 32, 24, 4, 8, 12, 1));
-    UNIT_CHECK(drawn(make_ground(20640, 2816, s_down, false, 0, 0), in));
+    UNIT_CHECK(drawn(make_ground(20640, 11616, s_down, false, 0, 0), in));
     UNIT_CHECK(colour_at(s_rgba, 32, 24, 4, 8, 12, 1));
 
     for (int r = 0; r < 20; r++)

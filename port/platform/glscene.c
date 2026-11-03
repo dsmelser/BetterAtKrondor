@@ -145,8 +145,11 @@ static const char s_fragmentShader[] =
     " * world twice, as a grain of texels GROUND_TEXEL units square and as patches of texels\n"
     " * GROUND_PATCH units square, over each row's mean colour replaced by the one the software's\n"
     " * walk down the screen reads there (the band's shading); the detail fades into the mean as\n"
-    " * its texels shrink. The ground's band (u_screen) lies where the pixel's ray meets the\n"
-    " * world's level 0. */\n"
+    " * its texels shrink. Each repetition of the band down the world starts its columns 117\n"
+    " * further across, so that no column's average runs on as a line toward the horizon (the\n"
+    " * ground is seen nearly edge-on), and the patches start a third of the way across, not to\n"
+    " * line up with the grain. The ground's band (u_screen) lies where the pixel's ray meets\n"
+    " * the world's level 0. */\n"
     "vec3 ground() {\n"
     "    vec2 at = place();\n"
     "    vec3 w = v_world;\n"
@@ -160,14 +163,15 @@ static const char s_fragmentShader[] =
     "    vec2 t = w.xy / GROUND_TEXEL, tx = dFdx(t), ty = dFdy(t);\n"
     "    vec2 p = w.xy / GROUND_PATCH, px = dFdx(p), py = dFdy(p);\n"
     "    float first = float(u_band.x), rows = float(max(u_band.y, 1));\n"
-    "    float row = first + mod(t.y, rows);\n"
+    "    float tile = floor(t.y / rows), patchTile = floor(p.y / rows);\n"
+    "    float row = first + t.y - tile * rows;\n"
     "    float g = first + (at.y - float(u_strip.z)) * float(u_strip.y) / 80.0;\n"
     "    g = u_strip.w != 0 ? row : clamp(g, first + 0.5, first + rows - 0.5);\n"
     "    vec3 colour = texture(u_means, vec2(0.5, g / 256.0)).rgb;\n"
-    "    /* the patches from a third of the way across, not to line up with the grain */\n"
+    "    vec2 grainAt = vec2(t.x + mod(tile, 64.0) * 117.0, row);\n"
+    "    vec2 patchAt = vec2(p.x + (mod(patchTile, 8.0) + 1.0) * 117.0, p.y - patchTile * rows);\n"
     "    if (!beyond)\n"
-    "        colour += detail(vec2(t.x, row), tx, ty) +\n"
-    "                  0.8 * detail(vec2(p.x + 117.0, first + mod(p.y, rows)), px, py);\n"
+    "        colour += detail(grainAt, tx, ty) + 0.8 * detail(patchAt + vec2(0, first), px, py);\n"
     "    return colour;\n"
     "}\n"
     "uniform int u_filter; /* the images: TEXTURES_* (0 sharp, 1 smooth, 2 nearest) */\n"
@@ -935,9 +939,10 @@ void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, in
                            d->strip.rowCount);
             int rows = SDL_max(d->strip.rowCount != 0 ? d->strip.rowCount : d->strip.bandRows, 1);
             g_gl.Uniform2i(u->band, d->strip.bandRow, rows);
-            /* the camera less whole periods of the ground's texture: small, and the same to it */
+            /* the camera less whole periods of the ground's texture (its patches' across, eight
+             * repetitions of them down, which its shifts repeat with): small, and the same to it */
             g_gl.Uniform3f(u->eye, (float)(f->camPos[0] % (GROUND_W * GROUND_PATCH)),
-                           (float)(f->camPos[1] % (rows * GROUND_PATCH)), (float)f->camPos[2]);
+                           (float)(f->camPos[1] % (rows * GROUND_PATCH * 8)), (float)f->camPos[2]);
         } else if (d->mode == MODE_DISC) {
             g_gl.Uniform3f(u->disc, d->disc[0], d->disc[1], d->disc[2]);
         } else if (d->mode == MODE_DITHER) {
