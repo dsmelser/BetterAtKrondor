@@ -41,6 +41,7 @@ typedef enum SettingId {
     SETTING_VIDEO_STEP_TIME,  /* [video] step_time: ms a step or turn of the party takes */
     SETTING_VIDEO_VIEW3D,     /* [video] view3d: VIEW3D_* */
     SETTING_VIDEO_ANTIALIAS,  /* [video] antialias: samples a pixel of the GPU's view takes */
+    SETTING_VIDEO_TEXTURES,   /* [video] textures: TEXTURES_* */
     SETTING_WINDOW_WIDTH,     /* [window] width, height, x, y (optional), maximized */
     SETTING_WINDOW_HEIGHT,
     SETTING_WINDOW_X,
@@ -69,6 +70,7 @@ enum { RENDERER_GL, RENDERER_SDL };
 enum { ASPECT_4_3, ASPECT_SQUARE };
 enum { CURSOR_SYSTEM, CURSOR_GAME };
 enum { VIEW3D_GPU, VIEW3D_SOFTWARE };
+enum { TEXTURES_SHARP, TEXTURES_SMOOTH, TEXTURES_NEAREST };
 enum { DEVICE_SB, DEVICE_ADLIB, DEVICE_MT32, DEVICE_NONE, DEVICE_GAME };
 /* Read <dir>/betterkrondor.ini (none: the defaults), where changes then go. False, with a
  * message, when it exists but cannot be read; then nothing is written back. */

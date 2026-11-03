@@ -77,6 +77,7 @@
     X(glscene_draws_a_frame_over_another)                                                          \
     X(glscene_draws_lines_and_clipped_sprites)                                                     \
     X(glscene_lays_the_ground_in_the_world)                                                        \
+    X(glscene_filters_the_images)                                                                  \
     X(glview_antialiases_the_view)                                                                 \
     X(vram_tags_follow_the_pixels)
 

@@ -398,3 +398,60 @@ void unit_glscene_lays_the_ground_in_the_world(void) {
     scene_reset();
     scene_enable(false);
 }
+
+/*
+ * The images filtered after the palette lookup (video.textures), drawn at 190x142, where the
+ * textured face's texels 7 and 8 meet at the middle of window pixel 142 of row 35 (texel row 0's
+ * middle): sharp, the two blend there alone, each its own colour a pixel off; smooth, they blend
+ * from texel middle to texel middle; nearest, a pixel off each is its own. The transparent texel
+ * stays out of every blend, the sky showing at its middle; a remapped image blends in its
+ * remapped colours.
+ */
+static bool colour_is(const uint8_t *rgba, int w, int x, int y, int r, int g, int b) {
+    const uint8_t *p = rgba + ((size_t)y * (size_t)w + (size_t)x) * 4;
+    return SDL_abs(p[0] - r) <= 1 && SDL_abs(p[1] - g) <= 1 && SDL_abs(p[2] - b) <= 1;
+}
+
+static bool textures(const char *filter) {
+    char set[64], why[128];
+    snprintf(set, sizeof set, "video.textures=%s", filter);
+    return settings_override(set, why, sizeof why);
+}
+
+static void filters_the_images(const GlSceneInputs *in) {
+    uint8_t *rgba = s_rgba;
+    const SceneFrame *f = make_frame();
+    UNIT_CHECK(textures("sharp") && glscene_render_offscreen(f, in, 190, 142, false, rgba));
+    UNIT_CHECK(colour_is(rgba, 190, 141, 35, 28, 56, 85)); /* colour 7 */
+    UNIT_CHECK(colour_is(rgba, 190, 142, 35, 30, 60, 91)); /* half 7 and half 8 */
+    UNIT_CHECK(colour_is(rgba, 190, 143, 35, 32, 65, 97)); /* colour 8 */
+    UNIT_CHECK(colour_is(rgba, 190, 154, 59, 4, 8, 12));   /* the sky's colour 1 */
+    UNIT_CHECK(textures("smooth") && glscene_render_offscreen(f, in, 190, 142, false, rgba));
+    UNIT_CHECK(colour_is(rgba, 190, 141, 35, 30, 60, 91)); /* 54% of 7 */
+    UNIT_CHECK(colour_is(rgba, 190, 143, 35, 30, 61, 92)); /* 54% of 8 */
+    UNIT_CHECK(colour_is(rgba, 190, 154, 59, 4, 8, 12));
+    /* down from texel 8 into the transparent one: covered two thirds, still 8's colour; covered
+     * not a third, left out */
+    UNIT_CHECK(colour_is(rgba, 190, 154, 43, 32, 65, 97));
+    UNIT_CHECK(colour_is(rgba, 190, 154, 52, 4, 8, 12));
+    UNIT_CHECK(textures("nearest") && glscene_render_offscreen(f, in, 190, 142, false, rgba));
+    UNIT_CHECK(colour_is(rgba, 190, 141, 35, 28, 56, 85));
+    UNIT_CHECK(colour_is(rgba, 190, 143, 35, 32, 65, 97));
+    UNIT_CHECK(colour_is(rgba, 190, 154, 59, 4, 8, 12));
+    UNIT_CHECK(textures("sharp"));
+}
+
+/* The image drawn again at 2,30 through remap row 11: its colour 10 is 12, (48, 97, 146). */
+static void filters_remapped_images(const GlSceneInputs *in) {
+    s_remap[11 * 256 + 10] = 12;
+    UNIT_CHECK(glscene_render_offscreen(make_effects(), in, VIEW_W * 3, VIEW_H * 3, false, s_rgba));
+    UNIT_CHECK(colour_at(s_rgba, 4, 32, 48, 97, 146, 1));
+    s_remap[11 * 256 + 10] = 0;
+}
+
+void unit_glscene_filters_the_images(void) {
+    in_a_context("glscene filters", filters_the_images);
+    in_a_context("glscene filters remapped", filters_remapped_images);
+    scene_reset();
+    scene_enable(false);
+}

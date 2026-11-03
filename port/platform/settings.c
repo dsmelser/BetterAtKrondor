@@ -39,6 +39,7 @@ static const char *const s_renderers[] = {"gl", "sdl", NULL};
 static const char *const s_aspects[] = {"4:3", "square", NULL};
 static const char *const s_cursors[] = {"system", "game", NULL};
 static const char *const s_views[] = {"gpu", "software", NULL};
+static const char *const s_textures[] = {"sharp", "smooth", "nearest", NULL};
 static const char *const s_devices[] = {"sb", "adlib", "mt32", "none", "game", NULL};
 
 static const SettingDef s_defs[SETTING_COUNT] = {
@@ -73,6 +74,11 @@ static const SettingDef s_defs[SETTING_COUNT] = {
                                  "samples each pixel of the GPU's 3-D view takes, which smooths "
                                  "its edges (0 or 1: none; at most what the driver offers)",
                                  .min = 0, .max = 16},
+    [SETTING_VIDEO_TEXTURES] = {"video", "textures", SETTING_CHOICE, "sharp",
+                                "the images in the GPU's 3-D view: sharp (each texel crisp, the "
+                                "step to the next a window pixel wide), smooth (blended from "
+                                "texel to texel), or nearest (blocks, as the original)",
+                                .choices = s_textures},
     [SETTING_WINDOW_WIDTH] = {"window", "width", SETTING_INT, "960", "the window's width",
                               .min = 320, .max = 16384},
     [SETTING_WINDOW_HEIGHT] = {"window", "height", SETTING_INT, "720", "the window's height",

@@ -8,7 +8,11 @@
  * an object is pulled a step of depth nearer than the one drawn before it, so that the decals
  * the software paints over a face stay on top. Texture coordinates are interpolated with
  * perspective. A pixel's palette index comes from its face's colour or its image (through its
- * remap table, 0 transparent but on the sky); its colour is the DAC's for that index. The
+ * remap table, 0 transparent but on the sky); its colour is the DAC's for that index. Images are
+ * filtered after that (video.textures): the four texels about a pixel are each looked up, then
+ * blended, the blend narrowed to a window pixel where a texel covers more (sharp: crisp texels
+ * with smooth edges), or not (smooth), or the nearest texel alone is taken; a transparent texel
+ * takes no part, so that a sprite's edge stays where its texels end. The
  * ground's strips are drawn in colour from the strip texture laid on the ground in the world, so
  * that its grain moves with the world as the party walks and turns, over the shading the
  * software reads down the screen (ground() in the shader); as indices, for the check below, the
@@ -166,10 +170,39 @@ static const char s_fragmentShader[] =
     "                  0.8 * detail(vec2(p.x + 117.0, first + mod(p.y, rows)), px, py);\n"
     "    return colour;\n"
     "}\n"
+    "uniform int u_filter; /* the images: TEXTURES_* (0 sharp, 1 smooth, 2 nearest) */\n"
+    "/* An image's texel through its remap row and the palette, premultiplied by its coverage:\n"
+    " * none where an image with transparent texels holds 0. */\n"
+    "vec4 texel(ivec2 t) {\n"
+    "    int index = int(texelFetch(u_image, clamp(t, ivec2(0), u_imageSize - 1), 0).r);\n"
+    "    float a = u_mode == 1 && index == 0 ? 0.0 : 1.0;\n"
+    "    if (u_remapRow >= 0)\n"
+    "        index = int(texelFetch(u_remap, ivec2(index, u_remapRow), 0).r);\n"
+    "    return vec4(texelFetch(u_palette, ivec2(index, 0), 0).rgb * a, a);\n"
+    "}\n"
+    "/* The image filtered after the palette lookup: the four texels about the place blended, the\n"
+    " * blend narrowed to a window pixel where a texel covers more (sharp). */\n"
+    "vec4 image() {\n"
+    "    vec2 p = v_uv - 0.5, f = fract(p);\n"
+    "    ivec2 k = ivec2(floor(p));\n"
+    "    if (u_filter == 0)\n"
+    "        f = clamp((f - 0.5) / clamp(fwidth(v_uv), 1e-4, 1.0) + 0.5, 0.0, 1.0);\n"
+    "    return mix(mix(texel(k), texel(k + ivec2(1, 0)), f.x),\n"
+    "               mix(texel(k + ivec2(0, 1)), texel(k + ivec2(1, 1)), f.x), f.y);\n"
+    "}\n"
     "#endif\n"
     "void main() {\n"
     "    int index = u_colour;\n"
     "    if (u_mode == 1 || u_mode == 2) {\n"
+    "#ifndef INDICES\n"
+    "        if (u_filter != 2) {\n"
+    "            vec4 s = image();\n"
+    "            if (s.a < 0.5) /* a sprite's edge where its texels end */\n"
+    "                discard;\n"
+    "            o_color = vec4(s.rgb / s.a, 1.0);\n"
+    "            return;\n"
+    "        }\n"
+    "#endif\n"
     "        ivec2 t = clamp(ivec2(floor(v_uv)), ivec2(0), u_imageSize - 1);\n"
     "        index = int(texelFetch(u_image, t, 0).r);\n"
     "        if (u_mode == 1 && index == 0)\n"
@@ -233,7 +266,7 @@ typedef struct Draw {
 
 typedef struct Uniforms {
     GLint proj, depth, view, screen, mode, colour, remapRow, imageSize, strip, frag, disc, dither;
-    GLint toWorld, eye, cam, band;
+    GLint toWorld, eye, cam, band, filter;
 } Uniforms;
 
 static struct {
@@ -616,6 +649,7 @@ static bool program(int which, const char *fragment) {
     u->eye = g_gl.GetUniformLocation(p, "u_eye");
     u->cam = g_gl.GetUniformLocation(p, "u_cam");
     u->band = g_gl.GetUniformLocation(p, "u_band");
+    u->filter = g_gl.GetUniformLocation(p, "u_filter");
     g_gl.UseProgram(p);
     g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_image"), UNIT_IMAGE);
     g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_remap"), UNIT_REMAP);
@@ -865,6 +899,7 @@ void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, in
             toWorld[3 * i + j] = (float)f->view[3 * j + i] / 16384.0f;
     g_gl.UniformMatrix3fv(u->toWorld, 1, GL_FALSE, toWorld);
     g_gl.Uniform4f(u->cam, f->centerX, f->centerY, focal, (float)f->camPos[2]);
+    g_gl.Uniform1i(u->filter, settings_get_choice(SETTING_VIDEO_TEXTURES));
 
     g_gl.BindVertexArray(s.vao);
     g_gl.BindBuffer(GL_ARRAY_BUFFER, s.vbo);
