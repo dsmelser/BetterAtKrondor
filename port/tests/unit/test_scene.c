@@ -6,6 +6,7 @@
 
 #include "unit.h"
 
+#include "bak_video.h"
 #include "../../platform/scene.h"
 
 #include "bak_game_begin.h"
@@ -16,6 +17,7 @@
 
 #define PAGE_A 0xA000
 #define PAGE_B 0xA400
+#define PAGE_C 0xA800
 
 static void start(uint16_t page) {
     BakSceneCamera c = {{1000, 2000, 300}, {0, 0, 0x4000}, {13, 11, 306, 111}, 160, 61, 9};
@@ -186,7 +188,7 @@ void unit_scene_frames_finish_by_pass_and_page(void) {
     bak_scene_begin(&c); /* drew nothing */
     UNIT_CHECK(scene_latest(PAGE_B) == NULL);
     g_graphics_context.wGfxBlitDstPage = PAGE_B;
-    bak_scene_sky_rect(13, 11, 294, 101, 0x40);
+    bak_scene_sky_rect(13, 11, 294, 101, 0x40, 0);
     bak_scene_begin(&c);
     const SceneFrame *b = scene_latest(PAGE_B);
     UNIT_CHECK(b != NULL && b->screenShift == 8 && b->sky[0].kind == SCENE_SKY_RECT);
@@ -233,5 +235,110 @@ void unit_scene_billboards_circles_and_the_sky(void) {
     UNIT_CHECK(t != NULL && t->width == 2 && memcmp(t->indices, spriteRows, 4) == 0);
     UNIT_CHECK(it[1].type == SCENE_CIRCLE && it[1].fill == 0x6f && it[1].rect[2] == 5);
     UNIT_CHECK(vertex_is(&f->vertices[it[1].firstVertex], 0, 200, 0));
+    stop();
+}
+
+/* A view's frame has a tag, which the draws its hooks took in carry, each from its hook to
+ * bak_scene_drawn, and nothing else: not a polygon no face waits for, nor anything a pass that
+ * is no view draws. However many views come after it, none takes the tag of a frame kept. */
+void unit_scene_views_tag_only_their_draws(void) {
+    static unsigned char packed[] = {0x82, 5, 0};
+    ImageRecord sprite = {packed, sizeof packed, 0, 0x80, 2, 1};
+    static const int16_t xs[4] = {140, 180, 180, 140}, ys[4] = {41, 41, 81, 81};
+    static const int16_t anchor[3] = {10, 300, -20};
+    start(PAGE_A);
+    bak_scene_view();
+    UNIT_CHECK(g_bakVramTagNow == 0);
+    bak_scene_sky_band(11, 20, 0xd7);
+    uint8_t tag = g_bakVramTagNow;
+    UNIT_CHECK(tag != 0);
+    bak_scene_drawn();
+    UNIT_CHECK(g_bakVramTagNow == 0);
+    bak_scene_object(0, 5000, 0, 400, 2, 0, NULL);
+    BakSceneFace a = face(s_square, 0x80, 0xf, 0);
+    bak_scene_face(&a);
+    bak_scene_polygon(4, xs, ys, 0, 1, 7, 8);
+    UNIT_CHECK(g_bakVramTagNow == tag);
+    bak_scene_drawn();
+    bak_scene_polygon(4, xs, ys, 0, 1, 7, 8); /* the face's sink came already */
+    UNIT_CHECK(g_bakVramTagNow == 0);
+    bak_scene_billboard(&sprite, anchor, 3, 177, 27, 150, 30, 20, 24, 0, 0);
+    UNIT_CHECK(g_bakVramTagNow == tag);
+    bak_scene_drawn();
+    scene_finish();
+    const SceneFrame *f = scene_latest(PAGE_A);
+    UNIT_CHECK(f != NULL && f->tag == tag && scene_frame_tagged(tag) == f);
+
+    BakSceneCamera c = {{0}, {0}, {13, 11, 306, 111}, 160, 61, 9};
+    g_graphics_context.wGfxBlitDstPage = PAGE_C;
+    bak_scene_begin(&c); /* no view */
+    bak_scene_sky_band(11, 20, 0xd7);
+    UNIT_CHECK(g_bakVramTagNow == 0);
+    bak_scene_drawn();
+    g_graphics_context.wGfxBlitDstPage = PAGE_B;
+    bool reused = false;
+    for (int i = 0; i < 600; i++) {
+        bak_scene_begin(&c);
+        bak_scene_view();
+        bak_scene_sky_band(11, 20, 0xd7);
+        reused |= g_bakVramTagNow == tag || g_bakVramTagNow == 0;
+        bak_scene_drawn();
+    }
+    UNIT_CHECK(!reused);
+    UNIT_CHECK(scene_latest(PAGE_A) == f && f->tag == tag);
+    stop();
+}
+
+/* A view and what it draws over, as its page is drawn into. */
+static const SceneFrame *view(uint16_t page, const int16_t clip[4], bool background) {
+    BakSceneCamera c = {{0}, {0}, {clip[0], clip[1], clip[2], clip[3]}, 160, 61, 9};
+    static const int16_t anchor[3] = {10, 300, -20};
+    static unsigned char packed[] = {0x82, 5, 0};
+    static ImageRecord sprite = {packed, sizeof packed, 0, 0x80, 2, 1};
+    g_graphics_context.wGfxBlitDstPage = page;
+    bak_scene_begin(&c);
+    bak_scene_view();
+    if (background)
+        bak_scene_sky_rect(clip[0], clip[1], clip[2] - clip[0] + 1, clip[3] - clip[1] + 1, 0, 0);
+    else
+        bak_scene_billboard(&sprite, anchor, 3, 177, 27, 150, 30, 20, 24, 0, 0);
+    bak_scene_drawn();
+    scene_finish();
+    return scene_latest(page);
+}
+
+/* A picture shows the newest view its tags name, and under one that covers none of its view
+ * itself (combat's actors) the one it was drawn over (the background copied under them), if it
+ * has the same view; never what lies under a view with a background of its own. */
+void unit_scene_shows_the_frames_under_a_view(void) {
+    static const int16_t clip[4] = {13, 11, 306, 111}, inset[4] = {134, 16, 300, 104};
+    start(PAGE_C);
+    const SceneFrame *back = view(PAGE_C, clip, true);
+    const SceneFrame *actors = view(PAGE_A, clip, false);
+    UNIT_CHECK(back != NULL && actors != NULL);
+    if (back == NULL || actors == NULL)
+        return;
+    unsigned counts[256] = {0};
+    const SceneFrame *shown[SCENE_SHOWN_MAX + 1];
+    UNIT_CHECK(scene_frames_shown(counts, shown) == 0 && shown[0] == NULL);
+    counts[back->tag] = 20000;
+    counts[actors->tag] = 900;
+    UNIT_CHECK(scene_frames_shown(counts, shown) == 2);
+    UNIT_CHECK(shown[0] == back && shown[1] == actors && shown[2] == NULL);
+    counts[back->tag] = 0;
+    UNIT_CHECK(scene_frames_shown(counts, shown) == 1 && shown[0] == actors);
+    counts[back->tag] = 20000;
+    counts[actors->tag] = 0;
+    UNIT_CHECK(scene_frames_shown(counts, shown) == 1 && shown[0] == back);
+
+    /* a newer view with a background of its own: nothing under it */
+    const SceneFrame *world = view(PAGE_B, clip, true);
+    counts[world->tag] = 50;
+    UNIT_CHECK(scene_frames_shown(counts, shown) == 1 && shown[0] == world);
+    /* over another view's place: nothing under it either */
+    counts[world->tag] = 0;
+    const SceneFrame *marks = view(PAGE_A, inset, false);
+    counts[marks->tag] = 50;
+    UNIT_CHECK(scene_frames_shown(counts, shown) == 1 && shown[0] == marks);
     stop();
 }

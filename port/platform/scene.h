@@ -95,13 +95,15 @@ typedef enum SceneSkyKind {
     SCENE_SKY_BAND,   /* rows y .. y + h - 1, pixels 13-306, in colour */
     SCENE_SKY_SHADED, /* rows y .. y + h - 1, pixels 13-306, shaded from the bottom up */
     SCENE_SKY_SPRITE, /* texture at x, y, opaque */
-    SCENE_SKY_RECT,   /* x, y, w, h in colour */
+    SCENE_SKY_RECT,   /* x, y, w, h in colour; with a dither colour, pixel (px, py) is colour
+                         where px + py + x is even, dither where it is odd */
     SCENE_SKY_GROUND, /* x, y, w, h from the ground's strip texture */
 } SceneSkyKind;
 
 typedef struct SceneSkyOp {
     uint8_t kind; /* SceneSkyKind */
     uint8_t colour;
+    uint8_t dither; /* a rectangle's second colour, 0 for none */
     int16_t x, y, w, h;
     uint32_t texture;
     SceneStrip strip;
@@ -113,9 +115,11 @@ typedef struct SceneFrame {
     uint32_t serial; /* frames counted from 1 */
     uint16_t page;   /* the VGA page drawn into (its segment); 0 until something is drawn */
     bool mixedPages; /* something was drawn into another page as well */
-    bool background; /* drawn into page 1, which is never shown (picking's readback, combat's) */
-    uint8_t tag;     /* the tag its pixels carry in display memory (bak_video.h): 1-255 for the
-                        world's view (bak_scene_view), else 0 */
+    bool background; /* drawn into page 1, which is never shown itself (picking's readback;
+                        combat's background, which its frames are copied over) */
+    uint8_t tag;     /* the tag its draws' pixels carry in display memory (bak_video.h): 1-255
+                        for a view the window shows (bak_scene_view), else 0; no two frames kept
+                        have the same */
     /* the camera */
     int32_t camPos[3];
     int16_t camAngles[3];
@@ -129,6 +133,10 @@ typedef struct SceneFrame {
     uint16_t heading;
     SceneSkyOp sky[SCENE_SKY_MAX];
     uint32_t skyCount;
+    /* The ground's strip texture as the frame's strips read it: the scratch page at AC00h when
+     * the first was drawn (combat keeps its background there later), 65536 bytes */
+    bool hasGround;
+    uint8_t *ground;
     /* the items, in the order drawn */
     SceneItem *items;
     uint32_t itemCount, itemCap;
@@ -148,8 +156,16 @@ void scene_page_flipped(uint16_t page);
 /* The last finished frame drawn into the page, or NULL. It stays as it is until the next frame
  * of that page finishes. */
 const SceneFrame *scene_latest(uint16_t page);
-/* The last finished frame whose pixels carry the tag, or NULL. */
+/* The finished frame whose pixels carry the tag, or NULL. */
 const SceneFrame *scene_frame_tagged(uint8_t tag);
+/*
+ * The frames a picture shows, given how many of its pixels carry each tag: the newest frame its
+ * tags name, and while the one taken last covers none of its view itself (no sky or background:
+ * combat's actors, drawn over the background copied under them), the frame under it, if it
+ * shares the view. Oldest first, as they are painted, ending in NULL; their count.
+ */
+#define SCENE_SHOWN_MAX 4
+unsigned scene_frames_shown(const unsigned counts[256], const SceneFrame *out[SCENE_SHOWN_MAX + 1]);
 /* A texture by its id, or NULL. Textures stay. */
 const SceneTexture *scene_texture(uint32_t id);
 /* Forget every frame and texture. */

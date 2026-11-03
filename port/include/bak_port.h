@@ -173,9 +173,15 @@ typedef struct BakSceneFace {
 } BakSceneFace;
 _Bool bak_scene_capturing(void);
 void bak_scene_begin(const BakSceneCamera *camera);
-/* The world's view is drawn from here to bak_scene_end (WORLDHIT.C, WORLDFRM.C): its pixels
-   carry the frame's tag in display memory (bak_video.h), for the GPU's view in the window. */
+/* The frame being drawn is a view the window shows (WORLDHIT.C, WORLDFRM.C: the world's, the
+   maps', combat's): it gets a tag (bak_video.h), and the pixels of each draw a hook below
+   describes carry it, for the GPU's view in the window. */
 void bak_scene_view(void);
+/* The draw the last hook described is done: what is drawn next is no frame's until the next
+   hook, so the pass's other drawing (the cursor, combat's lines and effects) stays the
+   picture's own. Every hook that describes a draw (a face's polygon, a billboard, a circle,
+   the sky's operations, the ground's band) is followed by its draw, then by this. */
+void bak_scene_drawn(void);
 /* The world's passes end here (WORLDHIT.C, WORLDFRM.C): their frame is finished before any 2-D
    overlay is drawn over it. The other passes end at the next one or at their page's flip. */
 void bak_scene_end(void);
@@ -209,13 +215,15 @@ void bak_scene_circle(const int16_t centre[3], int unitShift, int16_t x, int16_t
    the view, or reject's outcode bits when it misses it) and the camera's heading; a band of
    rows in one colour across pixels 13-306 (vgafill.c); the band's rows shaded from its ramp,
    the last row's offset given (detail 0's sky); the panorama's images; a rectangle in one
-   colour; a rectangle filled from the ground's strip texture. */
+   colour, or dithered with a second (draw_rect_filled with the context's dither colour: the
+   maps' backgrounds, a checkerboard whose phase is the rectangle's left edge); a rectangle
+   filled from the ground's strip texture. */
 void bak_scene_horizon(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t reject,
                        uint16_t heading);
 void bak_scene_sky_band(int16_t y, int16_t rows, uint8_t colour);
 void bak_scene_sky_shaded(int16_t lastRowOffset, int16_t rows);
 void bak_scene_sky_sprite(const struct ImageRecord *image, int16_t x, int16_t y);
-void bak_scene_sky_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t colour);
+void bak_scene_sky_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t colour, uint8_t dither);
 void bak_scene_ground(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t siBase,
                       int16_t stride, uint16_t rowSub, uint16_t rowCount);
 /* A table of images is about to be freed (free_image_record): its records are forgotten. */

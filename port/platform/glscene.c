@@ -9,13 +9,23 @@
  * the software paints over a face stay on top. Texture coordinates are interpolated with
  * perspective. A pixel's palette index comes from its face's colour, its image (through its
  * remap table, 0 transparent but on the sky), or the ground's strip texture, read as vgablit.c's
- * spans read it at the pixel's place in the 1x view; its colour is the DAC's for that index.
+ * spans read it at the pixel's place in the 1x view (but for a strip whose rows repeat, which
+ * vgablit.c starts at each polygon's first row: here they start at the strip's own, so that its
+ * faces meet without a seam where their edges, drawn finer than 1x, cut through its texels);
+ * its colour is the DAC's for that index. A
+ * dithered rectangle (the maps' backgrounds) is the even blend of its two colours, which is what
+ * its checkerboard of 1x pixels stands for; drawn as indices it is the checkerboard. What the
+ * frame does not draw stays transparent, so that a frame drawn over another (GLSCENE_OVER:
+ * combat's actors over its background) leaves the one under it showing.
  *
- * With BAK_SCENE_CHECK=gpu, every finished frame is drawn at 1x as palette indices and compared
- * with the page the software drew it into, over the view; the share of equal pixels goes to
- * stderr at exit. BAK_SCENE_DUMP=<folder> writes the first frames' pictures there: the
- * software's view, the GPU's at 1x, and the GPU's at 4x.
+ * With BAK_SCENE_CHECK=gpu, every finished view is drawn at 1x as palette indices, with the
+ * frames its page shows under it (scene_frames_shown), and compared with the page the software
+ * drew it into, over the pixels those frames own; the share of equal pixels goes to stderr at
+ * exit. BAK_SCENE_DUMP=<folder> writes the pictures of the first 16 views and of the 16 least
+ * alike of the others there at exit, in the palette of that moment: the software's, the GPU's
+ * at 1x, and the GPU's at 4x.
  */
+#include <float.h>
 #include <math.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -30,7 +40,15 @@
 #include "platform.h"
 #include "vgaregs.h"
 
-enum { MODE_COLOUR, MODE_IMAGE, MODE_OPAQUE, MODE_STRIP, MODE_RAMP, MODE_DISC };
+enum {
+    MODE_COLOUR,
+    MODE_IMAGE,
+    MODE_OPAQUE,
+    MODE_STRIP,
+    MODE_RAMP,
+    MODE_DISC,
+    MODE_DITHER
+};
 enum { DEPTH_NONE, DEPTH_WRITE, DEPTH_TEST };
 enum { UNIT_IMAGE, UNIT_REMAP, UNIT_GROUND, UNIT_PALETTE };
 
@@ -70,11 +88,11 @@ static const char s_fragmentShader[] =
     "uniform int u_remapRow;\n"
     "uniform ivec2 u_imageSize;\n"
     "uniform ivec4 u_strip; /* base, stride, row subtracted, rows before the base again */\n"
-    "uniform int u_stripFirst;\n"
     "uniform vec4 u_view; /* the 1x view: left, top, width, height */\n"
     "uniform vec4 u_frag; /* the view's left and top in window pixels, 1x pixels per window "
     "pixel */\n"
     "uniform vec3 u_disc; /* a disc's centre and radius in the 1x picture */\n"
+    "uniform ivec2 u_dither; /* a dithered rectangle's second colour and its left edge */\n"
     "in vec2 v_uv;\n"
     "out vec4 o_color;\n"
     "vec2 place() {\n"
@@ -96,7 +114,7 @@ static const char s_fragmentShader[] =
     "    } else if (u_mode == 3) {\n"
     "        ivec2 p = ivec2(floor(place()));\n"
     "        int si = u_strip.w == 0 ? u_strip.x + (p.y - u_strip.z) * u_strip.y\n"
-    "                                : u_strip.x + wrap(p.y - u_stripFirst, u_strip.w) * u_strip.y;\n"
+    "                                : u_strip.x + wrap(p.y - u_strip.z, u_strip.w) * u_strip.y;\n"
     "        int at = 4 * ((si + (p.x >> 2)) & 0xffff) + (p.x & 3);\n"
     "        index = at < 65536 ? int(texelFetch(u_ground, ivec2(at % 320, at / 320), 0).r) : 0;\n"
     "    } else if (u_mode == 4) {\n"
@@ -106,6 +124,16 @@ static const char s_fragmentShader[] =
     "        vec2 d = place() - (u_disc.xy + 0.5);\n"
     "        if (dot(d, d) > (u_disc.z + 0.5) * (u_disc.z + 0.5))\n"
     "            discard;\n"
+    "    } else if (u_mode == 6) {\n"
+    "#ifdef INDICES\n"
+    "        ivec2 p = ivec2(floor(place()));\n"
+    "        if (((p.x + p.y + u_dither.y) & 1) != 0)\n"
+    "            index = u_dither.x;\n"
+    "#else\n"
+    "        o_color = mix(texelFetch(u_palette, ivec2(u_colour, 0), 0),\n"
+    "                      texelFetch(u_palette, ivec2(u_dither.x, 0), 0), 0.5);\n"
+    "        return;\n"
+    "#endif\n"
     "    }\n"
     "#ifdef INDICES\n"
     "    o_color = vec4(float(index) / 255.0, 0.0, 0.0, 1.0);\n"
@@ -127,13 +155,12 @@ typedef struct Draw {
     uint32_t texture;
     float offset; /* polygon offset units */
     SceneStrip strip;
-    int stripFirst;
     float disc[3];
+    int dither, ditherX;
 } Draw;
 
 typedef struct Uniforms {
-    GLint proj, depth, view, screen, mode, colour, remapRow, imageSize, strip, stripFirst, frag,
-        disc;
+    GLint proj, depth, view, screen, mode, colour, remapRow, imageSize, strip, frag, disc, dither;
 } Uniforms;
 
 static struct {
@@ -209,9 +236,13 @@ static void sky(const SceneSkyOp *op) {
     switch (op->kind) {
     case SCENE_SKY_BAND:
     case SCENE_SKY_RECT:
-        d = screen_rect(MODE_COLOUR, op->x, op->y, op->w, op->h, 0, 0, 0, 0);
-        if (d != NULL)
+        d = screen_rect(op->dither != 0 ? MODE_DITHER : MODE_COLOUR, op->x, op->y, op->w, op->h, 0,
+                        0, 0, 0);
+        if (d != NULL) {
             d->colour = op->colour;
+            d->dither = op->dither;
+            d->ditherX = op->x;
+        }
         break;
     case SCENE_SKY_SHADED:
         d = screen_rect(MODE_RAMP, op->x, op->y, op->w, op->h, 0, 0, 0, 0);
@@ -225,10 +256,8 @@ static void sky(const SceneSkyOp *op) {
         break;
     case SCENE_SKY_GROUND:
         d = screen_rect(MODE_STRIP, op->x, op->y, op->w, op->h, 0, 0, 0, 0);
-        if (d != NULL) {
+        if (d != NULL)
             d->strip = op->strip;
-            d->stripFirst = op->y;
-        }
         break;
     }
 }
@@ -238,6 +267,66 @@ static void image_corner(uint8_t k, const SceneTexture *t, float *u, float *v) {
     float w = t != NULL ? t->width : 1, h = t != NULL ? t->height : 1;
     *u = k == 1 || k == 2 ? w : 0;
     *v = k >= 2 ? h : 0;
+}
+
+/* A point of the 1x picture at a depth, back in camera space. */
+static void unproject(const SceneFrame *f, float sx, float sy, float depth, float *x, float *z) {
+    float focal = ldexpf(1.0f, f->screenShift);
+    *x = (sx - (float)f->centerX) * depth / focal;
+    *z = ((float)f->centerY - sy) * depth / focal;
+}
+
+/* A point of camera space on the 1x picture. */
+static void project(const SceneFrame *f, SceneVertex p, float *sx, float *sy) {
+    float focal = ldexpf(1.0f, f->screenShift);
+    *sx = (float)f->centerX + p.x * focal / p.y;
+    *sy = (float)f->centerY - p.z * focal / p.y;
+}
+
+static SceneVertex between(SceneVertex a, SceneVertex b, float t) {
+    return (SceneVertex){a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t};
+}
+
+/*
+ * draw_polygon's outline: each edge a band one 1x pixel wide across it on screen and half a
+ * pixel past its ends (so the corners meet), each end at its own depth, cut at the view plane:
+ * the weight of the original's lines at any size, where GL's are one window pixel.
+ */
+static void outline(const SceneFrame *f, const SceneItem *it, Draw *d) {
+    const SceneVertex *v = &f->vertices[it->firstVertex];
+    float focal = ldexpf(1.0f, f->screenShift);
+    for (unsigned i = 0; i < it->corners; i++) {
+        SceneVertex a = v[i], b = v[(i + 1) % it->corners];
+        if (a.y < focal && b.y < focal)
+            continue;
+        if (a.y < focal)
+            a = between(a, b, (focal - a.y) / (b.y - a.y));
+        else if (b.y < focal)
+            b = between(b, a, (focal - b.y) / (a.y - b.y));
+        float ax, ay, bx, by;
+        project(f, a, &ax, &ay);
+        project(f, b, &bx, &by);
+        float dx = bx - ax, dy = by - ay, len = sqrtf(dx * dx + dy * dy);
+        if (len < 1e-4f) {
+            dx = 1;
+            dy = 0;
+            len = 1;
+        }
+        dx *= 0.5f / len; /* half a pixel along the edge; (-dy, dx) across it */
+        dy *= 0.5f / len;
+        float p[4][3] = {{ax - dx - dy, ay - dy + dx, a.y},
+                         {ax - dx + dy, ay - dy - dx, a.y},
+                         {bx + dx + dy, by + dy - dx, b.y},
+                         {bx + dx - dy, by + dy + dx, b.y}};
+        SceneVertex q[4];
+        for (int k = 0; k < 4; k++) {
+            q[k].y = p[k][2];
+            unproject(f, p[k][0], p[k][1], p[k][2], &q[k].x, &q[k].z);
+        }
+        static const int order[6] = {0, 1, 2, 0, 2, 3};
+        for (int k = 0; k < 6; k++)
+            vertex(d, q[order[k]].x, q[order[k]].y, q[order[k]].z, 0, 0);
+    }
 }
 
 static void face(const SceneFrame *f, const SceneItem *it, uint8_t depth, float offset) {
@@ -254,7 +343,6 @@ static void face(const SceneFrame *f, const SceneItem *it, uint8_t depth, float 
         d->texture = it->texture;
         d->remap = it->remap;
         d->strip = it->strip;
-        d->stripFirst = it->rect[1];
         for (unsigned i = 1; i + 1 < it->corners; i++) {
             unsigned c[3] = {0, i, i + 1};
             for (unsigned k = 0; k < 3; k++) {
@@ -265,23 +353,17 @@ static void face(const SceneFrame *f, const SceneItem *it, uint8_t depth, float 
             }
         }
     }
-    /* draw_polygon: an outline in its own colour after the fill, or alone without one */
+    /* draw_polygon: an outline in its own colour after the fill, or alone without one; over
+     * its fill, which is pulled as near */
     if (!it->textured && !it->striped && (!it->filled || it->outline != it->fill)) {
-        Draw *d = new_draw(GL_LINE_LOOP, MODE_COLOUR);
+        Draw *d = new_draw(GL_TRIANGLES, MODE_COLOUR);
         if (d == NULL)
             return;
         d->depth = depth == DEPTH_NONE ? DEPTH_NONE : DEPTH_TEST;
+        d->offset = offset - 1.0f;
         d->colour = it->outline;
-        for (unsigned i = 0; i < it->corners; i++)
-            vertex(d, v[i].x, v[i].y, v[i].z, 0, 0);
+        outline(f, it, d);
     }
-}
-
-/* A point of the 1x picture at a depth, back in camera space. */
-static void unproject(const SceneFrame *f, float sx, float sy, float depth, float *x, float *z) {
-    float focal = ldexpf(1.0f, f->screenShift);
-    *x = (sx - (float)f->centerX) * depth / focal;
-    *z = ((float)f->centerY - sy) * depth / focal;
 }
 
 /* A billboard: its rectangle on screen, at its anchor's depth. */
@@ -400,9 +482,9 @@ static bool program(int which, const char *fragment) {
     u->remapRow = g_gl.GetUniformLocation(p, "u_remapRow");
     u->imageSize = g_gl.GetUniformLocation(p, "u_imageSize");
     u->strip = g_gl.GetUniformLocation(p, "u_strip");
-    u->stripFirst = g_gl.GetUniformLocation(p, "u_stripFirst");
     u->frag = g_gl.GetUniformLocation(p, "u_frag");
     u->disc = g_gl.GetUniformLocation(p, "u_disc");
+    u->dither = g_gl.GetUniformLocation(p, "u_dither");
     g_gl.UseProgram(p);
     g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_image"), UNIT_IMAGE);
     g_gl.Uniform1i(g_gl.GetUniformLocation(p, "u_remap"), UNIT_REMAP);
@@ -484,7 +566,9 @@ static GLuint texture_for(uint32_t id) {
     return s.textures[id];
 }
 
-static void upload(const GlSceneInputs *in) {
+/* The palette, the remap tables and the ground's strip texture (the frame's own copy, or the
+ * page's). */
+static void upload(const GlSceneInputs *in, const uint8_t *strips) {
     static uint8_t rgba[256 * 4];
     static uint8_t remap[256 * 16];
     for (int i = 0; i < 256; i++) {
@@ -507,11 +591,11 @@ static void upload(const GlSceneInputs *in) {
 
     g_gl.ActiveTexture(GL_TEXTURE0 + UNIT_GROUND);
     g_gl.BindTexture(GL_TEXTURE_2D, s.ground);
-    if (in->ground != NULL) {
-        uint32_t hash = platform_hash(0, in->ground, 65536);
+    if (strips != NULL) {
+        uint32_t hash = platform_hash(0, strips, 65536);
         if (!s.groundKnown || hash != s.groundHash) {
             static uint8_t ground[GROUND_W * GROUND_H];
-            memcpy(ground, in->ground, 65536);
+            memcpy(ground, strips, 65536);
             g_gl.TexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, GROUND_W, GROUND_H, 0, GL_RED_INTEGER,
                             GL_UNSIGNED_BYTE, ground);
             s.groundHash = hash;
@@ -521,19 +605,27 @@ static void upload(const GlSceneInputs *in) {
 }
 
 void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, int w, int h,
-                  bool indices) {
+                  unsigned flags) {
+    bool indices = (flags & GLSCENE_INDICES) != 0;
     if (!s.open || w <= 0 || h <= 0)
         return;
     build(f);
     g_gl.PixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    upload(in);
+    upload(in, f->hasGround ? f->ground : in->ground);
 
     float viewW = (float)(f->clip[2] - f->clip[0] + 1), viewH = (float)(f->clip[3] - f->clip[1] + 1);
     if (viewW <= 0 || viewH <= 0)
         return;
-    float focal = ldexpf(1.0f, f->screenShift), nearZ = focal, farZ = 65536.0f;
+    /* The depth range: the near plane the software's (the focal length), or as far as half the
+     * nearest depth drawn, so that a view from far away (the maps, 100,000 units up) keeps its
+     * depth precision; the far one past everything. */
+    float focal = ldexpf(1.0f, f->screenShift), nearest = FLT_MAX, farZ = 65536.0f;
     for (uint32_t i = 0; i < f->vertexCount; i++)
         farZ = SDL_max(farZ, 2.0f * f->vertices[i].y);
+    for (uint32_t i = 0; i < s.drawCount; i++)
+        for (uint32_t k = 0; !s.draws[i].screen && k < s.draws[i].count; k++)
+            nearest = SDL_min(nearest, s.vertices[s.draws[i].first + k].y);
+    float nearZ = nearest < FLT_MAX ? SDL_max(focal, 0.5f * nearest) : focal;
     const Uniforms *u = &s.u[indices];
     g_gl.UseProgram(s.program[indices]);
     g_gl.Uniform4f(u->proj, 2.0f * focal / viewW, 2.0f * ((float)f->centerX - f->clip[0]) / viewW - 1.0f,
@@ -549,9 +641,10 @@ void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, in
     g_gl.Viewport(x, y, w, h);
     g_gl.Scissor(x, y, w, h);
     g_gl.Enable(GL_SCISSOR_TEST);
-    g_gl.ClearColor(0, 0, 0, 1);
+    g_gl.ClearColor(0, 0, 0, 0);
     g_gl.DepthMask(GL_TRUE);
-    g_gl.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    g_gl.Clear((flags & GLSCENE_OVER) ? GL_DEPTH_BUFFER_BIT
+                                      : GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     g_gl.DepthFunc(GL_LEQUAL);
     g_gl.ActiveTexture(GL_TEXTURE0 + UNIT_IMAGE);
 
@@ -573,9 +666,10 @@ void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, in
         } else if (d->mode == MODE_STRIP) {
             g_gl.Uniform4i(u->strip, d->strip.siBase, d->strip.stride, d->strip.rowSub,
                            d->strip.rowCount);
-            g_gl.Uniform1i(u->stripFirst, d->stripFirst);
         } else if (d->mode == MODE_DISC) {
             g_gl.Uniform3f(u->disc, d->disc[0], d->disc[1], d->disc[2]);
+        } else if (d->mode == MODE_DITHER) {
+            g_gl.Uniform2i(u->dither, d->dither, d->ditherX);
         }
         if (d->depth == DEPTH_NONE) {
             g_gl.Disable(GL_DEPTH_TEST);
@@ -602,9 +696,9 @@ void glscene_draw(const SceneFrame *f, const GlSceneInputs *in, int x, int y, in
     g_gl.PixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 
-bool glscene_render_offscreen(const SceneFrame *f, const GlSceneInputs *in, int w, int h,
-                              bool indices, uint8_t *rgba) {
-    if (!s.open)
+bool glscene_render_frames_offscreen(const SceneFrame *const *frames, const GlSceneInputs *in,
+                                     int w, int h, bool indices, uint8_t *rgba) {
+    if (!s.open || frames[0] == NULL)
         return false;
     GLuint fbo = 0, target = 0, depth = 0;
     g_gl.ActiveTexture(GL_TEXTURE0);
@@ -621,7 +715,9 @@ bool glscene_render_offscreen(const SceneFrame *f, const GlSceneInputs *in, int 
     g_gl.FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth, 0);
     bool ok = g_gl.CheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
     if (ok) {
-        glscene_draw(f, in, 0, 0, w, h, indices);
+        for (const SceneFrame *const *at = frames; *at != NULL; at++)
+            glscene_draw(*at, in, 0, 0, w, h,
+                         (indices ? GLSCENE_INDICES : 0u) | (at != frames ? GLSCENE_OVER : 0u));
         g_gl.PixelStorei(GL_PACK_ALIGNMENT, 1);
         g_gl.ReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
         g_gl.PixelStorei(GL_PACK_ALIGNMENT, 4);
@@ -644,18 +740,72 @@ bool glscene_render_offscreen(const SceneFrame *f, const GlSceneInputs *in, int 
     return ok;
 }
 
+bool glscene_render_offscreen(const SceneFrame *f, const GlSceneInputs *in, int w, int h,
+                              bool indices, uint8_t *rgba) {
+    const SceneFrame *frames[2] = {f, NULL};
+    return glscene_render_frames_offscreen(frames, in, w, h, indices, rgba);
+}
+
 /* ---- the check against the software's picture ------------------------------------------ */
+
+/* A view's pictures as palette indices: the software's and the GPU's at 1x, the GPU's at 4x. */
+typedef struct Dump {
+    uint32_t serial;
+    double share;
+    int w, h;
+    uint8_t *software, *gpu, *gpu4x;
+} Dump;
+
+#define DUMP_FIRST 16 /* the first views dumped */
+#define DUMP_WORST 16 /* and the least alike of the others */
 
 static struct {
     bool on;
-    const char *dump;
+    char *dump; /* the folder (a copy: SDL frees its environment before the end) */
     unsigned long long frames, pixels, equal;
     double worst;
     uint32_t worstSerial;
-    unsigned dumped;
+    Dump dumps[DUMP_FIRST + DUMP_WORST]; /* written at the end, in the palette of that moment:
+                                            a view is often drawn while the palette is faded
+                                            out (a map's first, combat's background) */
 } s_check;
 
+static void dump_free(Dump *d) {
+    free(d->software);
+    free(d->gpu);
+    free(d->gpu4x);
+    memset(d, 0, sizeof *d);
+}
+
+static void write_bmp(const Dump *d, const char *what, int w, int h, const uint8_t *indices) {
+    SDL_Surface *surface =
+        indices != NULL ? SDL_CreateSurface(w, h, SDL_PIXELFORMAT_XRGB8888) : NULL;
+    for (int y = 0; surface != NULL && y < h; y++) {
+        uint32_t *row = (uint32_t *)((uint8_t *)surface->pixels + (size_t)y * surface->pitch);
+        for (int x = 0; x < w; x++) {
+            const uint8_t *c =
+                g_vga.dac[indices[(size_t)y * (size_t)w + (size_t)x] & g_vga.pelMask];
+            row[x] = (uint32_t)(c[0] << 2 | c[0] >> 4) << 16 |
+                     (uint32_t)(c[1] << 2 | c[1] >> 4) << 8 | (uint32_t)(c[2] << 2 | c[2] >> 4);
+        }
+    }
+    char path[1024];
+    snprintf(path, sizeof path, "%s/%06u-%s.bmp", s_check.dump, (unsigned)d->serial, what);
+    if (surface == NULL || !SDL_SaveBMP(surface, path))
+        fprintf(stderr, "scene: %s not written: %s\n", path, SDL_GetError());
+    SDL_DestroySurface(surface);
+}
+
 static void check_report(void) {
+    for (unsigned i = 0; i < SDL_arraysize(s_check.dumps); i++) {
+        Dump *d = &s_check.dumps[i];
+        if (d->serial == 0)
+            continue;
+        write_bmp(d, "software", d->w, d->h, d->software);
+        write_bmp(d, "gpu", d->w, d->h, d->gpu);
+        write_bmp(d, "gpu4x", d->w * 4, d->h * 4, d->gpu4x);
+        dump_free(d);
+    }
     if (s_check.frames == 0) {
         fprintf(stderr, "scene: no frame drawn on the GPU\n");
         return;
@@ -667,66 +817,91 @@ static void check_report(void) {
             s_check.pixels, (unsigned)s_check.worstSerial, 100.0 * s_check.worst);
 }
 
-static void save(const char *what, uint32_t serial, int w, int h, const uint8_t *indices,
-                 size_t step) {
-    SDL_Surface *surface = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_XRGB8888);
-    if (surface == NULL)
-        return;
-    for (int y = 0; y < h; y++) {
-        uint32_t *row = (uint32_t *)((uint8_t *)surface->pixels + (size_t)y * surface->pitch);
-        for (int x = 0; x < w; x++) {
-            const uint8_t *c = g_vga.dac[indices[((size_t)y * (size_t)w + (size_t)x) * step] &
-                                          g_vga.pelMask];
-            row[x] = (uint32_t)(c[0] << 2 | c[0] >> 4) << 16 |
-                     (uint32_t)(c[1] << 2 | c[1] >> 4) << 8 | (uint32_t)(c[2] << 2 | c[2] >> 4);
-        }
+/* Where a view's pictures go, if they are kept: the first ones, then the least alike. */
+static Dump *dump_slot(double share) {
+    Dump *d = s_check.dumps, *most = NULL;
+    for (unsigned i = 0; i < SDL_arraysize(s_check.dumps); i++) {
+        if (d[i].serial == 0)
+            return &d[i];
+        if (i >= DUMP_FIRST && (most == NULL || d[i].share > most->share))
+            most = &d[i];
     }
-    char path[1024];
-    snprintf(path, sizeof path, "%s/%06u-%s.bmp", s_check.dump, (unsigned)serial, what);
-    SDL_SaveBMP(surface, path);
-    SDL_DestroySurface(surface);
+    if (most == NULL || most->share <= share)
+        return NULL;
+    dump_free(most);
+    return most;
 }
 
+/* The pixels of a picture (every step-th byte), as a block of their own. */
+static uint8_t *indices_of(const uint8_t *from, int w, int h, size_t step, size_t stride) {
+    uint8_t *to = malloc((size_t)w * (size_t)h);
+    for (int y = 0; to != NULL && y < h; y++)
+        for (int x = 0; x < w; x++)
+            to[(size_t)y * (size_t)w + (size_t)x] = from[(size_t)y * stride + (size_t)x * step];
+    return to;
+}
+
+/* A view as its page shows it: the frames its pixels' tags name (combat's actors over the
+ * background under them), compared over the pixels they own. */
 static void check_frame(const SceneFrame *f) {
     int x0 = f->clip[0], y0 = f->clip[1], w = f->clip[2] - x0 + 1, h = f->clip[3] - y0 + 1;
-    if (f->page == 0 || f->background || w <= 0 || h <= 0 || x0 < 0 || y0 < 0 || x0 + w > BAK_VGA_WIDTH ||
-        y0 + h > BAK_VGA_HEIGHT)
+    if (f->page == 0 || f->tag == 0 || w <= 0 || h <= 0 || x0 < 0 || y0 < 0 ||
+        x0 + w > BAK_VGA_WIDTH || y0 + h > BAK_VGA_HEIGHT)
         return;
+    uint8_t *page = bak_video_page(f->page);
+    const uint8_t *tags = bak_vram_tags(page);
+    static unsigned counts[256];
+    memset(counts, 0, sizeof counts);
+    for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++)
+            counts[tags[(size_t)(y0 + y) * BAK_VGA_STRIDE + (size_t)(x0 + x)]]++;
+    counts[0] = 0;
+    const SceneFrame *frames[SCENE_SHOWN_MAX + 1];
+    unsigned n = scene_frames_shown(counts, frames);
+    if (n == 0 || frames[n - 1] != f)
+        return;
+    bool owned[256] = {false};
+    for (unsigned i = 0; i < n; i++)
+        owned[frames[i]->tag] = true;
     GlSceneInputs in = {g_vga.dac, g_vga.pelMask, scene_remap_tables(), bak_video_page(0xAC00)};
     uint8_t *rgba = malloc((size_t)w * (size_t)h * 4);
-    if (rgba == NULL || !glscene_render_offscreen(f, &in, w, h, true, rgba)) {
+    if (rgba == NULL || !glscene_render_frames_offscreen(frames, &in, w, h, true, rgba)) {
         free(rgba);
         return;
     }
-    const uint8_t *page = bak_video_page(f->page);
-    unsigned long long equal = 0;
-    for (int y = 0; y < h; y++)
-        for (int x = 0; x < w; x++)
-            equal += page[(size_t)(y0 + y) * BAK_VGA_STRIDE + (size_t)(x0 + x)] ==
-                     rgba[((size_t)y * (size_t)w + (size_t)x) * 4];
-    double share = (double)equal / ((double)w * (double)h);
-    s_check.frames++;
-    s_check.pixels += (unsigned long long)w * (unsigned long long)h;
-    s_check.equal += equal;
-    if (s_check.frames == 1 || share < s_check.worst) {
-        s_check.worst = share;
-        s_check.worstSerial = f->serial;
-    }
-    if (s_check.dump != NULL && s_check.dumped < 64) {
-        s_check.dumped++;
-        uint8_t *soft = malloc((size_t)w * (size_t)h);
-        if (soft != NULL) {
-            for (int y = 0; y < h; y++)
-                memcpy(soft + (size_t)y * (size_t)w,
-                       page + (size_t)(y0 + y) * BAK_VGA_STRIDE + (size_t)x0, (size_t)w);
-            save("software", f->serial, w, h, soft, 1);
-            free(soft);
+    unsigned long long equal = 0, pixels = 0;
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            size_t at = (size_t)(y0 + y) * BAK_VGA_STRIDE + (size_t)(x0 + x);
+            if (!owned[tags[at]])
+                continue;
+            pixels++;
+            equal += page[at] == rgba[((size_t)y * (size_t)w + (size_t)x) * 4];
         }
-        save("gpu", f->serial, w, h, rgba, 4);
-        int k = 4;
+    }
+    double share = pixels != 0 ? (double)equal / (double)pixels : 1.0;
+    if (pixels != 0) {
+        s_check.frames++;
+        s_check.pixels += pixels;
+        s_check.equal += equal;
+        if (s_check.frames == 1 || share < s_check.worst) {
+            s_check.worst = share;
+            s_check.worstSerial = f->serial;
+        }
+    }
+    Dump *d = pixels != 0 && s_check.dump != NULL ? dump_slot(share) : NULL;
+    if (d != NULL) {
         uint8_t *big = malloc((size_t)w * (size_t)h * 16 * 4);
-        if (big != NULL && glscene_render_offscreen(f, &in, w * k, h * k, true, big))
-            save("gpu4x", f->serial, w * k, h * k, big, 4);
+        *d = (Dump){
+            f->serial,
+            share,
+            w,
+            h,
+            indices_of(page + (size_t)y0 * BAK_VGA_STRIDE + (size_t)x0, w, h, 1, BAK_VGA_STRIDE),
+            indices_of(rgba, w, h, 4, (size_t)w * 4),
+            NULL};
+        if (big != NULL && glscene_render_frames_offscreen(frames, &in, w * 4, h * 4, true, big))
+            d->gpu4x = indices_of(big, w * 4, h * 4, 4, (size_t)w * 16);
         free(big);
     }
     free(rgba);
@@ -737,7 +912,8 @@ static void check_init(void) {
     if (s_check.on || env == NULL || SDL_strcmp(env, "gpu") != 0)
         return;
     s_check.on = true;
-    s_check.dump = SDL_getenv("BAK_SCENE_DUMP");
+    const char *dump = SDL_getenv("BAK_SCENE_DUMP");
+    s_check.dump = dump != NULL ? SDL_strdup(dump) : NULL;
     scene_set_finished_hook(check_frame);
     atexit(check_report);
 }

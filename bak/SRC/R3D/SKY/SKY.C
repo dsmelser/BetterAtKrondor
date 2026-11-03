@@ -121,6 +121,7 @@ void sky_draw_ground_band(void) {
         draw_rect_filled(g_graphics_context.clip.xmin, g_nHorizonRowY,
                          (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1,
                          (g_graphics_context.clip.ymax - g_nHorizonRowY) + 1);
+        bak_scene_drawn();
     } else {
         bak_scene_ground(g_graphics_context.clip.xmin, g_nHorizonRowY,
                          (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1, 0xc,
@@ -128,6 +129,7 @@ void sky_draw_ground_band(void) {
                          g_vgablit_row_count);
         draw_rect_filled(g_graphics_context.clip.xmin, g_nHorizonRowY,
                          (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1, 0xc);
+        bak_scene_drawn();
     }
 
     g_renderer_vtable.pfn_fill_spans_dithered_modey = save_fill;

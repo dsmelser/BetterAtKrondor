@@ -752,6 +752,7 @@ static void submit_to_rasterizer(void) {
                       g_graphics_context.bGfx_outline_color);
     g_r3dDrawPolygon((u16)g_graphics_context.nPolygonClipVertexCount,
                      g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
+    bak_scene_drawn();
 }
 
 void r3d_polygon_submit_to_rasterizer(void) {
@@ -773,6 +774,7 @@ static void submit_textured_quad(const unsigned char *face) {
     copy_corners(n);
     bak_scene_polygon(n, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY, 1, 0, 0, 0);
     g_r3dDrawTexturedQuad(texture, g_graphics_context.pPolygonX, g_graphics_context.pPolygonY);
+    bak_scene_drawn();
 }
 
 void r3d_polygon_submit_textured_quad(void) {

@@ -1,12 +1,16 @@
 /*
- * The 3-D view in the window (M7's step 4). The picture the CRTC scans out keeps its 1x pixels,
- * but where they are a 3-D frame's (their tags: bak_video.h), the window shows the GPU's drawing
- * of that frame instead (glscene.c), at the window's resolution. Whatever the game draws over
- * the view clears the tags under it, so dialogs, portraits, the cursor and the map's icons stay
- * on top as 1x pixels; a dialog's background pasted back gives the view its tags again.
+ * The 3-D view in the window (M7's steps 4 and 5). The picture the CRTC scans out keeps its 1x
+ * pixels, but where they are a 3-D frame's (their tags: bak_video.h), the window shows the GPU's
+ * drawing of that frame instead (glscene.c), at the window's resolution. Whatever the game draws
+ * over the view, or into it besides the frame's own draws, is no frame's, so dialogs, portraits,
+ * the cursor, the map's icons and combat's lines stay on top as 1x pixels; a dialog's background
+ * pasted back gives the view its tags again.
  *
- * The frame is the one whose tag most of the picture's tagged pixels carry. Its drawing is kept
- * until the frame, the size it is drawn at or the palette changes.
+ * The frames drawn are those scene_frames_shown names from the picture's tags: the world's or a
+ * map's view, or combat's actors over its background, painted in that order. Where they leave a
+ * tagged pixel undrawn at the window's resolution (the edge of a sprite drawn over nothing), the
+ * picture shows through. The drawing is kept until the frames, the size they are drawn at or the
+ * palette change.
  */
 #include <stdio.h>
 #include <string.h>
@@ -38,9 +42,10 @@ static const char s_fragmentShader[] =
     "in vec2 v_uv;\n"
     "out vec4 o_color;\n"
     "void main() {\n"
-    "    if (texture(u_mask, v_uv).r < 0.5)\n"
+    "    vec4 view = texture(u_view, vec2(v_uv.x, 1.0 - v_uv.y));\n"
+    "    if (texture(u_mask, v_uv).r < 0.5 || view.a < 0.5)\n"
     "        discard;\n"
-    "    o_color = vec4(texture(u_view, vec2(v_uv.x, 1.0 - v_uv.y)).rgb, 1.0);\n"
+    "    o_color = vec4(view.rgb, 1.0);\n"
     "}\n";
 
 static struct {
@@ -48,7 +53,7 @@ static struct {
     GLuint program, vao, mask, color, depth, fbo;
     GLint uRect;
     int fboW, fboH;
-    uint32_t serial; /* the frame drawn, 0 for none */
+    uint32_t serials[SCENE_SHOWN_MAX]; /* the frames drawn, oldest first; 0 after the last */
     uint32_t paletteHash;
     unsigned shown, drawn; /* for BAK_TRACE */
 } s;
@@ -84,7 +89,7 @@ static void drop_target(void) {
     }
     s.fbo = s.color = s.depth = 0;
     s.fboW = s.fboH = 0;
-    s.serial = 0;
+    memset(s.serials, 0, sizeof s.serials);
 }
 
 void glview_close(void) {
@@ -102,12 +107,16 @@ void glview_close(void) {
     memset(&s, 0, sizeof s);
 }
 
-/* The GPU's drawing of the frame at w x h, into the target kept for it. */
-static bool draw_frame(const SceneFrame *f, int w, int h, const uint8_t (*dac)[3],
-                       uint8_t pelMask) {
+/* The GPU's drawing of the frames (NULL-ended, oldest first) at w x h, into the target kept for
+ * it. */
+static bool draw_frames(const SceneFrame *const *frames, int w, int h, const uint8_t (*dac)[3],
+                        uint8_t pelMask) {
     uint32_t palette = platform_hash(pelMask, dac, 256 * 3);
-    if (s.fbo != 0 && s.fboW == w && s.fboH == h && s.serial == f->serial &&
-        s.paletteHash == palette)
+    uint32_t serials[SCENE_SHOWN_MAX] = {0};
+    for (unsigned i = 0; i < SCENE_SHOWN_MAX && frames[i] != NULL; i++)
+        serials[i] = frames[i]->serial;
+    if (s.fbo != 0 && s.fboW == w && s.fboH == h && s.paletteHash == palette &&
+        memcmp(s.serials, serials, sizeof serials) == 0)
         return true;
     if (s.fbo == 0 || s.fboW != w || s.fboH != h) {
         drop_target();
@@ -138,9 +147,10 @@ static bool draw_frame(const SceneFrame *f, int w, int h, const uint8_t (*dac)[3
     }
     GlSceneInputs in = {dac, pelMask, scene_remap_tables(), bak_video_page(0xAC00)};
     g_gl.BindFramebuffer(GL_FRAMEBUFFER, s.fbo);
-    glscene_draw(f, &in, 0, 0, w, h, false);
+    for (unsigned i = 0; i < SCENE_SHOWN_MAX && frames[i] != NULL; i++)
+        glscene_draw(frames[i], &in, 0, 0, w, h, i > 0 ? GLSCENE_OVER : 0u);
     g_gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
-    s.serial = f->serial;
+    memcpy(s.serials, serials, sizeof serials);
     s.paletteHash = palette;
     s.drawn++;
     return true;
@@ -150,23 +160,22 @@ bool glview_draw(const uint8_t *tags, int w, int h, const SDL_FRect *r, int outW
                  const uint8_t (*dac)[3], uint8_t pelMask) {
     if (!s.open || r->w <= 0 || r->h <= 0)
         return false;
-    /* the frame most of the tagged pixels are */
+    /* the frames the tagged pixels show */
     static unsigned counts[256];
     memset(counts, 0, sizeof counts);
     for (int i = 0; i < w * h; i++)
         counts[tags[i]]++;
-    unsigned tag = 0, most = 0;
-    for (unsigned t = 1; t < 256; t++) {
-        if (counts[t] > most) {
-            most = counts[t];
-            tag = t;
-        }
+    counts[0] = 0;
+    const SceneFrame *frames[SCENE_SHOWN_MAX + 1];
+    unsigned n = scene_frames_shown(counts, frames), shown = 0;
+    bool drawn[256] = {false};
+    for (unsigned i = 0; i < n; i++) {
+        drawn[frames[i]->tag] = true;
+        shown += counts[frames[i]->tag];
     }
-    if (most < 64)
+    if (n == 0 || shown < 64)
         return false;
-    const SceneFrame *f = scene_frame_tagged((uint8_t)tag);
-    if (f == NULL || f->background)
-        return false;
+    const SceneFrame *f = frames[n - 1];
     int x0 = SDL_max(f->clip[0], 0), y0 = SDL_max(f->clip[1], 0);
     int x1 = SDL_min(f->clip[2], w - 1), y1 = SDL_min(f->clip[3], h - 1);
     int vw = x1 - x0 + 1, vh = y1 - y0 + 1;
@@ -178,7 +187,7 @@ bool glview_draw(const uint8_t *tags, int w, int h, const SDL_FRect *r, int outW
     float left = r->x + (float)x0 * sx, top = r->y + (float)y0 * sy;
     float width = (float)vw * sx, height = (float)vh * sy;
     int dw = (int)SDL_roundf(width), dh = (int)SDL_roundf(height);
-    if (dw <= 0 || dh <= 0 || !draw_frame(f, dw, dh, dac, pelMask))
+    if (dw <= 0 || dh <= 0 || !draw_frames(frames, dw, dh, dac, pelMask))
         return false;
 
     static uint8_t mask[BAK_VGA_WIDTH * 480];
@@ -186,7 +195,7 @@ bool glview_draw(const uint8_t *tags, int w, int h, const SDL_FRect *r, int outW
         return false;
     for (int y = 0; y < vh; y++)
         for (int x = 0; x < vw; x++)
-            mask[y * vw + x] = tags[(y0 + y) * w + x0 + x] == tag ? 0xff : 0;
+            mask[y * vw + x] = drawn[tags[(y0 + y) * w + x0 + x]] ? 0xff : 0;
     g_gl.ActiveTexture(GL_TEXTURE1);
     g_gl.BindTexture(GL_TEXTURE_2D, s.mask);
     g_gl.PixelStorei(GL_UNPACK_ALIGNMENT, 1);

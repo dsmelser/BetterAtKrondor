@@ -24,13 +24,22 @@ typedef struct GlSceneInputs {
 /* In the current OpenGL 3.3 context (glpresent_open's); false, having said why, if it cannot. */
 bool glscene_open(void);
 void glscene_close(void);
+
+enum {
+    GLSCENE_INDICES = 1, /* each pixel's palette index comes out as red / 255, not its colour */
+    GLSCENE_OVER = 2,    /* drawn over what is there (a frame painted over another), whose
+                            depths it does not test against */
+};
 /* The frame's view (its clip rectangle) into the framebuffer bound, at x, y, w, h of its pixels
- * (GL's: y from the bottom). With indices the palette index of each pixel comes out as red /
- * 255 instead of its colour. */
+ * (GL's: y from the bottom). What it does not draw is cleared to transparent black, unless it
+ * is drawn over what is there. */
 void glscene_draw(const SceneFrame *frame, const GlSceneInputs *in, int x, int y, int w, int h,
-                  bool indices);
+                  unsigned flags);
 /* The same off-screen at w x h, read back as RGBA, the top row first. */
 bool glscene_render_offscreen(const SceneFrame *frame, const GlSceneInputs *in, int w, int h,
                               bool indices, uint8_t *rgba);
+/* Frames (a NULL-ended list) so, each drawn over the one before it. */
+bool glscene_render_frames_offscreen(const SceneFrame *const *frames, const GlSceneInputs *in,
+                                     int w, int h, bool indices, uint8_t *rgba);
 
 #endif

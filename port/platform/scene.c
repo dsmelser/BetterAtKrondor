@@ -6,6 +6,12 @@
  * renderers theirs (WORLDRND.C), and the sky renderer its bands and panorama (SKYREND.C, SKY.C).
  * Nothing is kept unless asked: scene_enable, or BAK_SCENE_CHECK.
  *
+ * A frame the window shows (bak_scene_view) has a tag, and so has each pixel its draws write
+ * (bak_video.h): from the hook that describes a draw to bak_scene_drawn after it, and only when
+ * the hook took the draw in, so that whatever the pass draws besides (the cursor, combat's lines,
+ * a shadow, a spell's sparks) stays the picture's own. No two frames kept have the same tag:
+ * combat's background is drawn once and copied under hundreds of frames of its actors.
+ *
  * With BAK_SCENE_CHECK set, what it is handed is checked. A face that reached its sink whole (no
  * near clip, no viewport clip, as many corners) must be its corners projected, in order, with
  * the zone's focal length and the viewport's centre; a clipped one must keep those of its
@@ -322,6 +328,7 @@ static void frame_clear(SceneFrame *f) {
     SceneItem *items = f->items;
     SceneVertex *vertices = f->vertices;
     SceneObject *objects = f->objects;
+    uint8_t *ground = f->ground;
     uint32_t itemCap = f->itemCap, vertexCap = f->vertexCap, objectCap = f->objectCap;
     memset(f, 0, sizeof *f);
     f->items = items;
@@ -330,13 +337,25 @@ static void frame_clear(SceneFrame *f) {
     f->vertexCap = vertexCap;
     f->objects = objects;
     f->objectCap = objectCap;
+    f->ground = ground;
 }
 
 static void frame_free(SceneFrame *f) {
     free(f->items);
     free(f->vertices);
     free(f->objects);
+    free(f->ground);
     memset(f, 0, sizeof *f);
+}
+
+/* The frame reads the ground's strip texture: as it is now, whatever the page holds later. */
+static void note_ground(void) {
+    if (s_build.hasGround)
+        return;
+    if (s_build.ground == NULL && (s_build.ground = malloc(0x10000)) == NULL)
+        return;
+    memcpy(s_build.ground, bak_video_page(0xAC00), 0x10000);
+    s_build.hasGround = true;
 }
 
 /* A face still waiting for its sink never reached one. */
@@ -384,12 +403,29 @@ const uint8_t *scene_remap_tables(void) {
     return g_polyrastTables;
 }
 
+static bool tag_kept(uint8_t tag) {
+    for (unsigned i = 0; i < PAGES; i++)
+        if (s_done[i].serial != 0 && s_done[i].tag == tag)
+            return true;
+    return false;
+}
+
 void bak_scene_view(void) {
     if (!bak_scene_capturing())
         return;
-    s_lastTag = (uint8_t)(s_lastTag % 255 + 1);
+    do
+        s_lastTag = (uint8_t)(s_lastTag % 255 + 1);
+    while (tag_kept(s_lastTag));
     s_build.tag = s_lastTag;
-    g_bakVramTagNow = s_lastTag;
+}
+
+/* The draw a hook took in carries its frame's tag. */
+static void tag_draw(void) {
+    g_bakVramTagNow = s_build.tag;
+}
+
+void bak_scene_drawn(void) {
+    g_bakVramTagNow = 0;
 }
 
 void bak_scene_end(void) {
@@ -402,6 +438,34 @@ const SceneFrame *scene_frame_tagged(uint8_t tag) {
         if (s_done[i].serial != 0 && s_done[i].tag == tag && tag != 0)
             return &s_done[i];
     return NULL;
+}
+
+unsigned scene_frames_shown(const unsigned counts[256],
+                            const SceneFrame *out[SCENE_SHOWN_MAX + 1]) {
+    const SceneFrame *named[PAGES];
+    unsigned n = 0;
+    for (unsigned i = 0; i < PAGES; i++) {
+        const SceneFrame *f = &s_done[i];
+        if (f->serial == 0 || f->tag == 0 || counts[f->tag] == 0)
+            continue;
+        unsigned at = n++; /* newest first */
+        for (; at > 0 && named[at - 1]->serial < f->serial; at--)
+            named[at] = named[at - 1];
+        named[at] = f;
+    }
+    unsigned k = 0;
+    while (k < n && k < SCENE_SHOWN_MAX) {
+        const SceneFrame *f = named[k];
+        if (k > 0 && memcmp(f->clip, named[0]->clip, sizeof f->clip) != 0)
+            break;
+        k++;
+        if (f->skyCount != 0)
+            break; /* it covers its view: what is older lies under it */
+    }
+    for (unsigned i = 0; i < k; i++)
+        out[i] = named[k - 1 - i];
+    out[k] = NULL;
+    return k;
 }
 
 void scene_page_flipped(uint16_t page) {
@@ -618,6 +682,7 @@ void bak_scene_polygon(unsigned n, const int16_t *xs, const int16_t *ys, _Bool t
     SceneItem *it = &s_build.items[s_pending.item];
     bool whole = !f->nearClipped && !f->viewportClipped && n == f->corners;
     s_pending.atSink = true;
+    tag_draw();
     it->whole = whole;
     it->rect[0] = it->rect[2] = n > 0 ? xs[0] : 0;
     it->rect[1] = it->rect[3] = n > 0 ? ys[0] : 0;
@@ -781,6 +846,7 @@ void bak_scene_strip(uint16_t siBase, int16_t stride, uint16_t rowSub, uint16_t 
         return;
     it->striped = 1;
     it->strip = (SceneStrip){siBase, stride, rowSub, rowCount};
+    note_ground();
     s_counts.strips++;
 }
 
@@ -820,6 +886,7 @@ void bak_scene_billboard(const struct ImageRecord *image, const int16_t anchor[3
     SceneItem *it = new_item(SCENE_BILLBOARD);
     if (it == NULL)
         return;
+    tag_draw();
     double scale = ldexp(1.0, unitShift);
     it->fate = SCENE_DRAWN;
     it->texture =
@@ -844,6 +911,7 @@ void bak_scene_circle(const int16_t centre[3], int unitShift, int16_t x, int16_t
     SceneItem *it = new_item(SCENE_CIRCLE);
     if (it == NULL)
         return;
+    tag_draw();
     double scale = ldexp(1.0, unitShift);
     it->fate = SCENE_DRAWN;
     it->fill = colour;
@@ -870,6 +938,7 @@ static SceneSkyOp *sky_op(uint8_t kind) {
     SceneSkyOp *op = &s_build.sky[s_build.skyCount++];
     memset(op, 0, sizeof *op);
     op->kind = kind;
+    tag_draw();
     return op;
 }
 
@@ -889,14 +958,18 @@ void bak_scene_horizon(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t r
 void bak_scene_sky_band(int16_t y, int16_t rows, uint8_t colour) {
     SceneSkyOp *op = sky_op(SCENE_SKY_BAND);
     if (op != NULL)
-        *op = (SceneSkyOp){SCENE_SKY_BAND, colour, 13, y, 294, rows};
+        *op = (SceneSkyOp){
+            .kind = SCENE_SKY_BAND, .colour = colour, .x = 13, .y = y, .w = 294, .h = rows};
 }
 
 void bak_scene_sky_shaded(int16_t lastRowOffset, int16_t rows) {
     SceneSkyOp *op = sky_op(SCENE_SKY_SHADED);
     if (op != NULL)
-        *op = (SceneSkyOp){
-            SCENE_SKY_SHADED, 0, 13, (int16_t)(lastRowOffset / 0x50 - rows + 1), 294, rows};
+        *op = (SceneSkyOp){.kind = SCENE_SKY_SHADED,
+                           .x = 13,
+                           .y = (int16_t)(lastRowOffset / 0x50 - rows + 1),
+                           .w = 294,
+                           .h = rows};
 }
 
 void bak_scene_sky_sprite(const struct ImageRecord *image, int16_t x, int16_t y) {
@@ -913,17 +986,31 @@ void bak_scene_sky_sprite(const struct ImageRecord *image, int16_t x, int16_t y)
     }
 }
 
-void bak_scene_sky_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t colour) {
+void bak_scene_sky_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint8_t colour,
+                        uint8_t dither) {
     SceneSkyOp *op = sky_op(SCENE_SKY_RECT);
     if (op != NULL)
-        *op = (SceneSkyOp){SCENE_SKY_RECT, colour, x, y, w, h};
+        *op = (SceneSkyOp){.kind = SCENE_SKY_RECT,
+                           .colour = colour,
+                           .dither = dither,
+                           .x = x,
+                           .y = y,
+                           .w = w,
+                           .h = h};
 }
 
 void bak_scene_ground(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t siBase, int16_t stride,
                       uint16_t rowSub, uint16_t rowCount) {
     SceneSkyOp *op = sky_op(SCENE_SKY_GROUND);
-    if (op != NULL)
-        *op = (SceneSkyOp){SCENE_SKY_GROUND, 0, x, y, w, h, 0, {siBase, stride, rowSub, rowCount}};
+    if (op == NULL)
+        return;
+    *op = (SceneSkyOp){.kind = SCENE_SKY_GROUND,
+                       .x = x,
+                       .y = y,
+                       .w = w,
+                       .h = h,
+                       .strip = {siBase, stride, rowSub, rowCount}};
+    note_ground();
 }
 
 /* ---- the report ------------------------------------------------------------------- */

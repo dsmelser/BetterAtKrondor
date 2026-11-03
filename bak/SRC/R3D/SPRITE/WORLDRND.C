@@ -140,6 +140,7 @@ static void billboard_blit(s16 *vec3, s16 nScrX, s16 nScrY) {
                         (u16)g_nActorSpriteFlip, g_polyRasterState.nRemapTableOff);
     emsimg_sprite_blit_scaled_paged(g_pBillboardSpriteImg, g_nBillboardScrX, g_nBillboardScrY,
                                     g_nActorSpriteFlip, g_nBillboardW, g_nBillboardH);
+    bak_scene_drawn();
 }
 
 /* The textured quad's blit, handed to the port's scene capture first. */
@@ -378,6 +379,7 @@ void worldrender_world_point_as_circ(CircObj far *obj) {
             bak_scene_circle(out_vec3, g_abR3dState.bMeshRenormCount, nScreenX, nScreenY, radius,
                              g_graphics_context.bGfx_fill_color);
             draw_circle(radius, nScreenX, nScreenY);
+            bak_scene_drawn();
             g_graphics_context.bClip_enabled = 0;
         }
     }

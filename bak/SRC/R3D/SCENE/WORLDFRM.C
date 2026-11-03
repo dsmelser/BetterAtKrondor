@@ -227,11 +227,16 @@ void far worldframe_render_chapter_full(void) {
     r3d_camera_setup_view(g_world_widget);
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
         g_graphics_context.wVgaPage2Base;
+    bak_scene_view(); /* the map's view (bak_port.h) */
     g_graphics_context.bGfx_fill_enabled = 1;
     g_graphics_context.bGfx_outline_color = g_graphics_context.bGfx_fill_color = g_wSkyColorG;
     g_graphics_context.bGfx_dither_color = g_wSkyColorB;
+    bak_scene_sky_rect(g_world_widget->viewport.x, g_world_widget->viewport.y,
+                       g_world_widget->viewport.width, g_world_widget->viewport.height,
+                       g_graphics_context.bGfx_fill_color, g_graphics_context.bGfx_dither_color);
     draw_rect_filled(g_world_widget->viewport.x, g_world_widget->viewport.y,
                      g_world_widget->viewport.width, g_world_widget->viewport.height);
+    bak_scene_drawn();
     g_graphics_context.bGfx_dither_color = 0;
     proxscan_all_zones_for_encounter(g_world_widget);
     vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
@@ -330,6 +335,7 @@ void far worldframe_chapter_tick_objects(void) {
     r3d_camera_setup_view(g_world_widget);
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
         g_graphics_context.wVgaPage2Base;
+    bak_scene_view(); /* its pixels are the world's view (bak_port.h) */
     skyrender_sky_and_ground(g_wSkyColorR, g_wSkyColorG, g_wSkyColorB, g_camViewAngles.yaw,
                              g_camViewAngles.pitch);
     proxscan_full(g_world_widget);
@@ -435,6 +441,7 @@ void far worldframe_chapter_tick_objects(void) {
         slot_ptr++;
         plDist++;
     }
+    bak_scene_end();
     return;
 }
 

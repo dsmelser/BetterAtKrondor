@@ -204,11 +204,16 @@ void world_render_frame_full(void) {
     r3d_camera_setup_view(g_world_widget);
     g_graphics_context.wGfxBlitDstPage = g_graphics_context.wGfxBlitSrcPage =
         g_graphics_context.wVgaPage2Base;
+    bak_scene_view(); /* the map's view (bak_port.h) */
     g_graphics_context.bGfx_fill_enabled = 1;
     g_graphics_context.bGfx_outline_color = g_graphics_context.bGfx_fill_color = g_wSkyColorG;
     g_graphics_context.bGfx_dither_color = g_wSkyColorB;
+    bak_scene_sky_rect(g_world_widget->viewport.x, g_world_widget->viewport.y,
+                       g_world_widget->viewport.width, g_world_widget->viewport.height,
+                       g_graphics_context.bGfx_fill_color, g_graphics_context.bGfx_dither_color);
     draw_rect_filled(g_world_widget->viewport.x, g_world_widget->viewport.y,
                      g_world_widget->viewport.width, g_world_widget->viewport.height);
+    bak_scene_drawn();
     g_graphics_context.bGfx_dither_color = 0;
     proxscan_all_zones_for_encounter(g_world_widget);
     vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
@@ -495,8 +500,10 @@ void far world_render_with_overlay(s16 cursor_kind, WorldObject *focus) {
     g_render_camera_scratch->base.orientation.yaw = 0;
     g_render_camera_scratch->base.orientation.roll = 0;
     r3d_camera_setup_view(g_active_window);
+    bak_scene_view(); /* combat's view over its background (bak_port.h) */
     world_render_actor_at_position(cursor_kind, g_cursor_tile_x, g_cursor_tile_y);
     combat_actor_grid_render(focus);
+    bak_scene_end();
     combat_arena_tick_status_timers();
     do {
     } while (g_nFrameTickCountdown != 0);
@@ -517,8 +524,6 @@ void far world_render_view(s16 force_overlay, s16 chapter_split) {
     g_graphics_context.bClip_enabled = 0;
     g_graphics_context.bGfx_fill_enabled = 1;
     g_graphics_context.bGfx_outline_color = g_graphics_context.bGfx_fill_color = 0;
-    draw_rect_filled(g_active_window->viewport.x, g_active_window->viewport.y,
-                     g_active_window->viewport.width, g_active_window->viewport.height);
 
     g_render_camera_scratch->base.pos.xy.nWorld_x = g_world_camera->base.pos.xy.nWorld_x;
     g_render_camera_scratch->base.pos.xy.nWorld_y = g_world_camera->base.pos.xy.nWorld_y;
@@ -538,6 +543,18 @@ void far world_render_view(s16 force_overlay, s16 chapter_split) {
     }
 
     r3d_camera_setup_view(g_active_window);
+    /* Combat's background, which its frames are drawn over, is a view the window shows
+       (bak_port.h); the passes whose pixels are read back (force_overlay) are not. The original
+       fills the viewport before it sets the camera up, which neither reads nor changes. */
+    if (force_overlay == 0) {
+        bak_scene_view();
+    }
+    bak_scene_sky_rect(g_active_window->viewport.x, g_active_window->viewport.y,
+                       g_active_window->viewport.width, g_active_window->viewport.height,
+                       g_graphics_context.bGfx_fill_color, g_graphics_context.bGfx_dither_color);
+    draw_rect_filled(g_active_window->viewport.x, g_active_window->viewport.y,
+                     g_active_window->viewport.width, g_active_window->viewport.height);
+    bak_scene_drawn();
     proxscan_visibility(g_active_window);
     vislist_sort(g_ppVisibleEntries, g_pVisibleEntryDistances,
                  g_nVisibleEntryCount);
@@ -556,6 +573,7 @@ void far world_render_view(s16 force_overlay, s16 chapter_split) {
         }
         actorrender_entity(pVis);
     }
+    bak_scene_end();
 
     if (g_encounter_id == 0x221 && g_bForceOverlay == 0) {
         resblit_load_pal_or_stream("fcombat.scx");

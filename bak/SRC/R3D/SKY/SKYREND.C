@@ -114,10 +114,11 @@ static void skyrender_horizon_fill_clip_rect(unsigned char reject_mask) {
     bak_scene_sky_rect(g_graphics_context.clip.xmin, g_graphics_context.clip.ymin,
                        (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1,
                        (g_graphics_context.clip.ymax - g_graphics_context.clip.ymin) + 1,
-                       g_graphics_context.bGfx_fill_color);
+                       g_graphics_context.bGfx_fill_color, g_graphics_context.bGfx_dither_color);
     draw_rect_filled(g_graphics_context.clip.xmin, g_graphics_context.clip.ymin,
                      (g_graphics_context.clip.xmax - g_graphics_context.clip.xmin) + 1,
                      (g_graphics_context.clip.ymax - g_graphics_context.clip.ymin) + 1);
+    bak_scene_drawn();
     return;
 }
 
@@ -179,6 +180,7 @@ static void skyrender_sky_ground_bands(void) {
         vgaplanar_fill_band(g_graphics_context.clip.ymin,
                             g_nClipLineY0 - g_graphics_context.clip.ymin,
                             (char)g_graphics_context.bGfx_outline_color);
+        bak_scene_drawn();
         screen_cur_refr_during_long_op();
     }
 
@@ -189,6 +191,7 @@ static void skyrender_sky_ground_bands(void) {
                                g_bZoneGroundColor);
             vgaplanar_fill_band(g_nClipLineY1, (g_graphics_context.clip.ymax - g_nClipLineY1) + 1,
                                 (u16)g_bZoneGroundColor);
+            bak_scene_drawn();
         } else {
             sky_draw_ground_band();
         }
@@ -199,25 +202,30 @@ static void skyrender_sky_ground_bands(void) {
     if ((g_wZoneFlags & 1) != 0) {
         bak_scene_sky_band(g_nClipLineY0, g_nClipLineY1 - g_nClipLineY0, g_bZoneSkyColor);
         vgaplanar_fill_band(g_nClipLineY0, g_nClipLineY1 - g_nClipLineY0, (u16)g_bZoneSkyColor);
+        bak_scene_drawn();
     } else if (g_engine_prefs->detail_level != 0) {
 
         uScroll = g_world_camera->base.orientation.yaw >> 6 & 0xff;
         uQuad = -g_world_camera->base.orientation.yaw - 1 >> 0xe & 3;
         bak_scene_sky_sprite(g_pSkyPanoAssetTable[uQuad], uScroll, g_nClipLineY0);
         emsimg_putsprite_ems_swap(g_pSkyPanoAssetTable[uQuad], uScroll, g_nClipLineY0);
+        bak_scene_drawn();
         screen_cur_refr_during_long_op();
         bak_scene_sky_sprite(g_pSkyPanoAssetTable[uQuad + 1 & 3], uScroll + 0x100, g_nClipLineY0);
         emsimg_putsprite_ems_swap(g_pSkyPanoAssetTable[uQuad + 1 & 3], uScroll + 0x100,
                                   g_nClipLineY0);
+        bak_scene_drawn();
         screen_cur_refr_during_long_op();
         bak_scene_sky_sprite(g_pSkyPanoAssetTable[uQuad - 1 & 3], uScroll + 0xff00,
                              g_nClipLineY0);
         emsimg_putsprite_ems_swap(g_pSkyPanoAssetTable[uQuad - 1 & 3], uScroll + 0xff00,
                                   g_nClipLineY0);
+        bak_scene_drawn();
         screen_cur_refr_during_long_op();
     } else {
         bak_scene_sky_shaded(g_nClipLineY1 * 0x50 - 0x50, g_nClipLineY1 - g_nClipLineY0);
         vgaplanar_clear_column_strip(g_nClipLineY1 * 0x50 - 0x50, g_nClipLineY1 - g_nClipLineY0);
+        bak_scene_drawn();
     }
 
     g_nClipLineY0 = sSaveY0;
